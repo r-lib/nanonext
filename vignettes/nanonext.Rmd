@@ -222,7 +222,7 @@ In this example the calculation is returned, but other operations may reside ent
 
 In such a case, calling or querying the value confirms that the operation has completed, and provides the return value of the function, which may typically be NULL or an exit code.
 
-The [`mirai`](https://doi.org/10.5281/zenodo.7912722) package (<https://shikokuchuo.net/mirai/>) uses `nanonext` as the back-end to provide asynchronous execution of arbitrary R code using the RPC model.
+The [`mirai`](https://doi.org/10.5281/zenodo.7912722) package (<https://r-lib.github.io/mirai/>) uses `nanonext` as the back-end to provide asynchronous execution of arbitrary R code using the RPC model.
 
 [&laquo; Back to ToC](#table-of-contents)
 

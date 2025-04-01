@@ -17,13 +17,15 @@ Authors@R:
              role = c("aut", "cre"),
              email = "charlie.gao@shikokuchuo.net",
              comment = c(ORCID = "0000-0002-0750-061X")),
+      person(given = "Posit Software, PBC",
+             role = c("cph", "fnd")),
       person(given = "Hibiki AI Limited",
              role = "cph"),
       person(given = "R Consortium",
              role = "fnd"))
 License: GPL (>= 3)
-BugReports: https://github.com/shikokuchuo/nanonext/issues
-URL: https://shikokuchuo.net/nanonext/, https://github.com/shikokuchuo/nanonext/
+BugReports: https://github.com/r-lib/nanonext/issues
+URL: https://r-lib.github.io/nanonext/, https://github.com/r-lib/nanonext
 Encoding: UTF-8
 SystemRequirements: 'libnng' >= 1.9 and 'libmbedtls' >= 2.5, or 'cmake' and 'xz'
     to compile NNG and/or Mbed TLS included in package sources
@@ -36,5 +38,6 @@ Suggests:
     litedown
 VignetteBuilder: litedown
 RoxygenNote: 7.3.2
-Config/build/compilation-database: true
 Roxygen: list(markdown = TRUE)
+Config/build/compilation-database: true
+Config/Needs/website: tidyverse/tidytemplate
