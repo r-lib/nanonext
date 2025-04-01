@@ -2,9 +2,6 @@ url: https://r-lib.github.io/nanonext/
 template:
   package: tidytemplate
   bootstrap: 5
-navbar:
-  structure:
-    right: [search, github, lightswitch]
 reference:
 - contents:
   - nanonext-package
