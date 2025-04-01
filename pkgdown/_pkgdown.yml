@@ -1,4 +1,4 @@
-url: https://shikokuchuo.net/nanonext/
+url: https://r-lib.github.io/nanonext/
 template:
   bootstrap: 5
   bslib:
@@ -8,12 +8,7 @@ template:
   light-switch: true
 navbar:
   structure:
-    right: [search, github, home, lightswitch]
-  components:
-    home:
-      icon: fa-cube
-      href: https://shikokuchuo.net/
-      aria-label: shikokuchuo
+    right: [search, github, lightswitch]
 reference:
 - contents:
   - nanonext-package

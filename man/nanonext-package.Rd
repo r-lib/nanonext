@@ -88,9 +88,9 @@ Mbed TLS: \url{https://www.trustedfirmware.org/projects/mbed-tls/}
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://shikokuchuo.net/nanonext/}
-  \item \url{https://github.com/shikokuchuo/nanonext/}
-  \item Report bugs at \url{https://github.com/shikokuchuo/nanonext/issues}
+  \item \url{https://r-lib.github.io/nanonext/}
+  \item \url{https://github.com/r-lib/nanonext}
+  \item Report bugs at \url{https://github.com/r-lib/nanonext/issues}
 }
 
 }

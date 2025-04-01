@@ -1,16 +1,16 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# nanonext <a href="https://shikokuchuo.net/nanonext/" alt="nanonext"><img src="man/figures/logo.png" alt="nanonext logo" align="right" width="120" /></a>
+# nanonext <a href="https://r-lib.github.io/nanonext/" alt="nanonext"><img src="man/figures/logo.png" alt="nanonext logo" align="right" width="120" /></a>
 
 <!-- badges: start -->
 
 [![CRAN
 status](https://www.r-pkg.org/badges/version/nanonext)](https://CRAN.R-project.org/package=nanonext)
 [![R-universe
-status](https://shikokuchuo.r-universe.dev/badges/nanonext?color=3f72af)](https://shikokuchuo.r-universe.dev/nanonext)
-[![R-CMD-check](https://github.com/shikokuchuo/nanonext/workflows/R-CMD-check/badge.svg)](https://github.com/shikokuchuo/nanonext/actions)
-[![codecov](https://codecov.io/gh/shikokuchuo/nanonext/graph/badge.svg)](https://app.codecov.io/gh/shikokuchuo/nanonext)
+status](https://r-lib.r-universe.dev/badges/nanonext?color=3f72af)](https://r-lib.r-universe.dev/nanonext)
+[![R-CMD-check](https://github.com/r-lib/nanonext/workflows/R-CMD-check/badge.svg)](https://github.com/r-lib/nanonext/actions)
+[![codecov](https://codecov.io/gh/r-lib/nanonext/graph/badge.svg)](https://app.codecov.io/gh/r-lib/nanonext)
 [![DOI](https://zenodo.org/badge/451104675.svg)](https://zenodo.org/badge/latestdoi/451104675)
 <!-- badges: end -->
 
@@ -21,11 +21,11 @@ Protocols’, a standard for common communications patterns including
 publish/subscribe, request/reply and service discovery.
 
 As its own [threaded concurrency
-framework](https://shikokuchuo.net/nanonext/articles/nanonext.html#async-and-concurrency),
+framework](https://r-lib.github.io/nanonext/articles/nanonext.html#async-and-concurrency),
 provides a toolkit for asynchronous programming and distributed
 computing. Intuitive ‘aio’ objects resolve automatically when
 asynchronous operations complete, and [synchronisation
-primitives](https://shikokuchuo.net/nanonext/articles/nanonext.html#synchronisation-primitives)
+primitives](https://r-lib.github.io/nanonext/articles/nanonext.html#synchronisation-primitives)
 allow R to wait upon events signalled by concurrent threads.
 
 Designed for performance and reliability,
@@ -36,7 +36,7 @@ entirely in C.
 Provides the interface for code and processes to communicate with each
 other - [receive data generated in Python, perform analysis in R, and
 send results to a C++
-program](https://shikokuchuo.net/nanonext/articles/nanonext.html#cross-language-exchange)
+program](https://r-lib.github.io/nanonext/articles/nanonext.html#cross-language-exchange)
 – on the same computer or across networks spanning the globe.
 
 Implemented scalability protocols:
@@ -45,11 +45,11 @@ Implemented scalability protocols:
 - Pair (two-way radio)
 - Poly (one-to-one of many)
 - Push/Pull (one-way pipeline)
-- [Publisher/Subscriber](https://shikokuchuo.net/nanonext/articles/nanonext.html#publisher-subscriber-model)
+- [Publisher/Subscriber](https://r-lib.github.io/nanonext/articles/nanonext.html#publisher-subscriber-model)
   (topics & broadcast)
-- [Request/Reply](https://shikokuchuo.net/nanonext/articles/nanonext.html#rpc-and-distributed-computing)
+- [Request/Reply](https://r-lib.github.io/nanonext/articles/nanonext.html#rpc-and-distributed-computing)
   (RPC)
-- [Surveyor/Respondent](https://shikokuchuo.net/nanonext/articles/nanonext.html#surveyor-respondent-model)
+- [Surveyor/Respondent](https://r-lib.github.io/nanonext/articles/nanonext.html#surveyor-respondent-model)
   (voting & service discovery)
 
 Supported transports:
@@ -58,7 +58,7 @@ Supported transports:
 - IPC (inter-process)
 - TCP (IPv4 or IPv6)
 - WebSocket
-- [TLS](https://shikokuchuo.net/nanonext/articles/nanonext.html#tls-secure-connections)
+- [TLS](https://r-lib.github.io/nanonext/articles/nanonext.html#tls-secure-connections)
   (over TCP and WebSocket)
 
 Development of the TLS implementation was generously supported by the
@@ -67,9 +67,9 @@ Development of the TLS implementation was generously supported by the
 
 Web utilities:
 
-- [ncurl](https://shikokuchuo.net/nanonext/articles/nanonext.html#ncurl-async-http-client) -
+- [ncurl](https://r-lib.github.io/nanonext/articles/nanonext.html#ncurl-async-http-client) -
   (async) http(s) client
-- [stream](https://shikokuchuo.net/nanonext/articles/nanonext.html#stream-websocket-client) -
+- [stream](https://r-lib.github.io/nanonext/articles/nanonext.html#stream-websocket-client) -
   secure websockets client / generic low-level socket interface
 - `messenger()` - console-based instant messaging with authentication
 
@@ -147,7 +147,7 @@ nano2$recv()
 ### Vignette
 
 Please refer to the [nanonext
-vignette](https://shikokuchuo.net/nanonext/articles/nanonext.html) for
+vignette](https://r-lib.github.io/nanonext/articles/nanonext.html) for
 full package functionality.
 
 This may be accessed within R by:
@@ -167,7 +167,7 @@ install.packages("nanonext")
 Or the current development version from R-universe:
 
 ``` r
-install.packages("nanonext", repos = "https://shikokuchuo.r-universe.dev")
+install.packages("nanonext", repos = "https://r-lib.r-universe.dev")
 ```
 
 ### Building from Source
@@ -232,7 +232,7 @@ We would like to acknowledge in particular:
 
 Links:
 
-◈ nanonext R package: <https://shikokuchuo.net/nanonext/>
+◈ nanonext R package: <https://r-lib.github.io/nanonext/>
 
 nanonext is listed in CRAN Task Views:
 
@@ -246,5 +246,5 @@ NNG: <https://nng.nanomsg.org/><br /> Mbed TLS:
 –
 
 Please note that this project is released with a [Contributor Code of
-Conduct](https://shikokuchuo.net/nanonext/CODE_OF_CONDUCT.html). By
+Conduct](https://r-lib.github.io/nanonext/CODE_OF_CONDUCT.html). By
 participating in this project you agree to abide by its terms.
