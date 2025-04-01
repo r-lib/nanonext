@@ -3,7 +3,7 @@ pkgdown: 2.1.1
 pkgdown_sha: ~
 articles:
   nanonext: nanonext.html
-last_built: 2025-04-01T19:56Z
+last_built: 2025-04-01T20:20Z
 urls:
   reference: https://r-lib.github.io/nanonext/reference
   article: https://r-lib.github.io/nanonext/articles
