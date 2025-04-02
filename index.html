@@ -21,7 +21,8 @@
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="NNG (Nanomsg Next Gen) Lightweight Messaging Library">
 <meta name="description" content="R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. NNG is a socket library for reliable, high-performance messaging over in-process, IPC, TCP, WebSocket and secure TLS transports. Implements Scalability Protocols, a standard for common communications patterns including publish/subscribe, request/reply and service discovery. As its own threaded concurrency framework, provides a toolkit for asynchronous programming and distributed computing. Intuitive aio objects resolve automatically when asynchronous operations complete, and synchronisation primitives allow R to wait upon events signalled by concurrent threads.">
 <meta property="og:description" content="R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. NNG is a socket library for reliable, high-performance messaging over in-process, IPC, TCP, WebSocket and secure TLS transports. Implements Scalability Protocols, a standard for common communications patterns including publish/subscribe, request/reply and service discovery. As its own threaded concurrency framework, provides a toolkit for asynchronous programming and distributed computing. Intuitive aio objects resolve automatically when asynchronous operations complete, and synchronisation primitives allow R to wait upon events signalled by concurrent threads.">
-<meta property="og:image" content="https://r-lib.github.io/nanonext/logo.png">
+<meta property="og:image" content="https://nanonext.r-lib.org/logo.png">
+<script defer data-domain="nanonext.r-lib.org,all.tidyverse.org" src="https://plausible.io/js/plausible.js"></script>
 </head>
 <body>
     <a href="#container" class="visually-hidden-focusable">Skip to content</a>
@@ -65,9 +66,9 @@
 <!-- badges: start -->
 
 <p>R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. NNG is a socket library for reliable, high-performance messaging over in-process, IPC, TCP, WebSocket and secure TLS transports. Implements ‘Scalability Protocols’, a standard for common communications patterns including publish/subscribe, request/reply and service discovery.</p>
-<p>As its own <a href="https://r-lib.github.io/nanonext/articles/nanonext.html#async-and-concurrency">threaded concurrency framework</a>, provides a toolkit for asynchronous programming and distributed computing. Intuitive ‘aio’ objects resolve automatically when asynchronous operations complete, and <a href="https://r-lib.github.io/nanonext/articles/nanonext.html#synchronisation-primitives">synchronisation primitives</a> allow R to wait upon events signalled by concurrent threads.</p>
+<p>As its own <a href="https://nanonext.r-lib.org/articles/nanonext.html#async-and-concurrency">threaded concurrency framework</a>, provides a toolkit for asynchronous programming and distributed computing. Intuitive ‘aio’ objects resolve automatically when asynchronous operations complete, and <a href="https://nanonext.r-lib.org/articles/nanonext.html#synchronisation-primitives">synchronisation primitives</a> allow R to wait upon events signalled by concurrent threads.</p>
 <p>Designed for performance and reliability, <a href="https://doi.org/10.5281/zenodo.7903429" class="external-link"><code>nanonext</code></a> is a lightweight wrapper around the NNG C library, and is itself implemented almost entirely in C.</p>
-<p>Provides the interface for code and processes to communicate with each other - <a href="https://r-lib.github.io/nanonext/articles/nanonext.html#cross-language-exchange">receive data generated in Python, perform analysis in R, and send results to a C++ program</a> – on the same computer or across networks spanning the globe.</p>
+<p>Provides the interface for code and processes to communicate with each other - <a href="https://nanonext.r-lib.org/articles/nanonext.html#cross-language-exchange">receive data generated in Python, perform analysis in R, and send results to a C++ program</a> – on the same computer or across networks spanning the globe.</p>
 <p>Implemented scalability protocols:</p>
 <ul>
 <li>Bus (mesh networks)</li>
@@ -75,11 +76,11 @@
 <li>Poly (one-to-one of many)</li>
 <li>Push/Pull (one-way pipeline)</li>
 <li>
-<a href="https://r-lib.github.io/nanonext/articles/nanonext.html#publisher-subscriber-model">Publisher/Subscriber</a> (topics &amp; broadcast)</li>
+<a href="https://nanonext.r-lib.org/articles/nanonext.html#publisher-subscriber-model">Publisher/Subscriber</a> (topics &amp; broadcast)</li>
 <li>
-<a href="https://r-lib.github.io/nanonext/articles/nanonext.html#rpc-and-distributed-computing">Request/Reply</a> (RPC)</li>
+<a href="https://nanonext.r-lib.org/articles/nanonext.html#rpc-and-distributed-computing">Request/Reply</a> (RPC)</li>
 <li>
-<a href="https://r-lib.github.io/nanonext/articles/nanonext.html#surveyor-respondent-model">Surveyor/Respondent</a> (voting &amp; service discovery)</li>
+<a href="https://nanonext.r-lib.org/articles/nanonext.html#surveyor-respondent-model">Surveyor/Respondent</a> (voting &amp; service discovery)</li>
 </ul>
 <p>Supported transports:</p>
 <ul>
@@ -88,15 +89,15 @@
 <li>TCP (IPv4 or IPv6)</li>
 <li>WebSocket</li>
 <li>
-<a href="https://r-lib.github.io/nanonext/articles/nanonext.html#tls-secure-connections">TLS</a> (over TCP and WebSocket)</li>
+<a href="https://nanonext.r-lib.org/articles/nanonext.html#tls-secure-connections">TLS</a> (over TCP and WebSocket)</li>
 </ul>
 <p>Development of the TLS implementation was generously supported by the <img src="https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp" alt="R Consortium" width="100" height="22"> .</p>
 <p>Web utilities:</p>
 <ul>
 <li>
-<a href="https://r-lib.github.io/nanonext/articles/nanonext.html#ncurl-async-http-client">ncurl</a> - (async) http(s) client</li>
+<a href="https://nanonext.r-lib.org/articles/nanonext.html#ncurl-async-http-client">ncurl</a> - (async) http(s) client</li>
 <li>
-<a href="https://r-lib.github.io/nanonext/articles/nanonext.html#stream-websocket-client">stream</a> - secure websockets client / generic low-level socket interface</li>
+<a href="https://nanonext.r-lib.org/articles/nanonext.html#stream-websocket-client">stream</a> - secure websockets client / generic low-level socket interface</li>
 <li>
 <code><a href="reference/messenger.html">messenger()</a></code> - console-based instant messaging with authentication</li>
 </ul>
@@ -111,7 +112,7 @@
 <p><em>Example using Request/Reply (REQ/REP) protocol with inproc transport:</em> <br> (The inproc transport uses zero-copy where possible for a much faster solution than alternatives)</p>
 <p>Create sockets:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-lib.github.io/nanonext/">nanonext</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nanonext.r-lib.org">nanonext</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">socket1</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"req"</span>, listen <span class="op">=</span> <span class="st">"inproc://nanonext"</span><span class="op">)</span></span>
 <span><span class="va">socket2</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"rep"</span>, dial <span class="op">=</span> <span class="st">"inproc://nanonext"</span><span class="op">)</span></span></code></pre></div>
@@ -131,7 +132,7 @@
 <p><em>Example using Pipeline (Push/Pull) protocol with TCP/IP transport:</em></p>
 <p>Create nano objects:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-lib.github.io/nanonext/">nanonext</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nanonext.r-lib.org">nanonext</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">nano1</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nano.html">nano</a></span><span class="op">(</span><span class="st">"push"</span>, listen <span class="op">=</span> <span class="st">"tcp://127.0.0.1:5555"</span><span class="op">)</span></span>
 <span><span class="va">nano2</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nano.html">nano</a></span><span class="op">(</span><span class="st">"pull"</span>, dial <span class="op">=</span> <span class="st">"tcp://127.0.0.1:5555"</span><span class="op">)</span></span></code></pre></div>
@@ -148,7 +149,7 @@
 <div class="section level3">
 <h3 id="vignette">Vignette<a class="anchor" aria-label="anchor" href="#vignette"></a>
 </h3>
-<p>Please refer to the <a href="https://r-lib.github.io/nanonext/articles/nanonext.html">nanonext vignette</a> for full package functionality.</p>
+<p>Please refer to the <a href="https://nanonext.r-lib.org/articles/nanonext.html">nanonext vignette</a> for full package functionality.</p>
 <p>This may be accessed within R by:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"nanonext"</span>, package <span class="op">=</span> <span class="st">"nanonext"</span><span class="op">)</span></span></code></pre></div>
@@ -197,7 +198,7 @@
 <a href="https://github.com/jeroen" class="external-link">Jeroen Ooms</a> - for his ‘Anticonf (tm)’ configure script, on which our original ‘configure’ was based, although much modified since.</li>
 </ul>
 <p>Links:</p>
-<p>◈ nanonext R package: <a href="https://r-lib.github.io/nanonext/" class="uri">https://r-lib.github.io/nanonext/</a></p>
+<p>◈ nanonext R package: <a href="https://nanonext.r-lib.org/" class="uri">https://nanonext.r-lib.org/</a></p>
 <p>nanonext is listed in CRAN Task Views:</p>
 <ul>
 <li>High Performance Computing: <a href="https://cran.r-project.org/view=HighPerformanceComputing" class="external-link uri">https://cran.r-project.org/view=HighPerformanceComputing</a>
@@ -207,7 +208,7 @@
 </ul>
 <p>NNG: <a href="https://nng.nanomsg.org/" class="external-link uri">https://nng.nanomsg.org/</a><br> Mbed TLS: <a href="https://www.trustedfirmware.org/projects/mbed-tls/" class="external-link uri">https://www.trustedfirmware.org/projects/mbed-tls/</a></p>
 <p>–</p>
-<p>Please note that this project is released with a <a href="https://r-lib.github.io/nanonext/CODE_OF_CONDUCT.html">Contributor Code of Conduct</a>. By participating in this project you agree to abide by its terms.</p>
+<p>Please note that this project is released with a <a href="https://nanonext.r-lib.org/CODE_OF_CONDUCT.html">Contributor Code of Conduct</a>. By participating in this project you agree to abide by its terms.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

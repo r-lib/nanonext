@@ -9,7 +9,7 @@ custom serialization and unserialization of non-system reference objects,
 allowing these to be sent and received between different R sessions. This
 utilises the 'refhook' system of R native serialization. Once set, the
 functions apply to all send and receive operations performed in mode
-&quot;serial&quot; over the Socket or Context created from the Socket."><meta property="og:image" content="https://r-lib.github.io/nanonext/logo.png"></head><body>
+&quot;serial&quot; over the Socket or Context created from the Socket."><meta property="og:image" content="https://nanonext.r-lib.org/logo.png"><script defer data-domain="nanonext.r-lib.org,all.tidyverse.org" src="https://plausible.io/js/plausible.js"></script></head><body>
     <a href="#container" class="visually-hidden-focusable">Skip to content</a>
 
 
@@ -100,7 +100,7 @@ using <code><a href="opt.html">opt&lt;-()</a></code> with option name <code>"ser
 <span class="r-out co"><span class="r-pr">#&gt;</span> [[2]]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> function (x) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> serialize(x, NULL)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55e4934db488&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55a7ff692f68&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [[3]]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> function (connection, refhook = NULL) </span>
@@ -110,7 +110,7 @@ using <code><a href="opt.html">opt&lt;-()</a></code> with option name <code>"ser
 <span class="r-out co"><span class="r-pr">#&gt;</span>         stop("'connection' must be a connection")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     .Internal(unserialize(connection, refhook))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55e4934e1658&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55a7ff681e80&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: namespace:base&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [[4]]</span>
