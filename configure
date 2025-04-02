@@ -37,7 +37,7 @@ if [ -z "$NANONEXT_LIBS" ]; then
 if [ "$INCLUDE_DIR" ] || [ "$LIB_DIR" ]
 then
   PKG_CFLAGS="-I$INCLUDE_DIR $PKG_CFLAGS"
-  PKG_LIBS="-L$LIB_DIR $PKG_LIBS"
+  PKG_LIBS="-L$LIB_DIR -lmbedtls -lmbedx509 -lmbedcrypto $PKG_LIBS"
   echo "Found INCLUDE_DIR $INCLUDE_DIR"
   echo "Found LIB_DIR $LIB_DIR"
 elif [ -d "/usr/local/include/mbedtls" ]
