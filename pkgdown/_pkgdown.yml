@@ -1,7 +1,12 @@
-url: https://r-lib.github.io/nanonext/
+url: https://nanonext.r-lib.org
 template:
   package: tidytemplate
   bootstrap: 5
+
+  includes:
+    in_header: |
+      <script defer data-domain="nanonext.r-lib.org,all.tidyverse.org" src="https://plausible.io/js/plausible.js"></script>
+
 reference:
 - contents:
   - nanonext-package
