@@ -25,7 +25,7 @@ Authors@R:
              role = "fnd"))
 License: GPL (>= 3)
 BugReports: https://github.com/r-lib/nanonext/issues
-URL: https://r-lib.github.io/nanonext/, https://github.com/r-lib/nanonext
+URL: https://nanonext.r-lib.org, https://github.com/r-lib/nanonext
 Encoding: UTF-8
 SystemRequirements: 'libnng' >= 1.9 and 'libmbedtls' >= 2.5, or 'cmake' and 'xz'
     to compile NNG and/or Mbed TLS included in package sources

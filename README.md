@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# nanonext <a href="https://r-lib.github.io/nanonext/" alt="nanonext"><img src="man/figures/logo.png" alt="nanonext logo" align="right" width="120" /></a>
+# nanonext <a href="https://nanonext.r-lib.org/" alt="nanonext"><img src="man/figures/logo.png" alt="nanonext logo" align="right" width="120" /></a>
 
 <!-- badges: start -->
 
@@ -21,11 +21,11 @@ Protocols’, a standard for common communications patterns including
 publish/subscribe, request/reply and service discovery.
 
 As its own [threaded concurrency
-framework](https://r-lib.github.io/nanonext/articles/nanonext.html#async-and-concurrency),
+framework](https://nanonext.r-lib.org/articles/nanonext.html#async-and-concurrency),
 provides a toolkit for asynchronous programming and distributed
 computing. Intuitive ‘aio’ objects resolve automatically when
 asynchronous operations complete, and [synchronisation
-primitives](https://r-lib.github.io/nanonext/articles/nanonext.html#synchronisation-primitives)
+primitives](https://nanonext.r-lib.org/articles/nanonext.html#synchronisation-primitives)
 allow R to wait upon events signalled by concurrent threads.
 
 Designed for performance and reliability,
@@ -36,7 +36,7 @@ entirely in C.
 Provides the interface for code and processes to communicate with each
 other - [receive data generated in Python, perform analysis in R, and
 send results to a C++
-program](https://r-lib.github.io/nanonext/articles/nanonext.html#cross-language-exchange)
+program](https://nanonext.r-lib.org/articles/nanonext.html#cross-language-exchange)
 – on the same computer or across networks spanning the globe.
 
 Implemented scalability protocols:
@@ -45,11 +45,11 @@ Implemented scalability protocols:
 - Pair (two-way radio)
 - Poly (one-to-one of many)
 - Push/Pull (one-way pipeline)
-- [Publisher/Subscriber](https://r-lib.github.io/nanonext/articles/nanonext.html#publisher-subscriber-model)
+- [Publisher/Subscriber](https://nanonext.r-lib.org/articles/nanonext.html#publisher-subscriber-model)
   (topics & broadcast)
-- [Request/Reply](https://r-lib.github.io/nanonext/articles/nanonext.html#rpc-and-distributed-computing)
+- [Request/Reply](https://nanonext.r-lib.org/articles/nanonext.html#rpc-and-distributed-computing)
   (RPC)
-- [Surveyor/Respondent](https://r-lib.github.io/nanonext/articles/nanonext.html#surveyor-respondent-model)
+- [Surveyor/Respondent](https://nanonext.r-lib.org/articles/nanonext.html#surveyor-respondent-model)
   (voting & service discovery)
 
 Supported transports:
@@ -58,7 +58,7 @@ Supported transports:
 - IPC (inter-process)
 - TCP (IPv4 or IPv6)
 - WebSocket
-- [TLS](https://r-lib.github.io/nanonext/articles/nanonext.html#tls-secure-connections)
+- [TLS](https://nanonext.r-lib.org/articles/nanonext.html#tls-secure-connections)
   (over TCP and WebSocket)
 
 Development of the TLS implementation was generously supported by the
@@ -67,9 +67,9 @@ Development of the TLS implementation was generously supported by the
 
 Web utilities:
 
-- [ncurl](https://r-lib.github.io/nanonext/articles/nanonext.html#ncurl-async-http-client) -
+- [ncurl](https://nanonext.r-lib.org/articles/nanonext.html#ncurl-async-http-client) -
   (async) http(s) client
-- [stream](https://r-lib.github.io/nanonext/articles/nanonext.html#stream-websocket-client) -
+- [stream](https://nanonext.r-lib.org/articles/nanonext.html#stream-websocket-client) -
   secure websockets client / generic low-level socket interface
 - `messenger()` - console-based instant messaging with authentication
 
@@ -147,8 +147,8 @@ nano2$recv()
 ### Vignette
 
 Please refer to the [nanonext
-vignette](https://r-lib.github.io/nanonext/articles/nanonext.html) for
-full package functionality.
+vignette](https://nanonext.r-lib.org/articles/nanonext.html) for full
+package functionality.
 
 This may be accessed within R by:
 
@@ -232,7 +232,7 @@ We would like to acknowledge in particular:
 
 Links:
 
-◈ nanonext R package: <https://r-lib.github.io/nanonext/>
+◈ nanonext R package: <https://nanonext.r-lib.org/>
 
 nanonext is listed in CRAN Task Views:
 
@@ -246,5 +246,5 @@ NNG: <https://nng.nanomsg.org/><br /> Mbed TLS:
 –
 
 Please note that this project is released with a [Contributor Code of
-Conduct](https://r-lib.github.io/nanonext/CODE_OF_CONDUCT.html). By
+Conduct](https://nanonext.r-lib.org/CODE_OF_CONDUCT.html). By
 participating in this project you agree to abide by its terms.
