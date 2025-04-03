@@ -1,19 +1,3 @@
-// Copyright (C) 2022-2024 Hibiki AI Limited <info@hibiki-ai.com>
-//
-// This file is part of nanonext.
-//
-// nanonext is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software
-// Foundation, either version 3 of the License, or (at your option) any later
-// version.
-//
-// nanonext is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-// A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License along with
-// nanonext. If not, see <https://www.gnu.org/licenses/>.
-
 // nanonext - C level - Core Functions -----------------------------------------
 
 #include "nanonext.h"
@@ -63,22 +47,6 @@ static int nano_read_char(R_inpstream_t stream) {
   nano_buf *buf = (nano_buf *) stream->data;
   if (buf->cur >= buf->len) Rf_error("unserialization error");
   return buf->buf[buf->cur++];
-
-}
-
-static SEXP rawOneString(unsigned char *bytes, R_xlen_t nbytes, R_xlen_t *np) {
-
-  unsigned char *p;
-  R_xlen_t i;
-  SEXP res;
-
-  for (i = *np, p = bytes + *np; i < nbytes; p++, i++)
-    if (*p == '\0') break;
-
-  res = Rf_mkCharLenCE((const char *) (bytes + *np), (int) (i - *np), CE_NATIVE);
-  *np = i < nbytes ? i + 1 : nbytes;
-
-  return res;
 
 }
 
@@ -450,10 +418,18 @@ SEXP nano_decode(unsigned char *buf, const size_t sz, const uint8_t mod, SEXP ho
     PROTECT(data = Rf_allocVector(STRSXP, size));
     R_xlen_t i, m, nbytes = sz, np = 0;
     for (i = 0, m = 0; i < size; i++) {
-      SEXP onechar = rawOneString(buf, nbytes, &np);
-      if (onechar == R_NilValue) break;
-      SET_STRING_ELT(data, i, onechar);
-      if (XLENGTH(onechar) > 0) m = i;
+      unsigned char *p;
+      R_xlen_t j;
+      SEXP res;
+
+      for (j = np, p = buf + np; j < nbytes; p++, j++)
+        if (*p == '\0') break;
+
+      res = Rf_mkCharLenCE((const char *) (buf + np), (int) (j - np), CE_NATIVE);
+      if (res == R_NilValue) break;
+      SET_STRING_ELT(data, i, res);
+      if (XLENGTH(res) > 0) m = i;
+      np = j < nbytes ? j + 1 : nbytes;
     }
     if (i)
       data = Rf_xlengthgets(data, m + 1);

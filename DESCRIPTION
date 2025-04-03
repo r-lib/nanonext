@@ -23,7 +23,7 @@ Authors@R:
              role = "cph"),
       person(given = "R Consortium",
              role = "fnd"))
-License: GPL (>= 3)
+License: MIT + file LICENSE
 BugReports: https://github.com/r-lib/nanonext/issues
 URL: https://nanonext.r-lib.org, https://github.com/r-lib/nanonext
 Encoding: UTF-8
