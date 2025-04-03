@@ -4,6 +4,7 @@
 
 * More robust interruption on non-Windows platforms if `tools::SIGINT` is supplied or passed through to the `autoexit` argument of `daemon()` (thanks @LennardLux, #97).
 * Installation from source specifying 'INCLUDE_DIR' and 'LIB_DIR' environment variables works again, correcting a regression in v1.5.2 (#104).
+* Package is re-licensed under the MIT license.
 
 # nanonext 1.5.2
 
