@@ -9,7 +9,9 @@ for ARCH in x64 i386; do
 
   if [ -e "${R_HOME}/bin/${ARCH}/R" ]; then
     CC=`"${R_HOME}/bin/${ARCH}/R" CMD config CC`
-    export CC
+    CFLAGS=`"${R_HOME}/bin/${ARCH}/R" CMD config CFLAGS`
+    LDFLAGS=`"${R_HOME}/bin/${ARCH}/R" CMD config LDFLAGS`
+    export CC CFLAGS LDFLAGS
 
     cd mbedtls-$TLS_VER
     mkdir ${ARCH}

@@ -12,7 +12,9 @@ NNG_LIBS=""
 
 # Find compiler and export flags
 CC=`"${R_HOME}/bin/R" CMD config CC`
-export CC
+CFLAGS=`"${R_HOME}/bin/R" CMD config CFLAGS`
+LDFLAGS=`"${R_HOME}/bin/R" CMD config LDFLAGS`
+export CC CFLAGS LDFLAGS
 
 if [ -z "$MACOSX_DEPLOYMENT_TARGET" ]; then
 export MACOSX_DEPLOYMENT_TARGET=`echo $CC | sed -En 's/.*-version-min=([0-9][0-9.]*).*/\1/p'`
