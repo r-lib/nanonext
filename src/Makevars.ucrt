@@ -1,0 +1,2 @@
+PKG_CFLAGS=-I../install/include -DNNG_STATIC_LIB
+PKG_LIBS=../install/lib/libnng.b ../install/lib/libmbedtls.b ../install/lib/libmbedx509.b ../install/lib/libmbedcrypto.b -lbcrypt -lws2_32

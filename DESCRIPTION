@@ -39,5 +39,6 @@ Suggests:
 VignetteBuilder: litedown
 RoxygenNote: 7.3.2
 Roxygen: list(markdown = TRUE)
+Biarch: true
 Config/build/compilation-database: true
 Config/Needs/website: tidyverse/tidytemplate
