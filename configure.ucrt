@@ -1,0 +1,26 @@
+# Library versions
+LIB_VER="110-2"
+TLS_VER="362"
+
+# Find compiler and export flags
+CC=`"${R_HOME}/bin/R" CMD config CC`
+export CC
+
+tar -xf src/mbedtls-$TLS_VER.tar.xz
+cd mbedtls-$TLS_VER
+echo "Compiling 'libmbedtls' from source ..."
+cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=../install .
+cmake --build . --target install
+cd ..
+rm -rf mbedtls-$TLS_VER
+
+tar -xf src/nng-$LIB_VER.tar.xz
+cd nng-$LIB_VER
+echo "Compiling 'libnng' from source ..."
+cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=../install .
+cmake --build . --target install
+cd ..
+rm -rf nng-$LIB_VER
+
+# Success
+exit 0

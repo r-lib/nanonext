@@ -2,31 +2,39 @@
 LIB_VER="110-2"
 TLS_VER="362"
 
-# Find compiler and export flags
-CC=`"${R_HOME}/bin/R" CMD config CC`
-export CC
-
 tar -xf src/mbedtls-$TLS_VER.tar.xz
-cd mbedtls-$TLS_VER
-echo "Compiling 'libmbedtls' from source ..."
-cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=../install .
-cmake --build . --target install
-cd ..
-rm -rf mbedtls-$TLS_VER
-
 tar -xf src/nng-$LIB_VER.tar.xz
-cd nng-$LIB_VER
-echo "Compiling 'libnng' from source ..."
-cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=../install .
-cmake --build . --target install
-cd ..
+
+for ARCH in x64 i386; do
+
+  if [ -e "${R_HOME}/bin/${ARCH}/R" ]; then
+    CC=`"${R_HOME}/bin/${ARCH}/R" CMD config CC`
+    export CC
+
+    cd mbedtls-$TLS_VER
+    mkdir ${ARCH}
+    cd ${ARCH}
+    echo "Compiling 'libmbedtls' from source for ${ARCH} ..."
+    cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=../../install/${ARCH} ..
+    cmake --build . --target install
+    cd ../..
+
+    cd nng-$LIB_VER
+    mkdir ${ARCH}
+    cd ${ARCH}
+    echo "Compiling 'libnng' from source for ${ARCH} ..."
+    cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=../../install/${ARCH} ..
+    cmake --build . --target install
+    cd ../..
+
+  else
+  echo "Note: ${ARCH} not installed, skipping ..."
+  fi
+
+done
+
+rm -rf mbedtls-$TLS_VER
 rm -rf nng-$LIB_VER
-
-PKG_CFLAGS="-I../install/include -DNNG_STATIC_LIB"
-PKG_LIBS="../install/lib/libnng.b ../install/lib/libmbedtls.b ../install/lib/libmbedx509.b ../install/lib/libmbedcrypto.b -lbcrypt -lws2_32"
-
-# Write to Makevars
-sed -e "s|@cflags@|$PKG_CFLAGS|" -e "s|@libs@|$PKG_LIBS|" src/Makevars.in > src/Makevars
 
 # Success
 exit 0

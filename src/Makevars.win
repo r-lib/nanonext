@@ -1,0 +1,2 @@
+PKG_CFLAGS=-I../install${R_ARCH}/include -DNNG_STATIC_LIB
+PKG_LIBS=../install${R_ARCH}/lib/libnng.b ../install${R_ARCH}/lib/libmbedtls.b ../install${R_ARCH}/lib/libmbedx509.b ../install${R_ARCH}/lib/libmbedcrypto.b -lbcrypt -lws2_32
