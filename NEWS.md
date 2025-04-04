@@ -4,6 +4,7 @@
 
 * More robust interruption on non-Windows platforms if `tools::SIGINT` is supplied or passed through to the `autoexit` argument of `daemon()` (thanks @LennardLux, #97).
 * Installation from source specifying 'INCLUDE_DIR' and 'LIB_DIR' environment variables works again, correcting a regression in v1.5.2 (#104).
+* Windows bi-arch source builds for R <= 4.1 using rtools40 and earlier work again (regression since v1.5.1) (thanks @daroczig, #107).
 * Package is re-licensed under the MIT license.
 
 # nanonext 1.5.2
