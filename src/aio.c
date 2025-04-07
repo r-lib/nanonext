@@ -51,33 +51,22 @@ static void raio_complete(void *arg) {
     res = - (int) p.id;
   }
 
-  raio->result = res;
+  if (raio->next != NULL) {
+    nano_cv *ncv = (nano_cv *) raio->next;
+    nng_cv *cv = ncv->cv;
+    nng_mtx *mtx = ncv->mtx;
+
+    nng_mtx_lock(mtx);
+    raio->result = res;
+    ncv->condition++;
+    nng_cv_wake(cv);
+    nng_mtx_unlock(mtx);
+  } else {
+    raio->result = res;
+  }
 
   if (raio->cb != NULL)
     later2(raio_invoke_cb, raio->cb);
-
-}
-
-static void raio_complete_signal(void *arg) {
-
-  nano_aio *raio = (nano_aio *) arg;
-  nano_cv *ncv = (nano_cv *) raio->next;
-  nng_cv *cv = ncv->cv;
-  nng_mtx *mtx = ncv->mtx;
-
-  int res = nng_aio_result(raio->aio);
-  if (res == 0) {
-    nng_msg *msg = nng_aio_get_msg(raio->aio);
-    raio->data = msg;
-    nng_pipe p = nng_msg_get_pipe(msg);
-    res = - (int) p.id;
-  }
-
-  nng_mtx_lock(mtx);
-  raio->result = res;
-  ncv->condition++;
-  nng_cv_wake(cv);
-  nng_mtx_unlock(mtx);
 
 }
 
@@ -112,27 +101,20 @@ static void iraio_complete(void *arg) {
 
   nano_aio *iaio = (nano_aio *) arg;
   const int res = nng_aio_result(iaio->aio);
-  iaio->result = res - !res;
 
-  if (iaio->cb != NULL)
-    later2(raio_invoke_cb, iaio->cb);
+  if (iaio->next != NULL) {
+    nano_cv *ncv = (nano_cv *) iaio->next;
+    nng_cv *cv = ncv->cv;
+    nng_mtx *mtx = ncv->mtx;
 
-}
-
-static void iraio_complete_signal(void *arg) {
-
-  nano_aio *iaio = (nano_aio *) arg;
-  nano_cv *ncv = (nano_cv *) iaio->next;
-  nng_cv *cv = ncv->cv;
-  nng_mtx *mtx = ncv->mtx;
-
-  const int res = nng_aio_result(iaio->aio);
-
-  nng_mtx_lock(mtx);
-  iaio->result = res - !res;
-  ncv->condition++;
-  nng_cv_wake(cv);
-  nng_mtx_unlock(mtx);
+    nng_mtx_lock(mtx);
+    iaio->result = res - !res;
+    ncv->condition++;
+    nng_cv_wake(cv);
+    nng_mtx_unlock(mtx);
+  } else {
+    iaio->result = res - !res;
+  }
 
   if (iaio->cb != NULL)
     later2(raio_invoke_cb, iaio->cb);
@@ -580,7 +562,7 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
     raio->mode = mod;
     raio->cb = NULL;
 
-    if ((xc = nng_aio_alloc(&raio->aio, signal ? raio_complete_signal : interrupt ? raio_complete_interrupt : raio_complete, raio)))
+    if ((xc = nng_aio_alloc(&raio->aio, interrupt ? raio_complete_interrupt : raio_complete, raio)))
       goto exitlevel1;
 
     nng_aio_set_timeout(raio->aio, dur);
@@ -606,7 +588,7 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
     iov.iov_len = xlen;
     iov.iov_buf = raio->data;
 
-    if ((xc = nng_aio_alloc(&raio->aio, signal ? iraio_complete_signal : iraio_complete, raio)))
+    if ((xc = nng_aio_alloc(&raio->aio, iraio_complete, raio)))
       goto exitlevel2;
 
     if ((xc = nng_aio_set_iov(raio->aio, 1u, &iov)))

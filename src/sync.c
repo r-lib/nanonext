@@ -23,7 +23,20 @@ static void request_complete(void *arg) {
     nng_pipe p = nng_msg_get_pipe(msg);
     res = - (int) p.id;
   }
-  raio->result = res;
+
+  if (raio->next != NULL) {
+    nano_cv *ncv = (nano_cv *) raio->next;
+    nng_cv *cv = ncv->cv;
+    nng_mtx *mtx = ncv->mtx;
+
+    nng_mtx_lock(mtx);
+    raio->result = res;
+    ncv->condition++;
+    nng_cv_wake(cv);
+    nng_mtx_unlock(mtx);
+  } else {
+    raio->result = res;
+  }
 
   nano_saio *saio = (nano_saio *) raio->cb;
   if (saio->cb != NULL)
@@ -43,33 +56,6 @@ static void request_complete_dropcon(void *arg) {
     nng_pipe_close(p);
   }
   raio->result = res;
-
-  nano_saio *saio = (nano_saio *) raio->cb;
-  if (saio->cb != NULL)
-    later2(raio_invoke_cb, saio->cb);
-
-}
-
-static void request_complete_signal(void *arg) {
-
-  nano_aio *raio = (nano_aio *) arg;
-  nano_cv *ncv = (nano_cv *) raio->next;
-  nng_cv *cv = ncv->cv;
-  nng_mtx *mtx = ncv->mtx;
-
-  int res = nng_aio_result(raio->aio);
-  if (res == 0) {
-    nng_msg *msg = nng_aio_get_msg(raio->aio);
-    raio->data = msg;
-    nng_pipe p = nng_msg_get_pipe(msg);
-    res = - (int) p.id;
-  }
-
-  nng_mtx_lock(mtx);
-  raio->result = res;
-  ncv->condition++;
-  nng_cv_wake(cv);
-  nng_mtx_unlock(mtx);
 
   nano_saio *saio = (nano_saio *) raio->cb;
   if (saio->cb != NULL)
@@ -435,7 +421,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   raio->cb = saio;
   raio->next = ncv;
 
-  if ((xc = nng_aio_alloc(&raio->aio, signal ? request_complete_signal : drop ? request_complete_dropcon : request_complete, raio)))
+  if ((xc = nng_aio_alloc(&raio->aio, drop ? request_complete_dropcon : request_complete, raio)))
     goto exitlevel2;
 
   nng_aio_set_timeout(raio->aio, dur);
