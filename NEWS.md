@@ -1,5 +1,9 @@
 # nanonext (development version)
 
+#### New Features
+
+* `request()` gains an integer argument `msgid`. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).
+
 #### Updates
 
 * More robust interruption on non-Windows platforms if `tools::SIGINT` is supplied or passed through to the `autoexit` argument of `daemon()` (thanks @LennardLux, #97).

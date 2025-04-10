@@ -14,6 +14,7 @@ SEXP nano_HeadersSymbol;
 SEXP nano_IdSymbol;
 SEXP nano_ListenerSymbol;
 SEXP nano_MonitorSymbol;
+SEXP nano_MsgidSymbol;
 SEXP nano_ProtocolSymbol;
 SEXP nano_ResolveSymbol;
 SEXP nano_ResponseSymbol;
@@ -48,6 +49,7 @@ static void RegisterSymbols(void) {
   nano_IdSymbol = Rf_install("id");
   nano_ListenerSymbol = Rf_install("listener");
   nano_MonitorSymbol = Rf_install("monitor");
+  nano_MsgidSymbol = Rf_install("msgid");
   nano_ProtocolSymbol = Rf_install("protocol");
   nano_ResolveSymbol = Rf_install("resolve");
   nano_ResponseSymbol = Rf_install("response");
@@ -147,7 +149,7 @@ static const R_CallMethodDef callMethods[] = {
   {"rnng_reap", (DL_FUNC) &rnng_reap, 1},
   {"rnng_recv", (DL_FUNC) &rnng_recv, 4},
   {"rnng_recv_aio", (DL_FUNC) &rnng_recv_aio, 6},
-  {"rnng_request", (DL_FUNC) &rnng_request, 7},
+  {"rnng_request", (DL_FUNC) &rnng_request, 8},
   {"rnng_send", (DL_FUNC) &rnng_send, 5},
   {"rnng_send_aio", (DL_FUNC) &rnng_send_aio, 6},
   {"rnng_serial_config", (DL_FUNC) &rnng_serial_config, 4},

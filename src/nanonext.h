@@ -166,8 +166,10 @@ typedef struct nano_aio_s {
 } nano_aio;
 
 typedef struct nano_saio_s {
+  nng_ctx *ctx;
   nng_aio *aio;
   void *cb;
+  int msgid;
 } nano_saio;
 
 typedef struct nano_cv_s {
@@ -214,6 +216,7 @@ extern SEXP nano_HeadersSymbol;
 extern SEXP nano_IdSymbol;
 extern SEXP nano_ListenerSymbol;
 extern SEXP nano_MonitorSymbol;
+extern SEXP nano_MsgidSymbol;
 extern SEXP nano_ProtocolSymbol;
 extern SEXP nano_ResolveSymbol;
 extern SEXP nano_ResponseSymbol;
@@ -315,7 +318,7 @@ SEXP rnng_random(SEXP, SEXP);
 SEXP rnng_reap(SEXP);
 SEXP rnng_recv(SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_recv_aio(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-SEXP rnng_request(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP rnng_request(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_send(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_send_aio(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_serial_config(SEXP, SEXP, SEXP, SEXP);
