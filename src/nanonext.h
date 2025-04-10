@@ -157,10 +157,12 @@ typedef enum nano_aio_typ {
 
 typedef struct nano_aio_s {
   nng_aio *aio;
+  nng_ctx *ctx;
   void *data;
   void *cb;
   void *next;
   int result;
+  int msgid;
   uint8_t mode;
   nano_aio_typ type;
 } nano_aio;
@@ -315,7 +317,7 @@ SEXP rnng_random(SEXP, SEXP);
 SEXP rnng_reap(SEXP);
 SEXP rnng_recv(SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_recv_aio(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-SEXP rnng_request(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP rnng_request(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_send(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_send_aio(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_serial_config(SEXP, SEXP, SEXP, SEXP);

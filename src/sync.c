@@ -22,6 +22,16 @@ static void request_complete(void *arg) {
     raio->data = msg;
     nng_pipe p = nng_msg_get_pipe(msg);
     res = - (int) p.id;
+  } else if (res == 5) {
+    const int id = raio->msgid;
+    if (id) {
+      nng_msg *msg;
+      nng_msg_alloc(&msg, 0);
+      nng_msg_append_u32(msg, 0);
+      nng_msg_append(msg, &id, sizeof(id));
+      if (nng_ctx_sendmsg(*raio->ctx, msg, 0))
+        nng_msg_free(msg);
+    }
   }
 
   if (raio->next != NULL) {
@@ -374,13 +384,14 @@ SEXP rnng_cv_signal(SEXP cvar) {
 
 // request ---------------------------------------------------------------------
 
-SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeout, SEXP cvar, SEXP clo) {
+SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeout, SEXP cvar, SEXP msgid, SEXP clo) {
 
   if (NANO_PTR_CHECK(con, nano_ContextSymbol))
     Rf_error("'con' is not a valid Context");
 
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
   const uint8_t mod = (uint8_t) nano_matcharg(recvmode);
+  const int id = msgid != R_NilValue ? NANO_INTEGER(msgid) : 0;
   int signal, drop;
   if (cvar == R_NilValue) {
     signal = 0;
@@ -420,6 +431,8 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   raio->mode = mod;
   raio->cb = saio;
   raio->next = ncv;
+  raio->msgid = id;
+  raio->ctx = ctx;
 
   if ((xc = nng_aio_alloc(&raio->aio, drop ? request_complete_dropcon : request_complete, raio)))
     goto exitlevel2;
@@ -434,6 +447,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
   Rf_classgets(env, nano_reqAio);
   Rf_defineVar(nano_AioSymbol, aio, env);
+  Rf_setAttrib(env, Rf_install("msgid"), msgid);
 
   PROTECT(fun = R_mkClosure(R_NilValue, nano_aioFuncMsg, clo));
   R_MakeActiveBinding(nano_DataSymbol, fun, env);
