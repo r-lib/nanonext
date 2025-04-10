@@ -27,7 +27,7 @@ static void request_complete(void *arg) {
     const int id = saio->msgid;
     if (id) {
       nng_msg *msg;
-      if (nng_msg_alloc(&msg, 0)) {
+      if (nng_msg_alloc(&msg, 0) == 0) {
         if (nng_msg_append_u32(msg, 0) ||
             nng_msg_append(msg, &id, sizeof(id)) ||
             nng_ctx_sendmsg(*saio->ctx, msg, 0)) {
