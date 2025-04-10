@@ -11,7 +11,7 @@ called for the value when required."><meta property="og:image" content="https://
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.2.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.2.9001</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,7 +52,8 @@ called for the value when required.</p>
 <span>  recv_mode <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"serial"</span>, <span class="st">"character"</span>, <span class="st">"complex"</span>, <span class="st">"double"</span>, <span class="st">"integer"</span>, <span class="st">"logical"</span>,</span>
 <span>    <span class="st">"numeric"</span>, <span class="st">"raw"</span>, <span class="st">"string"</span><span class="op">)</span>,</span>
 <span>  timeout <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  cv <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  cv <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  msgid <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -92,6 +93,12 @@ applies a socket-specific default, usually the same as no timeout.</p></dd>
 <dd><p>(optional) a 'conditionVariable' to signal when the async receive
 is complete, or NULL. If any other value is supplied, this will cause the
 pipe connection to be dropped when the async receive is complete.</p></dd>
+
+
+<dt id="arg-msgid">msgid<a class="anchor" aria-label="anchor" href="#arg-msgid"></a></dt>
+<dd><p>(optional) integer message ID to send a special payload to the
+context upon timeout (asynchronously) consisting of an integer zero,
+followed by the value of <code>msgid</code> supplied.</p></dd>
 
 </dl></div>
     <div class="section level2">
