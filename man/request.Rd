@@ -38,7 +38,9 @@ applies a socket-specific default, usually the same as no timeout.}
 is complete, or NULL. If any other value is supplied, this will cause the
 pipe connection to be dropped when the async receive is complete.}
 
-\item{msgid}{(optional) integer message ID.}
+\item{msgid}{(optional) integer message ID to send a special payload to the
+context upon timeout (asynchronously) consisting of an integer zero,
+followed by the value of \code{msgid} supplied.}
 }
 \value{
 A 'recvAio' (object of class 'mirai' and 'recvAio') (invisibly).

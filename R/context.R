@@ -181,7 +181,9 @@ reply <- function(context,
 #' @param cv (optional) a 'conditionVariable' to signal when the async receive
 #'   is complete, or NULL. If any other value is supplied, this will cause the
 #'   pipe connection to be dropped when the async receive is complete.
-#' @param msgid (optional) integer message ID.
+#' @param msgid (optional) integer message ID to send a special payload to the
+#'   context upon timeout (asynchronously) consisting of an integer zero,
+#'   followed by the value of `msgid` supplied.
 #'
 #' @return A 'recvAio' (object of class 'mirai' and 'recvAio') (invisibly).
 #'

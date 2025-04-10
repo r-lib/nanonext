@@ -26,11 +26,13 @@ static void request_complete(void *arg) {
     const int id = raio->msgid;
     if (id) {
       nng_msg *msg;
-      nng_msg_alloc(&msg, 0);
-      nng_msg_append_u32(msg, 0);
-      nng_msg_append(msg, &id, sizeof(id));
-      if (nng_ctx_sendmsg(*raio->ctx, msg, 0))
-        nng_msg_free(msg);
+      if (nng_msg_alloc(&msg, 0)) {
+        if (nng_msg_append_u32(msg, 0) ||
+            nng_msg_append(msg, &id, sizeof(id)) ||
+            nng_ctx_sendmsg(*raio->ctx, msg, 0)) {
+          nng_msg_free(msg);
+        }
+      }
     }
   }
 
@@ -447,7 +449,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
   Rf_classgets(env, nano_reqAio);
   Rf_defineVar(nano_AioSymbol, aio, env);
-  Rf_setAttrib(env, Rf_install("msgid"), msgid);
+  Rf_setAttrib(env, nano_MsgidSymbol, msgid);
 
   PROTECT(fun = R_mkClosure(R_NilValue, nano_aioFuncMsg, clo));
   R_MakeActiveBinding(nano_DataSymbol, fun, env);

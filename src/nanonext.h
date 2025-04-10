@@ -216,6 +216,7 @@ extern SEXP nano_HeadersSymbol;
 extern SEXP nano_IdSymbol;
 extern SEXP nano_ListenerSymbol;
 extern SEXP nano_MonitorSymbol;
+extern SEXP nano_MsgidSymbol;
 extern SEXP nano_ProtocolSymbol;
 extern SEXP nano_ResolveSymbol;
 extern SEXP nano_ResponseSymbol;
