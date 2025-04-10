@@ -16,6 +16,7 @@ static void sendaio_complete(void *arg) {
 static void request_complete(void *arg) {
 
   nano_aio *raio = (nano_aio *) arg;
+  nano_saio *saio = (nano_saio *) raio->cb;
   int res = nng_aio_result(raio->aio);
   if (res == 0) {
     nng_msg *msg = nng_aio_get_msg(raio->aio);
@@ -23,13 +24,13 @@ static void request_complete(void *arg) {
     nng_pipe p = nng_msg_get_pipe(msg);
     res = - (int) p.id;
   } else if (res == 5) {
-    const int id = raio->msgid;
+    const int id = saio->msgid;
     if (id) {
       nng_msg *msg;
       if (nng_msg_alloc(&msg, 0)) {
         if (nng_msg_append_u32(msg, 0) ||
             nng_msg_append(msg, &id, sizeof(id)) ||
-            nng_ctx_sendmsg(*raio->ctx, msg, 0)) {
+            nng_ctx_sendmsg(*saio->ctx, msg, 0)) {
           nng_msg_free(msg);
         }
       }
@@ -50,7 +51,6 @@ static void request_complete(void *arg) {
     raio->result = res;
   }
 
-  nano_saio *saio = (nano_saio *) raio->cb;
   if (saio->cb != NULL)
     later2(raio_invoke_cb, saio->cb);
 
@@ -415,6 +415,8 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   nano_encodes(sendmode) == 2 ? nano_encode(&buf, data) : nano_serialize(&buf, data, NANO_PROT(con));
   saio = R_Calloc(1, nano_saio);
   saio->cb = NULL;
+  saio->ctx = ctx;
+  saio->msgid = id;
 
   if ((xc = nng_msg_alloc(&msg, 0)))
     goto exitlevel1;
@@ -433,8 +435,6 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   raio->mode = mod;
   raio->cb = saio;
   raio->next = ncv;
-  raio->msgid = id;
-  raio->ctx = ctx;
 
   if ((xc = nng_aio_alloc(&raio->aio, drop ? request_complete_dropcon : request_complete, raio)))
     goto exitlevel2;
