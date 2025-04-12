@@ -170,6 +170,7 @@ typedef struct nano_saio_s {
   nng_aio *aio;
   void *cb;
   int msgid;
+  int alloc;
 } nano_saio;
 
 typedef struct nano_cv_s {
@@ -248,7 +249,6 @@ SEXP R_mkClosure(SEXP, SEXP, SEXP);
 #endif
 SEXP nano_PreserveObject(const SEXP);
 void nano_ReleaseObject(SEXP);
-void context_finalizer(SEXP);
 void dialer_finalizer(SEXP);
 void listener_finalizer(SEXP);
 void socket_finalizer(SEXP);
