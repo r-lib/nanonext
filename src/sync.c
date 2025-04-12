@@ -449,7 +449,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
   Rf_classgets(env, nano_reqAio);
   Rf_defineVar(nano_AioSymbol, aio, env);
-  Rf_defineVar(nano_MsgidSymbol, msgid, env);
+  Rf_defineVar(nano_MsgidSymbol, Rf_ScalarInteger(id), env);
   Rf_defineVar(nano_ContextSymbol, con, env);
 
   PROTECT(fun = R_mkClosure(R_NilValue, nano_aioFuncMsg, clo));
