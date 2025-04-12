@@ -395,7 +395,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
   const uint8_t mod = (uint8_t) nano_matcharg(recvmode);
   const int id = msgid != R_NilValue ? NANO_INTEGER(msgid) : 0;
-  int signal, drop;
+  int signal, drop, xc;
   SEXP context;
   if (cvar == R_NilValue) {
     signal = 0;
@@ -406,8 +406,14 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   }
   nng_ctx *ctx;
   if (sock) {
-    PROTECT(context = rnng_ctx_create(con));
-    ctx = (nng_ctx *) NANO_PTR(context);
+    nng_socket *sock = (nng_socket *) NANO_PTR(con);
+    ctx = R_Calloc(1, nng_ctx);
+    if ((xc = nng_ctx_open(ctx, *sock))) {
+      R_Free(ctx);
+      goto exitlevel1;
+    }
+    PROTECT(context = R_MakeExternalPtr(ctx, nano_ContextSymbol, R_NilValue));
+    R_RegisterCFinalizerEx(context, context_finalizer, TRUE);
   } else {
     ctx = (nng_ctx *) NANO_PTR(con);
   }
@@ -418,7 +424,6 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   nano_saio *saio;
   nano_aio *raio;
   nng_msg *msg;
-  int xc;
 
   nano_encodes(sendmode) == 2 ? nano_encode(&buf, data) : nano_serialize(&buf, data, NANO_PROT(con));
   saio = R_Calloc(1, nano_saio);
@@ -427,12 +432,12 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   saio->msgid = id;
 
   if ((xc = nng_msg_alloc(&msg, 0)))
-    goto exitlevel1;
+    goto exitlevel2;
 
   if ((xc = nng_msg_append(msg, buf.buf, buf.cur)) ||
       (xc = nng_aio_alloc(&saio->aio, sendaio_complete, saio))) {
     nng_msg_free(msg);
-    goto exitlevel1;
+    goto exitlevel2;
   }
 
   nng_aio_set_msg(saio->aio, msg);
@@ -445,7 +450,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   raio->next = ncv;
 
   if ((xc = nng_aio_alloc(&raio->aio, drop ? request_complete_dropcon : request_complete, raio)))
-    goto exitlevel2;
+    goto exitlevel3;
 
   nng_aio_set_timeout(raio->aio, dur);
   nng_ctx_recv(*ctx, raio->aio);
@@ -469,12 +474,13 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   UNPROTECT(sock ? 4 : 3);
   return env;
 
-  exitlevel2:
+  exitlevel3:
   R_Free(raio);
   nng_aio_free(saio->aio);
-  exitlevel1:
+  exitlevel2:
   R_Free(saio);
   NANO_FREE(buf);
+  exitlevel1:
   return mk_error_data(xc);
 
 }
