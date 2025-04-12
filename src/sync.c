@@ -445,12 +445,12 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
 
   PROTECT(aio = R_MakeExternalPtr(raio, nano_AioSymbol, NANO_PROT(con)));
   R_RegisterCFinalizerEx(aio, request_finalizer, TRUE);
+  Rf_setAttrib(aio, nano_ContextSymbol, con);
+  Rf_setAttrib(aio, nano_MsgidSymbol, Rf_ScalarInteger(id));
 
   PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
   Rf_classgets(env, nano_reqAio);
   Rf_defineVar(nano_AioSymbol, aio, env);
-  Rf_defineVar(nano_MsgidSymbol, Rf_ScalarInteger(id), env);
-  Rf_defineVar(nano_ContextSymbol, con, env);
 
   PROTECT(fun = R_mkClosure(R_NilValue, nano_aioFuncMsg, clo));
   R_MakeActiveBinding(nano_DataSymbol, fun, env);
