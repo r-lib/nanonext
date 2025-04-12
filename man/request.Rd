@@ -5,7 +5,7 @@
 \title{Request over Context (RPC Client for Req/Rep Protocol)}
 \usage{
 request(
-  context,
+  con,
   data,
   send_mode = c("serial", "raw"),
   recv_mode = c("serial", "character", "complex", "double", "integer", "logical",
@@ -16,7 +16,7 @@ request(
 )
 }
 \arguments{
-\item{context}{a Context.}
+\item{con}{a 'req' Socket, or a Context.}
 
 \item{data}{an object (if \code{send_mode = "raw"}, a vector).}
 

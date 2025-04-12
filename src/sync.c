@@ -388,13 +388,15 @@ SEXP rnng_cv_signal(SEXP cvar) {
 
 SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeout, SEXP cvar, SEXP msgid, SEXP clo) {
 
-  if (NANO_PTR_CHECK(con, nano_ContextSymbol))
-    Rf_error("'con' is not a valid Context");
+  const int sock = !NANO_PTR_CHECK(con, nano_SocketSymbol);
+  if (!sock && NANO_PTR_CHECK(con, nano_ContextSymbol))
+    Rf_error("'con' is not a valid Socket or Context");
 
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
   const uint8_t mod = (uint8_t) nano_matcharg(recvmode);
   const int id = msgid != R_NilValue ? NANO_INTEGER(msgid) : 0;
   int signal, drop;
+  SEXP context;
   if (cvar == R_NilValue) {
     signal = 0;
     drop = 0;
@@ -402,7 +404,13 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
     signal = !NANO_PTR_CHECK(cvar, nano_CvSymbol);
     drop = 1 - signal;
   }
-  nng_ctx *ctx = (nng_ctx *) NANO_PTR(con);
+  nng_ctx *ctx;
+  if (sock) {
+    PROTECT(context = rnng_ctx_create(con));
+    ctx = (nng_ctx *) NANO_PTR(context);
+  } else {
+    ctx = (nng_ctx *) NANO_PTR(con);
+  }
   nano_cv *ncv = signal ? (nano_cv *) NANO_PTR(cvar) : NULL;
 
   SEXP aio, env, fun;
@@ -445,8 +453,11 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
 
   PROTECT(aio = R_MakeExternalPtr(raio, nano_AioSymbol, NANO_PROT(con)));
   R_RegisterCFinalizerEx(aio, request_finalizer, TRUE);
-  Rf_setAttrib(aio, nano_ContextSymbol, con);
-  Rf_setAttrib(aio, nano_MsgidSymbol, Rf_ScalarInteger(id));
+  Rf_setAttrib(aio, nano_SocketSymbol, con);
+  if (sock) {
+    Rf_setAttrib(aio, nano_ContextSymbol, context);
+    Rf_setAttrib(aio, nano_MsgidSymbol, Rf_ScalarInteger(id));
+  }
 
   PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
   Rf_classgets(env, nano_reqAio);
@@ -455,7 +466,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   PROTECT(fun = R_mkClosure(R_NilValue, nano_aioFuncMsg, clo));
   R_MakeActiveBinding(nano_DataSymbol, fun, env);
 
-  UNPROTECT(3);
+  UNPROTECT(sock ? 4 : 3);
   return env;
 
   exitlevel2:
