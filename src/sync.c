@@ -145,6 +145,10 @@ static void request_finalizer(SEXP xptr) {
   nano_saio *saio = (nano_saio *) xp->cb;
   nng_aio_free(saio->aio);
   nng_aio_free(xp->aio);
+  if (saio->alloc) {
+    nng_ctx_close(*saio->ctx);
+    R_Free(saio->ctx);
+  }
   if (xp->data != NULL)
     nng_msg_free((nng_msg *) xp->data);
   R_Free(saio);
@@ -396,7 +400,6 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   const uint8_t mod = (uint8_t) nano_matcharg(recvmode);
   const int id = msgid != R_NilValue ? NANO_INTEGER(msgid) : 0;
   int signal, drop, xc;
-  SEXP context;
   if (cvar == R_NilValue) {
     signal = 0;
     drop = 0;
@@ -412,8 +415,6 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
       R_Free(ctx);
       goto exitlevel1;
     }
-    PROTECT(context = R_MakeExternalPtr(ctx, nano_ContextSymbol, R_NilValue));
-    R_RegisterCFinalizerEx(context, context_finalizer, TRUE);
   } else {
     ctx = (nng_ctx *) NANO_PTR(con);
   }
@@ -430,6 +431,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   saio->cb = NULL;
   saio->ctx = ctx;
   saio->msgid = id;
+  saio->alloc = sock;
 
   if ((xc = nng_msg_alloc(&msg, 0)))
     goto exitlevel2;
@@ -459,10 +461,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   PROTECT(aio = R_MakeExternalPtr(raio, nano_AioSymbol, NANO_PROT(con)));
   R_RegisterCFinalizerEx(aio, request_finalizer, TRUE);
   Rf_setAttrib(aio, nano_SocketSymbol, con);
-  if (sock) {
-    Rf_setAttrib(aio, nano_ContextSymbol, context);
-    Rf_setAttrib(aio, nano_MsgidSymbol, Rf_ScalarInteger(id));
-  }
+  Rf_setAttrib(aio, nano_MsgidSymbol, Rf_ScalarInteger(id));
 
   PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
   Rf_classgets(env, nano_reqAio);
@@ -471,7 +470,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   PROTECT(fun = R_mkClosure(R_NilValue, nano_aioFuncMsg, clo));
   R_MakeActiveBinding(nano_DataSymbol, fun, env);
 
-  UNPROTECT(sock ? 4 : 3);
+  UNPROTECT(3);
   return env;
 
   exitlevel3:
