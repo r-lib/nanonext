@@ -388,13 +388,15 @@ SEXP rnng_cv_signal(SEXP cvar) {
 
 SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeout, SEXP cvar, SEXP msgid, SEXP clo) {
 
-  if (NANO_PTR_CHECK(con, nano_ContextSymbol))
-    Rf_error("'con' is not a valid Context");
+  const int sock = !NANO_PTR_CHECK(con, nano_SocketSymbol);
+  if (!sock && NANO_PTR_CHECK(con, nano_ContextSymbol))
+    Rf_error("'con' is not a valid Socket or Context");
 
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
   const uint8_t mod = (uint8_t) nano_matcharg(recvmode);
   const int id = msgid != R_NilValue ? NANO_INTEGER(msgid) : 0;
-  int signal, drop;
+  int signal, drop, xc;
+  SEXP context;
   if (cvar == R_NilValue) {
     signal = 0;
     drop = 0;
@@ -402,7 +404,19 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
     signal = !NANO_PTR_CHECK(cvar, nano_CvSymbol);
     drop = 1 - signal;
   }
-  nng_ctx *ctx = (nng_ctx *) NANO_PTR(con);
+  nng_ctx *ctx;
+  if (sock) {
+    nng_socket *sock = (nng_socket *) NANO_PTR(con);
+    ctx = R_Calloc(1, nng_ctx);
+    if ((xc = nng_ctx_open(ctx, *sock))) {
+      R_Free(ctx);
+      goto exitlevel1;
+    }
+    PROTECT(context = R_MakeExternalPtr(ctx, nano_ContextSymbol, R_NilValue));
+    R_RegisterCFinalizerEx(context, context_finalizer, TRUE);
+  } else {
+    ctx = (nng_ctx *) NANO_PTR(con);
+  }
   nano_cv *ncv = signal ? (nano_cv *) NANO_PTR(cvar) : NULL;
 
   SEXP aio, env, fun;
@@ -410,7 +424,6 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   nano_saio *saio;
   nano_aio *raio;
   nng_msg *msg;
-  int xc;
 
   nano_encodes(sendmode) == 2 ? nano_encode(&buf, data) : nano_serialize(&buf, data, NANO_PROT(con));
   saio = R_Calloc(1, nano_saio);
@@ -419,12 +432,12 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   saio->msgid = id;
 
   if ((xc = nng_msg_alloc(&msg, 0)))
-    goto exitlevel1;
+    goto exitlevel2;
 
   if ((xc = nng_msg_append(msg, buf.buf, buf.cur)) ||
       (xc = nng_aio_alloc(&saio->aio, sendaio_complete, saio))) {
     nng_msg_free(msg);
-    goto exitlevel1;
+    goto exitlevel2;
   }
 
   nng_aio_set_msg(saio->aio, msg);
@@ -437,7 +450,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   raio->next = ncv;
 
   if ((xc = nng_aio_alloc(&raio->aio, drop ? request_complete_dropcon : request_complete, raio)))
-    goto exitlevel2;
+    goto exitlevel3;
 
   nng_aio_set_timeout(raio->aio, dur);
   nng_ctx_recv(*ctx, raio->aio);
@@ -445,8 +458,11 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
 
   PROTECT(aio = R_MakeExternalPtr(raio, nano_AioSymbol, NANO_PROT(con)));
   R_RegisterCFinalizerEx(aio, request_finalizer, TRUE);
-  Rf_setAttrib(aio, nano_ContextSymbol, con);
-  Rf_setAttrib(aio, nano_MsgidSymbol, Rf_ScalarInteger(id));
+  Rf_setAttrib(aio, nano_SocketSymbol, con);
+  if (sock) {
+    Rf_setAttrib(aio, nano_ContextSymbol, context);
+    Rf_setAttrib(aio, nano_MsgidSymbol, Rf_ScalarInteger(id));
+  }
 
   PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
   Rf_classgets(env, nano_reqAio);
@@ -455,15 +471,16 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   PROTECT(fun = R_mkClosure(R_NilValue, nano_aioFuncMsg, clo));
   R_MakeActiveBinding(nano_DataSymbol, fun, env);
 
-  UNPROTECT(3);
+  UNPROTECT(sock ? 4 : 3);
   return env;
 
-  exitlevel2:
+  exitlevel3:
   R_Free(raio);
   nng_aio_free(saio->aio);
-  exitlevel1:
+  exitlevel2:
   R_Free(saio);
   NANO_FREE(buf);
+  exitlevel1:
   return mk_error_data(xc);
 
 }

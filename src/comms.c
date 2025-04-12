@@ -2,17 +2,6 @@
 
 #include "nanonext.h"
 
-// finalizers ------------------------------------------------------------------
-
-static void context_finalizer(SEXP xptr) {
-
-  if (NANO_PTR(xptr) == NULL) return;
-  nng_ctx *xp = (nng_ctx *) NANO_PTR(xptr);
-  nng_ctx_close(*xp);
-  R_Free(xp);
-
-}
-
 // contexts --------------------------------------------------------------------
 
 SEXP rnng_ctx_open(SEXP socket) {

@@ -3,6 +3,7 @@
 #### New Features
 
 * `request()` gains an integer argument `msgid`. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).
+* `request()` now also accepts a 'req' socket, in which case a single-use context is created automatically for the request.
 
 #### Updates
 
