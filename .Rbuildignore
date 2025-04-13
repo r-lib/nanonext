@@ -10,3 +10,4 @@
 ^codecov\.yml$
 ^compile_commands\.json$
 ^\.cache$
+^vignettes-src$
