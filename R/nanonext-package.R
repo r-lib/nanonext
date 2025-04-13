@@ -70,10 +70,6 @@
 #' NNG: <https://nng.nanomsg.org/> \cr
 #' Mbed TLS: <https://www.trustedfirmware.org/projects/mbed-tls/>
 #'
-#' @encoding UTF-8
-#' @author Charlie Gao \email{charlie.gao@@shikokuchuo.net}
-#'   ([ORCID](https://orcid.org/0000-0002-0750-061X))
-#'
 #' @useDynLib nanonext, .registration = TRUE
 #'
 "_PACKAGE"
