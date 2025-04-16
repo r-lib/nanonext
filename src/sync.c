@@ -3,6 +3,29 @@
 #define NANONEXT_SIGNALS
 #include "nanonext.h"
 
+// internals -------------------------------------------------------------------
+
+static void nano_load_later(void) {
+
+  SEXP str, call;
+  PROTECT(str = Rf_mkString("later"));
+  PROTECT(call = Rf_lang2(Rf_install("loadNamespace"), str));
+  Rf_eval(call, R_BaseEnv);
+  UNPROTECT(2);
+  eln2 = (void (*)(void (*)(void *), void *, double, int)) R_GetCCallable("later", "execLaterNative2");
+
+}
+
+static void nano_eval_later (void *arg) {
+
+  SEXP call, node = (SEXP) arg;
+  node = R_WeakRefValue(node);
+  PROTECT(call = Rf_lcons(node, R_NilValue));
+  (void) Rf_eval(call, R_GlobalEnv);
+  UNPROTECT(1);
+
+}
+
 // aio completion callbacks ----------------------------------------------------
 
 static void sendaio_complete(void *arg) {
@@ -98,6 +121,12 @@ void pipe_cb_signal(nng_pipe p, nng_pipe_ev ev, void *arg) {
 #endif
 
   }
+
+}
+
+void pipe_cb_eval(nng_pipe p, nng_pipe_ev ev, void *arg) {
+
+  later2(nano_eval_later, arg);
 
 }
 
@@ -495,14 +524,7 @@ SEXP rnng_set_promise_context(SEXP x, SEXP ctx) {
 
   nano_aio *raio = (nano_aio *) NANO_PTR(aio);
 
-  if (eln2 == NULL) {
-    SEXP str, call;
-    PROTECT(str = Rf_mkString("later"));
-    PROTECT(call = Rf_lang2(Rf_install("loadNamespace"), str));
-    Rf_eval(call, R_BaseEnv);
-    UNPROTECT(2);
-    eln2 = (void (*)(void (*)(void *), void *, double, int)) R_GetCCallable("later", "execLaterNative2");
-  }
+  NANONEXT_ENSURE_LATER;
 
   switch (raio->type) {
   case REQAIO:
@@ -564,6 +586,52 @@ SEXP rnng_pipe_notify(SEXP socket, SEXP cv, SEXP add, SEXP remove, SEXP flag) {
 
   if (NANO_INTEGER(remove) && (xc = nng_pipe_notify(*sock, NNG_PIPE_EV_REM_POST, pipe_cb_signal, cvp)))
     ERROR_OUT(xc);
+
+  return nano_success;
+
+}
+
+SEXP rnng_pipe_register(SEXP socket, SEXP add, SEXP remove) {
+
+  if (NANO_PTR_CHECK(socket, nano_SocketSymbol))
+    Rf_error("'socket' is not a valid Socket");
+
+  int xc;
+  nng_socket *sock = (nng_socket *) NANO_PTR(socket);
+
+  NANONEXT_ENSURE_LATER;
+
+  if (add != R_NilValue) {
+
+    if (TYPEOF(add) != CLOSXP)
+      Rf_error("'add' is not a valid R closure function");
+
+    SEXP ref = R_MakeWeakRef(socket, add, R_NilValue, FALSE);
+    if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_ADD_POST, pipe_cb_eval, ref)))
+      ERROR_OUT(xc);
+
+  } else {
+
+    if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_ADD_POST, NULL, NULL)))
+      ERROR_OUT(xc);
+
+  }
+
+  if (remove != R_NilValue) {
+
+    if (TYPEOF(remove) != CLOSXP)
+      Rf_error("'remove' is not a valid R closure function");
+
+    SEXP ref = R_MakeWeakRef(socket, remove, R_NilValue, FALSE);
+    if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_REM_POST, pipe_cb_eval, ref)))
+      ERROR_OUT(xc);
+
+  } else {
+
+    if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_REM_POST, NULL, NULL)))
+      ERROR_OUT(xc);
+
+  }
 
   return nano_success;
 
