@@ -40,6 +40,8 @@ socket.
 For remove: this event occurs after the pipe has been removed from the
 socket. The underlying transport may be closed at this point, and it is not
 possible to communicate using this pipe.
+
+Note: this function cannot be used in conjunction with \code{\link[=pipe_register]{pipe_register()}}.
 }
 \examples{
 s <- socket(listen = "inproc://nanopipe")
