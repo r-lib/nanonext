@@ -246,7 +246,7 @@ test_zero(reply(ctx, execute = identity, recv_mode = 1L, send_mode = 1L, timeout
 test_type("complex", call_aio(rek)[["data"]])
 test_type("integer", rek[["aio"]])
 
-test_type("list", cfg <- serial_config(class = c("custom", "unused"), sfunc = list(function(x) raw(1L), identity), ufunc = list(as.integer, identity)))
+test_type("list", cfg <- serial_config(class = c("invalid", "custom"), sfunc = list(identity, function(x) raw(1L)), ufunc = list(identity, as.integer)))
 opt(req$socket, "serial") <- cfg
 opt(rep, "serial") <- cfg
 custom <- list(`class<-`(new.env(), "custom"), new.env())
