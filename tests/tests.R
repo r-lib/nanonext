@@ -246,31 +246,26 @@ test_zero(reply(ctx, execute = identity, recv_mode = 1L, send_mode = 1L, timeout
 test_type("complex", call_aio(rek)[["data"]])
 test_type("integer", rek[["aio"]])
 
-test_type("list", cfg <- serial_config(class = "custom", sfunc = function(x) raw(1L), ufunc = as.integer, vec = FALSE))
-test_equal(length(cfg), 4L)
-test_type("closure", cfg[[2L]])
+test_type("list", cfg <- serial_config(class = c("custom", "unused"), sfunc = list(function(x) raw(1L), identity), ufunc = list(as.integer, identity)))
 opt(req$socket, "serial") <- cfg
 opt(rep, "serial") <- cfg
 custom <- list(`class<-`(new.env(), "custom"), new.env())
 test_zero(send(req$socket, custom, mode = "serial", block = 500))
 test_type("integer", recv(rep, block = 500)[[1L]])
-cfg <- serial_config("custom", function(x) as.raw(length(x)), function(x) lapply(seq_len(as.integer(x)), new.env), vec = NA)
-test_true(cfg[[4L]])
+cfg <- serial_config("custom", function(x) as.raw(length(x)), function(x) lapply(seq_len(as.integer(x)), new.env))
+test_type("list", cfg)
 opt(req$socket, "serial") <- cfg
 opt(rep, "serial") <- cfg
 test_zero(send(rep, custom, block = 500))
 test_type("list", recv(req$socket, mode = 1L, block = 500))
 opt(req$socket, "serial") <- list()
 opt(rep, "serial") <- list()
-test_error(serial_config(1L, identity, identity), "must be a character string")
-test_error(serial_config("custom", "func1", "func2"), "must be functions")
-test_error(serial_config("class", identity, identity, "wrong"), "must be a logical value")
+test_error(serial_config(1L, identity, identity), "must be a character vector")
+test_error(serial_config(c("custom", "custom2"), list(identity), list(identity)), "must be the same length")
+test_error(serial_config("custom", "func1", "func2"), "must be a function or list of functions")
+test_error(serial_config("custom", identity, "func2"), "must be a function or list of functions")
 test_error(opt(rep, "wrong") <- cfg, "not supported")
 test_error(opt(rep, "serial") <- pairlist(a = 1L), "not supported")
-test_error(opt(rep, "serial") <- list("wrong"), "Invalid argument")
-test_error(opt(rep, "serial") <- list("class", identity, identity, "wrong"), "Invalid argument")
-test_error(opt(rep, "serial") <- list("class", "wrong", function() {}, NA), "Invalid argument")
-test_error(opt(rep, "serial") <- list("class", function() {}, "wrong", NA), "Invalid argument")
 
 test_class("recvAio", cs <- request(req$context, "test", send_mode = "serial", cv = cv, timeout = 500))
 test_notnull(cs$data)

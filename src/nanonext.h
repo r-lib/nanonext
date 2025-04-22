@@ -65,7 +65,7 @@ typedef struct nano_handle_s {
 #include <errno.h>
 #endif
 
-#include <stdint.h>
+#include <inttypes.h>
 #ifndef R_NO_REMAP
 #define R_NO_REMAP
 #endif
@@ -103,6 +103,7 @@ extern int R_interrupts_pending;
 #define NANONEXT_INIT_BUFSIZE 4096
 #define NANONEXT_SERIAL_VER 3
 #define NANONEXT_SERIAL_THR 134217728
+#define NANONEXT_CHUNK_SIZE INT_MAX // must be <= INT_MAX
 #define NANONEXT_ERR_STRLEN 40
 #define NANONEXT_LD_STRLEN 21
 #define NANO_ALLOC(x, sz)                                      \
@@ -204,6 +205,13 @@ typedef struct nano_buf_s {
   size_t len;
   size_t cur;
 } nano_buf;
+
+typedef struct nano_serial_bundle_s {
+  R_outpstream_t outpstream;
+  R_inpstream_t inpstream;
+  SEXP klass;
+  SEXP hook_func;
+} nano_serial_bundle;
 
 extern void (*eln2)(void (*)(void *), void *, double, int);
 
@@ -322,7 +330,7 @@ SEXP rnng_recv_aio(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_request(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_send(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_send_aio(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-SEXP rnng_serial_config(SEXP, SEXP, SEXP, SEXP);
+SEXP rnng_serial_config(SEXP, SEXP, SEXP);
 SEXP rnng_set_marker(SEXP);
 SEXP rnng_set_opt(SEXP, SEXP, SEXP);
 SEXP rnng_set_promise_context(SEXP, SEXP);

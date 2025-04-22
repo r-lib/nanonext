@@ -7,20 +7,18 @@
 serial_config(class, sfunc, ufunc, vec = FALSE)
 }
 \arguments{
-\item{class}{character string of the class of object custom serialization
-functions are applied to, e.g. 'ArrowTabular' or 'torch_tensor'.}
+\item{class}{a character string (or vector) of the class of object custom
+serialization functions are applied to, e.g. \code{'ArrowTabular'} or
+\code{c('torch_tensor', 'ArrowTabular')}.}
 
-\item{sfunc}{a function that accepts a reference object inheriting from
-\code{class} (or a list of such objects) and returns a raw vector.}
+\item{sfunc}{a function (or list of functions) that accepts a reference
+object inheriting from \code{class} and returns a raw vector.}
 
-\item{ufunc}{a function that accepts a raw vector and returns a reference
-object (or list of such objects).}
+\item{ufunc}{a function (or list of functions) that accepts a raw vector and
+returns a reference object.}
 
-\item{vec}{[default FALSE] whether or not the serialization functions are
-vectorized. If \code{FALSE}, they should accept and return reference objects
-individually e.g. \code{arrow::write_to_raw} and \code{arrow::read_ipc_stream}. If
-\code{TRUE}, they should accept and return a list of reference objects, e.g.
-\code{torch::torch_serialize} and \code{torch::torch_load}.}
+\item{vec}{do not specify (retained for compatibility only and will be
+removed).}
 }
 \value{
 A list comprising the configuration. This should be set on a Socket
