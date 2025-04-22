@@ -277,6 +277,13 @@ status_code <- function(x) .Call(rnng_status_code, x)
 #' cfg <- serial_config("test_cls", function(x) serialize(x, NULL), unserialize)
 #' cfg
 #'
+#' cfg <- serial_config(
+#'   c("class_one", "class_two"),
+#'   list(function(x) serialize(x, NULL), function(x) serialize(x, NULL)),
+#'   list(unserialize, unserialize)
+#' )
+#' cfg
+#'
 #' s <- socket()
 #' opt(s, "serial") <- cfg
 #'

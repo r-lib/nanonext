@@ -36,6 +36,13 @@ functions apply to all send and receive operations performed in mode
 cfg <- serial_config("test_cls", function(x) serialize(x, NULL), unserialize)
 cfg
 
+cfg <- serial_config(
+  c("class_one", "class_two"),
+  list(function(x) serialize(x, NULL), function(x) serialize(x, NULL)),
+  list(unserialize, unserialize)
+)
+cfg
+
 s <- socket()
 opt(s, "serial") <- cfg
 
