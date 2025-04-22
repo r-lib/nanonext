@@ -344,7 +344,7 @@ void nano_serialize(nano_buf *buf, SEXP object, SEXP hook) {
 
 SEXP nano_unserialize(unsigned char *buf, size_t sz, SEXP hook) {
 
-  int match;
+  int match = 0;
   size_t cur;
 
   if (sz > 12) {
@@ -359,8 +359,6 @@ SEXP nano_unserialize(unsigned char *buf, size_t sz, SEXP hook) {
       cur = 8;
       match = 1;
       break;
-    default:
-      match = 0;
     }
   }
 
@@ -375,7 +373,6 @@ SEXP nano_unserialize(unsigned char *buf, size_t sz, SEXP hook) {
   nbuf.cur = cur;
 
   struct R_inpstream_st input_stream;
-  SEXP out;
 
   if (hook != R_NilValue) {
     nano_bundle.hook_func = NANO_VECTOR(hook)[2];
