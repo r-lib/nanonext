@@ -252,6 +252,9 @@ opt(rep, "serial") <- cfg
 custom <- list(`class<-`(new.env(), "custom"), new.env())
 test_zero(send(req$socket, custom, mode = "serial", block = 500))
 test_type("integer", recv(rep, block = 500)[[1L]])
+custom <- list(`class<-`(new.env(), "unused"), new.env())
+test_zero(send(req$socket, custom, mode = "serial", block = 500))
+test_type("list", recv(rep, block = 500))
 cfg <- serial_config("custom", function(x) as.raw(length(x)), function(x) lapply(seq_len(as.integer(x)), new.env))
 test_type("list", cfg)
 opt(req$socket, "serial") <- cfg
