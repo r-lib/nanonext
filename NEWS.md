@@ -2,8 +2,10 @@
 
 #### New Features
 
-* `request()` gains an integer argument `msgid`. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).
-* `request()` now also accepts a 'req' socket, in which case a single-use context is created automatically for the request.
+* `request()` improvements:
+  + Gains integer argument `msgid`. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).
+  + Accepts a 'req' socket, in which case a single-use context is created automatically for the request.
+* `serial_config()` now accepts vector arguments to register multiple custom serialization configurations.
 
 #### Updates
 
