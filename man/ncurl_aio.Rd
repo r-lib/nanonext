@@ -78,15 +78,17 @@ code or 'errorValue' as the case may be.
 }
 
 \examples{
-nc <- ncurl_aio("https://postman-echo.com/get",
-                response = c("date", "server"),
-                timeout = 2000L)
+nc <- ncurl_aio(
+  "https://postman-echo.com/get",
+  response = c("date", "server"),
+  timeout = 2000L
+)
 call_aio(nc)
 nc$status
 nc$headers
 nc$data
 
-\dontshow{if (interactive() && requireNamespace("promises", quietly = TRUE)) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\dontshow{if (interactive() && requireNamespace("promises", quietly = TRUE)) withAutoprint(\{ # examplesIf}
 library(promises)
 p <- as.promise(nc)
 print(p)

@@ -8,7 +8,7 @@ reply(
   context,
   execute,
   recv_mode = c("serial", "character", "complex", "double", "integer", "logical",
-    "numeric", "raw"),
+    "numeric", "raw", "string"),
   send_mode = c("serial", "raw"),
   timeout = NULL,
   ...

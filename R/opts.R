@@ -267,8 +267,7 @@
 #'
 #' @export
 #'
-opt <- function(object, name)
-  .Call(rnng_get_opt, object, name)
+opt <- function(object, name) .Call(rnng_get_opt, object, name)
 
 #' @examples
 #' s <- socket("pair")
@@ -294,8 +293,7 @@ opt <- function(object, name)
 #' @rdname opt
 #' @export
 #'
-`opt<-` <- function(object, name, value)
-  .Call(rnng_set_opt, object, name, value)
+`opt<-` <- function(object, name, value) .Call(rnng_set_opt, object, name, value)
 
 #' Subscribe / Unsubscribe Topic
 #'

@@ -87,13 +87,14 @@
 #'
 #' @export
 #'
-socket <- function(protocol = c("bus", "pair", "poly", "push", "pull", "pub",
-                                "sub", "req", "rep", "surveyor", "respondent"),
-                   dial = NULL,
-                   listen = NULL,
-                   tls = NULL,
-                   autostart = TRUE,
-                   raw = FALSE)
+socket <- function(
+  protocol = c("bus", "pair", "poly", "push", "pull", "pub", "sub", "req", "rep", "surveyor", "respondent"),
+  dial = NULL,
+  listen = NULL,
+  tls = NULL,
+  autostart = TRUE,
+  raw = FALSE
+)
   .Call(rnng_protocol_open, protocol, dial, listen, tls, autostart, raw)
 
 #' Close Connection

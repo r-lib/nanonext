@@ -36,7 +36,6 @@
 #' @export
 #'
 messenger <- function(url, auth = NULL) {
-
   lock <- md5_object(auth)
   comb <- order(as.integer(random(20L, convert = FALSE)))
   key <- c(comb, as.integer(lock)[comb])
@@ -84,7 +83,6 @@ messenger <- function(url, auth = NULL) {
       cat(sprintf("%*s > not sent: peer offline: %s\n", nchar(data), "", format.POSIXct(Sys.time())), file = stderr()) else
         cat(sprintf("%*s > %s\n", nchar(data), "", format.POSIXct(Sys.time())), file = stdout())
   }
-
 }
 
 # nocov end

@@ -132,20 +132,19 @@ close.nanoContext <- function(con, ...) invisible(.Call(rnng_ctx_close, con))
 #'
 #' @export
 #'
-reply <- function(context,
-                  execute,
-                  recv_mode = c("serial", "character", "complex", "double",
-                                "integer", "logical", "numeric", "raw"),
-                  send_mode = c("serial", "raw"),
-                  timeout = NULL,
-                  ...) {
-
+reply <- function(
+  context,
+  execute,
+  recv_mode = c("serial", "character", "complex", "double", "integer", "logical", "numeric", "raw", "string"),
+  send_mode = c("serial", "raw"),
+  timeout = NULL,
+  ...
+) {
   block <- if (is.null(timeout)) TRUE else timeout
   res <- recv(context, mode = recv_mode, block = block)
   is_error_value(res) && return(res)
   data <- .Call(rnng_eval_safe, as.call(list(execute, res, ...)))
   send(context, data = data, mode = send_mode, block = block)
-
 }
 
 #' Request over Context (RPC Client for Req/Rep Protocol)
@@ -225,12 +224,13 @@ reply <- function(context,
 #'
 #' @export
 #'
-request <- function(con,
-                    data,
-                    send_mode = c("serial", "raw"),
-                    recv_mode = c("serial", "character", "complex", "double",
-                                  "integer", "logical", "numeric", "raw", "string"),
-                    timeout = NULL,
-                    cv = NULL,
-                    msgid = NULL)
+request <- function(
+  con,
+  data,
+  send_mode = c("serial", "raw"),
+  recv_mode = c("serial", "character", "complex", "double", "integer", "logical", "numeric", "raw", "string"),
+  timeout = NULL,
+  cv = NULL,
+  msgid = NULL
+)
   data <- .Call(rnng_request, con, data, send_mode, recv_mode, timeout, cv, msgid, environment())

@@ -47,7 +47,7 @@ operations on it will error.
 # Will succeed only if there is an open connection at the address:
 s <- tryCatch(stream(dial = "tcp://127.0.0.1:5555"), error = identity)
 s
-\dontshow{if (interactive()) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
 # Run in interactive sessions only as connection is not always available:
 s <- tryCatch(
   stream(dial = "wss://echo.websocket.events/", textframes = TRUE),

@@ -121,12 +121,13 @@ send_aio <- function(con, data, mode = c("serial", "raw"), timeout = NULL, pipe 
 #'
 #' @export
 #'
-recv_aio <- function(con,
-                     mode = c("serial", "character", "complex", "double",
-                              "integer", "logical", "numeric", "raw", "string"),
-                     timeout = NULL,
-                     cv = NULL,
-                     n = 65536L)
+recv_aio <- function(
+  con,
+  mode = c("serial", "character", "complex", "double", "integer", "logical", "numeric", "raw", "string"),
+  timeout = NULL,
+  cv = NULL,
+  n = 65536L
+)
   data <- .Call(rnng_recv_aio, con, mode, timeout, cv, n, environment())
 
 # Core aio functions -----------------------------------------------------------
@@ -336,13 +337,10 @@ unresolved <- function(x) .Call(rnng_unresolved, x)
 #' @exportS3Method promises::as.promise
 #'
 as.promise.recvAio <- function(x) {
-
   promise <- .subset2(x, "promise")
 
   if (is.null(promise)) {
-
     promise <- if (unresolved(x)) {
-
       promises::promise(
         function(resolve, reject) .keep(x, environment())
       )$then(
@@ -361,13 +359,11 @@ as.promise.recvAio <- function(x) {
           })
       )
     }
-
+    
     `[[<-`(x, "promise", promise)
-
   }
 
   promise
-
 }
 
 #' @exportS3Method promises::is.promising
