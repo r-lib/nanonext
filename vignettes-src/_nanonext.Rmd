@@ -6,7 +6,8 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
+```{r}
+#| include: false
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -41,7 +42,8 @@ One solution it provides is that of processing real-time data where computation 
 
 Create socket in Python using the NNG binding 'pynng':
 
-```{python rnpy1}
+```{python}
+#| label: rnpy1
 import numpy as np
 import pynng
 socket = pynng.Pair0(listen="ipc:///tmp/nanonext.socket")
@@ -49,7 +51,8 @@ socket = pynng.Pair0(listen="ipc:///tmp/nanonext.socket")
 
 Create nano object in R using `nanonext`, then send a vector of 'doubles', specifying mode as 'raw':
 
-```{r rnpy2}
+```{r}
+#| label: rnpy2
 library(nanonext)
 n <- nano("pair", dial = "ipc:///tmp/nanonext.socket")
 n$send(c(1.1, 2.2, 3.3, 4.4, 5.5), mode = "raw")
@@ -57,7 +60,8 @@ n$send(c(1.1, 2.2, 3.3, 4.4, 5.5), mode = "raw")
 
 Receive in Python as a NumPy array of 'floats', and send back to R:
 
-```{python rnpy3}
+```{python}
+#| label: rnpy3
 raw = socket.recv()
 array = np.frombuffer(raw)
 print(array)
@@ -70,7 +74,8 @@ socket.close()
 
 Receive in R, specifying the receive mode as 'double':
 
-```{r rnpy4}
+```{r}
+#| label: rnpy4
 n$recv(mode = "double")
 
 n$close()
@@ -82,7 +87,8 @@ n$close()
 
 `nanonext` implements true async send and receive, leveraging NNG as a massively-scaleable concurrency framework.
 
-```{r async}
+```{r}
+#| label: async
 s1 <- socket("pair", listen = "inproc://nano")
 s2 <- socket("pair", dial = "inproc://nano")
 
@@ -92,7 +98,8 @@ s2 <- socket("pair", dial = "inproc://nano")
 
 An 'Aio' object returns an unresolved value whilst its asynchronous operation is ongoing, automatically resolving to a final value once complete.
 
-```{r async4}
+```{r}
+#| label: async4
 # an async receive is requested, but no messages are waiting (yet to be sent)
 msg <- recv_aio(s2)
 msg
@@ -102,7 +109,8 @@ msg$data
 
 For a 'sendAio' object, the result is stored at `$result`.
 
-```{r async2}
+```{r}
+#| label: async2
 res <- send_aio(s1, data.frame(a = 1, b = 2))
 res
 res$result
@@ -112,7 +120,8 @@ res$result
 
 For a 'recvAio' object, the message is stored at `$data`.
 
-```{r async3}
+```{r}
+#| label: async3
 # now that a message has been sent, the 'recvAio' resolves automatically
 msg$data
 
@@ -120,7 +129,8 @@ msg$data
 
 Auxiliary function `unresolved()` may be used in control flow statements to perform actions which depend on resolution of the Aio, both before and after. This means there is no need to actually wait (block) for an Aio to resolve, as the example below demonstrates.
 
-```{r async5}
+```{r}
+#| label: async5
 msg <- recv_aio(s2)
 
 # unresolved() queries for resolution itself so no need to use it again within the while loop
@@ -136,7 +146,8 @@ msg$data
 
 The values may also be called explicitly using `call_aio()`. This will wait for completion of the Aio (blocking).
 
-```{r async7}
+```{r}
+#| label: async7
 # will wait for completion then return the resolved Aio
 call_aio(msg)
 
@@ -164,7 +175,8 @@ Can be used to perform computationally-expensive calculations or I/O-bound opera
 
 [S] Server process: `reply()` will wait for a message and apply a function, in this case `rnorm()`, before sending back the result. This is started in a background 'mirai' process.
 
-```{r rpcserver}
+```{r}
+#| label: rpcserver
 m <- mirai::mirai({
   library(nanonext)
   rep <- socket("rep", listen = "tcp://127.0.0.1:6556")
@@ -176,7 +188,8 @@ m <- mirai::mirai({
 
 [C] Client process: `request()` performs an async send and receive request and returns immediately with a `recvAio` object.
 
-```{r rpcclient}
+```{r}
+#| label: rpcclient
 library(nanonext)
 req <- socket("req", dial = "tcp://127.0.0.1:6556")
 aio <- request(context(req), data = 1e8, recv_mode = "double")
@@ -184,7 +197,8 @@ aio <- request(context(req), data = 1e8, recv_mode = "double")
 ```
 At this point, the client can run additional code concurrent with the server processing the request.
 
-```{r rpcclient2}
+```{r}
+#| label: rpcclient2
 # do more...
 ```
 
@@ -192,7 +206,8 @@ When the result of the server calculation is required, the `recvAio` may be call
 
 The return value from the server request is then retrieved and stored in the Aio as `$data`.
 
-```{r rpcclient3}
+```{r}
+#| label: rpcclient3
 call_aio(aio)$data |> str()
 ```
 
@@ -222,7 +237,8 @@ The following shows how condition variables and signalling work in practice.
 
 Example 1: set up a socket, and wait for the other side to connect:
 
-```{r pipeevt}
+```{r}
+#| label: pipeevt
 sock <- socket("pair", listen = "inproc://nanopipe")
 
 cv <- cv() # create new condition variable
@@ -251,7 +267,8 @@ close(sock)
 
 Example 2: wait until a message is received or connection is dropped:
 
-```{r signalevt}
+```{r}
+#| label: signalevt
 sock <- socket("pair", listen = "inproc://nanosignal")
 sock2 <- socket("pair", dial = "inproc://nanosignal")
 
@@ -299,7 +316,8 @@ A client configuration requires a PEM-encoded CA certificate (chain) used to ver
 
 Additionally, the convenience function `write_cert()` can automatically generate a 4096 bit RSA key pair and self-signed X.509 certificate in the format required by `tls_config()`. The 'cn' argument must be provided and match exactly the hostname / IP address of the URL that is being used, e.g. in the example below '127.0.0.1' must be used throughout, or alternatively 'localhost', but not a mixture of the two.
 
-```{r tlsconfig}
+```{r}
+#| label: tlsconfig
 cert <- write_cert(cn = "127.0.0.1")
 str(cert)
 
@@ -325,7 +343,8 @@ close(s)
 
 `nanonext` fully implements NNG's pub/sub protocol as per the below example. A subscriber can subscribe to one or multiple topics broadcast by a publisher.
 
-```{r pub}
+```{r}
+#| label: pub
 pub <- socket("pub", listen = "inproc://nanobroadcast")
 sub <- socket("sub", dial = "inproc://nanobroadcast")
 
@@ -357,7 +376,8 @@ sub |> recv(mode = "character")
 
 The subscribed topic can be of any atomic type (not just character), allowing integer, double, logical, complex and raw vectors to be sent and received.
 
-```{r pub2}
+```{r}
+#| label: pub2
 sub |> subscribe(topic = 1)
 pub |> send(c(1, 10, 10, 20), mode = "raw")
 sub |> recv(mode = "double")
@@ -377,7 +397,8 @@ This type of pattern is useful for applications such as service discovery.
 
 A surveyor sends a survey, which is broadcast to all peer respondents. Respondents are then able to reply, but are not obliged to. The survey itself is a timed event, and responses received after the timeout are discarded.
 
-```{r survey}
+```{r}
+#| label: survey
 sur <- socket("surveyor", listen = "inproc://nanoservice")
 res1 <- socket("respondent", dial = "inproc://nanoservice")
 res2 <- socket("respondent", dial = "inproc://nanoservice")
@@ -425,14 +446,16 @@ It can be seen that the final value resolves into a timeout, which is an integer
 
 For normal use, it takes just the URL. It can follow redirects.
 
-```{r ncurl}
+```{r}
+#| label: ncurl
 ncurl("https://postman-echo.com/get")
 
 ```
 
 For advanced use, supports additional HTTP methods such as POST or PUT.
 
-```{r ncurladv}
+```{r}
+#| label: ncurladv
 res <- ncurl_aio("https://postman-echo.com/post",
                  method = "POST",
                  headers = c(`Content-Type` = "application/json", Authorization = "Bearer APIKEY"),
@@ -454,7 +477,8 @@ In this respect, it may be used as a performant and lightweight method for makin
 
 If a status code of 200 (OK) is returned then the promise is resolved with the reponse body, otherwise it is rejected with a translation of the status code or ‘errorValue’ as the case may be.
 
-```{r ncurlprom}
+```{r}
+#| label: ncurlprom
 library(promises)
 
 p <- ncurl_aio("https://postman-echo.com/get") %...>% cat
@@ -466,7 +490,8 @@ is.promise(p)
 
 By specifying `convert = FALSE`, the received binary data is made available as a raw vector. This may be fed into 'json' parsers which can operate directly on such data etc.
 
-```{r ncurlsession}
+```{r}
+#| label: ncurlsession
 sess <- ncurl_session("https://postman-echo.com/get",
                       convert = FALSE,
                       headers = c(`Content-Type` = "application/json", Authorization = "Bearer APIKEY"),
@@ -485,7 +510,8 @@ transact(sess)
 
 The stream interface can be used to communicate with (secure) websocket servers. The argument `textframes = TRUE` can be specified where the websocket server uses text rather than binary frames.
 
-```{r stream}
+```{r}
+#| label: stream
 # connecting to an echo service
 s <- stream(dial = "wss://echo.websocket.events/", textframes = TRUE)
 s
@@ -494,7 +520,8 @@ s
 
 `send()` and `recv()`, as well as their asynchronous counterparts `send_aio()` and `recv_aio()` can be used on Streams in the same way as Sockets. This affords a great deal of flexibility in ingesting and processing streaming data.
 
-```{r stream2}
+```{r}
+#| label: stream2
 s |> recv()
 
 s |> send("initial message")
@@ -525,7 +552,8 @@ See the function documentation page for a list of common options.
 
 Once a dialer or listener has started, it is not generally possible to change its configuration. In this case, the dialer or listener should be created specifying 'autostart = FALSE'.
 
-```{r opt}
+```{r}
+#| label: opt
 s <- socket(listen = "inproc://options", autostart = FALSE)
 
 # no maximum message size
@@ -542,7 +570,8 @@ start(s$listener[[1]])
 
 There is the special write-only option 'serial' for Sockets, which sets a serialization configuration returned by `serial_config()`. This registers custom functions to handle serialization and unserialization of reference objects, plugging into the 'refhook' system of native R serialization. This allows the transparent send and receive of such objects using mode 'serial' without the need for a separate 'marshalling' step. Once set, configurations apply to the Socket and all Contexts created from the Socket.
 
-```{r serial}
+```{r}
+#| label: serial
 serial <- serial_config("obj_class", function(x) serialize(x, NULL), unserialize)
 opt(s, "serial") <- serial
 
@@ -555,7 +584,8 @@ This can be used on a Socket, Listener or Dialer to query useful statistics such
 
 See the function documentation page for available statistics.
 
-```{r stat}
+```{r}
+#| label: stat
 s <- socket(listen = "inproc://stat")
 
 # no active connections (pipes)
