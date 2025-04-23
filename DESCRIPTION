@@ -42,3 +42,4 @@ Roxygen: list(markdown = TRUE)
 Biarch: true
 Config/build/compilation-database: true
 Config/Needs/website: tidyverse/tidytemplate
+Config/usethis/last-upkeep: 2025-04-23
