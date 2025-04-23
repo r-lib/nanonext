@@ -75,9 +75,11 @@ times by repeatedly calling \code{transact()}, which transacts once over the
 connection.
 }
 \examples{
-s <- ncurl_session("https://postman-echo.com/get",
-                   response = "date",
-                   timeout = 2000L)
+s <- ncurl_session(
+  "https://postman-echo.com/get",
+  response = "date",
+  timeout = 2000L
+)
 s
 if (is_ncurl_session(s)) transact(s)
 if (is_ncurl_session(s)) close(s)

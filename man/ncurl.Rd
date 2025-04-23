@@ -69,20 +69,26 @@ file).
 nano cURL - a minimalist http(s) client.
 }
 \examples{
-ncurl("https://postman-echo.com/get",
-       convert = FALSE,
-       response = c("date", "content-type"),
-       timeout = 1200L)
-ncurl("https://postman-echo.com/put",
-      method = "PUT",
-      headers = c(Authorization = "Bearer APIKEY"),
-      data = "hello world",
-      timeout = 1500L)
-ncurl("https://postman-echo.com/post",
-      method = "POST",
-      headers = c(`Content-Type` = "application/json"),
-      data = '{"key":"value"}',
-      timeout = 1500L)
+ncurl(
+  "https://postman-echo.com/get",
+  convert = FALSE,
+  response = c("date", "content-type"),
+  timeout = 1200L
+)
+ncurl(
+  "https://postman-echo.com/put",
+  method = "PUT",
+  headers = c(Authorization = "Bearer APIKEY"),
+  data = "hello world",
+  timeout = 1500L
+)
+ncurl(
+  "https://postman-echo.com/post",
+  method = "POST",
+  headers = c(`Content-Type` = "application/json"),
+  data = '{"key":"value"}',
+  timeout = 1500L
+)
 
 }
 \seealso{

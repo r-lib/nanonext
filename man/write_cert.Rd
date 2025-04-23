@@ -27,7 +27,7 @@ Note that it can take a second or two for the key and certificate to be
 generated.
 }
 \examples{
-\dontshow{if (interactive()) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
 cert <- write_cert(cn = "127.0.0.1")
 ser <- tls_config(server = cert$server)
 cli <- tls_config(client = cert$client)

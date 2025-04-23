@@ -9,8 +9,9 @@
 status](https://www.r-pkg.org/badges/version/nanonext)](https://CRAN.R-project.org/package=nanonext)
 [![R-universe
 status](https://r-lib.r-universe.dev/badges/nanonext?color=3f72af)](https://r-lib.r-universe.dev/nanonext)
-[![R-CMD-check](https://github.com/r-lib/nanonext/workflows/R-CMD-check/badge.svg)](https://github.com/r-lib/nanonext/actions)
-[![codecov](https://codecov.io/gh/r-lib/nanonext/graph/badge.svg)](https://app.codecov.io/gh/r-lib/nanonext)
+[![R-CMD-check](https://github.com/r-lib/nanonext/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/r-lib/nanonext/actions/workflows/R-CMD-check.yaml)
+[![Codecov test
+coverage](https://codecov.io/gh/r-lib/nanonext/graph/badge.svg)](https://app.codecov.io/gh/r-lib/nanonext)
 [![DOI](https://zenodo.org/badge/451104675.svg)](https://zenodo.org/badge/latestdoi/451104675)
 <!-- badges: end -->
 

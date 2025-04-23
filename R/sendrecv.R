@@ -150,9 +150,10 @@ send <- function(con, data, mode = c("serial", "raw"), block = NULL, pipe = 0L)
 #'
 #' @export
 #'
-recv <- function(con,
-                 mode = c("serial", "character", "complex", "double",
-                          "integer", "logical", "numeric", "raw", "string"),
-                 block = NULL,
-                 n = 65536L)
+recv <- function(
+  con,
+  mode = c("serial", "character", "complex", "double", "integer", "logical", "numeric", "raw", "string"),
+  block = NULL,
+  n = 65536L
+)
   .Call(rnng_recv, con, mode, block, n)
