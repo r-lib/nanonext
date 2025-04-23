@@ -137,9 +137,11 @@ asynchronous http requests.</p></div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu">ncurl_session</span><span class="op">(</span><span class="st">"https://postman-echo.com/get"</span>,</span></span>
-<span class="r-in"><span>                   response <span class="op">=</span> <span class="st">"date"</span>,</span></span>
-<span class="r-in"><span>                   timeout <span class="op">=</span> <span class="fl">2000L</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu">ncurl_session</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="st">"https://postman-echo.com/get"</span>,</span></span>
+<span class="r-in"><span>  response <span class="op">=</span> <span class="st">"date"</span>,</span></span>
+<span class="r-in"><span>  timeout <span class="op">=</span> <span class="fl">2000L</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">s</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt; ncurlSession &gt; - transact() to return data</span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="is_aio.html">is_ncurl_session</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span><span class="op">)</span> <span class="fu">transact</span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span></span>
@@ -148,11 +150,11 @@ asynchronous http requests.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$date</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Tue, 22 Apr 2025 19:13:31 GMT"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Wed, 23 Apr 2025 14:00:14 GMT"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $data</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "{\n  \"args\": {},\n  \"headers\": {\n    \"host\": \"postman-echo.com\",\n    \"x-request-start\": \"t1745349211.847\",\n    \"connection\": \"close\",\n    \"x-forwarded-proto\": \"https\",\n    \"x-forwarded-port\": \"443\",\n    \"x-amzn-trace-id\": \"Root=1-6807ea5b-298a2cc538d211005331a138\"\n  },\n  \"url\": \"https://postman-echo.com/get\"\n}"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "{\n  \"args\": {},\n  \"headers\": {\n    \"host\": \"postman-echo.com\",\n    \"x-request-start\": \"t1745416814.937\",\n    \"connection\": \"close\",\n    \"x-forwarded-proto\": \"https\",\n    \"x-forwarded-port\": \"443\",\n    \"x-amzn-trace-id\": \"Root=1-6808f26e-557a433e5f9e852f62c8c307\"\n  },\n  \"url\": \"https://postman-echo.com/get\"\n}"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="is_aio.html">is_ncurl_session</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="close.html">close</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
