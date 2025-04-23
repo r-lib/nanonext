@@ -1,45 +1,43 @@
-Package: nanonext
 Type: Package
+Package: nanonext
 Title: NNG (Nanomsg Next Gen) Lightweight Messaging Library
 Version: 1.5.2.9005
-Description: R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. NNG is
-    a socket library for reliable, high-performance messaging over in-process,
-    IPC, TCP, WebSocket and secure TLS transports. Implements 'Scalability
-    Protocols', a standard for common communications patterns including
-    publish/subscribe, request/reply and service discovery. As its own threaded
-    concurrency framework, provides a toolkit for asynchronous programming and
-    distributed computing. Intuitive 'aio' objects resolve automatically when
-    asynchronous operations complete, and synchronisation primitives allow R to
-    wait upon events signalled by concurrent threads.
-Authors@R: 
-    c(person(given = "Charlie",
-             family = "Gao",
-             role = c("aut", "cre"),
-             email = "charlie.gao@shikokuchuo.net",
-             comment = c(ORCID = "0000-0002-0750-061X")),
-      person(given = "Posit Software, PBC",
-             role = c("cph", "fnd")),
-      person(given = "Hibiki AI Limited",
-             role = "cph"),
-      person(given = "R Consortium",
-             role = "fnd"))
+Authors@R: c(
+    person("Charlie", "Gao", , "charlie.gao@shikokuchuo.net", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-0750-061X")),
+    person("Posit Software, PBC", role = c("cph", "fnd"),
+           comment = c(ROR = "03wc8by49")),
+    person("Hibiki AI Limited", role = "cph"),
+    person("R Consortium", role = "fnd")
+  )
+Description: R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ.
+    NNG is a socket library for reliable, high-performance messaging over
+    in-process, IPC, TCP, WebSocket and secure TLS transports. Implements
+    'Scalability Protocols', a standard for common communications patterns
+    including publish/subscribe, request/reply and service discovery. As
+    its own threaded concurrency framework, provides a toolkit for
+    asynchronous programming and distributed computing. Intuitive 'aio'
+    objects resolve automatically when asynchronous operations complete,
+    and synchronisation primitives allow R to wait upon events signalled
+    by concurrent threads.
 License: MIT + file LICENSE
-BugReports: https://github.com/r-lib/nanonext/issues
 URL: https://nanonext.r-lib.org, https://github.com/r-lib/nanonext
-Encoding: UTF-8
-SystemRequirements: 'libnng' >= 1.9 and 'libmbedtls' >= 2.5, or 'cmake' and 'xz'
-    to compile NNG and/or Mbed TLS included in package sources
+BugReports: https://github.com/r-lib/nanonext/issues
 Depends: 
     R (>= 3.6)
-Enhances:
-    promises
 Suggests: 
     later,
     litedown
-VignetteBuilder: litedown
-RoxygenNote: 7.3.2.9000
-Roxygen: list(markdown = TRUE)
+Enhances:
+    promises
+VignetteBuilder: 
+    litedown
 Biarch: true
 Config/build/compilation-database: true
 Config/Needs/website: tidyverse/tidytemplate
 Config/usethis/last-upkeep: 2025-04-23
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2.9000
+SystemRequirements: 'libnng' >= 1.9 and 'libmbedtls' >= 2.5, or 'cmake'
+    and 'xz' to compile NNG and/or Mbed TLS included in package sources
