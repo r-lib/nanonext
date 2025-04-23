@@ -4,7 +4,8 @@ output: github_document
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-```{r, include = FALSE}
+```{r}
+#| include: false
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -18,8 +19,8 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 [![CRAN status](https://www.r-pkg.org/badges/version/nanonext)](https://CRAN.R-project.org/package=nanonext)
 [![R-universe status](https://r-lib.r-universe.dev/badges/nanonext?color=3f72af)](https://r-lib.r-universe.dev/nanonext)
-[![R-CMD-check](https://github.com/r-lib/nanonext/workflows/R-CMD-check/badge.svg)](https://github.com/r-lib/nanonext/actions)
-[![codecov](https://codecov.io/gh/r-lib/nanonext/graph/badge.svg)](https://app.codecov.io/gh/r-lib/nanonext)
+[![R-CMD-check](https://github.com/r-lib/nanonext/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/r-lib/nanonext/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/r-lib/nanonext/graph/badge.svg)](https://app.codecov.io/gh/r-lib/nanonext)
 [![DOI](https://zenodo.org/badge/451104675.svg)](https://zenodo.org/badge/latestdoi/451104675)
 <!-- badges: end -->
 
@@ -71,7 +72,8 @@ The primary object in the functional interface is the Socket. Use `socket()` to 
 
 Create sockets:
 
-```{r example2}
+```{r}
+#| label: example2
 library(nanonext)
 
 socket1 <- socket("req", listen = "inproc://nanonext")
@@ -80,13 +82,15 @@ socket2 <- socket("rep", dial = "inproc://nanonext")
 
 Send message from 'socket1':
 
-```{r send2}
+```{r}
+#| label: send2
 send(socket1, "hello world!")
 ```
 
 Receive message using 'socket2':
 
-```{r recv2}
+```{r}
+#| label: recv2
 recv(socket2)
 ```
 
@@ -98,7 +102,8 @@ The primary object in the object-oriented interface is the nano object. Use `nan
 
 Create nano objects:
 
-```{r example}
+```{r}
+#| label: example
 library(nanonext)
 
 nano1 <- nano("push", listen = "tcp://127.0.0.1:5555")
@@ -107,13 +112,15 @@ nano2 <- nano("pull", dial = "tcp://127.0.0.1:5555")
 
 Send message from 'nano1':
 
-```{r send}
+```{r}
+#| label: send
 nano1$send("hello world!")
 ```
 
 Receive message using 'nano2':
 
-```{r recv}
+```{r}
+#| label: recv
 nano2$recv()
 ```
 
@@ -123,7 +130,9 @@ Please refer to the [nanonext vignette](https://nanonext.r-lib.org/articles/nano
 
 This may be accessed within R by:
 
-```{r vignette, eval=FALSE}
+```{r}
+#| label: vignette
+#| eval: false
 vignette("nanonext", package = "nanonext")
 ```
 
@@ -131,13 +140,17 @@ vignette("nanonext", package = "nanonext")
 
 Install the latest release from CRAN:
 
-```{r cran, eval=FALSE}
+```{r}
+#| label: cran
+#| eval: false
 install.packages("nanonext")
 ```
 
 Or the current development version from R-universe:
 
-```{r universe, eval=FALSE}
+```{r}
+#| label: universe
+#| eval: false
 install.packages("nanonext", repos = "https://r-lib.r-universe.dev")
 ```
 
