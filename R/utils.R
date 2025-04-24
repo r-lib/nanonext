@@ -297,6 +297,19 @@ status_code <- function(x) .Call(rnng_status_code, x)
 serial_config <- function(class, sfunc, ufunc, vec = FALSE)
   .Call(rnng_serial_config, class, sfunc, ufunc)
 
+#' Set Serialization Header
+#'
+#' Internal package function.
+#'
+#' @param x integer value.
+#'
+#' @return The integer value `x` supplied.
+#'
+#' @keywords internal
+#' @export
+#'
+.header <- function(x = 0L) .Call(rnng_set_header, x)
+
 #' Set Serialization Marker
 #'
 #' Internal package function.

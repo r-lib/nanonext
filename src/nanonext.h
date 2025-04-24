@@ -331,6 +331,7 @@ SEXP rnng_request(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_send(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_send_aio(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_serial_config(SEXP, SEXP, SEXP);
+SEXP rnng_set_header(SEXP);
 SEXP rnng_set_marker(SEXP);
 SEXP rnng_set_opt(SEXP, SEXP, SEXP);
 SEXP rnng_set_promise_context(SEXP, SEXP);
