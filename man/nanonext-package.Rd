@@ -98,7 +98,7 @@ Useful links:
 
 Other contributors:
 \itemize{
-  \item Posit Software, PBC [copyright holder, funder]
+  \item Posit Software, PBC (\href{https://ror.org/03wc8by49}{ROR}) [copyright holder, funder]
   \item Hibiki AI Limited [copyright holder]
   \item R Consortium [funder]
 }
