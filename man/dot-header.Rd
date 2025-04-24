@@ -2,17 +2,36 @@
 % Please edit documentation in R/utils.R
 \name{.header}
 \alias{.header}
-\title{Set Serialization Header}
+\alias{.read_header}
+\alias{.mark}
+\alias{.read_marker}
+\title{Serialization Headers and Markers}
 \usage{
-.header(x = 0L)
+.header(value = 0L)
+
+.read_header(x)
+
+.mark(bool = TRUE)
+
+.read_marker(x)
 }
 \arguments{
-\item{x}{integer value.}
+\item{value}{integer value.}
+
+\item{x}{raw vector.}
+
+\item{bool}{logical value.}
 }
 \value{
-The integer value \code{x} supplied.
+For \code{.header()}: the integer \code{value} supplied.
+
+For \code{.read_header()}: integer value.
+
+For \code{.mark()}: the logical \code{bool} supplied.
+
+For \code{.read_marker()}: logical value \code{TRUE} or \code{FALSE}.
 }
 \description{
-Internal package function.
+Internal package functions.
 }
 \keyword{internal}

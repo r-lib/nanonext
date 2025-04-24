@@ -297,32 +297,6 @@ status_code <- function(x) .Call(rnng_status_code, x)
 serial_config <- function(class, sfunc, ufunc, vec = FALSE)
   .Call(rnng_serial_config, class, sfunc, ufunc)
 
-#' Set Serialization Header
-#'
-#' Internal package function.
-#'
-#' @param x integer value.
-#'
-#' @return The integer value `x` supplied.
-#'
-#' @keywords internal
-#' @export
-#'
-.header <- function(x = 0L) .Call(rnng_set_header, x)
-
-#' Set Serialization Marker
-#'
-#' Internal package function.
-#'
-#' @param x logical value.
-#'
-#' @return The logical value `x` supplied.
-#'
-#' @keywords internal
-#' @export
-#'
-.mark <- function(x = TRUE) .Call(rnng_set_marker, x)
-
 #' Advances the RNG State
 #'
 #' Internal package function.
@@ -333,6 +307,55 @@ serial_config <- function(class, sfunc, ufunc, vec = FALSE)
 #' @export
 #'
 .advance <- function() .Call(rnng_advance_rng_state)
+
+#' Serialization Headers and Markers
+#'
+#' Internal package functions.
+#'
+#' @param value integer value.
+#'
+#' @return For `.header()`: the integer `value` supplied.
+#'
+#' @keywords internal
+#' @export
+#'
+.header <- function(value = 0L) .Call(rnng_header_set, value)
+
+#' Read Serialization Header
+#'
+#' @param x raw vector.
+#'
+#' @return For `.read_header()`: integer value.
+#'
+#' @keywords internal
+#' @rdname dot-header
+#' @export
+#'
+.read_header <- function(x) .Call(rnng_header_read, x)
+
+#' Set Serialization Marker
+#'
+#' @param bool logical value.
+#'
+#' @return For `.mark()`: the logical `bool` supplied.
+#'
+#' @keywords internal
+#' @rdname dot-header
+#' @export
+#'
+.mark <- function(bool = TRUE) .Call(rnng_marker_set, bool)
+
+#' Read Serialization Marker
+#'
+#' @param x raw vector.
+#'
+#' @return For `.read_marker()`: logical value `TRUE` or `FALSE`.
+#'
+#' @keywords internal
+#' @rdname dot-header
+#' @export
+#'
+.read_marker <- function(x) .Call(rnng_marker_read, x)
 
 #' Interrupt Switch
 #'

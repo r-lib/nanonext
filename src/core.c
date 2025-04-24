@@ -624,17 +624,36 @@ int nano_matchargs(const SEXP mode) {
 
 // specials --------------------------------------------------------------------
 
-SEXP rnng_set_marker(SEXP x) {
+SEXP rnng_marker_set(SEXP x) {
 
   special_marker = NANO_INTEGER(x);
   return x;
 
 }
 
-SEXP rnng_set_header(SEXP x) {
+SEXP rnng_marker_read(SEXP x) {
+
+  unsigned char *buf = (unsigned char *) NANO_DATAPTR(x);
+
+  return Rf_ScalarLogical(TYPEOF(x) == RAWSXP && XLENGTH(x) > 12 && buf[0] == 0x7 && buf[3] == 0x1);
+
+}
+
+SEXP rnng_header_set(SEXP x) {
 
   special_header = NANO_INTEGER(x);
   return x;
+
+}
+
+SEXP rnng_header_read(SEXP x) {
+
+  unsigned char *buf = (unsigned char *) NANO_DATAPTR(x);
+  int res = 0;
+  if (TYPEOF(x) == RAWSXP && XLENGTH(x) > 12 && buf[0] == 0x7) {
+    memcpy(&res, buf + 4, sizeof(int));
+  }
+  return Rf_ScalarInteger(res);
 
 }
 
