@@ -473,14 +473,14 @@ SEXP nano_decode(unsigned char *buf, const size_t sz, const uint8_t mod, SEXP ho
     data = Rf_allocVector(RAWSXP, sz);
     break;
   case 9:
-    data = nano_raw_char(buf, sz);
-    return data;
+    return nano_raw_char(buf, sz);
   default:
-    data = nano_unserialize(buf, sz, hook);
-  return data;
+    return nano_unserialize(buf, sz, hook);
   }
 
-  memcpy(NANO_DATAPTR(data), buf, sz);
+  if (sz)
+    memcpy(NANO_DATAPTR(data), buf, sz);
+
   return data;
 
 }
@@ -633,9 +633,12 @@ SEXP rnng_marker_set(SEXP x) {
 
 SEXP rnng_marker_read(SEXP x) {
 
-  unsigned char *buf = (unsigned char *) NANO_DATAPTR(x);
-
-  return Rf_ScalarLogical(TYPEOF(x) == RAWSXP && XLENGTH(x) > 12 && buf[0] == 0x7 && buf[3] == 0x1);
+  int res = 0;
+  if (TYPEOF(x) == RAWSXP && XLENGTH(x) > 12) {
+    unsigned char *buf = (unsigned char *) DATAPTR_RO(x);
+    res = buf[0] == 0x7 && buf[3] == 0x1;
+  }
+  return Rf_ScalarLogical(res);
 
 }
 
@@ -648,10 +651,11 @@ SEXP rnng_header_set(SEXP x) {
 
 SEXP rnng_header_read(SEXP x) {
 
-  unsigned char *buf = (unsigned char *) NANO_DATAPTR(x);
   int res = 0;
-  if (TYPEOF(x) == RAWSXP && XLENGTH(x) > 12 && buf[0] == 0x7) {
-    memcpy(&res, buf + 4, sizeof(int));
+  if (TYPEOF(x) == RAWSXP && XLENGTH(x) > 12) {
+    unsigned char *buf = (unsigned char *) DATAPTR_RO(x);
+    if (buf[0] == 0x7)
+      memcpy(&res, buf + 4, sizeof(int));
   }
   return Rf_ScalarInteger(res);
 
