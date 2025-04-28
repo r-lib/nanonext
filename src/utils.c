@@ -7,8 +7,8 @@
 SEXP rnng_strerror(SEXP error) {
 
   const int xc = nano_integer(error);
-  char nano_errbuf[NANONEXT_ERR_STRLEN];
-  snprintf(nano_errbuf, NANONEXT_ERR_STRLEN, "%d | %s", xc, nng_strerror(xc));
+  char nano_errbuf[NANONEXT_STR_SIZE];
+  snprintf(nano_errbuf, NANONEXT_STR_SIZE, "%d | %s", xc, nng_strerror(xc));
 
   return Rf_mkString(nano_errbuf);
 

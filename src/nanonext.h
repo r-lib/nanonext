@@ -107,8 +107,7 @@ extern int R_interrupts_pending;
 #define NANONEXT_SERIAL_VER 3
 #define NANONEXT_SERIAL_THR 134217728
 #define NANONEXT_CHUNK_SIZE INT_MAX // must be <= INT_MAX
-#define NANONEXT_ERR_STRLEN 40
-#define NANONEXT_LD_STRLEN 21
+#define NANONEXT_STR_SIZE 64
 #define NANO_ALLOC(x, sz)                                      \
   (x)->buf = R_Calloc(sz, unsigned char);                      \
   (x)->len = sz;                                               \
