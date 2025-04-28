@@ -53,7 +53,7 @@ typedef struct nano_handle_s {
 
 #ifdef NANONEXT_IP
 #ifdef _WIN32
-#ifndef _WIN32_WINNT
+#if !defined(_WIN32_WINNT) || (defined(_WIN32_WINNT) && (_WIN32_WINNT < 0x0600))
 #define _WIN32_WINNT 0x0600
 #endif
 #include <winsock2.h>
