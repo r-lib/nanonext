@@ -622,6 +622,12 @@ int nano_matchargs(const SEXP mode) {
 
 }
 
+SEXP rnng_eval_safe(SEXP arg) {
+
+  return R_ToplevelExec(nano_eval_safe, arg) ? nano_eval_res : Rf_allocVector(RAWSXP, 1);
+
+}
+
 // specials --------------------------------------------------------------------
 
 SEXP rnng_marker_set(SEXP x) {
@@ -658,11 +664,5 @@ SEXP rnng_header_read(SEXP x) {
       memcpy(&res, buf + 4, sizeof(int));
   }
   return Rf_ScalarInteger(res);
-
-}
-
-SEXP rnng_eval_safe(SEXP arg) {
-
-  return R_ToplevelExec(nano_eval_safe, arg) ? nano_eval_res : Rf_allocVector(RAWSXP, 1);
 
 }

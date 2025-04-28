@@ -297,6 +297,26 @@ status_code <- function(x) .Call(rnng_status_code, x)
 serial_config <- function(class, sfunc, ufunc, vec = FALSE)
   .Call(rnng_serial_config, class, sfunc, ufunc)
 
+#' Write C
+#'
+#' Writes using the C function `write()` for non-buffered I/O. Avoids
+#' interleaved output when writing concurrently to `stdout` from multiple
+#' processes.
+#'
+#' This function writes to the C-level `stdout` of the process and hence cannot
+#' be re-directed by [sink()].
+#'
+#' @param x character string.
+#'
+#' @return Invisible NULL. As a side effect, `x` is output to `stdout`.
+#'
+#' @examples
+#' writec("\n")
+#'
+#' @export
+#'
+writec <- function(x) invisible(.Call(rnng_writec, x))
+
 #' Advances the RNG State
 #'
 #' Internal package function.

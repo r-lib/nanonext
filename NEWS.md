@@ -2,11 +2,11 @@
 
 #### New Features
 
+* New utility `writec()` implements a non-buffered write to `stdout` to avoid interleaved messages when used concurrently by different processes.
 * `request()` improvements:
   + Gains integer argument `msgid`. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).
   + Accepts a 'req' socket, in which case a single-use context is created automatically for the request.
 * `serial_config()` now accepts vector arguments to register multiple custom serialization configurations.
-
 #### Updates
 
 * More robust interruption on non-Windows platforms if `tools::SIGINT` is supplied or passed through to the `autoexit` argument of `daemon()` (thanks @LennardLux, #97).
