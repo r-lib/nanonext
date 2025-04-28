@@ -632,6 +632,7 @@ if (promises) test_zero(close(s1))
 if (promises) test_zero(close(s))
 if (promises) later::run_now(1L)
 test_null(writec("\n"))
+test_type("character", ip_addr())
 
 test_true(.interrupt())
 test_true(!.interrupt(FALSE))

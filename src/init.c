@@ -132,6 +132,7 @@ static const R_CallMethodDef callMethods[] = {
   {"rnng_header_read", (DL_FUNC) &rnng_header_read, 1},
   {"rnng_header_set", (DL_FUNC) &rnng_header_set, 1},
   {"rnng_interrupt_switch", (DL_FUNC) &rnng_interrupt_switch, 1},
+  {"rnng_ip_addr", (DL_FUNC) &rnng_ip_addr, 0},
   {"rnng_is_error_value", (DL_FUNC) &rnng_is_error_value, 1},
   {"rnng_is_nul_byte", (DL_FUNC) &rnng_is_nul_byte, 1},
   {"rnng_listen", (DL_FUNC) &rnng_listen, 5},

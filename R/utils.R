@@ -299,9 +299,8 @@ serial_config <- function(class, sfunc, ufunc, vec = FALSE)
 
 #' Write C
 #'
-#' Writes using the C function `write()` for non-buffered I/O. Avoids
-#' interleaved output when writing concurrently to `stdout` from multiple
-#' processes.
+#' Performs a non-buffered write to `stdout` using the C function `write()`.
+#' Avoids interleaved output when writing concurrently from multiple processes.
 #'
 #' This function writes to the C-level `stdout` of the process and hence cannot
 #' be re-directed by [sink()].
@@ -316,6 +315,20 @@ serial_config <- function(class, sfunc, ufunc, vec = FALSE)
 #' @export
 #'
 writec <- function(x) invisible(.Call(rnng_writec, x))
+
+#' IP Address
+#'
+#' Returns the local network IPv4 address, or an empty character string if no
+#' appropriate network adaptors were found.
+#'
+#' @return A character string.
+#'
+#' @examples
+#' ip_addr()
+#'
+#' @export
+#'
+ip_addr <- function() .Call(rnng_ip_addr)
 
 #' Advances the RNG State
 #'
