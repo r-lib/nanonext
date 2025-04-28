@@ -19,14 +19,19 @@ SEXP rnng_ip_addr(void) {
 
   int i = 0;
   do {
-    addrs = R_Calloc(bufsize, unsigned char);
+    addrs = malloc(bufsize);
+    if (addrs == NULL)
+      goto exitlevel1;
+
     ret = GetAdaptersAddresses(AF_INET, flags, NULL, addrs, &bufsize);
     if (ret == ERROR_BUFFER_OVERFLOW)
-      R_Free(addrs);
+      free(addrs);
   } while ((ret == ERROR_BUFFER_OVERFLOW) && (++i == 1));
 
-  if (ret != NO_ERROR)
+  if (ret != NO_ERROR) {
+    free(addrs);
     goto exitlevel1;
+  }
 
   for (adapter = addrs; adapter != NULL; adapter = adapter->Next) {
     if (adapter->OperStatus == IfOperStatusUp) {
@@ -36,14 +41,14 @@ SEXP rnng_ip_addr(void) {
           struct sockaddr_in *sa_in = (struct sockaddr_in *) addr->Address.lpSockaddr;
           inet_ntop(AF_INET, &sa_in->sin_addr, out, sizeof(out));
 
-          R_Free(addrs);
+          free(addrs);
           return Rf_mkString(out);
 
         }
       }
     }
   }
-  R_Free(addrs);
+  free(addrs);
 
 #else
 
