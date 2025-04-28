@@ -35,7 +35,10 @@ typedef struct nano_handle_s {
 #endif
 
 #ifdef NANONEXT_SIGNALS
-#ifndef _WIN32
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#else
 #include <unistd.h>
 #endif
 #include <signal.h>
@@ -354,5 +357,6 @@ SEXP rnng_url_parse(SEXP);
 SEXP rnng_version(void);
 SEXP rnng_wait_thread_create(SEXP);
 SEXP rnng_write_cert(SEXP, SEXP);
+SEXP rnng_writec(SEXP);
 
 #endif
