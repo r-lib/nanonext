@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.2.9008</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.2.9009</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,7 +36,8 @@
 <h2 class="pkg-version" data-toc-text="development version" id="nanonext-development-version">nanonext (development version)<a class="anchor" aria-label="anchor" href="#nanonext-development-version"></a></h2>
 <div class="section level5">
 <h5 id="new-features-development-version">New Features<a class="anchor" aria-label="anchor" href="#new-features-development-version"></a></h5>
-<ul><li><p>New utility <code><a href="../reference/writec.html">writec()</a></code> implements a non-buffered write to <code>stdout</code> to avoid interleaved messages when used concurrently by different processes.</p></li>
+<ul><li><p>Adds <code><a href="../reference/ip_addr.html">ip_addr()</a></code> for returning the local network IPv4 address.</p></li>
+<li><p>Adds <code><a href="../reference/writec.html">writec()</a></code> utility which performs a non-buffered write to <code>stdout</code>, avoiding interleaved messages when used concurrently by different processes.</p></li>
 <li>
 <p><code><a href="../reference/request.html">request()</a></code> improvements:</p>
 <ul><li>Gains integer argument <code>msgid</code>. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).</li>
