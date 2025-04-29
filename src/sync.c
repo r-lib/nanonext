@@ -631,18 +631,3 @@ SEXP rnng_monitor_read(SEXP x) {
   return out;
 
 }
-
-// misc utils ------------------------------------------------------------------
-
-SEXP rnng_writec(SEXP x) {
-
-  const char *buf = CHAR(STRING_ELT(x, 0));
-#ifdef _WIN32
-  DWORD bytes;
-  if (WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), buf, (DWORD) strlen(buf), &bytes, NULL)) {}
-#else
-  if (write(1, buf, strlen(buf))) {}
-#endif
-  return R_NilValue;
-
-}

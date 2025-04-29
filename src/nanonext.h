@@ -34,16 +34,6 @@ typedef struct nano_handle_s {
 
 #endif
 
-#ifdef NANONEXT_SIGNALS
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
-#include <signal.h>
-#endif
-
 #ifdef NANONEXT_IO
 #include <time.h>
 #include <unistd.h>
@@ -51,7 +41,7 @@ typedef struct nano_handle_s {
 #include <stdio.h>
 #endif
 
-#ifdef NANONEXT_IP
+#ifdef NANONEXT_NET
 #ifdef _WIN32
 #if !defined(_WIN32_WINNT) || (defined(_WIN32_WINNT) && (_WIN32_WINNT < 0x0600))
 #define _WIN32_WINNT 0x0600
@@ -59,11 +49,21 @@ typedef struct nano_handle_s {
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #else
+#include <unistd.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <net/if.h>
 #endif
+#endif
+
+#ifdef NANONEXT_SIGNALS
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+#include <signal.h>
 #endif
 
 #ifdef NANONEXT_TLS

@@ -1,9 +1,9 @@
-// nanonext - C level - IP addresses -------------------------------------------
+// nanonext - C level - Net Utils ----------------------------------------------
 
-#define NANONEXT_IP
+#define NANONEXT_NET
 #include "nanonext.h"
 
-// ip --------------------------------------------------------------------------
+// IP Addresses ----------------------------------------------------------------
 
 SEXP rnng_ip_addr(void) {
 
@@ -77,3 +77,19 @@ SEXP rnng_ip_addr(void) {
   return R_BlankScalarString;
 
 }
+
+// misc utils ------------------------------------------------------------------
+
+SEXP rnng_writec(SEXP x) {
+
+  const char *buf = CHAR(STRING_ELT(x, 0));
+#ifdef _WIN32
+  DWORD bytes;
+  if (WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), buf, (DWORD) strlen(buf), &bytes, NULL)) {}
+#else
+  if (write(1, buf, strlen(buf))) {}
+#endif
+  return R_NilValue;
+
+}
+
