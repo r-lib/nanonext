@@ -13,9 +13,8 @@ writec(x)
 Invisible NULL. As a side effect, \code{x} is output to \code{stdout}.
 }
 \description{
-Writes using the C function \code{write()} for non-buffered I/O. Avoids
-interleaved output when writing concurrently to \code{stdout} from multiple
-processes.
+Performs a non-buffered write to \code{stdout} using the C function \code{write()}.
+Avoids interleaved output when writing concurrently from multiple processes.
 }
 \details{
 This function writes to the C-level \code{stdout} of the process and hence cannot

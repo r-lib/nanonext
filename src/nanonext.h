@@ -34,21 +34,36 @@ typedef struct nano_handle_s {
 
 #endif
 
-#ifdef NANONEXT_SIGNALS
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
-#include <signal.h>
-#endif
-
 #ifdef NANONEXT_IO
 #include <time.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <stdio.h>
+#endif
+
+#ifdef NANONEXT_NET
+#ifdef _WIN32
+#if !defined(_WIN32_WINNT) || (defined(_WIN32_WINNT) && (_WIN32_WINNT < 0x0600))
+#define _WIN32_WINNT 0x0600
+#endif
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#else
+#include <unistd.h>
+#include <ifaddrs.h>
+#include <arpa/inet.h>
+#include <net/if.h>
+#endif
+#endif
+
+#ifdef NANONEXT_SIGNALS
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+#include <signal.h>
 #endif
 
 #ifdef NANONEXT_TLS
@@ -107,7 +122,7 @@ extern int R_interrupts_pending;
 #define NANONEXT_SERIAL_VER 3
 #define NANONEXT_SERIAL_THR 134217728
 #define NANONEXT_CHUNK_SIZE INT_MAX // must be <= INT_MAX
-#define NANONEXT_STR_SIZE 64
+#define NANONEXT_STR_SIZE 40
 #define NANO_ALLOC(x, sz)                                      \
   (x)->buf = R_Calloc(sz, unsigned char);                      \
   (x)->len = sz;                                               \
@@ -311,6 +326,7 @@ SEXP rnng_get_opt(SEXP, SEXP);
 SEXP rnng_header_read(SEXP);
 SEXP rnng_header_set(SEXP);
 SEXP rnng_interrupt_switch(SEXP);
+SEXP rnng_ip_addr(void);
 SEXP rnng_is_error_value(SEXP);
 SEXP rnng_is_nul_byte(SEXP);
 SEXP rnng_listen(SEXP, SEXP, SEXP, SEXP, SEXP);

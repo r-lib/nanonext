@@ -2,7 +2,8 @@
 
 #### New Features
 
-* New utility `writec()` implements a non-buffered write to `stdout` to avoid interleaved messages when used concurrently by different processes.
+* Adds `ip_addr()` for returning the local network IPv4 address.
+* Adds `writec()` utility which performs a non-buffered write to `stdout`, avoiding interleaved messages when used concurrently by different processes.
 * `request()` improvements:
   + Gains integer argument `msgid`. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).
   + Accepts a 'req' socket, in which case a single-use context is created automatically for the request.
