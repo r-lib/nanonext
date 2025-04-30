@@ -18,10 +18,10 @@ static void nano_load_later(void) {
 
 static void nano_eval_later (void *arg) {
 
-  SEXP call, node = (SEXP) arg;
-  node = R_WeakRefValue(node);
+  SEXP call, node;
+  node = R_WeakRefValue((SEXP) arg);
   PROTECT(call = Rf_lcons(node, R_NilValue));
-  (void) Rf_eval(call, R_GlobalEnv);
+  Rf_eval(call, R_GlobalEnv);
   UNPROTECT(1);
 
 }

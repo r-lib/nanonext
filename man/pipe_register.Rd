@@ -34,7 +34,7 @@ possible to communicate using this pipe.
 Note: this function cannot be used in conjunction with \code{\link[=pipe_notify]{pipe_notify()}}.
 }
 \examples{
-\dontshow{if (requireNamespace("later", quietly = TRUE)) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\dontshow{if (requireNamespace("later", quietly = TRUE)) withAutoprint(\{ # examplesIf}
 s <- socket(listen = "inproc://nanopipecb")
 pipe_register(s, function() print("hi"), function() print("bye"))
 
