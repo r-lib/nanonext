@@ -80,7 +80,7 @@ SEXP rnng_ip_addr(void) {
 
 // misc utils ------------------------------------------------------------------
 
-SEXP rnng_writec(SEXP x) {
+SEXP rnng_write_stdout(SEXP x) {
 
   const char *buf = CHAR(STRING_ELT(x, 0));
 #ifdef _WIN32

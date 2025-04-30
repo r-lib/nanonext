@@ -372,6 +372,6 @@ SEXP rnng_url_parse(SEXP);
 SEXP rnng_version(void);
 SEXP rnng_wait_thread_create(SEXP);
 SEXP rnng_write_cert(SEXP, SEXP);
-SEXP rnng_writec(SEXP);
+SEXP rnng_write_stdout(SEXP);
 
 #endif

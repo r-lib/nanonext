@@ -297,7 +297,7 @@ status_code <- function(x) .Call(rnng_status_code, x)
 serial_config <- function(class, sfunc, ufunc, vec = FALSE)
   .Call(rnng_serial_config, class, sfunc, ufunc)
 
-#' Write C
+#' Write to Stdout
 #'
 #' Performs a non-buffered write to `stdout` using the C function `write()`.
 #' Avoids interleaved output when writing concurrently from multiple processes.
@@ -310,11 +310,11 @@ serial_config <- function(class, sfunc, ufunc, vec = FALSE)
 #' @return Invisible NULL. As a side effect, `x` is output to `stdout`.
 #'
 #' @examples
-#' writec("\n")
+#' write_stdout("\n")
 #'
 #' @export
 #'
-writec <- function(x) invisible(.Call(rnng_writec, x))
+write_stdout <- function(x) invisible(.Call(rnng_write_stdout, x))
 
 #' IP Address
 #'
