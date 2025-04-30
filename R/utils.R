@@ -305,12 +305,15 @@ serial_config <- function(class, sfunc, ufunc, vec = FALSE)
 #' This function writes to the C-level `stdout` of the process and hence cannot
 #' be re-directed by [sink()].
 #'
+#' A newline character is automatically appended to `x`, hence there is no need
+#' to include this within the input string.
+#'
 #' @param x character string.
 #'
 #' @return Invisible NULL. As a side effect, `x` is output to `stdout`.
 #'
 #' @examples
-#' write_stdout("\n")
+#' write_stdout("")
 #'
 #' @export
 #'

@@ -84,10 +84,17 @@ SEXP rnng_write_stdout(SEXP x) {
 
   const char *buf = CHAR(STRING_ELT(x, 0));
 #ifdef _WIN32
+  char nbuf[strlen(buf) + 2];
+  snprintf(nbuf, sizeof(nbuf), "%s\n", buf);
   DWORD bytes;
-  if (WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), buf, (DWORD) strlen(buf), &bytes, NULL)) {}
+  if (WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), nbuf, (DWORD) strlen(nbuf), &bytes, NULL)) {}
 #else
-  if (write(1, buf, strlen(buf))) {}
+  struct iovec iov[2];
+  iov[0].iov_base = (void *) buf;
+  iov[0].iov_len = strlen(buf);
+  iov[1].iov_base = "\n";
+  iov[1].iov_len = 1;
+  if (writev(STDOUT_FILENO, iov, 2)) {}
 #endif
   return R_NilValue;
 

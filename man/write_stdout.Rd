@@ -19,8 +19,11 @@ Avoids interleaved output when writing concurrently from multiple processes.
 \details{
 This function writes to the C-level \code{stdout} of the process and hence cannot
 be re-directed by \code{\link[=sink]{sink()}}.
+
+A newline character is automatically appended to \code{x}, hence there is no need
+to include this within the input string.
 }
 \examples{
-write_stdout("\n")
+write_stdout("")
 
 }
