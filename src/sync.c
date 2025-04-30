@@ -596,15 +596,18 @@ SEXP rnng_pipe_register(SEXP socket, SEXP add, SEXP remove) {
   if (NANO_PTR_CHECK(socket, nano_SocketSymbol))
     Rf_error("'socket' is not a valid Socket");
 
+  if (add != R_NilValue &&TYPEOF(add) != CLOSXP && TYPEOF(add) != BUILTINSXP && TYPEOF(add) != SPECIALSXP)
+    Rf_error("'add' is not a valid function");
+
+  if (remove != R_NilValue && TYPEOF(remove) != CLOSXP && TYPEOF(remove) != BUILTINSXP && TYPEOF(remove) != SPECIALSXP)
+    Rf_error("'remove' is not a valid function");
+
   int xc;
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
 
-  NANONEXT_ENSURE_LATER;
-
   if (add != R_NilValue) {
 
-    if (TYPEOF(add) != CLOSXP)
-      Rf_error("'add' is not a valid R closure function");
+    NANONEXT_ENSURE_LATER;
 
     SEXP ref = R_MakeWeakRef(socket, add, R_NilValue, FALSE);
     if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_ADD_POST, pipe_cb_eval, ref)))
@@ -619,8 +622,7 @@ SEXP rnng_pipe_register(SEXP socket, SEXP add, SEXP remove) {
 
   if (remove != R_NilValue) {
 
-    if (TYPEOF(remove) != CLOSXP)
-      Rf_error("'remove' is not a valid R closure function");
+    NANONEXT_ENSURE_LATER;
 
     SEXP ref = R_MakeWeakRef(socket, remove, R_NilValue, FALSE);
     if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_REM_POST, pipe_cb_eval, ref)))
