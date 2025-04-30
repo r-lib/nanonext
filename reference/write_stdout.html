@@ -61,11 +61,13 @@ Avoids interleaved output when writing concurrently from multiple processes.</p>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>This function writes to the C-level <code>stdout</code> of the process and hence cannot
 be re-directed by <code><a href="https://rdrr.io/r/base/sink.html" class="external-link">sink()</a></code>.</p>
+<p>A newline character is automatically appended to <code>x</code>, hence there is no need
+to include this within the input string.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">write_stdout</span><span class="op">(</span><span class="st">"\n"</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">write_stdout</span><span class="op">(</span><span class="st">""</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
