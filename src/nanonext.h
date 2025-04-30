@@ -53,6 +53,7 @@ typedef struct nano_handle_s {
 #include <windows.h>
 #else
 #include <unistd.h>
+#include <sys/uio.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <net/if.h>
