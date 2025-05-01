@@ -3,7 +3,7 @@ Package: nanonext
 Title: NNG (Nanomsg Next Gen) Lightweight Messaging Library
 Version: 1.5.2.9011
 Authors@R: c(
-    person("Charlie", "Gao", , "charlie.gao@shikokuchuo.net", role = c("aut", "cre"),
+    person("Charlie", "Gao", , "charlie.gao@posit.co", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-0750-061X")),
     person("Posit Software, PBC", role = c("cph", "fnd"),
            comment = c(ROR = "03wc8by49")),
