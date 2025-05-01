@@ -10,8 +10,9 @@ ip_addr()
 A character string.
 }
 \description{
-Returns the local network IPv4 address, or an empty character string if no
-appropriate network adaptors were found.
+Returns a character string comprising the local network IPv4 address, or
+vector if there are multiple addresses from multiple network adapters, or
+an empty character string if unavailable.
 }
 \examples{
 ip_addr()

@@ -7,7 +7,11 @@
 
 SEXP rnng_ip_addr(void) {
 
-  char out[INET_ADDRSTRLEN];
+  char buf[INET_ADDRSTRLEN];
+  int i = 0;
+  SEXP out;
+  PROTECT_INDEX pxi;
+  PROTECT_WITH_INDEX(out = Rf_allocVector(STRSXP, 1), &pxi);
 
 #ifdef _WIN32
 
@@ -17,7 +21,7 @@ SEXP rnng_ip_addr(void) {
   IP_ADAPTER_ADDRESSES *adapter, *addrs;
   IP_ADAPTER_UNICAST_ADDRESS *addr;
 
-  int i = 0;
+  int j = 0;
   do {
     addrs = malloc(bufsize);
     if (addrs == NULL)
@@ -26,7 +30,7 @@ SEXP rnng_ip_addr(void) {
     ret = GetAdaptersAddresses(AF_INET, flags, NULL, addrs, &bufsize);
     if (ret == ERROR_BUFFER_OVERFLOW)
       free(addrs);
-  } while ((ret == ERROR_BUFFER_OVERFLOW) && (++i == 1));
+  } while ((ret == ERROR_BUFFER_OVERFLOW) && (++j == 1));
 
   if (ret != NO_ERROR) {
     free(addrs);
@@ -39,10 +43,10 @@ SEXP rnng_ip_addr(void) {
         if (addr->Address.lpSockaddr->sa_family == AF_INET) {
 
           struct sockaddr_in *sa_in = (struct sockaddr_in *) addr->Address.lpSockaddr;
-          inet_ntop(AF_INET, &sa_in->sin_addr, out, sizeof(out));
-
-          free(addrs);
-          return Rf_mkString(out);
+          inet_ntop(AF_INET, &sa_in->sin_addr, buf, sizeof(buf));
+          if (i > XLENGTH(out))
+            REPROTECT(out = Rf_xlengthgets(out, i), pxi);
+          SET_STRING_ELT(out, i++, Rf_mkChar(buf));
 
         }
       }
@@ -56,16 +60,17 @@ SEXP rnng_ip_addr(void) {
   if (getifaddrs(&ifaddr))
     goto exitlevel1;
 
+
   for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
     if ((ifa->ifa_addr != NULL) &&
         (ifa->ifa_addr->sa_family == AF_INET) &&
         !(ifa->ifa_flags & IFF_LOOPBACK)) {
 
       struct sockaddr_in *sa_in = (struct sockaddr_in *) ifa->ifa_addr;
-      inet_ntop(AF_INET, &(sa_in->sin_addr), out, sizeof(out));
-
-      freeifaddrs(ifaddr);
-      return Rf_mkString(out);
+      inet_ntop(AF_INET, &(sa_in->sin_addr), buf, sizeof(buf));
+      if (i > XLENGTH(out))
+        REPROTECT(out = Rf_xlengthgets(out, i), pxi);
+      SET_STRING_ELT(out, i++, Rf_mkChar(buf));
 
     }
   }
@@ -74,7 +79,8 @@ SEXP rnng_ip_addr(void) {
 #endif
 
   exitlevel1:
-  return R_BlankScalarString;
+  UNPROTECT(1);
+  return out;
 
 }
 

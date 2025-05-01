@@ -321,8 +321,9 @@ write_stdout <- function(x) invisible(.Call(rnng_write_stdout, x))
 
 #' IP Address
 #'
-#' Returns the local network IPv4 address, or an empty character string if no
-#' appropriate network adaptors were found.
+#' Returns a character string comprising the local network IPv4 address, or
+#' vector if there are multiple addresses from multiple network adapters, or
+#' an empty character string if unavailable.
 #'
 #' @return A character string.
 #'
