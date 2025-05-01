@@ -297,6 +297,19 @@ stop_aio <- function(x) invisible(.Call(rnng_aio_stop, x))
 #'
 unresolved <- function(x) .Call(rnng_unresolved, x)
 
+#' Get the Pipe ID of a recvAio
+#'
+#' Caution: must only be used on an already-resolved 'recvAio'. This function
+#' does not perform validation of these pre-conditions.
+#'
+#' @param x a resolved 'recvAio'.
+#'
+#' @return Integer pipe ID.
+#'
+#' @export
+#'
+pipe_id <- function(x) .subset2(x, "aio")
+
 #' Technical Utility: Query if an Aio is Unresolved
 #'
 #' Query whether an Aio or list of Aios remains unresolved. This is an
@@ -359,7 +372,7 @@ as.promise.recvAio <- function(x) {
           })
       )
     }
-    
+
     `[[<-`(x, "promise", promise)
   }
 
