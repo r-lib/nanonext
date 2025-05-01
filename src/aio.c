@@ -165,6 +165,8 @@ static void saio_finalizer(SEXP xptr) {
 
   if (xp->mode == 0x1) {
     nng_aio_free(xp->aio);
+    if (xp->data != NULL)
+      R_Free(xp->data);
     R_Free(xp);
   } else {
     xp->mode = 0x1;
