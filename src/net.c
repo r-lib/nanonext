@@ -44,7 +44,7 @@ SEXP rnng_ip_addr(void) {
 
           struct sockaddr_in *sa_in = (struct sockaddr_in *) addr->Address.lpSockaddr;
           inet_ntop(AF_INET, &sa_in->sin_addr, buf, sizeof(buf));
-          if (i > XLENGTH(out))
+          if (i == XLENGTH(out))
             REPROTECT(out = Rf_xlengthgets(out, i), pxi);
           SET_STRING_ELT(out, i++, Rf_mkChar(buf));
 
@@ -68,8 +68,8 @@ SEXP rnng_ip_addr(void) {
 
       struct sockaddr_in *sa_in = (struct sockaddr_in *) ifa->ifa_addr;
       inet_ntop(AF_INET, &(sa_in->sin_addr), buf, sizeof(buf));
-      if (i > XLENGTH(out))
-        REPROTECT(out = Rf_xlengthgets(out, i), pxi);
+      if (i == XLENGTH(out))
+        REPROTECT(out = Rf_xlengthgets(out, i + 1), pxi);
       SET_STRING_ELT(out, i++, Rf_mkChar(buf));
 
     }
