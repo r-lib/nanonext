@@ -20,6 +20,28 @@ static SEXP mk_error_aio(const int xc, SEXP env) {
 
 // aio completion callbacks ----------------------------------------------------
 
+void nano_list_op(int add, void *data) {
+
+  static nano_node *free_list = NULL;
+
+  if (add) {
+    nano_node *new_node = malloc(sizeof(nano_node));
+    new_node->data = data;
+    new_node->next = free_list;
+    free_list = new_node;
+  } else {
+    while (free_list != NULL) {
+      nano_node *current = free_list;
+      free_list = free_list->next;
+      nano_aio *aio = (nano_aio *) current->data;
+      nng_aio_free(aio->aio);
+      R_Free(aio);
+      free(current);
+    }
+  }
+
+}
+
 static void saio_complete(void *arg) {
 
   nano_aio *saio = (nano_aio *) arg;
@@ -27,6 +49,8 @@ static void saio_complete(void *arg) {
   if (res)
     nng_msg_free(nng_aio_get_msg(saio->aio));
   saio->result = res - !res;
+
+  nano_list_op(1, saio);
 
 }
 
@@ -37,6 +61,8 @@ static void isaio_complete(void *arg) {
   if (iaio->data != NULL)
     R_Free(iaio->data);
   iaio->result = res - !res;
+
+  nano_list_op(1, iaio);
 
 }
 
@@ -122,12 +148,13 @@ static void iraio_complete(void *arg) {
 }
 
 // finalisers ------------------------------------------------------------------
-
-static void saio_finalizer(SEXP xptr) {
+static void iaio_finalizer(SEXP xptr) {
 
   if (NANO_PTR(xptr) == NULL) return;
   nano_aio *xp = (nano_aio *) NANO_PTR(xptr);
   nng_aio_free(xp->aio);
+  if (xp->data != NULL)
+    R_Free(xp->data);
   R_Free(xp);
 
 }
@@ -139,17 +166,6 @@ static void raio_finalizer(SEXP xptr) {
   nng_aio_free(xp->aio);
   if (xp->data != NULL)
     nng_msg_free((nng_msg *) xp->data);
-  R_Free(xp);
-
-}
-
-static void iaio_finalizer(SEXP xptr) {
-
-  if (NANO_PTR(xptr) == NULL) return;
-  nano_aio *xp = (nano_aio *) NANO_PTR(xptr);
-  nng_aio_free(xp->aio);
-  if (xp->data != NULL)
-    R_Free(xp->data);
   R_Free(xp);
 
 }
@@ -482,7 +498,6 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     NANO_FREE(buf);
 
     PROTECT(aio = R_MakeExternalPtr(saio, nano_AioSymbol, R_NilValue));
-    R_RegisterCFinalizerEx(aio, saio_finalizer, TRUE);
 
   } else if (!NANO_PTR_CHECK(con, nano_StreamSymbol)) {
 
@@ -510,7 +525,6 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     NANO_FREE(buf);
 
     PROTECT(aio = R_MakeExternalPtr(saio, nano_AioSymbol, R_NilValue));
-    R_RegisterCFinalizerEx(aio, iaio_finalizer, TRUE);
 
   } else {
     NANO_ERROR("'con' is not a valid Socket, Context, or Stream");
@@ -522,6 +536,8 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
 
   PROTECT(fun = R_mkClosure(R_NilValue, nano_aioFuncRes, clo));
   R_MakeActiveBinding(nano_ResultSymbol, fun, env);
+
+  nano_list_op(0, NULL);
 
   UNPROTECT(3);
   return env;

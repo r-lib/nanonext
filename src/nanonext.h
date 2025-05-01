@@ -232,6 +232,11 @@ typedef struct nano_serial_bundle_s {
   SEXP hook_func;
 } nano_serial_bundle;
 
+typedef struct nano_node_s {
+  void *data;
+  struct nano_node_s *next;
+} nano_node;
+
 extern void (*eln2)(void (*)(void *), void *, double, int);
 
 extern SEXP nano_AioSymbol;
@@ -295,6 +300,8 @@ int nano_matchargs(const SEXP);
 
 void pipe_cb_signal(nng_pipe, nng_pipe_ev, void *);
 void tls_finalizer(SEXP);
+
+void nano_list_op(int, void *);
 
 SEXP rnng_advance_rng_state(void);
 SEXP rnng_aio_call(SEXP);
