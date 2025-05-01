@@ -3,6 +3,7 @@
 #### New Features
 
 * Adds `pipe_register()` for registering a function callback upon a pipe event (addition or removal).
+* Adds `pipe_id()` for returning the integer pipe ID for a resolved 'recvAio'.
 * Adds `ip_addr()` for returning the local network IPv4 address.
 * Adds `write_stdout()` which performs a non-buffered write to `stdout`, to avoid interleaved messages when used concurrently by different processes.
 * `request()` improvements:
