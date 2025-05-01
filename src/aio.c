@@ -23,8 +23,15 @@ static SEXP mk_error_aio(const int xc, SEXP env) {
 void nano_list_op(int typ, nano_aio *saio) {
 
   static nano_node *free_list = NULL;
+  static nng_mtx *free_mtx = NULL;
+
+  if (free_mtx == NULL) {
+    nng_mtx_alloc(&free_mtx);
+  }
 
   if (typ) {
+
+    nng_mtx_lock(free_mtx);
     if (saio->mode == 0x1) {
       if (typ == 1) {
         nano_node *new_node = malloc(sizeof(nano_node));
@@ -40,18 +47,26 @@ void nano_list_op(int typ, nano_aio *saio) {
     } else {
       saio->mode = 0x1;
     }
+    nng_mtx_unlock(free_mtx);
 
   } else {
+
+    nng_mtx_lock(free_mtx);
     while (free_list != NULL) {
       nano_node *current = free_list;
       free_list = free_list->next;
-      nano_aio *saio = (nano_aio *) current->data;
-      nng_aio_free(saio->aio);
-      if (saio->data != NULL)
-        R_Free(saio->data);
-      R_Free(saio);
+      nano_aio *data = (nano_aio *) current->data;
+      nng_aio_free(data->aio);
+      if (data->data != NULL)
+        R_Free(data->data);
+      R_Free(data);
       free(current);
     }
+    nng_mtx_unlock(free_mtx);
+
+    if (saio == NULL && free_mtx != NULL)
+      nng_mtx_free(free_mtx);
+
   }
 
 }
@@ -560,7 +575,7 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
   PROTECT(fun = R_mkClosure(R_NilValue, nano_aioFuncRes, clo));
   R_MakeActiveBinding(nano_ResultSymbol, fun, env);
 
-  nano_list_op(0, NULL);
+  nano_list_op(0, saio);
 
   UNPROTECT(3);
   return env;
