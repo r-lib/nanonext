@@ -105,4 +105,3 @@ SEXP rnng_write_stdout(SEXP x) {
   return R_NilValue;
 
 }
-
