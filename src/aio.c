@@ -20,24 +20,36 @@ static SEXP mk_error_aio(const int xc, SEXP env) {
 
 // aio completion callbacks ----------------------------------------------------
 
-void nano_list_op(int add, void *data) {
+void nano_list_op(int typ, nano_aio *saio) {
 
   static nano_node *free_list = NULL;
 
-  if (add) {
-    nano_node *new_node = malloc(sizeof(nano_node));
-    new_node->data = data;
-    new_node->next = free_list;
-    free_list = new_node;
+  if (typ) {
+    if (saio->mode == 0x1) {
+      if (typ == 1) {
+        nano_node *new_node = malloc(sizeof(nano_node));
+        new_node->data = saio;
+        new_node->next = free_list;
+        free_list = new_node;
+      } else {
+        nng_aio_free(saio->aio);
+        if (saio->data != NULL)
+          R_Free(saio->data);
+        R_Free(saio);
+      }
+    } else {
+      saio->mode = 0x1;
+    }
+
   } else {
     while (free_list != NULL) {
       nano_node *current = free_list;
       free_list = free_list->next;
-      nano_aio *aio = (nano_aio *) current->data;
-      nng_aio_free(aio->aio);
-      if (aio->data != NULL)
-        R_Free(aio->data);
-      R_Free(aio);
+      nano_aio *saio = (nano_aio *) current->data;
+      nng_aio_free(saio->aio);
+      if (saio->data != NULL)
+        R_Free(saio->data);
+      R_Free(saio);
       free(current);
     }
   }
@@ -52,12 +64,7 @@ static void saio_complete(void *arg) {
     nng_msg_free(nng_aio_get_msg(saio->aio));
   saio->result = res - !res;
 
-  if (saio->mode == 0x1) {
-    nano_list_op(1, saio);
-  } else {
-    saio->mode = 0x1;
-  }
-
+  nano_list_op(1, saio);
 
 }
 
@@ -67,11 +74,7 @@ static void isaio_complete(void *arg) {
   const int res = nng_aio_result(iaio->aio);
   iaio->result = res - !res;
 
-  if (iaio->mode == 0x1) {
-    nano_list_op(1, iaio);
-  } else {
-    iaio->mode = 0x1;
-  }
+  nano_list_op(1, iaio);
 
 }
 
@@ -162,16 +165,7 @@ static void saio_finalizer(SEXP xptr) {
 
   if (NANO_PTR(xptr) == NULL) return;
   nano_aio *xp = (nano_aio *) NANO_PTR(xptr);
-
-  if (xp->mode == 0x1) {
-    nng_aio_free(xp->aio);
-    if (xp->data != NULL)
-      R_Free(xp->data);
-    R_Free(xp);
-  } else {
-    xp->mode = 0x1;
-  }
-
+  nano_list_op(2, xp);
 
 }
 

@@ -301,7 +301,7 @@ int nano_matchargs(const SEXP);
 void pipe_cb_signal(nng_pipe, nng_pipe_ev, void *);
 void tls_finalizer(SEXP);
 
-void nano_list_op(int, void *);
+void nano_list_op(int, nano_aio *);
 
 SEXP rnng_advance_rng_state(void);
 SEXP rnng_aio_call(SEXP);
