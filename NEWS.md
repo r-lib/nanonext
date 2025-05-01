@@ -10,8 +10,10 @@
   + Gains integer argument `msgid`. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).
   + Accepts a 'req' socket, in which case a single-use context is created automatically for the request.
 * `serial_config()` now accepts vector arguments to register multiple custom serialization configurations.
+
 #### Updates
 
+* `send_aio()` without keeping a reference to the return value no longer potentially drops sends (thanks @wch, #129).
 * More robust interruption on non-Windows platforms if `tools::SIGINT` is supplied or passed through to the `autoexit` argument of `daemon()` (thanks @LennardLux, #97).
 * Installation from source specifying 'INCLUDE_DIR' and 'LIB_DIR' environment variables works again, correcting a regression in v1.5.2 (#104).
 * Windows bi-arch source builds for R <= 4.1 using rtools40 and earlier work again (regression since v1.5.1) (thanks @daroczig, #107).
