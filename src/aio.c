@@ -33,41 +33,41 @@ void nano_list_op(int typ, nano_aio *saio) {
 
     nng_mtx_lock(free_mtx);
     if (saio->mode == 0x1) {
-      if (typ == 1) {
-        nano_node *new_node = malloc(sizeof(nano_node));
-        new_node->data = saio;
-        new_node->next = free_list;
-        free_list = new_node;
-      } else {
+      if (typ == 2) {
+        nng_mtx_unlock(free_mtx);
         nng_aio_free(saio->aio);
         if (saio->data != NULL)
           R_Free(saio->data);
         R_Free(saio);
+        return;
       }
-    } else {
-      saio->mode = 0x1;
+      nano_node *new_node = malloc(sizeof(nano_node));
+      new_node->data = saio;
+      new_node->next = free_list;
+      free_list = new_node;
+      nng_mtx_unlock(free_mtx);
+      return;
     }
+    saio->mode = 0x1;
     nng_mtx_unlock(free_mtx);
-
-  } else {
-
-    nng_mtx_lock(free_mtx);
-    while (free_list != NULL) {
-      nano_node *current = free_list;
-      free_list = free_list->next;
-      nano_aio *data = (nano_aio *) current->data;
-      nng_aio_free(data->aio);
-      if (data->data != NULL)
-        R_Free(data->data);
-      R_Free(data);
-      free(current);
-    }
-    nng_mtx_unlock(free_mtx);
-
-    if (saio == NULL && free_mtx != NULL)
-      nng_mtx_free(free_mtx);
-
+    return;
   }
+
+  nng_mtx_lock(free_mtx);
+  while (free_list != NULL) {
+    nano_node *current = free_list;
+    free_list = free_list->next;
+    nano_aio *data = (nano_aio *) current->data;
+    nng_aio_free(data->aio);
+    if (data->data != NULL)
+      R_Free(data->data);
+    R_Free(data);
+    free(current);
+  }
+  nng_mtx_unlock(free_mtx);
+
+  if (saio == NULL && free_mtx != NULL)
+    nng_mtx_free(free_mtx);
 
 }
 
