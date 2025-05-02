@@ -128,6 +128,7 @@ static const R_CallMethodDef callMethods[] = {
   {"rnng_dialer_start", (DL_FUNC) &rnng_dialer_start, 2},
   {"rnng_eval_safe", (DL_FUNC) &rnng_eval_safe, 1},
   {"rnng_fini", (DL_FUNC) &rnng_fini, 0},
+  {"rnng_fini_priors", (DL_FUNC) &rnng_fini_priors, 0},
   {"rnng_get_opt", (DL_FUNC) &rnng_get_opt, 2},
   {"rnng_header_read", (DL_FUNC) &rnng_header_read, 1},
   {"rnng_header_set", (DL_FUNC) &rnng_header_set, 1},
@@ -169,7 +170,6 @@ static const R_CallMethodDef callMethods[] = {
   {"rnng_stream_open", (DL_FUNC) &rnng_stream_open, 4},
   {"rnng_strerror", (DL_FUNC) &rnng_strerror, 1},
   {"rnng_subscribe", (DL_FUNC) &rnng_subscribe, 3},
-  {"rnng_thread_shutdown", (DL_FUNC) &rnng_thread_shutdown, 0},
   {"rnng_tls_config", (DL_FUNC) &rnng_tls_config, 4},
   {"rnng_traverse_precious", (DL_FUNC) &rnng_traverse_precious, 0},
   {"rnng_unresolved", (DL_FUNC) &rnng_unresolved, 1},
@@ -198,7 +198,7 @@ void attribute_visible R_init_nanonext(DllInfo* dll) {
 
 // # nocov start
 void attribute_visible R_unload_nanonext(DllInfo *info) {
-  rnng_thread_shutdown();
+  nano_thread_shutdown();
   nano_list_do(SHUTDOWN, NULL);
   ReleaseObjects();
 }

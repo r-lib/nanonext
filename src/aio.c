@@ -27,7 +27,8 @@ void nano_list_do(nano_list_op listop, nano_aio *saio) {
 
   switch (listop) {
   case INIT:
-    if (nng_mtx_alloc(&free_mtx)) Rf_error("NNG library init failure");
+    if (free_mtx == NULL && nng_mtx_alloc(&free_mtx))
+      Rf_error("NNG library init failure");
     break;
   case FINALIZE:
     nng_mtx_lock(free_mtx);
@@ -46,7 +47,7 @@ void nano_list_do(nano_list_op listop, nano_aio *saio) {
     nng_mtx_lock(free_mtx);
     if (saio->mode == 0x1) {
       nano_node *new_node = malloc(sizeof(nano_node));
-      if (new_node == NULL) return;
+      if (new_node == NULL) break;
       new_node->data = saio;
       new_node->next = free_list;
       free_list = new_node;
@@ -55,8 +56,9 @@ void nano_list_do(nano_list_op listop, nano_aio *saio) {
     }
     nng_mtx_unlock(free_mtx);
     break;
-  case FREE:
   case SHUTDOWN:
+    if (free_mtx == NULL) break;
+  case FREE:
     nng_mtx_lock(free_mtx);
     while (free_list != NULL) {
       nano_node *current = free_list;
@@ -69,8 +71,10 @@ void nano_list_do(nano_list_op listop, nano_aio *saio) {
       free(current);
     }
     nng_mtx_unlock(free_mtx);
-    if (listop == SHUTDOWN)
+    if (listop == SHUTDOWN) {
       nng_mtx_free(free_mtx);
+      free_mtx = NULL;
+    }
     break;
   }
 
