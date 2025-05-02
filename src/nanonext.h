@@ -233,6 +233,7 @@ typedef struct nano_serial_bundle_s {
 } nano_serial_bundle;
 
 typedef enum nano_list_op {
+  INIT,
   FINALIZE,
   COMPLETE,
   FREE,

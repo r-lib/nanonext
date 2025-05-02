@@ -25,10 +25,10 @@ void nano_list_do(nano_list_op listop, nano_aio *saio) {
   static nano_node *free_list = NULL;
   static nng_mtx *free_mtx = NULL;
 
-  if (free_mtx == NULL && nng_mtx_alloc(&free_mtx))
-    return;
-
   switch (listop) {
+  case INIT:
+    if (nng_mtx_alloc(&free_mtx)) Rf_error("NNG library init failure");
+    break;
   case FINALIZE:
     nng_mtx_lock(free_mtx);
     if (saio->mode == 0x1) {
