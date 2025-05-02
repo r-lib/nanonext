@@ -232,6 +232,14 @@ typedef struct nano_serial_bundle_s {
   SEXP hook_func;
 } nano_serial_bundle;
 
+typedef enum nano_list_op {
+  INIT,
+  FINALIZE,
+  COMPLETE,
+  FREE,
+  SHUTDOWN
+} nano_list_op;
+
 typedef struct nano_node_s {
   void *data;
   struct nano_node_s *next;
@@ -301,7 +309,8 @@ int nano_matchargs(const SEXP);
 void pipe_cb_signal(nng_pipe, nng_pipe_ev, void *);
 void tls_finalizer(SEXP);
 
-void nano_list_op(int, nano_aio *);
+void nano_list_do(nano_list_op, nano_aio *);
+void nano_thread_shutdown(void);
 
 SEXP rnng_advance_rng_state(void);
 SEXP rnng_aio_call(SEXP);
@@ -331,6 +340,7 @@ SEXP rnng_dialer_close(SEXP);
 SEXP rnng_dialer_start(SEXP, SEXP);
 SEXP rnng_eval_safe(SEXP);
 SEXP rnng_fini(void);
+SEXP rnng_fini_priors(void);
 SEXP rnng_get_opt(SEXP, SEXP);
 SEXP rnng_header_read(SEXP);
 SEXP rnng_header_set(SEXP);
@@ -373,7 +383,6 @@ SEXP rnng_stream_close(SEXP);
 SEXP rnng_stream_open(SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_strerror(SEXP);
 SEXP rnng_subscribe(SEXP, SEXP, SEXP);
-SEXP rnng_thread_shutdown(void);
 SEXP rnng_tls_config(SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_traverse_precious(void);
 SEXP rnng_unresolved(SEXP);

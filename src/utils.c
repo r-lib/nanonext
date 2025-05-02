@@ -586,6 +586,14 @@ SEXP rnng_advance_rng_state(void) {
 
 }
 
+SEXP rnng_fini_priors(void) {
+
+  nano_thread_shutdown();
+  nano_list_do(SHUTDOWN, NULL);
+  return R_NilValue;
+
+}
+
 SEXP rnng_fini(void) {
 
   nng_fini();

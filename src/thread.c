@@ -12,6 +12,20 @@ static nng_thread *nano_wait_thr = NULL;
 static nng_aio *nano_shared_aio = NULL;
 static int nano_wait_condition = 0;
 
+void nano_thread_shutdown(void) {
+  if (nano_wait_thr == NULL)
+    return;
+  if (nano_shared_aio != NULL)
+    nng_aio_stop(nano_shared_aio);
+  nng_mtx_lock(nano_wait_mtx);
+  nano_wait_condition = -1;
+  nng_cv_wake(nano_wait_cv);
+  nng_mtx_unlock(nano_wait_mtx);
+  nng_thread_destroy(nano_wait_thr);
+  nng_cv_free(nano_wait_cv);
+  nng_mtx_free(nano_wait_mtx);
+}
+
 // # nocov start
 // tested interactively
 
@@ -413,21 +427,6 @@ SEXP rnng_wait_thread_create(SEXP x) {
 
   return x;
 
-}
-
-SEXP rnng_thread_shutdown(void) {
-  if (nano_wait_thr != NULL) {
-    if (nano_shared_aio != NULL)
-      nng_aio_stop(nano_shared_aio);
-    nng_mtx_lock(nano_wait_mtx);
-    nano_wait_condition = -1;
-    nng_cv_wake(nano_wait_cv);
-    nng_mtx_unlock(nano_wait_mtx);
-    nng_thread_destroy(nano_wait_thr);
-    nng_cv_free(nano_wait_cv);
-    nng_mtx_free(nano_wait_mtx);
-  }
-  return R_NilValue;
 }
 
 static void rnng_signal_thread(void *args) {

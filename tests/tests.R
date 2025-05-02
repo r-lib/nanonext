@@ -647,7 +647,7 @@ test_type("integer", .Call(nanonext:::rnng_traverse_precious))
 if (Sys.info()[["sysname"]] == "Linux") {
   rm(list = ls())
   gc()
-  .Call(nanonext:::rnng_thread_shutdown)
+  .Call(nanonext:::rnng_fini_priors)
   Sys.sleep(1L)
   .Call(nanonext:::rnng_fini)
   invisible()
