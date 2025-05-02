@@ -50,7 +50,10 @@ SEXP rnng_ip_addr(void) {
             REPROTECT(names = Rf_xlengthgets(names, i + 1), pxn);
           }
           SET_STRING_ELT(out, i, Rf_mkChar(buf));
-          SET_STRING_ELT(names, i++, Rf_mkChar(adapter->FriendlyName));
+          int sz = WideCharToMultiByte(CP_UTF8, 0, adapter->FriendlyName, -1, NULL, 0, NULL, NULL);
+          char nbuf[sz];
+          if (WideCharToMultiByte(CP_UTF8, 0, adapter->FriendlyName, -1, nbuf, sz, NULL, NULL)) {}
+          SET_STRING_ELT(names, i++, Rf_mkChar(nbuf));
 
         }
       }
