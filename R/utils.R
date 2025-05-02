@@ -325,7 +325,10 @@ write_stdout <- function(x) invisible(.Call(rnng_write_stdout, x))
 #' vector if there are multiple addresses from multiple network adapters, or
 #' an empty character string if unavailable.
 #'
-#' @return A character string.
+#' The IP addresses will be named by interface e.g. 'eth0' or 'en0' (friendly
+#' names on Windows).
+#'
+#' @return A named character string.
 #'
 #' @examples
 #' ip_addr()
