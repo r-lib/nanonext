@@ -9,9 +9,10 @@ SEXP rnng_ip_addr(void) {
 
   char buf[INET_ADDRSTRLEN];
   int i = 0;
-  SEXP out;
-  PROTECT_INDEX pxi;
+  SEXP out, names;
+  PROTECT_INDEX pxi, pxn;
   PROTECT_WITH_INDEX(out = Rf_allocVector(STRSXP, 1), &pxi);
+  PROTECT_WITH_INDEX(names = Rf_allocVector(STRSXP, 1), &pxn);
 
 #ifdef _WIN32
 
@@ -44,9 +45,15 @@ SEXP rnng_ip_addr(void) {
 
           struct sockaddr_in *sa_in = (struct sockaddr_in *) addr->Address.lpSockaddr;
           inet_ntop(AF_INET, &sa_in->sin_addr, buf, sizeof(buf));
-          if (i)
+          if (i) {
             REPROTECT(out = Rf_xlengthgets(out, i + 1), pxi);
-          SET_STRING_ELT(out, i++, Rf_mkChar(buf));
+            REPROTECT(names = Rf_xlengthgets(names, i + 1), pxn);
+          }
+          SET_STRING_ELT(out, i, Rf_mkChar(buf));
+          int sz = WideCharToMultiByte(CP_UTF8, 0, adapter->FriendlyName, -1, NULL, 0, NULL, NULL);
+          char nbuf[sz];
+          if (WideCharToMultiByte(CP_UTF8, 0, adapter->FriendlyName, -1, nbuf, sz, NULL, NULL)) {}
+          SET_STRING_ELT(names, i++, Rf_mkChar(nbuf));
 
         }
       }
@@ -68,9 +75,12 @@ SEXP rnng_ip_addr(void) {
 
       struct sockaddr_in *sa_in = (struct sockaddr_in *) ifa->ifa_addr;
       inet_ntop(AF_INET, &(sa_in->sin_addr), buf, sizeof(buf));
-      if (i)
+      if (i) {
         REPROTECT(out = Rf_xlengthgets(out, i + 1), pxi);
-      SET_STRING_ELT(out, i++, Rf_mkChar(buf));
+        REPROTECT(names = Rf_xlengthgets(names, i + 1), pxn);
+      }
+      SET_STRING_ELT(out, i, Rf_mkChar(buf));
+      SET_STRING_ELT(names, i++, Rf_mkChar(ifa->ifa_name));
 
     }
   }
@@ -78,8 +88,10 @@ SEXP rnng_ip_addr(void) {
 
 #endif
 
+  Rf_setAttrib(out, R_NamesSymbol, names);
+
   exitlevel1:
-  UNPROTECT(1);
+  UNPROTECT(2);
   return out;
 
 }

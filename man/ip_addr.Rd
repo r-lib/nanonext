@@ -7,12 +7,16 @@
 ip_addr()
 }
 \value{
-A character string.
+A named character string.
 }
 \description{
 Returns a character string comprising the local network IPv4 address, or
 vector if there are multiple addresses from multiple network adapters, or
 an empty character string if unavailable.
+}
+\details{
+The IP addresses will be named by interface e.g. 'eth0' or 'en0' (friendly
+names on Windows).
 }
 \examples{
 ip_addr()
