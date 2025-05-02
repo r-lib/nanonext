@@ -198,7 +198,7 @@ void attribute_visible R_init_nanonext(DllInfo* dll) {
 // # nocov start
 void attribute_visible R_unload_nanonext(DllInfo *info) {
   rnng_thread_shutdown();
-  nano_list_op(0, NULL);
+  nano_list_do(SHUTDOWN, NULL);
   ReleaseObjects();
 }
 // # nocov end

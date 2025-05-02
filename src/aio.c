@@ -20,54 +20,61 @@ static SEXP mk_error_aio(const int xc, SEXP env) {
 
 // aio completion callbacks ----------------------------------------------------
 
-void nano_list_op(int typ, nano_aio *saio) {
+void nano_list_do(nano_list_op listop, nano_aio *saio) {
 
   static nano_node *free_list = NULL;
   static nng_mtx *free_mtx = NULL;
 
   if (free_mtx == NULL) {
-    nng_mtx_alloc(&free_mtx);
+    if (nng_mtx_alloc(&free_mtx))
+      return;
   }
 
-  if (typ) {
-
+  switch (listop) {
+  case FINALIZE:
     nng_mtx_lock(free_mtx);
     if (saio->mode == 0x1) {
-      if (typ == 2) {
-        nng_mtx_unlock(free_mtx);
-        nng_aio_free(saio->aio);
-        if (saio->data != NULL)
-          R_Free(saio->data);
-        R_Free(saio);
-        return;
-      }
+      nng_mtx_unlock(free_mtx);
+      nng_aio_free(saio->aio);
+      if (saio->data != NULL)
+        R_Free(saio->data);
+      R_Free(saio);
+    } else {
+      saio->mode = 0x1;
+      nng_mtx_unlock(free_mtx);
+    }
+    break;
+  case COMPLETE:
+    nng_mtx_lock(free_mtx);
+    if (saio->mode == 0x1) {
       nano_node *new_node = malloc(sizeof(nano_node));
+      if (new_node == NULL) break;
       new_node->data = saio;
       new_node->next = free_list;
       free_list = new_node;
-      nng_mtx_unlock(free_mtx);
-      return;
+    } else {
+      saio->mode = 0x1;
     }
-    saio->mode = 0x1;
     nng_mtx_unlock(free_mtx);
-    return;
+    break;
+  case FREE:
+  case SHUTDOWN:
+    nng_mtx_lock(free_mtx);
+    while (free_list != NULL) {
+      nano_node *current = free_list;
+      free_list = free_list->next;
+      nano_aio *data = (nano_aio *) current->data;
+      nng_aio_free(data->aio);
+      if (data->data != NULL)
+        R_Free(data->data);
+      R_Free(data);
+      free(current);
+    }
+    nng_mtx_unlock(free_mtx);
+    if (listop == SHUTDOWN)
+      nng_mtx_free(free_mtx);
+    break;
   }
-
-  nng_mtx_lock(free_mtx);
-  while (free_list != NULL) {
-    nano_node *current = free_list;
-    free_list = free_list->next;
-    nano_aio *data = (nano_aio *) current->data;
-    nng_aio_free(data->aio);
-    if (data->data != NULL)
-      R_Free(data->data);
-    R_Free(data);
-    free(current);
-  }
-  nng_mtx_unlock(free_mtx);
-
-  if (saio == NULL && free_mtx != NULL)
-    nng_mtx_free(free_mtx);
 
 }
 
@@ -79,7 +86,7 @@ static void saio_complete(void *arg) {
     nng_msg_free(nng_aio_get_msg(saio->aio));
   saio->result = res - !res;
 
-  nano_list_op(1, saio);
+  nano_list_do(COMPLETE, saio);
 
 }
 
@@ -89,7 +96,7 @@ static void isaio_complete(void *arg) {
   const int res = nng_aio_result(iaio->aio);
   iaio->result = res - !res;
 
-  nano_list_op(1, iaio);
+  nano_list_do(COMPLETE, iaio);
 
 }
 
@@ -180,7 +187,7 @@ static void saio_finalizer(SEXP xptr) {
 
   if (NANO_PTR(xptr) == NULL) return;
   nano_aio *xp = (nano_aio *) NANO_PTR(xptr);
-  nano_list_op(2, xp);
+  nano_list_do(FINALIZE, xp);
 
 }
 
@@ -575,7 +582,7 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
   PROTECT(fun = R_mkClosure(R_NilValue, nano_aioFuncRes, clo));
   R_MakeActiveBinding(nano_ResultSymbol, fun, env);
 
-  nano_list_op(0, saio);
+  nano_list_do(FREE, saio);
 
   UNPROTECT(3);
   return env;
