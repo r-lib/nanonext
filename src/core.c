@@ -174,7 +174,7 @@ void dialer_finalizer(SEXP xptr) {
   if (NANO_PTR(xptr) == NULL) return;
   nng_dialer *xp = (nng_dialer *) NANO_PTR(xptr);
   nng_dialer_close(*xp);
-  R_Free(xp);
+  free(xp);
 
 }
 
@@ -183,7 +183,7 @@ void listener_finalizer(SEXP xptr) {
   if (NANO_PTR(xptr) == NULL) return;
   nng_listener *xp = (nng_listener *) NANO_PTR(xptr);
   nng_listener_close(*xp);
-  R_Free(xp);
+  free(xp);
 
 }
 
@@ -192,7 +192,7 @@ void socket_finalizer(SEXP xptr) {
   if (NANO_PTR(xptr) == NULL) return;
   nng_socket *xp = (nng_socket *) NANO_PTR(xptr);
   nng_close(*xp);
-  R_Free(xp);
+  free(xp);
 
 }
 

@@ -134,7 +134,8 @@ static void rnng_messenger_thread(void *args) {
 SEXP rnng_messenger(SEXP url) {
 
   const char *up = CHAR(STRING_ELT(url, 0));
-  nng_socket *sock = R_Calloc(1, nng_socket);
+  nng_socket *sock = malloc(sizeof(nng_socket));
+  NANO_ENSURE_ALLOC(sock);
   nng_listener *lp;
   nng_dialer *dp;
   int xc, dialer = 0;
@@ -142,16 +143,18 @@ SEXP rnng_messenger(SEXP url) {
 
   if ((xc = nng_pair0_open(sock)))
     goto exitlevel1;
-  lp = R_Calloc(1, nng_listener);
+  lp = malloc(sizeof(nng_listener));
+  NANO_ENSURE_ALLOC(lp);
   if ((xc = nng_listen(*sock, up, lp, 0))) {
     if (xc != 10 && xc != 15) {
-      R_Free(lp);
+      free(lp);
       goto exitlevel2;
     }
-    R_Free(lp);
-    dp = R_Calloc(1, nng_dialer);
+    free(lp);
+    dp = malloc(sizeof(nng_dialer));
+    NANO_ENSURE_ALLOC(dp);
     if ((xc = nng_dial(*sock, up, dp, 0))) {
-      R_Free(dp);
+      free(dp);
       goto exitlevel2;
     }
     dialer = 1;
@@ -174,7 +177,7 @@ SEXP rnng_messenger(SEXP url) {
   exitlevel2:
   nng_close(*sock);
   exitlevel1:
-  R_Free(sock);
+  free(sock);
   ERROR_OUT(xc);
 
 }

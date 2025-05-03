@@ -34,8 +34,10 @@ SEXP rnng_protocol_open(SEXP protocol, SEXP dial, SEXP listen, SEXP tls, SEXP au
 
   const char *pname;
   int xc;
-  nng_socket *sock;
   SEXP socket;
+
+  nng_socket *sock = malloc(sizeof(nng_socket));
+  NANO_ENSURE_ALLOC(sock);
 
   switch (slen) {
   case 1:
@@ -43,32 +45,27 @@ SEXP rnng_protocol_open(SEXP protocol, SEXP dial, SEXP listen, SEXP tls, SEXP au
   case 3:
     if (!memcmp(pro, "bus", slen)) {
       pname = "bus";
-      sock = R_Calloc(1, nng_socket);
       xc = rw ? nng_bus0_open_raw(sock) : nng_bus0_open(sock);
       break;
     }
     if (slen > 2) {
       if (!memcmp(pro, "pub", slen)) {
         pname = "pub";
-        sock = R_Calloc(1, nng_socket);
         xc = rw ? nng_pub0_open_raw(sock) : nng_pub0_open(sock);
         break;
       }
       if (!memcmp(pro, "sub", slen)) {
         pname = "sub";
-        sock = R_Calloc(1, nng_socket);
         xc = rw ? nng_sub0_open_raw(sock) : nng_sub0_open(sock);
         break;
       }
       if (!memcmp(pro, "req", slen)) {
         pname = "req";
-        sock = R_Calloc(1, nng_socket);
         xc = rw ? nng_req0_open_raw(sock) : nng_req0_open(sock);
         break;
       }
       if (!memcmp(pro, "rep", slen)) {
         pname = "rep";
-        sock = R_Calloc(1, nng_socket);
         xc = rw ? nng_rep0_open_raw(sock) : nng_rep0_open(sock);
         break;
       }
@@ -77,26 +74,22 @@ SEXP rnng_protocol_open(SEXP protocol, SEXP dial, SEXP listen, SEXP tls, SEXP au
     if (slen > 1) {
       if (!memcmp(pro, "pair", slen)) {
         pname = "pair";
-        sock = R_Calloc(1, nng_socket);
         xc = rw ? nng_pair0_open_raw(sock) : nng_pair0_open(sock);
         break;
       }
       if (!memcmp(pro, "poly", slen)) {
         pname = "poly";
-        sock = R_Calloc(1, nng_socket);
         xc = rw ? nng_pair1_open_raw(sock) : nng_pair1_open_poly(sock);
         break;
       }
       if (slen > 2) {
         if (!memcmp(pro, "push", slen)) {
           pname = "push";
-          sock = R_Calloc(1, nng_socket);
           xc = rw ? nng_push0_open_raw(sock) : nng_push0_open(sock);
           break;
         }
         if (!memcmp(pro, "pull", slen)) {
           pname = "pull";
-          sock = R_Calloc(1, nng_socket);
           xc = rw ? nng_pull0_open_raw(sock) : nng_pull0_open(sock);
           break;
         }
@@ -108,7 +101,6 @@ SEXP rnng_protocol_open(SEXP protocol, SEXP dial, SEXP listen, SEXP tls, SEXP au
   case 8:
     if (slen > 2 && !memcmp(pro, "surveyor", slen)) {
       pname = "surveyor";
-      sock = R_Calloc(1, nng_socket);
       xc = rw ? nng_surveyor0_open_raw(sock) : nng_surveyor0_open(sock);
       break;
     }
@@ -116,16 +108,16 @@ SEXP rnng_protocol_open(SEXP protocol, SEXP dial, SEXP listen, SEXP tls, SEXP au
   case 10:
     if (slen > 2 && !memcmp(pro, "respondent", slen)) {
       pname = "respondent";
-      sock = R_Calloc(1, nng_socket);
       xc = rw ? nng_respondent0_open_raw(sock) : nng_respondent0_open(sock);
       break;
     }
   default:
+    free(sock);
     NANO_ERROR("'protocol' should be one of bus, pair, poly, push, pull, pub, sub, req, rep, surveyor, respondent");
   }
 
   if (xc) {
-    R_Free(sock);
+    free(sock);
     ERROR_OUT(xc);
   }
 
