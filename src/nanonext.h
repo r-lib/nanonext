@@ -126,14 +126,15 @@ extern int R_interrupts_pending;
 #define NANONEXT_CHUNK_SIZE INT_MAX // must be <= INT_MAX
 #define NANONEXT_STR_SIZE 40
 #define NANO_ALLOC(x, sz)                                      \
-  (x)->buf = R_Calloc(sz, unsigned char);                      \
+  (x)->buf = calloc(sz, sizeof(unsigned char));                \
+  if ((x)->buf == NULL) Rf_error("Memory allocation failed");  \
   (x)->len = sz;                                               \
   (x)->cur = 0
 #define NANO_INIT(x, ptr, sz)                                  \
   (x)->buf = ptr;                                              \
   (x)->len = 0;                                                \
   (x)->cur = sz
-#define NANO_FREE(x) if (x.len) R_Free(x.buf)
+#define NANO_FREE(x) if (x.len) free(x.buf)
 #define NANO_CLASS2(x, cls1, cls2)                             \
   SEXP klass = Rf_allocVector(STRSXP, 2);                      \
   Rf_classgets(x, klass);                                      \
