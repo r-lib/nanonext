@@ -88,7 +88,7 @@ SEXP rnng_ip_addr(void) {
 
 #endif
 
-  Rf_setAttrib(out, R_NamesSymbol, names);
+  Rf_namesgets(out, names);
 
   cleanup:
   UNPROTECT(2);
@@ -107,11 +107,10 @@ SEXP rnng_write_stdout(SEXP x) {
   DWORD bytes;
   if (WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), nbuf, (DWORD) strlen(nbuf), &bytes, NULL)) {}
 #else
-  struct iovec iov[2];
-  iov[0].iov_base = (void *) buf;
-  iov[0].iov_len = strlen(buf);
-  iov[1].iov_base = "\n";
-  iov[1].iov_len = 1;
+  struct iovec iov[2] = {
+    {.iov_base = (void *) buf, .iov_len = strlen(buf)},
+    {.iov_base = "\n", .iov_len = 1}
+  };
   if (writev(STDOUT_FILENO, iov, 2)) {}
 #endif
   return R_NilValue;

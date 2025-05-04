@@ -364,9 +364,9 @@ static SEXP rnng_aio_collect_impl(SEXP x, SEXP (*const func)(SEXP)) {
     PROTECT(out = Rf_allocVector(VECSXP, xlen));
     for (R_xlen_t i = 0; i < xlen; i++) {
       env = func(NANO_VECTOR(x)[i]);
-      if (TYPEOF(env) != ENVSXP) goto exit;
+      if (TYPEOF(env) != ENVSXP) goto fail;
       env = Rf_findVarInFrame(env, nano_ValueSymbol);
-      if (env == R_UnboundValue) goto exit;
+      if (env == R_UnboundValue) goto fail;
       SET_VECTOR_ELT(out, i, env);
     }
     names = Rf_getAttrib(x, R_NamesSymbol);
@@ -376,7 +376,7 @@ static SEXP rnng_aio_collect_impl(SEXP x, SEXP (*const func)(SEXP)) {
     goto resume;
   }
 
-  exit:
+  fail:
   Rf_error("object is not an Aio or list of Aios");
 
   resume:
