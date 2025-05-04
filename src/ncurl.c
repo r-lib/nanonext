@@ -142,68 +142,61 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
     Rf_error("'tls' is not a valid TLS Configuration");
   int chk_resp = response != R_NilValue && TYPEOF(response) == STRSXP;
 
-  nng_url *url;
-  nng_http_client *client;
-  nng_http_req *req;
-  nng_http_res *res;
-  nng_aio *aio;
+  nng_url *url = NULL;
+  nng_http_client *client = NULL;
+  nng_http_req *req = NULL;
+  nng_http_res *res = NULL;
+  nng_aio *aio = NULL;
   nng_tls_config *cfg = NULL;
   uint16_t code, relo;
   int xc;
 
   if ((xc = nng_url_parse(&url, addr)))
-    goto exitlevel1;
+    goto fail;
 
   relocall:
 
-  if ((xc = nng_http_client_alloc(&client, url)))
-    goto exitlevel2;
-  if ((xc = nng_http_req_alloc(&req, url)))
-    goto exitlevel3;
+  if ((xc = nng_http_client_alloc(&client, url)) ||
+      (xc = nng_http_req_alloc(&req, url)) ||
+      (xc = nng_http_res_alloc(&res)) ||
+      (xc = nng_aio_alloc(&aio, NULL, NULL)))
+    goto fail;
+
   if (mthd != NULL && (xc = nng_http_req_set_method(req, mthd)))
-    goto exitlevel4;
+    goto fail;
+
   if (headers != R_NilValue && TYPEOF(headers) == STRSXP) {
     const R_xlen_t hlen = XLENGTH(headers);
     SEXP hnames = Rf_getAttrib(headers, R_NamesSymbol);
     if (TYPEOF(hnames) == STRSXP && XLENGTH(hnames) == hlen) {
       for (R_xlen_t i = 0; i < hlen; i++) {
-        if ((xc = nng_http_req_set_header(req,
-                                          NANO_STR_N(hnames, i),
-                                          NANO_STR_N(headers, i))))
-          goto exitlevel4;
+        if ((xc = nng_http_req_set_header(req, NANO_STR_N(hnames, i), NANO_STR_N(headers, i))))
+          goto fail;
       }
     }
   }
   if (data != R_NilValue && TYPEOF(data) == STRSXP) {
     nano_buf enc = nano_char_buf(data);
     if ((xc = nng_http_req_set_data(req, enc.buf, enc.cur)))
-      goto exitlevel4;
+      goto fail;
   }
-
-  if ((xc = nng_http_res_alloc(&res)))
-    goto exitlevel4;
-
-  if ((xc = nng_aio_alloc(&aio, NULL, NULL)))
-    goto exitlevel5;
 
   if (!strcmp(url->u_scheme, "https")) {
 
     if (tls == R_NilValue) {
-      if ((xc = nng_tls_config_alloc(&cfg, NNG_TLS_MODE_CLIENT)))
-        goto exitlevel6;
-
-      if ((xc = nng_tls_config_server_name(cfg, url->u_hostname)) ||
+      if ((xc = nng_tls_config_alloc(&cfg, NNG_TLS_MODE_CLIENT)) ||
+          (xc = nng_tls_config_server_name(cfg, url->u_hostname)) ||
           (xc = nng_tls_config_auth_mode(cfg, NNG_TLS_AUTH_MODE_NONE)) ||
           (xc = nng_http_client_set_tls(client, cfg)))
-        goto exitlevel7;
-    } else {
+        goto fail;
 
+    } else {
       cfg = (nng_tls_config *) NANO_PTR(tls);
       nng_tls_config_hold(cfg);
 
       if ((xc = nng_tls_config_server_name(cfg, url->u_hostname)) ||
           (xc = nng_http_client_set_tls(client, cfg)))
-        goto exitlevel7;
+        goto fail;
     }
 
   }
@@ -212,7 +205,7 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
   nng_http_client_transact(client, req, res, aio);
   nng_aio_wait(aio);
   if ((xc = nng_aio_result(aio)))
-    goto exitlevel7;
+    goto fail;
 
   if (cfg != NULL)
     nng_tls_config_free(cfg);
@@ -227,8 +220,11 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
     xc = nng_url_parse(&url, location);
     if (xc) goto resume;
     nng_http_res_free(res);
+    res = NULL;
     nng_http_req_free(req);
+    req = NULL;
     nng_http_client_free(client);
+    client = NULL;
     nng_url_free(oldurl);
     cfg = NULL;
     goto relocall;
@@ -290,20 +286,17 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
   UNPROTECT(1);
   return out;
 
-  exitlevel7:
+  fail:
   if (cfg != NULL)
     nng_tls_config_free(cfg);
-  exitlevel6:
   nng_aio_free(aio);
-  exitlevel5:
-  nng_http_res_free(res);
-  exitlevel4:
-  nng_http_req_free(req);
-  exitlevel3:
-  nng_http_client_free(client);
-  exitlevel2:
+  if (res != NULL)
+    nng_http_res_free(res);
+  if (req != NULL)
+    nng_http_req_free(req);
+  if (client != NULL)
+    nng_http_client_free(client);
   nng_url_free(url);
-  exitlevel1:
   return mk_error_ncurl(xc);
 
 }
@@ -329,57 +322,48 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
   haio->mode = (uint8_t) NANO_INTEGER(convert);
   haio->next = handle;
 
-  if ((xc = nng_url_parse(&handle->url, httr)))
-    goto exitlevel1;
-  if ((xc = nng_http_client_alloc(&handle->cli, handle->url)))
-    goto exitlevel2;
-  if ((xc = nng_http_req_alloc(&handle->req, handle->url)))
-    goto exitlevel3;
+  if ((xc = nng_url_parse(&handle->url, httr)) ||
+      (xc = nng_http_client_alloc(&handle->cli, handle->url)) ||
+      (xc = nng_http_req_alloc(&handle->req, handle->url)) ||
+      (xc = nng_http_res_alloc(&handle->res)) ||
+      (xc = nng_aio_alloc(&haio->aio, haio_complete, haio)))
+    goto fail;
+
   if (mthd != NULL && (xc = nng_http_req_set_method(handle->req, mthd)))
-    goto exitlevel4;
+    goto fail;
+
   if (headers != R_NilValue && TYPEOF(headers) == STRSXP) {
     const R_xlen_t hlen = XLENGTH(headers);
     SEXP hnames = Rf_getAttrib(headers, R_NamesSymbol);
     if (TYPEOF(hnames) == STRSXP && XLENGTH(hnames) == hlen) {
       for (R_xlen_t i = 0; i < hlen; i++) {
-        if ((xc = nng_http_req_set_header(handle->req,
-                                          NANO_STR_N(hnames, i),
-                                          NANO_STR_N(headers, i))))
-          goto exitlevel4;
+        if ((xc = nng_http_req_set_header(handle->req, NANO_STR_N(hnames, i), NANO_STR_N(headers, i))))
+          goto fail;
       }
     }
   }
   if (data != R_NilValue && TYPEOF(data) == STRSXP) {
     nano_buf enc = nano_char_buf(data);
     if ((xc = nng_http_req_set_data(handle->req, enc.buf, enc.cur)))
-      goto exitlevel4;
+      goto fail;
   }
-
-  if ((xc = nng_http_res_alloc(&handle->res)))
-    goto exitlevel4;
-
-  if ((xc = nng_aio_alloc(&haio->aio, haio_complete, haio)))
-    goto exitlevel5;
 
   if (!strcmp(handle->url->u_scheme, "https")) {
 
     if (tls == R_NilValue) {
-      if ((xc = nng_tls_config_alloc(&handle->cfg, NNG_TLS_MODE_CLIENT)))
-        goto exitlevel6;
-
-      if ((xc = nng_tls_config_server_name(handle->cfg, handle->url->u_hostname)) ||
+      if ((xc = nng_tls_config_alloc(&handle->cfg, NNG_TLS_MODE_CLIENT)) ||
+          (xc = nng_tls_config_server_name(handle->cfg, handle->url->u_hostname)) ||
           (xc = nng_tls_config_auth_mode(handle->cfg, NNG_TLS_AUTH_MODE_NONE)) ||
           (xc = nng_http_client_set_tls(handle->cli, handle->cfg)))
-        goto exitlevel7;
+        goto fail;
 
     } else {
-
       handle->cfg = (nng_tls_config *) NANO_PTR(tls);
       nng_tls_config_hold(handle->cfg);
 
       if ((xc = nng_tls_config_server_name(handle->cfg, handle->url->u_hostname)) ||
           (xc = nng_http_client_set_tls(handle->cli, handle->cfg)))
-        goto exitlevel7;
+        goto fail;
     }
 
   }
@@ -409,19 +393,17 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
   UNPROTECT(2);
   return env;
 
-  exitlevel7:
-  nng_tls_config_free(handle->cfg);
-  exitlevel6:
+  fail:
+  if (handle->cfg != NULL)
+    nng_tls_config_free(handle->cfg);
   nng_aio_free(haio->aio);
-  exitlevel5:
-  nng_http_res_free(handle->res);
-  exitlevel4:
-  nng_http_req_free(handle->req);
-  exitlevel3:
-  nng_http_client_free(handle->cli);
-  exitlevel2:
+  if (handle->res != NULL)
+    nng_http_res_free(handle->res);
+  if (handle->req != NULL)
+    nng_http_req_free(handle->req);
+  if (handle->cli != NULL)
+    nng_http_client_free(handle->cli);
   nng_url_free(handle->url);
-  exitlevel1:
   free(handle);
   free(haio);
   return mk_error_ncurlaio(xc);
@@ -542,48 +524,40 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
   haio->mode = (uint8_t) NANO_INTEGER(convert);
   haio->next = handle;
 
-  if ((xc = nng_url_parse(&handle->url, httr)))
-    goto exitlevel1;
-  if ((xc = nng_http_client_alloc(&handle->cli, handle->url)))
-    goto exitlevel2;
-  if ((xc = nng_http_req_alloc(&handle->req, handle->url)))
-    goto exitlevel3;
+  if ((xc = nng_url_parse(&handle->url, httr)) ||
+      (xc = nng_http_client_alloc(&handle->cli, handle->url)) ||
+      (xc = nng_http_req_alloc(&handle->req, handle->url)) ||
+      (xc = nng_http_res_alloc(&handle->res)) ||
+      (xc = nng_aio_alloc(&haio->aio, session_complete, haio)))
+    goto fail;
+
   if (mthd != NULL && (xc = nng_http_req_set_method(handle->req, mthd)))
-    goto exitlevel4;
+    goto fail;
+
   if (headers != R_NilValue && TYPEOF(headers) == STRSXP) {
     const R_xlen_t hlen = XLENGTH(headers);
     SEXP hnames = Rf_getAttrib(headers, R_NamesSymbol);
     if (TYPEOF(hnames) == STRSXP && XLENGTH(hnames) == hlen) {
       for (R_xlen_t i = 0; i < hlen; i++) {
-        if ((xc = nng_http_req_set_header(handle->req,
-                                          NANO_STR_N(hnames, i),
-                                          NANO_STR_N(headers, i))))
-          goto exitlevel4;
+        if ((xc = nng_http_req_set_header(handle->req, NANO_STR_N(hnames, i), NANO_STR_N(headers, i))))
+          goto fail;
       }
     }
   }
   if (data != R_NilValue && TYPEOF(data) == STRSXP) {
     nano_buf enc = nano_char_buf(data);
     if ((xc = nng_http_req_set_data(handle->req, enc.buf, enc.cur)))
-      goto exitlevel4;
+      goto fail;
   }
-
-  if ((xc = nng_http_res_alloc(&handle->res)))
-    goto exitlevel4;
-
-  if ((xc = nng_aio_alloc(&haio->aio, session_complete, haio)))
-    goto exitlevel5;
 
   if (!strcmp(handle->url->u_scheme, "https")) {
 
     if (tls == R_NilValue) {
-      if ((xc = nng_tls_config_alloc(&handle->cfg, NNG_TLS_MODE_CLIENT)))
-        goto exitlevel6;
-
-      if ((xc = nng_tls_config_server_name(handle->cfg, handle->url->u_hostname)) ||
+      if ((xc = nng_tls_config_alloc(&handle->cfg, NNG_TLS_MODE_CLIENT)) ||
+          (xc = nng_tls_config_server_name(handle->cfg, handle->url->u_hostname)) ||
           (xc = nng_tls_config_auth_mode(handle->cfg, NNG_TLS_AUTH_MODE_NONE)) ||
           (xc = nng_http_client_set_tls(handle->cli, handle->cfg)))
-        goto exitlevel7;
+        goto fail;
 
     } else {
 
@@ -592,7 +566,7 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
 
       if ((xc = nng_tls_config_server_name(handle->cfg, handle->url->u_hostname)) ||
           (xc = nng_http_client_set_tls(handle->cli, handle->cfg)))
-        goto exitlevel7;
+        goto fail;
     }
 
   }
@@ -601,7 +575,7 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
   nng_http_client_connect(handle->cli, haio->aio);
   nng_aio_wait(haio->aio);
   if ((xc = haio->result) > 0)
-    goto exitlevel7;
+    goto fail;
 
   nng_http_conn *conn = nng_aio_get_output(haio->aio, 0);
   haio->data = conn;
@@ -613,20 +587,17 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
   UNPROTECT(1);
   return sess;
 
-  exitlevel7:
+  fail:
   if (handle->cfg != NULL)
     nng_tls_config_free(handle->cfg);
-  exitlevel6:
   nng_aio_free(haio->aio);
-  exitlevel5:
-  nng_http_res_free(handle->res);
-  exitlevel4:
-  nng_http_req_free(handle->req);
-  exitlevel3:
-  nng_http_client_free(handle->cli);
-  exitlevel2:
+  if (handle->res != NULL)
+    nng_http_res_free(handle->res);
+  if (handle->req != NULL)
+    nng_http_req_free(handle->req);
+  if (handle->cli != NULL)
+    nng_http_client_free(handle->cli);
   nng_url_free(handle->url);
-  exitlevel1:
   free(handle);
   free(haio);
   ERROR_RET(xc);
