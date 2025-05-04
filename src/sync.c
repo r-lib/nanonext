@@ -204,10 +204,10 @@ SEXP rnng_cv_alloc(void) {
   int xc;
 
   if ((xc = nng_mtx_alloc(&cvp->mtx)))
-    goto exitlevel1;
+    goto fail;
 
   if ((xc = nng_cv_alloc(&cvp->cv, cvp->mtx)))
-    goto exitlevel2;
+    goto fail;
 
   PROTECT(xp = R_MakeExternalPtr(cvp, nano_CvSymbol, R_NilValue));
   R_RegisterCFinalizerEx(xp, cv_finalizer, TRUE);
@@ -216,9 +216,8 @@ SEXP rnng_cv_alloc(void) {
   UNPROTECT(1);
   return xp;
 
-  exitlevel2:
+  fail:
   nng_mtx_free(cvp->mtx);
-  exitlevel1:
   free(cvp);
   ERROR_OUT(xc);
 
@@ -467,7 +466,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
     }
     if ((xc = nng_ctx_open(ctx, *sock))) {
       free(ctx);
-      goto exitlevel1;
+      goto fail;
     }
   } else {
     ctx = (nng_ctx *) NANO_PTR(con);
@@ -479,12 +478,12 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   saio->alloc = sock;
 
   if ((xc = nng_msg_alloc(&msg, 0)))
-    goto exitlevel1;
+    goto fail;
 
   if ((xc = nng_msg_append(msg, buf.buf, buf.cur)) ||
       (xc = nng_aio_alloc(&saio->aio, sendaio_complete, saio))) {
     nng_msg_free(msg);
-    goto exitlevel1;
+    goto fail;
   }
 
   nng_aio_set_msg(saio->aio, msg);
@@ -496,7 +495,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   raio->next = ncv;
 
   if ((xc = nng_aio_alloc(&raio->aio, drop ? request_complete_dropcon : request_complete, raio)))
-    goto exitlevel2;
+    goto fail;
 
   nng_aio_set_timeout(raio->aio, dur);
   nng_ctx_recv(*ctx, raio->aio);
@@ -517,9 +516,8 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   UNPROTECT(3);
   return env;
 
-  exitlevel2:
+  fail:
   nng_aio_free(saio->aio);
-  exitlevel1:
   free(raio);
   free(saio);
   NANO_FREE(buf);
@@ -676,10 +674,10 @@ SEXP rnng_monitor_create(SEXP socket, SEXP cv) {
   int xc;
 
   if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_ADD_POST, pipe_cb_monitor, monitor)))
-    goto exitlevel1;
+    goto fail;
 
   if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_REM_POST, pipe_cb_monitor, monitor)))
-    goto exitlevel1;
+    goto fail;
 
   PROTECT(xptr = R_MakeExternalPtr(monitor, nano_MonitorSymbol, R_NilValue));
   R_RegisterCFinalizerEx(xptr, monitor_finalizer, TRUE);
@@ -689,7 +687,7 @@ SEXP rnng_monitor_create(SEXP socket, SEXP cv) {
 
   return xptr;
 
-  exitlevel1:
+  fail:
   free(monitor->ids);
   free(monitor);
   ERROR_OUT(xc);
