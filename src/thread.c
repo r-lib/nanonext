@@ -148,13 +148,13 @@ SEXP rnng_messenger(SEXP url) {
   NANO_ENSURE_ALLOC(lp);
   if ((xc = nng_listen(*sock, up, lp, 0))) {
     if (xc != 10 && xc != 15)
-      goto failmem;
+      goto fail;
     free(lp);
     lp = NULL;
     dp = malloc(sizeof(nng_dialer));
     NANO_ENSURE_ALLOC(dp);
     if ((xc = nng_dial(*sock, up, dp, 0)))
-      goto failmem;
+      goto fail;
     dialer = 1;
   }
 
@@ -172,12 +172,12 @@ SEXP rnng_messenger(SEXP url) {
   UNPROTECT(2);
   return socket;
 
+  fail:
   failmem:
   free(dp);
   free(lp);
   if (sock != NULL)
     nng_close(*sock);
-  fail:
   free(sock);
   ERROR_OUT(xc);
 

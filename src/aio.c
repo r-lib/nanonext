@@ -525,7 +525,7 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     nng_msg *msg = NULL;
 
     saio = calloc(1, sizeof(nano_aio));
-    if (saio == NULL) { xc = 2; goto failmem; }
+    NANO_ENSURE_ALLOC(saio);
     saio->type = SENDAIO;
 
     if ((xc = nng_msg_alloc(&msg, 0)) ||
@@ -559,10 +559,10 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     nng_iov iov;
 
     saio = calloc(1, sizeof(nano_aio));
-    if (saio == NULL) { xc = 2; goto failmem; }
+    NANO_ENSURE_ALLOC(saio);
     saio->type = IOV_SENDAIO;
     saio->data = calloc(buf.cur, sizeof(unsigned char));
-    if (saio->data == NULL) { xc = 2; goto failmem; }
+    NANO_ENSURE_ALLOC(saio->data);
     memcpy(saio->data, buf.buf, buf.cur);
     iov.iov_len = buf.cur - nst->textframes;
     iov.iov_buf = saio->data;

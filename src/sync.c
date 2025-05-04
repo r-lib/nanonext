@@ -453,18 +453,15 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   }
 
   saio = calloc(1, sizeof(nano_saio));
-  if (saio == NULL)
-    goto failmem;
+  NANO_ENSURE_ALLOC(saio);
 
   raio = calloc(1, sizeof(nano_aio));
-  if (raio == NULL)
-    goto failmem;
+  NANO_ENSURE_ALLOC(raio);
 
   if (sock) {
     nng_socket *sock = (nng_socket *) NANO_PTR(con);
     ctx = malloc(sizeof(nng_ctx));
-    if (ctx == NULL)
-      goto failmem;
+    NANO_ENSURE_ALLOC(ctx);
     if ((xc = nng_ctx_open(ctx, *sock)))
       goto fail;
   } else {
@@ -515,18 +512,13 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
 
   fail:
   nng_aio_free(saio->aio);
+  failmem:
   if (sock)
     free(ctx);
   free(raio);
   free(saio);
   NANO_FREE(buf);
   return mk_error_data(xc);
-
-  failmem:
-  free(raio);
-  free(saio);
-  NANO_FREE(buf);
-  Rf_error("Memory allocation failed");
 
 }
 
