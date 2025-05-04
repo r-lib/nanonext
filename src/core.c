@@ -20,13 +20,13 @@ static void nano_write_bytes(R_outpstream_t stream, void *src, int len) {
   size_t req = buf->cur + (size_t) len;
   if (req > buf->len) {
     if (req > R_XLEN_T_MAX) {
-      if (buf->len) R_Free(buf->buf);
+      if (buf->len) free(buf->buf);
       Rf_error("serialization exceeds max length of raw vector");
     }
     do {
       buf->len += buf->len > NANONEXT_SERIAL_THR ? NANONEXT_SERIAL_THR : buf->len;
     } while (buf->len < req);
-    buf->buf = R_Realloc(buf->buf, buf->len, unsigned char);
+    buf->buf = realloc(buf->buf, buf->len);
   }
 
   memcpy(buf->buf + buf->cur, src, len);
