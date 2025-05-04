@@ -142,20 +142,22 @@ SEXP rnng_messenger(SEXP url) {
   SEXP socket, con;
 
   if ((xc = nng_pair0_open(sock)))
-    goto exitlevel1;
+    goto fail;
   lp = malloc(sizeof(nng_listener));
-  NANO_ENSURE_ALLOC_FREE(lp, sock);
+  if (lp == NULL)
+    goto failmem;
   if ((xc = nng_listen(*sock, up, lp, 0))) {
     if (xc != 10 && xc != 15) {
       free(lp);
-      goto exitlevel2;
+      goto failclose;
     }
     free(lp);
     dp = malloc(sizeof(nng_dialer));
-    NANO_ENSURE_ALLOC_FREE(dp, sock);
+    if (dp == NULL)
+      goto failmem;
     if ((xc = nng_dial(*sock, up, dp, 0))) {
       free(dp);
-      goto exitlevel2;
+      goto failclose;
     }
     dialer = 1;
   }
@@ -174,11 +176,16 @@ SEXP rnng_messenger(SEXP url) {
   UNPROTECT(2);
   return socket;
 
-  exitlevel2:
+  failclose:
   nng_close(*sock);
-  exitlevel1:
+  fail:
   free(sock);
   ERROR_OUT(xc);
+
+  failmem:
+  nng_close(*sock);
+  free(sock);
+  Rf_error("Memory allocation failed");
 
 }
 
@@ -240,21 +247,19 @@ void single_wait_thread_create(SEXP x) {
   NANO_ENSURE_ALLOC_FREE(ncv, taio);
   taio->aio = aiop->aio;
   taio->cv = ncv;
-  nng_mtx *mtx;
-  nng_cv *cv;
+  nng_mtx *mtx = NULL;
+  nng_cv *cv = NULL;
   int xc, signalled;
 
-  if ((xc = nng_mtx_alloc(&mtx)))
-    goto exitlevel1;
-
-  if ((xc = nng_cv_alloc(&cv, mtx)))
-    goto exitlevel2;
+  if ((xc = nng_mtx_alloc(&mtx)) ||
+      (xc = nng_cv_alloc(&cv, mtx)))
+    goto fail;
 
   ncv->mtx = mtx;
   ncv->cv = cv;
 
   if ((xc = nng_thread_create(&taio->thr, rnng_wait_thread_single, taio)))
-    goto exitlevel3;
+    goto fail;
 
   SEXP xptr;
   PROTECT(xptr = R_MakeExternalPtr(taio, R_NilValue, R_NilValue));
@@ -281,11 +286,9 @@ void single_wait_thread_create(SEXP x) {
 
   return;
 
-  exitlevel3:
+  fail:
   nng_cv_free(cv);
-  exitlevel2:
   nng_mtx_free(mtx);
-  exitlevel1:
   free(ncv);
   free(taio);
   ERROR_OUT(xc);
@@ -348,15 +351,11 @@ SEXP rnng_wait_thread_create(SEXP x) {
 
     int xc, signalled;
 
-    if (!nano_wait_thr) {
-      if ((xc = nng_mtx_alloc(&nano_wait_mtx)))
-        goto exitlevel1;
-
-      if ((xc = nng_cv_alloc(&nano_wait_cv, nano_wait_mtx)))
-        goto exitlevel2;
-
-      if ((xc = nng_thread_create(&nano_wait_thr, rnng_wait_thread, NULL)))
-        goto exitlevel3;
+    if (nano_wait_thr == NULL) {
+      if ((xc = nng_mtx_alloc(&nano_wait_mtx)) ||
+          (xc = nng_cv_alloc(&nano_wait_cv, nano_wait_mtx)) ||
+          (xc = nng_thread_create(&nano_wait_thr, rnng_wait_thread, NULL)))
+        goto fail;
     }
 
     int thread_required = 0;
@@ -417,11 +416,9 @@ SEXP rnng_wait_thread_create(SEXP x) {
 
     return x;
 
-    exitlevel3:
+    fail:
     nng_cv_free(nano_wait_cv);
-    exitlevel2:
     nng_mtx_free(nano_wait_mtx);
-    exitlevel1:
     ERROR_OUT(xc);
 
   } else if (typ == VECSXP) {
