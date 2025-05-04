@@ -439,9 +439,10 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   nng_ctx *ctx;
   if (sock) {
     nng_socket *sock = (nng_socket *) NANO_PTR(con);
-    ctx = R_Calloc(1, nng_ctx);
+    ctx = malloc(sizeof(nng_ctx));
+    NANO_ENSURE_ALLOC(ctx);
     if ((xc = nng_ctx_open(ctx, *sock))) {
-      R_Free(ctx);
+      free(ctx);
       goto exitlevel1;
     }
   } else {
@@ -456,7 +457,8 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   nng_msg *msg;
 
   nano_encodes(sendmode) == 2 ? nano_encode(&buf, data) : nano_serialize(&buf, data, NANO_PROT(con));
-  saio = R_Calloc(1, nano_saio);
+  saio = calloc(1, sizeof(nano_saio));
+  NANO_ENSURE_ALLOC(saio);
   saio->cb = NULL;
   saio->ctx = ctx;
   saio->msgid = id;

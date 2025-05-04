@@ -140,6 +140,7 @@ extern int R_interrupts_pending;
   SET_STRING_ELT(klass, 0, Rf_mkChar(cls1));                   \
   SET_STRING_ELT(klass, 1, Rf_mkChar(cls2))
 #define NANO_ENSURE_ALLOC(x) if (x == NULL) Rf_error("Memory allocation failed")
+#define NANO_ENSURE_ALLOC_FREE(x, y) if (x == NULL) { free(y); Rf_error("Memory allocation failed"); }
 
 typedef union nano_opt_u {
   char *str;
