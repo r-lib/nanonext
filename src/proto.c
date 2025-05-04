@@ -116,10 +116,8 @@ SEXP rnng_protocol_open(SEXP protocol, SEXP dial, SEXP listen, SEXP tls, SEXP au
     NANO_ERROR("'protocol' should be one of bus, pair, poly, push, pull, pub, sub, req, rep, surveyor, respondent");
   }
 
-  if (xc) {
-    free(sock);
-    ERROR_OUT(xc);
-  }
+  if (xc)
+    goto fail;
 
   PROTECT(socket = R_MakeExternalPtr(sock, nano_SocketSymbol, R_NilValue));
   R_RegisterCFinalizerEx(socket, socket_finalizer, TRUE);
@@ -137,6 +135,11 @@ SEXP rnng_protocol_open(SEXP protocol, SEXP dial, SEXP listen, SEXP tls, SEXP au
 
   UNPROTECT(1);
   return socket;
+
+  fail:
+  free(sock);
+  failmem:
+  ERROR_OUT(xc);
 
 }
 
@@ -189,14 +192,16 @@ static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP tls) {
   const char *add = CHAR(STRING_ELT(url, 0));
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
     Rf_error("'tls' is not a valid TLS Configuration");
-  nano_stream *nst = calloc(1, sizeof(nano_stream));
-  NANO_ENSURE_ALLOC(nst);
-  nst->mode = NANO_STREAM_DIALER;
-  nst->textframes = NANO_INTEGER(textframes) != 0;
+
   nng_url *up = NULL;
   nng_aio *aiop = NULL;
   int xc;
   SEXP sd;
+
+  nano_stream *nst = calloc(1, sizeof(nano_stream));
+  NANO_ENSURE_ALLOC(nst);
+  nst->mode = NANO_STREAM_DIALER;
+  nst->textframes = NANO_INTEGER(textframes) != 0;
 
   if ((xc = nng_url_parse(&up, add)) ||
       (xc = nng_stream_dialer_alloc_url(&nst->endpoint.dial, up)) ||
@@ -258,6 +263,7 @@ static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP tls) {
   nng_stream_dialer_free(nst->endpoint.dial);
   nng_url_free(up);
   free(nst);
+  failmem:
   ERROR_OUT(xc);
 
 }
@@ -267,14 +273,16 @@ static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls) {
   const char *add = CHAR(STRING_ELT(url, 0));
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
     Rf_error("'tls' is not a valid TLS Configuration");
-  nano_stream *nst = calloc(1, sizeof(nano_stream));
-  NANO_ENSURE_ALLOC(nst);
-  nst->mode = NANO_STREAM_LISTENER;
-  nst->textframes = NANO_INTEGER(textframes) != 0;
+
   nng_url *up = NULL;
   nng_aio *aiop = NULL;
   int xc;
   SEXP sl;
+
+  nano_stream *nst = calloc(1, sizeof(nano_stream));
+  NANO_ENSURE_ALLOC(nst);
+  nst->mode = NANO_STREAM_LISTENER;
+  nst->textframes = NANO_INTEGER(textframes) != 0;
 
   if ((xc = nng_url_parse(&up, add)) ||
       (xc = nng_stream_listener_alloc_url(&nst->endpoint.list, up)) ||
@@ -338,6 +346,7 @@ static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls) {
   nng_stream_listener_free(nst->endpoint.list);
   nng_url_free(up);
   free(nst);
+  failmem:
   ERROR_OUT(xc);
 
 }

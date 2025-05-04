@@ -25,7 +25,8 @@ SEXP rnng_ip_addr(void) {
   int j = 0;
   do {
     addrs = malloc(bufsize);
-    NANO_ENSURE_ALLOC(addrs);
+    if (addrs == NULL)
+      goto cleanup;
 
     ret = GetAdaptersAddresses(AF_INET, flags, NULL, addrs, &bufsize);
     if (ret == ERROR_BUFFER_OVERFLOW)

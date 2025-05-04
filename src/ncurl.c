@@ -311,12 +311,15 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
     Rf_error("'tls' is not a valid TLS Configuration");
-  nano_aio *haio = calloc(1, sizeof(nano_aio));
-  NANO_ENSURE_ALLOC(haio);
-  nano_handle *handle = calloc(1, sizeof(nano_handle));
-  NANO_ENSURE_ALLOC_FREE(handle, haio);
+
   SEXP aio, env, fun;
   int xc;
+  nano_aio *haio = NULL;
+  nano_handle *handle = NULL;
+  haio = calloc(1, sizeof(nano_aio));
+  NANO_ENSURE_ALLOC(haio);
+  handle = calloc(1, sizeof(nano_handle));
+  NANO_ENSURE_ALLOC(handle);
 
   haio->type = HTTP_AIO;
   haio->mode = (uint8_t) NANO_INTEGER(convert);
@@ -404,6 +407,7 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
   if (handle->cli != NULL)
     nng_http_client_free(handle->cli);
   nng_url_free(handle->url);
+  failmem:
   free(handle);
   free(haio);
   return mk_error_ncurlaio(xc);
@@ -513,12 +517,14 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
     Rf_error("'tls' is not a valid TLS Configuration");
 
-  nano_aio *haio = calloc(1, sizeof(nano_aio));
-  NANO_ENSURE_ALLOC(haio);
-  nano_handle *handle = calloc(1, sizeof(nano_handle));
-  NANO_ENSURE_ALLOC_FREE(handle, haio);
-  int xc;
   SEXP sess;
+  int xc;
+  nano_aio *haio = NULL;
+  nano_handle *handle = NULL;
+  haio = calloc(1, sizeof(nano_aio));
+  NANO_ENSURE_ALLOC(haio);
+  handle = calloc(1, sizeof(nano_handle));
+  NANO_ENSURE_ALLOC(handle);
 
   haio->type = HTTP_AIO;
   haio->mode = (uint8_t) NANO_INTEGER(convert);
@@ -598,6 +604,7 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
   if (handle->cli != NULL)
     nng_http_client_free(handle->cli);
   nng_url_free(handle->url);
+  failmem:
   free(handle);
   free(haio);
   ERROR_RET(xc);

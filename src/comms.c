@@ -21,15 +21,13 @@ SEXP rnng_ctx_open(SEXP socket) {
     Rf_error("'socket' is not a valid Socket");
 
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
+  SEXP context;
+  int xc;
   nng_ctx *ctx = malloc(sizeof(nng_ctx));
   NANO_ENSURE_ALLOC(ctx);
-  SEXP context;
 
-  const int xc = nng_ctx_open(ctx, *sock);
-  if (xc) {
-    free(ctx);
-    ERROR_OUT(xc);
-  }
+  if ((xc = nng_ctx_open(ctx, *sock)))
+    goto fail;
 
   PROTECT(context = R_MakeExternalPtr(ctx, nano_ContextSymbol, NANO_PROT(socket)));
   R_RegisterCFinalizerEx(context, context_finalizer, TRUE);
@@ -43,6 +41,11 @@ SEXP rnng_ctx_open(SEXP socket) {
   UNPROTECT(1);
   return context;
 
+  fail:
+  free(ctx);
+  failmem:
+  ERROR_OUT(xc);
+
 }
 
 SEXP rnng_ctx_create(SEXP socket) {
@@ -51,20 +54,23 @@ SEXP rnng_ctx_create(SEXP socket) {
     Rf_error("'socket' is not a valid Socket");
 
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
+  SEXP context;
+  int xc;
   nng_ctx *ctx = malloc(sizeof(nng_ctx));
   NANO_ENSURE_ALLOC(ctx);
-  SEXP context;
 
-  const int xc = nng_ctx_open(ctx, *sock);
-  if (xc) {
-    free(ctx);
-    ERROR_OUT(xc);
-  }
+  if ((xc = nng_ctx_open(ctx, *sock)))
+    goto fail;
 
   PROTECT(context = R_MakeExternalPtr(ctx, nano_ContextSymbol, NANO_PROT(socket)));
   R_RegisterCFinalizerEx(context, context_finalizer, TRUE);
   UNPROTECT(1);
   return context;
+
+  fail:
+  free(ctx);
+  failmem:
+  ERROR_OUT(xc);
 
 }
 
@@ -98,13 +104,14 @@ SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP error) {
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
   const int start = NANO_INTEGER(autostart);
   const char *ur = CHAR(STRING_ELT(url, 0));
-  nng_dialer *dp = malloc(sizeof(nng_dialer));
-  NANO_ENSURE_ALLOC(dp);
 
   SEXP dialer, attr, newattr, xp;
   nng_tls_config *cfg = NULL;
   nng_url *up = NULL;
   int xc;
+
+  nng_dialer *dp = malloc(sizeof(nng_dialer));
+  NANO_ENSURE_ALLOC(dp);
 
   if (sec) {
     cfg = (nng_tls_config *) NANO_PTR(tls);
@@ -154,6 +161,7 @@ SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP error) {
   fail:
   nng_url_free(up);
   free(dp);
+  failmem:
   if (NANO_INTEGER(error)) ERROR_OUT(xc);
   ERROR_RET(xc);
 
@@ -172,12 +180,13 @@ SEXP rnng_listen(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP error) {
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
   const int start = NANO_INTEGER(autostart);
   const char *ur = CHAR(STRING_ELT(url, 0));
-  nng_listener *lp = malloc(sizeof(nng_listener));
-  NANO_ENSURE_ALLOC(lp);
 
   SEXP listener, attr, newattr, xp;
   nng_tls_config *cfg = NULL;
   int xc;
+
+  nng_listener *lp = malloc(sizeof(nng_listener));
+  NANO_ENSURE_ALLOC(lp);
 
   if (sec) {
     cfg = (nng_tls_config *) NANO_PTR(tls);
@@ -223,6 +232,7 @@ SEXP rnng_listen(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP error) {
 
   fail:
   free(lp);
+  failmem:
   if (NANO_INTEGER(error)) ERROR_OUT(xc);
   ERROR_RET(xc);
 
@@ -288,13 +298,18 @@ SEXP rnng_listener_close(SEXP listener) {
 SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
 
   const int flags = block == R_NilValue ? NNG_DURATION_DEFAULT : TYPEOF(block) == LGLSXP ? 0 : nano_integer(block);
+  const int raw = nano_encodes(mode) == 2;
   nano_buf buf;
   int sock, xc;
 
   if ((sock = !NANO_PTR_CHECK(con, nano_SocketSymbol)) || !NANO_PTR_CHECK(con, nano_ContextSymbol)) {
 
     const int pipeid = sock ? nano_integer(pipe) : 0;
-    nano_encodes(mode) == 2 ? nano_encode(&buf, data) : nano_serialize(&buf, data, NANO_PROT(con));
+    if (raw) {
+      nano_encode(&buf, data);
+    } else {
+      nano_serialize(&buf, data, NANO_PROT(con));
+    }
     nng_msg *msgp = NULL;
 
     if (flags <= 0) {
@@ -512,6 +527,7 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
 
   fail:
   free(buf);
+  failmem:
   return mk_error(xc);
 
 }

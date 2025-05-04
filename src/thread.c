@@ -134,31 +134,27 @@ static void rnng_messenger_thread(void *args) {
 SEXP rnng_messenger(SEXP url) {
 
   const char *up = CHAR(STRING_ELT(url, 0));
-  nng_socket *sock = malloc(sizeof(nng_socket));
-  NANO_ENSURE_ALLOC(sock);
-  nng_listener *lp;
-  nng_dialer *dp;
+  nng_listener *lp = NULL;
+  nng_dialer *dp = NULL;
   int xc, dialer = 0;
   SEXP socket, con;
+
+  nng_socket *sock = malloc(sizeof(nng_socket));
+  NANO_ENSURE_ALLOC(sock);
 
   if ((xc = nng_pair0_open(sock)))
     goto fail;
   lp = malloc(sizeof(nng_listener));
-  if (lp == NULL)
-    goto failmem;
+  NANO_ENSURE_ALLOC(lp);
   if ((xc = nng_listen(*sock, up, lp, 0))) {
-    if (xc != 10 && xc != 15) {
-      free(lp);
-      goto failclose;
-    }
-    free(lp);
-    dp = malloc(sizeof(nng_dialer));
-    if (dp == NULL)
+    if (xc != 10 && xc != 15)
       goto failmem;
-    if ((xc = nng_dial(*sock, up, dp, 0))) {
-      free(dp);
-      goto failclose;
-    }
+    free(lp);
+    lp = NULL;
+    dp = malloc(sizeof(nng_dialer));
+    NANO_ENSURE_ALLOC(dp);
+    if ((xc = nng_dial(*sock, up, dp, 0)))
+      goto failmem;
     dialer = 1;
   }
 
@@ -176,16 +172,14 @@ SEXP rnng_messenger(SEXP url) {
   UNPROTECT(2);
   return socket;
 
-  failclose:
-  nng_close(*sock);
+  failmem:
+  free(dp);
+  free(lp);
+  if (sock != NULL)
+    nng_close(*sock);
   fail:
   free(sock);
   ERROR_OUT(xc);
-
-  failmem:
-  nng_close(*sock);
-  free(sock);
-  Rf_error("Memory allocation failed");
 
 }
 
@@ -241,15 +235,19 @@ static void rnng_wait_thread_single(void *args) {
 void single_wait_thread_create(SEXP x) {
 
   nano_aio *aiop = (nano_aio *) NANO_PTR(x);
-  nano_thread_aio *taio = malloc(sizeof(nano_thread_aio));
+
+  int xc, signalled;
+  nano_thread_aio *taio = NULL;
+  nano_cv *ncv = NULL;
+
+  taio = malloc(sizeof(nano_thread_aio));
   NANO_ENSURE_ALLOC(taio);
-  nano_cv *ncv = malloc(sizeof(nano_cv));
-  NANO_ENSURE_ALLOC_FREE(ncv, taio);
+  ncv = malloc(sizeof(nano_cv));
+  NANO_ENSURE_ALLOC(ncv);
   taio->aio = aiop->aio;
   taio->cv = ncv;
   nng_mtx *mtx = NULL;
   nng_cv *cv = NULL;
-  int xc, signalled;
 
   if ((xc = nng_mtx_alloc(&mtx)) ||
       (xc = nng_cv_alloc(&cv, mtx)))
@@ -289,6 +287,7 @@ void single_wait_thread_create(SEXP x) {
   fail:
   nng_cv_free(cv);
   nng_mtx_free(mtx);
+  failmem:
   free(ncv);
   free(taio);
   ERROR_OUT(xc);
@@ -489,6 +488,10 @@ SEXP rnng_signal_thread_create(SEXP cv, SEXP cv2) {
   if (NANO_PTR_CHECK(cv2, nano_CvSymbol))
     Rf_error("'cv2' is not a valid Condition Variable");
 
+  int xc;
+  nano_thread_duo *duo = malloc(sizeof(nano_thread_duo));
+  NANO_ENSURE_ALLOC(duo);
+
   SEXP existing = Rf_getAttrib(cv, R_MissingArg);
   if (existing != R_NilValue) {
     thread_duo_finalizer(existing);
@@ -497,8 +500,6 @@ SEXP rnng_signal_thread_create(SEXP cv, SEXP cv2) {
 
   nano_cv *ncv = (nano_cv *) NANO_PTR(cv);
   nano_cv *ncv2 = (nano_cv *) NANO_PTR(cv2);
-  nano_thread_duo *duo = malloc(sizeof(nano_thread_duo));
-  NANO_ENSURE_ALLOC(duo);
   duo->cv = ncv;
   duo->cv2 = ncv2;
 
@@ -507,17 +508,19 @@ SEXP rnng_signal_thread_create(SEXP cv, SEXP cv2) {
   ncv->condition = 0;
   nng_mtx_unlock(dmtx);
 
-  const int xc = nng_thread_create(&duo->thr, rnng_signal_thread, duo);
-  if (xc) {
-    free(duo);
-    Rf_setAttrib(cv, R_MissingArg, R_NilValue);
-    ERROR_OUT(xc);
-  }
+  if ((xc = nng_thread_create(&duo->thr, rnng_signal_thread, duo)))
+    goto fail;
 
   SEXP xptr = R_MakeExternalPtr(duo, R_NilValue, R_NilValue);
   Rf_setAttrib(cv, R_MissingArg, xptr);
   R_RegisterCFinalizerEx(xptr, thread_duo_finalizer, TRUE);
 
   return cv2;
+
+  fail:
+  free(duo);
+  Rf_setAttrib(cv, R_MissingArg, R_NilValue);
+  failmem:
+  ERROR_OUT(xc);
 
 }

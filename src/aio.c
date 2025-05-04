@@ -508,7 +508,7 @@ SEXP rnng_unresolved2(SEXP x) {
 SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP clo) {
 
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
-
+  const int raw = nano_encodes(mode) == 2;
   SEXP aio, env, fun;
   nano_aio *saio = NULL;
   nano_buf buf;
@@ -517,11 +517,15 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
   if ((sock = !NANO_PTR_CHECK(con, nano_SocketSymbol)) || !NANO_PTR_CHECK(con, nano_ContextSymbol)) {
 
     const int pipeid = sock ? nano_integer(pipe) : 0;
-    nano_encodes(mode) == 2 ? nano_encode(&buf, data) : nano_serialize(&buf, data, NANO_PROT(con));
+    if (raw) {
+      nano_encode(&buf, data);
+    } else {
+      nano_serialize(&buf, data, NANO_PROT(con));
+    }
     nng_msg *msg = NULL;
 
     saio = calloc(1, sizeof(nano_aio));
-    NANO_ENSURE_ALLOC(saio);
+    if (saio == NULL) { xc = 2; goto failmem; }
     saio->type = SENDAIO;
 
     if ((xc = nng_msg_alloc(&msg, 0)) ||
@@ -555,10 +559,10 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     nng_iov iov;
 
     saio = calloc(1, sizeof(nano_aio));
-    NANO_ENSURE_ALLOC(saio);
+    if (saio == NULL) { xc = 2; goto failmem; }
     saio->type = IOV_SENDAIO;
     saio->data = calloc(buf.cur, sizeof(unsigned char));
-    NANO_ENSURE_ALLOC_FREE(saio->data, saio);
+    if (saio->data == NULL) { xc = 2; goto failmem; }
     memcpy(saio->data, buf.buf, buf.cur);
     iov.iov_len = buf.cur - nst->textframes;
     iov.iov_buf = saio->data;
@@ -593,6 +597,7 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
   fail:
   nng_aio_free(saio->aio);
   free(saio->data);
+  failmem:
   NANO_FREE(buf);
   free(saio);
   return mk_error_data(-xc);
@@ -647,7 +652,7 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
     raio->type = signal ? IOV_RECVAIOS : IOV_RECVAIO;
     raio->mode = mod;
     raio->data = calloc(xlen, sizeof(unsigned char));
-    NANO_ENSURE_ALLOC_FREE(raio->data, raio);
+    NANO_ENSURE_ALLOC(raio->data);
     iov.iov_len = xlen;
     iov.iov_buf = raio->data;
 
@@ -678,6 +683,7 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
   fail:
   nng_aio_free(raio->aio);
   free(raio->data);
+  failmem:
   free(raio);
   return mk_error_data(xc);
 
