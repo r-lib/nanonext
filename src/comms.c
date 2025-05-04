@@ -481,7 +481,8 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
     nng_iov iov;
     nng_aio *aiop;
 
-    buf = R_Calloc(xlen, unsigned char);
+    buf = calloc(xlen, sizeof(unsigned char));
+    NANO_ENSURE_ALLOC(buf);
     iov.iov_len = xlen;
     iov.iov_buf = buf;
 
@@ -505,7 +506,7 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
     sz = nng_aio_count(aiop);
     nng_aio_free(aiop);
     res = nano_decode(buf, sz, mod, NANO_PROT(con));
-    R_Free(buf);
+    free(buf);
 
   } else {
     Rf_error("'con' is not a valid Socket, Context or Stream");
@@ -514,7 +515,7 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
   return res;
 
   exitlevel2:
-  R_Free(buf);
+  free(buf);
   exitlevel1:
   return mk_error(xc);
 

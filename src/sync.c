@@ -145,7 +145,7 @@ static void pipe_cb_monitor(nng_pipe p, nng_pipe_ev ev, void *arg) {
   nng_mtx_lock(mtx);
   if (monitor->updates >= monitor->size) {
     monitor->size += 8;
-    monitor->ids = R_Realloc(monitor->ids, monitor->size, int);
+    monitor->ids = realloc(monitor->ids, monitor->size * sizeof(int));
   }
   monitor->ids[monitor->updates] = ev == NNG_PIPE_EV_ADD_POST ? id : -id;
   monitor->updates++;
@@ -163,7 +163,7 @@ static void cv_finalizer(SEXP xptr) {
   nano_cv *xp = (nano_cv *) NANO_PTR(xptr);
   nng_cv_free(xp->cv);
   nng_mtx_free(xp->mtx);
-  R_Free(xp);
+  free(xp);
 
 }
 
@@ -174,14 +174,14 @@ static void request_finalizer(SEXP xptr) {
   nano_saio *saio = (nano_saio *) xp->cb;
   nng_aio_free(saio->aio);
   nng_aio_free(xp->aio);
-  if (saio->alloc) {
-    nng_ctx_close(*saio->ctx);
-    R_Free(saio->ctx);
-  }
   if (xp->data != NULL)
     nng_msg_free((nng_msg *) xp->data);
-  R_Free(saio);
-  R_Free(xp);
+  if (saio->alloc) {
+    nng_ctx_close(*saio->ctx);
+    free(saio->ctx);
+  }
+  free(saio);
+  free(xp);
 
 }
 
@@ -189,8 +189,8 @@ static void monitor_finalizer(SEXP xptr) {
 
   if (NANO_PTR(xptr) == NULL) return;
   nano_monitor *xp = (nano_monitor *) NANO_PTR(xptr);
-  R_Free(xp->ids);
-  R_Free(xp);
+  free(xp->ids);
+  free(xp);
 
 }
 
@@ -198,7 +198,8 @@ static void monitor_finalizer(SEXP xptr) {
 
 SEXP rnng_cv_alloc(void) {
 
-  nano_cv *cvp = R_Calloc(1, nano_cv);
+  nano_cv *cvp = calloc(1, sizeof(nano_cv));
+  NANO_ENSURE_ALLOC(cvp);
   SEXP xp;
   int xc;
 
@@ -216,9 +217,9 @@ SEXP rnng_cv_alloc(void) {
   return xp;
 
   exitlevel2:
-    nng_mtx_free(cvp->mtx);
+  nng_mtx_free(cvp->mtx);
   exitlevel1:
-    R_Free(cvp);
+  free(cvp);
   ERROR_OUT(xc);
 
 }
@@ -436,11 +437,34 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
     signal = !NANO_PTR_CHECK(cvar, nano_CvSymbol);
     drop = 1 - signal;
   }
+
+  SEXP aio, env, fun;
+  nano_buf buf;
+  nng_msg *msg;
+
+  nano_encodes(sendmode) == 2 ? nano_encode(&buf, data) : nano_serialize(&buf, data, NANO_PROT(con));
+
+  nano_saio *saio = calloc(1, sizeof(nano_saio));
+  if (saio == NULL) {
+    NANO_FREE(buf);
+    Rf_error("Memory allocation failed");
+  }
+  nano_aio *raio = calloc(1, sizeof(nano_aio));
+  if (raio == NULL) {
+    free(saio);
+    NANO_FREE(buf);
+    Rf_error("Memory allocation failed");
+  }
   nng_ctx *ctx;
   if (sock) {
     nng_socket *sock = (nng_socket *) NANO_PTR(con);
     ctx = malloc(sizeof(nng_ctx));
-    NANO_ENSURE_ALLOC(ctx);
+    if (ctx == NULL) {
+      free(raio);
+      free(saio);
+      NANO_FREE(buf);
+      Rf_error("Memory allocation failed");
+    }
     if ((xc = nng_ctx_open(ctx, *sock))) {
       free(ctx);
       goto exitlevel1;
@@ -450,40 +474,29 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   }
   nano_cv *ncv = signal ? (nano_cv *) NANO_PTR(cvar) : NULL;
 
-  SEXP aio, env, fun;
-  nano_buf buf;
-  nano_saio *saio;
-  nano_aio *raio;
-  nng_msg *msg;
-
-  nano_encodes(sendmode) == 2 ? nano_encode(&buf, data) : nano_serialize(&buf, data, NANO_PROT(con));
-  saio = calloc(1, sizeof(nano_saio));
-  NANO_ENSURE_ALLOC(saio);
-  saio->cb = NULL;
   saio->ctx = ctx;
   saio->msgid = id;
   saio->alloc = sock;
 
   if ((xc = nng_msg_alloc(&msg, 0)))
-    goto exitlevel2;
+    goto exitlevel1;
 
   if ((xc = nng_msg_append(msg, buf.buf, buf.cur)) ||
       (xc = nng_aio_alloc(&saio->aio, sendaio_complete, saio))) {
     nng_msg_free(msg);
-    goto exitlevel2;
+    goto exitlevel1;
   }
 
   nng_aio_set_msg(saio->aio, msg);
   nng_ctx_send(*ctx, saio->aio);
 
-  raio = R_Calloc(1, nano_aio);
   raio->type = signal ? REQAIOS : REQAIO;
   raio->mode = mod;
   raio->cb = saio;
   raio->next = ncv;
 
   if ((xc = nng_aio_alloc(&raio->aio, drop ? request_complete_dropcon : request_complete, raio)))
-    goto exitlevel3;
+    goto exitlevel2;
 
   nng_aio_set_timeout(raio->aio, dur);
   nng_ctx_recv(*ctx, raio->aio);
@@ -504,13 +517,12 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   UNPROTECT(3);
   return env;
 
-  exitlevel3:
-  R_Free(raio);
-  nng_aio_free(saio->aio);
   exitlevel2:
-  R_Free(saio);
-  NANO_FREE(buf);
+  nng_aio_free(saio->aio);
   exitlevel1:
+  free(raio);
+  free(saio);
+  NANO_FREE(buf);
   return mk_error_data(xc);
 
 }
@@ -652,8 +664,10 @@ SEXP rnng_monitor_create(SEXP socket, SEXP cv) {
     Rf_error("'cv' is not a valid Condition Variable");
 
   const int n = 8;
-  nano_monitor *monitor = R_Calloc(1, nano_monitor);
-  monitor->ids = R_Calloc(n, int);
+  nano_monitor *monitor = calloc(1, sizeof(nano_monitor));
+  NANO_ENSURE_ALLOC(monitor);
+  monitor->ids = calloc(n, sizeof(int));
+  NANO_ENSURE_ALLOC_FREE(monitor->ids, monitor);
   monitor->size = n;
   monitor->cv = (nano_cv *) NANO_PTR(cv);
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
@@ -662,10 +676,10 @@ SEXP rnng_monitor_create(SEXP socket, SEXP cv) {
   int xc;
 
   if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_ADD_POST, pipe_cb_monitor, monitor)))
-    ERROR_OUT(xc);
+    goto exitlevel1;
 
   if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_REM_POST, pipe_cb_monitor, monitor)))
-    ERROR_OUT(xc);
+    goto exitlevel1;
 
   PROTECT(xptr = R_MakeExternalPtr(monitor, nano_MonitorSymbol, R_NilValue));
   R_RegisterCFinalizerEx(xptr, monitor_finalizer, TRUE);
@@ -674,6 +688,11 @@ SEXP rnng_monitor_create(SEXP socket, SEXP cv) {
   UNPROTECT(1);
 
   return xptr;
+
+  exitlevel1:
+  free(monitor->ids);
+  free(monitor);
+  ERROR_OUT(xc);
 
 }
 

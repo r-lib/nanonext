@@ -595,7 +595,7 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
   exitlevel3:
   nng_aio_free(saio->aio);
   exitlevel2:
-  R_Free(saio->data);
+  free(saio->data);
   exitlevel1:
   NANO_FREE(buf);
   free(saio);
