@@ -508,10 +508,9 @@ SEXP rnng_unresolved2(SEXP x) {
 SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP clo) {
 
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
-  nano_aio *saio = calloc(1, sizeof(nano_aio));
-  NANO_ENSURE_ALLOC(saio);
 
   SEXP aio, env, fun;
+  nano_aio *saio;
   nano_buf buf;
   int sock, xc;
 
@@ -521,6 +520,8 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     nano_encodes(mode) == 2 ? nano_encode(&buf, data) : nano_serialize(&buf, data, NANO_PROT(con));
     nng_msg *msg;
 
+    saio = calloc(1, sizeof(nano_aio));
+    NANO_ENSURE_ALLOC(saio);
     saio->type = SENDAIO;
 
     if ((xc = nng_msg_alloc(&msg, 0)))
@@ -555,6 +556,8 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     nng_stream *sp = nst->stream;
     nng_iov iov;
 
+    saio = calloc(1, sizeof(nano_aio));
+    NANO_ENSURE_ALLOC(saio);
     saio->type = IOV_SENDAIO;
     saio->data = calloc(buf.cur, sizeof(unsigned char));
     NANO_ENSURE_ALLOC_FREE(saio->data, saio);
@@ -576,7 +579,6 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     R_RegisterCFinalizerEx(aio, saio_finalizer, TRUE);
 
   } else {
-    free(saio);
     NANO_ERROR("'con' is not a valid Socket, Context, or Stream");
   }
 
@@ -615,14 +617,15 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
     interrupt = 1 - signal;
   }
   nano_cv *ncv = signal ? (nano_cv *) NANO_PTR(cvar) : NULL;
-  nano_aio *raio = calloc(1, sizeof(nano_aio));
-  NANO_ENSURE_ALLOC(raio);
+  nano_aio *raio;
   SEXP aio, env, fun;
   int sock, xc;
 
   if ((sock = !NANO_PTR_CHECK(con, nano_SocketSymbol)) || !NANO_PTR_CHECK(con, nano_ContextSymbol)) {
 
     const uint8_t mod = (uint8_t) nano_matcharg(mode);
+    raio = calloc(1, sizeof(nano_aio));
+    NANO_ENSURE_ALLOC(raio);
     raio->next = ncv;
     raio->type = signal ? RECVAIOS : RECVAIO;
     raio->mode = mod;
@@ -644,6 +647,8 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
     nng_stream **sp = (nng_stream **) NANO_PTR(con);
     nng_iov iov;
 
+    raio = calloc(1, sizeof(nano_aio));
+    NANO_ENSURE_ALLOC(raio);
     raio->next = ncv;
     raio->type = signal ? IOV_RECVAIOS : IOV_RECVAIO;
     raio->mode = mod;
@@ -665,7 +670,6 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
     R_RegisterCFinalizerEx(aio, iaio_finalizer, TRUE);
 
   } else {
-    free(raio);
     NANO_ERROR("'con' is not a valid Socket, Context or Stream");
   }
 
