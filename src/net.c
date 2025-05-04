@@ -26,7 +26,7 @@ SEXP rnng_ip_addr(void) {
   do {
     addrs = malloc(bufsize);
     if (addrs == NULL)
-      goto exitlevel1;
+      goto cleanup;
 
     ret = GetAdaptersAddresses(AF_INET, flags, NULL, addrs, &bufsize);
     if (ret == ERROR_BUFFER_OVERFLOW)
@@ -35,7 +35,7 @@ SEXP rnng_ip_addr(void) {
 
   if (ret != NO_ERROR) {
     free(addrs);
-    goto exitlevel1;
+    goto cleanup;
   }
 
   for (adapter = addrs; adapter != NULL; adapter = adapter->Next) {
@@ -65,7 +65,7 @@ SEXP rnng_ip_addr(void) {
 
   struct ifaddrs *ifaddr, *ifa;
   if (getifaddrs(&ifaddr))
-    goto exitlevel1;
+    goto cleanup;
 
 
   for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
@@ -90,7 +90,7 @@ SEXP rnng_ip_addr(void) {
 
   Rf_setAttrib(out, R_NamesSymbol, names);
 
-  exitlevel1:
+  cleanup:
   UNPROTECT(2);
   return out;
 

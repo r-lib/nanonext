@@ -370,10 +370,7 @@ SEXP nano_unserialize(unsigned char *buf, size_t sz, SEXP hook) {
     return nano_decode(buf, sz, 8, R_NilValue);
   }
 
-  nano_buf nbuf;
-  nbuf.buf = buf;
-  nbuf.len = sz;
-  nbuf.cur = cur;
+  nano_buf nbuf = {.buf = buf, .len = sz, .cur = cur};
 
   struct R_inpstream_st input_stream;
 
