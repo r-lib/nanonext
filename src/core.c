@@ -20,13 +20,13 @@ static void nano_write_bytes(R_outpstream_t stream, void *src, int len) {
   size_t req = buf->cur + (size_t) len;
   if (req > buf->len) {
     if (req > R_XLEN_T_MAX) {
-      if (buf->len) R_Free(buf->buf);
+      if (buf->len) free(buf->buf);
       Rf_error("serialization exceeds max length of raw vector");
     }
     do {
       buf->len += buf->len > NANONEXT_SERIAL_THR ? NANONEXT_SERIAL_THR : buf->len;
     } while (buf->len < req);
-    buf->buf = R_Realloc(buf->buf, buf->len, unsigned char);
+    buf->buf = realloc(buf->buf, buf->len);
   }
 
   memcpy(buf->buf + buf->cur, src, len);
@@ -174,7 +174,7 @@ void dialer_finalizer(SEXP xptr) {
   if (NANO_PTR(xptr) == NULL) return;
   nng_dialer *xp = (nng_dialer *) NANO_PTR(xptr);
   nng_dialer_close(*xp);
-  R_Free(xp);
+  free(xp);
 
 }
 
@@ -183,7 +183,7 @@ void listener_finalizer(SEXP xptr) {
   if (NANO_PTR(xptr) == NULL) return;
   nng_listener *xp = (nng_listener *) NANO_PTR(xptr);
   nng_listener_close(*xp);
-  R_Free(xp);
+  free(xp);
 
 }
 
@@ -192,7 +192,7 @@ void socket_finalizer(SEXP xptr) {
   if (NANO_PTR(xptr) == NULL) return;
   nng_socket *xp = (nng_socket *) NANO_PTR(xptr);
   nng_close(*xp);
-  R_Free(xp);
+  free(xp);
 
 }
 

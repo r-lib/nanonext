@@ -134,7 +134,8 @@ static void rnng_messenger_thread(void *args) {
 SEXP rnng_messenger(SEXP url) {
 
   const char *up = CHAR(STRING_ELT(url, 0));
-  nng_socket *sock = R_Calloc(1, nng_socket);
+  nng_socket *sock = malloc(sizeof(nng_socket));
+  NANO_ENSURE_ALLOC(sock);
   nng_listener *lp;
   nng_dialer *dp;
   int xc, dialer = 0;
@@ -142,16 +143,18 @@ SEXP rnng_messenger(SEXP url) {
 
   if ((xc = nng_pair0_open(sock)))
     goto exitlevel1;
-  lp = R_Calloc(1, nng_listener);
+  lp = malloc(sizeof(nng_listener));
+  NANO_ENSURE_ALLOC_FREE(lp, sock);
   if ((xc = nng_listen(*sock, up, lp, 0))) {
     if (xc != 10 && xc != 15) {
-      R_Free(lp);
+      free(lp);
       goto exitlevel2;
     }
-    R_Free(lp);
-    dp = R_Calloc(1, nng_dialer);
+    free(lp);
+    dp = malloc(sizeof(nng_dialer));
+    NANO_ENSURE_ALLOC_FREE(dp, sock);
     if ((xc = nng_dial(*sock, up, dp, 0))) {
-      R_Free(dp);
+      free(dp);
       goto exitlevel2;
     }
     dialer = 1;
@@ -174,7 +177,7 @@ SEXP rnng_messenger(SEXP url) {
   exitlevel2:
   nng_close(*sock);
   exitlevel1:
-  R_Free(sock);
+  free(sock);
   ERROR_OUT(xc);
 
 }
@@ -206,8 +209,8 @@ static void thread_aio_finalizer(SEXP xptr) {
   nng_thread_destroy(xp->thr);
   nng_cv_free(cv);
   nng_mtx_free(mtx);
-  R_Free(ncv);
-  R_Free(xp);
+  free(ncv);
+  free(xp);
 
 }
 
@@ -231,8 +234,10 @@ static void rnng_wait_thread_single(void *args) {
 void single_wait_thread_create(SEXP x) {
 
   nano_aio *aiop = (nano_aio *) NANO_PTR(x);
-  nano_thread_aio *taio = R_Calloc(1, nano_thread_aio);
-  nano_cv *ncv = R_Calloc(1, nano_cv);
+  nano_thread_aio *taio = malloc(sizeof(nano_thread_aio));
+  NANO_ENSURE_ALLOC(taio);
+  nano_cv *ncv = malloc(sizeof(nano_cv));
+  NANO_ENSURE_ALLOC_FREE(ncv, taio);
   taio->aio = aiop->aio;
   taio->cv = ncv;
   nng_mtx *mtx;
@@ -281,6 +286,8 @@ void single_wait_thread_create(SEXP x) {
   exitlevel2:
   nng_mtx_free(mtx);
   exitlevel1:
+  free(ncv);
+  free(taio);
   ERROR_OUT(xc);
 
 }
@@ -301,7 +308,7 @@ static void thread_duo_finalizer(SEXP xptr) {
     nng_mtx_unlock(mtx);
   }
   nng_thread_destroy(xp->thr);
-  R_Free(xp);
+  free(xp);
 
 }
 
@@ -493,7 +500,8 @@ SEXP rnng_signal_thread_create(SEXP cv, SEXP cv2) {
 
   nano_cv *ncv = (nano_cv *) NANO_PTR(cv);
   nano_cv *ncv2 = (nano_cv *) NANO_PTR(cv2);
-  nano_thread_duo *duo = R_Calloc(1, nano_thread_duo);
+  nano_thread_duo *duo = malloc(sizeof(nano_thread_duo));
+  NANO_ENSURE_ALLOC(duo);
   duo->cv = ncv;
   duo->cv2 = ncv2;
 
@@ -504,7 +512,7 @@ SEXP rnng_signal_thread_create(SEXP cv, SEXP cv2) {
 
   const int xc = nng_thread_create(&duo->thr, rnng_signal_thread, duo);
   if (xc) {
-    R_Free(duo);
+    free(duo);
     Rf_setAttrib(cv, R_MissingArg, R_NilValue);
     ERROR_OUT(xc);
   }

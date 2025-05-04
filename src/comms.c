@@ -9,7 +9,7 @@ static void context_finalizer(SEXP xptr) {
   if (NANO_PTR(xptr) == NULL) return;
   nng_ctx *xp = (nng_ctx *) NANO_PTR(xptr);
   nng_ctx_close(*xp);
-  R_Free(xp);
+  free(xp);
 
 }
 
@@ -21,12 +21,13 @@ SEXP rnng_ctx_open(SEXP socket) {
     Rf_error("'socket' is not a valid Socket");
 
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
-  nng_ctx *ctx = R_Calloc(1, nng_ctx);
+  nng_ctx *ctx = malloc(sizeof(nng_ctx));
+  NANO_ENSURE_ALLOC(ctx);
   SEXP context;
 
   const int xc = nng_ctx_open(ctx, *sock);
   if (xc) {
-    R_Free(ctx);
+    free(ctx);
     ERROR_OUT(xc);
   }
 
@@ -50,12 +51,13 @@ SEXP rnng_ctx_create(SEXP socket) {
     Rf_error("'socket' is not a valid Socket");
 
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
-  nng_ctx *ctx = R_Calloc(1, nng_ctx);
+  nng_ctx *ctx = malloc(sizeof(nng_ctx));
+  NANO_ENSURE_ALLOC(ctx);
   SEXP context;
 
   const int xc = nng_ctx_open(ctx, *sock);
   if (xc) {
-    R_Free(ctx);
+    free(ctx);
     ERROR_OUT(xc);
   }
 
@@ -96,7 +98,8 @@ SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP error) {
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
   const int start = NANO_INTEGER(autostart);
   const char *ur = CHAR(STRING_ELT(url, 0));
-  nng_dialer *dp = R_Calloc(1, nng_dialer);
+  nng_dialer *dp = malloc(sizeof(nng_dialer));
+  NANO_ENSURE_ALLOC(dp);
   SEXP dialer, attr, newattr, xp;
   nng_tls_config *cfg;
   nng_url *up;
@@ -151,7 +154,7 @@ SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP error) {
   exitlevel2:
   nng_url_free(up);
   exitlevel1:
-  R_Free(dp);
+  free(dp);
   if (NANO_INTEGER(error)) ERROR_OUT(xc);
   ERROR_RET(xc);
 
@@ -170,7 +173,8 @@ SEXP rnng_listen(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP error) {
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
   const int start = NANO_INTEGER(autostart);
   const char *ur = CHAR(STRING_ELT(url, 0));
-  nng_listener *lp = R_Calloc(1, nng_listener);
+  nng_listener *lp = malloc(sizeof(nng_listener));
+  NANO_ENSURE_ALLOC(lp);
   SEXP listener, attr, newattr, xp;
   nng_tls_config *cfg;
   int xc;
@@ -218,7 +222,7 @@ SEXP rnng_listen(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP error) {
   return nano_success;
 
   exitlevel1:
-  R_Free(lp);
+  free(lp);
   if (NANO_INTEGER(error)) ERROR_OUT(xc);
   ERROR_RET(xc);
 
@@ -477,7 +481,8 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
     nng_iov iov;
     nng_aio *aiop;
 
-    buf = R_Calloc(xlen, unsigned char);
+    buf = calloc(xlen, sizeof(unsigned char));
+    NANO_ENSURE_ALLOC(buf);
     iov.iov_len = xlen;
     iov.iov_buf = buf;
 
@@ -501,7 +506,7 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
     sz = nng_aio_count(aiop);
     nng_aio_free(aiop);
     res = nano_decode(buf, sz, mod, NANO_PROT(con));
-    R_Free(buf);
+    free(buf);
 
   } else {
     Rf_error("'con' is not a valid Socket, Context or Stream");
@@ -510,7 +515,7 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
   return res;
 
   exitlevel2:
-  R_Free(buf);
+  free(buf);
   exitlevel1:
   return mk_error(xc);
 

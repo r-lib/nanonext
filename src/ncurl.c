@@ -106,8 +106,8 @@ static void haio_finalizer(SEXP xptr) {
   nng_http_req_free(handle->req);
   nng_http_client_free(handle->cli);
   nng_url_free(handle->url);
-  R_Free(handle);
-  R_Free(xp);
+  free(handle);
+  free(xp);
 
 }
 
@@ -125,8 +125,8 @@ static void session_finalizer(SEXP xptr) {
   nng_http_req_free(handle->req);
   nng_http_client_free(handle->cli);
   nng_url_free(handle->url);
-  R_Free(handle);
-  R_Free(xp);
+  free(handle);
+  free(xp);
 
 }
 
@@ -318,16 +318,16 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
     Rf_error("'tls' is not a valid TLS Configuration");
-  nano_aio *haio = R_Calloc(1, nano_aio);
-  nano_handle *handle = R_Calloc(1, nano_handle);
+  nano_aio *haio = calloc(1, sizeof(nano_aio));
+  NANO_ENSURE_ALLOC(haio);
+  nano_handle *handle = calloc(1, sizeof(nano_handle));
+  NANO_ENSURE_ALLOC_FREE(handle, haio);
   SEXP aio, env, fun;
   int xc;
 
   haio->type = HTTP_AIO;
   haio->mode = (uint8_t) NANO_INTEGER(convert);
   haio->next = handle;
-  haio->cb = NULL;
-  handle->cfg = NULL;
 
   if ((xc = nng_url_parse(&handle->url, httr)))
     goto exitlevel1;
@@ -422,8 +422,8 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
   exitlevel2:
   nng_url_free(handle->url);
   exitlevel1:
-  R_Free(handle);
-  R_Free(haio);
+  free(handle);
+  free(haio);
   return mk_error_ncurlaio(xc);
 
 }
@@ -531,16 +531,16 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
     Rf_error("'tls' is not a valid TLS Configuration");
 
-  nano_aio *haio = R_Calloc(1, nano_aio);
-  nano_handle *handle = R_Calloc(1, nano_handle);
+  nano_aio *haio = calloc(1, sizeof(nano_aio));
+  NANO_ENSURE_ALLOC(haio);
+  nano_handle *handle = calloc(1, sizeof(nano_handle));
+  NANO_ENSURE_ALLOC_FREE(handle, haio);
   int xc;
   SEXP sess;
 
   haio->type = HTTP_AIO;
   haio->mode = (uint8_t) NANO_INTEGER(convert);
   haio->next = handle;
-  haio->data = NULL;
-  handle->cfg = NULL;
 
   if ((xc = nng_url_parse(&handle->url, httr)))
     goto exitlevel1;
@@ -627,8 +627,8 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
   exitlevel2:
   nng_url_free(handle->url);
   exitlevel1:
-  R_Free(handle);
-  R_Free(haio);
+  free(handle);
+  free(haio);
   ERROR_RET(xc);
 
 }
