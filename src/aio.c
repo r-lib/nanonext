@@ -356,8 +356,8 @@ static SEXP rnng_aio_collect_impl(SEXP x, SEXP (*const func)(SEXP)) {
   switch (TYPEOF(x)) {
   case ENVSXP: ;
     out = Rf_findVarInFrame(func(x), nano_ValueSymbol);
-    if (out == R_UnboundValue) break;
-    goto resume;
+    if (out == R_UnboundValue) goto fail;
+    break;
   case VECSXP: ;
     SEXP env, names;
     const R_xlen_t xlen = Rf_xlength(x);
@@ -373,14 +373,15 @@ static SEXP rnng_aio_collect_impl(SEXP x, SEXP (*const func)(SEXP)) {
     if (names != R_NilValue)
       out = Rf_namesgets(out, names);
     UNPROTECT(1);
-    goto resume;
+    break;
+  default:
+    goto fail;
   }
+
+  return out;
 
   fail:
   Rf_error("object is not an Aio or list of Aios");
-
-  resume:
-  return out;
 
 }
 
