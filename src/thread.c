@@ -524,3 +524,111 @@ SEXP rnng_signal_thread_create(SEXP cv, SEXP cv2) {
   ERROR_OUT(xc);
 
 }
+
+char *nano_readline(void) {
+
+  size_t sz = NANONEXT_INIT_BUFSIZE;
+  size_t cur = 0;
+  char *buf = malloc(sz);
+  if (buf == NULL) {
+    return NULL;
+  }
+
+  int c;
+  while ((c = fgetc(stdin)) != EOF) {
+    if (cur + 1 >= sz) {
+      sz *= 2;
+      buf = realloc(buf, sz);
+      if (buf == NULL) {
+        free(buf);
+        return NULL;
+      }
+    }
+
+    buf[cur++] = (char) c;
+    if (c == '\n')
+      break;
+  }
+
+  if (cur == 0 && c == EOF) {
+    free(buf);
+    return NULL;
+  }
+
+  buf[cur] = '\0';
+  return buf;
+
+}
+
+void nano_read_thread(void *arg) {
+
+  int xc = 0;
+  nng_socket sock = {0};
+  nng_dialer dp = {0};
+  if ((xc = nng_pair0_open(&sock)) ||
+      (xc = nng_dialer_create(&dp, sock, "inproc://nanonext-reserved-reader")) ||
+      (xc = nng_dialer_start(dp, 0)))
+    goto cleanup;
+
+  char *buf = NULL;
+  while (1) {
+    buf = nano_readline();
+    if (buf == NULL)
+      continue;
+    xc = nng_send(sock, buf, strlen(buf) + 1, 0);
+    free(buf);
+    buf = NULL;
+    if (xc)
+      break;
+  }
+
+  cleanup:
+  nng_close(sock);
+  nano_printf(1, "%d | %s", xc, nng_strerror(xc));
+
+}
+
+SEXP rnng_read_stdin(SEXP interactive) {
+
+  if (NANO_INTEGER(interactive))
+    Rf_error("Can only be used in non-interactive sessions");
+
+  int xc;
+  nng_socket *sock = NULL;
+  nng_listener *lp = NULL;
+  sock = malloc(sizeof(nng_socket));
+  NANO_ENSURE_ALLOC(sock);
+  lp = calloc(1, sizeof(nng_listener));
+  NANO_ENSURE_ALLOC(lp);
+
+  if ((xc = nng_pair0_open(sock)) ||
+      (xc = nng_listener_create(lp, *sock, "inproc://nanonext-reserved-reader")) ||
+      (xc = nng_listener_start(*lp, 0)))
+    goto fail;
+
+  nng_thread *thr;
+
+  if ((xc = nng_thread_create(&thr, nano_read_thread, NULL)))
+    ERROR_OUT(xc);
+
+  SEXP socket, con, thread;
+  PROTECT(socket = R_MakeExternalPtr(sock, nano_SocketSymbol, R_NilValue));
+  R_RegisterCFinalizerEx(socket, socket_finalizer, TRUE);
+  con = R_MakeExternalPtr(lp, R_NilValue, R_NilValue);
+  Rf_setAttrib(socket, nano_ListenerSymbol, con);
+  R_RegisterCFinalizerEx(con, listener_finalizer, TRUE);
+  thread = R_MakeExternalPtr(thr, R_NilValue, R_NilValue);
+  Rf_setAttrib(socket, nano_ContextSymbol, thread);
+  R_RegisterCFinalizerEx(thread, thread_finalizer, TRUE);
+
+  UNPROTECT(1);
+  return socket;
+
+  fail:
+  nng_close(*sock);
+  failmem:
+  free(lp);
+  free(sock);
+  ERROR_OUT(xc);
+
+}

@@ -337,6 +337,18 @@ write_stdout <- function(x) invisible(.Call(rnng_write_stdout, x))
 #'
 ip_addr <- function() .Call(rnng_ip_addr)
 
+#' Read stdin
+#'
+#' Read `stdin` from a background thread, allowing the stream to be accessed as
+#' messages from an NNG 'inproc' socket. As the read is blocking, it can only be
+#' used in non-interactive sessions. This function is experimental.
+#'
+#' @return a Socket.
+#'
+#' @export
+#'
+read_stdin <- function() .Call(rnng_read_stdin, interactive())
+
 #' Advances the RNG State
 #'
 #' Internal package function.
