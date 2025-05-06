@@ -14,3 +14,5 @@ reference:
 authors:
   R Consortium:
     html: "<img src='https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp' alt='R Consortium' width='100' height='22' />"
+development:
+  mode: auto
