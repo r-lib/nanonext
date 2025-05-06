@@ -6,6 +6,7 @@
 * Adds `pipe_id()` for returning the integer pipe ID for a resolved 'recvAio'.
 * Adds `ip_addr()` for returning the local network IPv4 address of all network adapters, named by interface.
 * Adds `write_stdout()` which performs a non-buffered write to `stdout`, to avoid interleaved messages when used concurrently by different processes.
+* Adds `read_stdin()` which performs a read from `stdin` on a background thread, relayed via an 'inproc' socket so that it may be consumed via `recv()` or `recv_aio()`.
 * `request()` improvements:
   + Gains integer argument `msgid`. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).
   + Accepts a 'req' socket, in which case a single-use context is created automatically for the request.
