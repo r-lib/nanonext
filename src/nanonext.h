@@ -368,6 +368,7 @@ SEXP rnng_pipe_notify(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_pipe_register(SEXP, SEXP, SEXP);
 SEXP rnng_protocol_open(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_random(SEXP, SEXP);
+SEXP rnng_read_stdin(SEXP);
 SEXP rnng_reap(SEXP);
 SEXP rnng_recv(SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_recv_aio(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
