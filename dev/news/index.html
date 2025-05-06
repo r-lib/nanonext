@@ -40,6 +40,7 @@
 <li>Adds <code><a href="../reference/pipe_id.html">pipe_id()</a></code> for returning the integer pipe ID for a resolved ‘recvAio’.</li>
 <li>Adds <code><a href="../reference/ip_addr.html">ip_addr()</a></code> for returning the local network IPv4 address of all network adapters, named by interface.</li>
 <li>Adds <code><a href="../reference/write_stdout.html">write_stdout()</a></code> which performs a non-buffered write to <code>stdout</code>, to avoid interleaved messages when used concurrently by different processes.</li>
+<li>Adds <code><a href="../reference/read_stdin.html">read_stdin()</a></code> which performs a read from <code>stdin</code> on a background thread, relayed via an ‘inproc’ socket so that it may be consumed via <code><a href="../reference/recv.html">recv()</a></code> or <code><a href="../reference/recv_aio.html">recv_aio()</a></code>.</li>
 <li>
 <code><a href="../reference/request.html">request()</a></code> improvements:
 <ul><li>Gains integer argument <code>msgid</code>. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).</li>
