@@ -16,16 +16,6 @@ static void nano_load_later(void) {
 
 }
 
-static void nano_eval_later (void *arg) {
-
-  SEXP call, node;
-  node = R_WeakRefValue((SEXP) arg);
-  PROTECT(call = Rf_lcons(node, R_NilValue));
-  Rf_eval(call, R_GlobalEnv);
-  UNPROTECT(1);
-
-}
-
 // aio completion callbacks ----------------------------------------------------
 
 static void sendaio_complete(void *arg) {
@@ -121,12 +111,6 @@ void pipe_cb_signal(nng_pipe p, nng_pipe_ev ev, void *arg) {
 #endif
 
   }
-
-}
-
-void pipe_cb_eval(nng_pipe p, nng_pipe_ev ev, void *arg) {
-
-  later2(nano_eval_later, arg);
 
 }
 
@@ -533,7 +517,8 @@ SEXP rnng_set_promise_context(SEXP x, SEXP ctx) {
 
   nano_aio *raio = (nano_aio *) NANO_PTR(aio);
 
-  NANONEXT_ENSURE_LATER;
+  if (eln2 == NULL)
+    nano_load_later();
 
   switch (raio->type) {
   case REQAIO:
@@ -595,54 +580,6 @@ SEXP rnng_pipe_notify(SEXP socket, SEXP cv, SEXP add, SEXP remove, SEXP flag) {
 
   if (NANO_INTEGER(remove) && (xc = nng_pipe_notify(*sock, NNG_PIPE_EV_REM_POST, pipe_cb_signal, cvp)))
     ERROR_OUT(xc);
-
-  return nano_success;
-
-}
-
-SEXP rnng_pipe_register(SEXP socket, SEXP add, SEXP remove) {
-
-  if (NANO_PTR_CHECK(socket, nano_SocketSymbol))
-    Rf_error("'socket' is not a valid Socket");
-
-  if (add != R_NilValue &&TYPEOF(add) != CLOSXP && TYPEOF(add) != BUILTINSXP && TYPEOF(add) != SPECIALSXP)
-    Rf_error("'add' is not a valid function");
-
-  if (remove != R_NilValue && TYPEOF(remove) != CLOSXP && TYPEOF(remove) != BUILTINSXP && TYPEOF(remove) != SPECIALSXP)
-    Rf_error("'remove' is not a valid function");
-
-  int xc;
-  nng_socket *sock = (nng_socket *) NANO_PTR(socket);
-
-  if (add != R_NilValue) {
-
-    NANONEXT_ENSURE_LATER;
-
-    SEXP ref = R_MakeWeakRef(socket, add, R_NilValue, FALSE);
-    if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_ADD_POST, pipe_cb_eval, ref)))
-      ERROR_OUT(xc);
-
-  } else {
-
-    if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_ADD_POST, NULL, NULL)))
-      ERROR_OUT(xc);
-
-  }
-
-  if (remove != R_NilValue) {
-
-    NANONEXT_ENSURE_LATER;
-
-    SEXP ref = R_MakeWeakRef(socket, remove, R_NilValue, FALSE);
-    if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_REM_POST, pipe_cb_eval, ref)))
-      ERROR_OUT(xc);
-
-  } else {
-
-    if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_REM_POST, NULL, NULL)))
-      ERROR_OUT(xc);
-
-  }
 
   return nano_success;
 

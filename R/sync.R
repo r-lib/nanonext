@@ -155,8 +155,6 @@ cv_signal <- function(cv) invisible(.Call(rnng_cv_signal, cv))
 #' socket. The underlying transport may be closed at this point, and it is not
 #' possible to communicate using this pipe.
 #'
-#' Note: this function cannot be used in conjunction with [pipe_register()].
-#'
 #' @param socket a Socket.
 #' @param cv a 'conditionVariable' to signal, or NULL to cancel a previously set
 #'   signal.
@@ -198,44 +196,6 @@ cv_signal <- function(cv) invisible(.Call(rnng_cv_signal, cv))
 #'
 pipe_notify <- function(socket, cv, add = FALSE, remove = FALSE, flag = FALSE)
   invisible(.Call(rnng_pipe_notify, socket, cv, add, remove, flag))
-
-
-#' Pipe Register
-#'
-#' Register a callback to run whenever pipes (individual connections) are
-#' added or removed at a socket.
-#'
-#' For add: this event occurs after the pipe is fully added to the socket. Prior
-#' to this time, it is not possible to communicate over the pipe with the
-#' socket.
-#'
-#' For remove: this event occurs after the pipe has been removed from the
-#' socket. The underlying transport may be closed at this point, and it is not
-#' possible to communicate using this pipe.
-#'
-#' Note: this function cannot be used in conjunction with [pipe_notify()].
-#'
-#' @param socket a Socket.
-#' @param add \[default NULL\] an R function callback to be run whenever a pipe
-#'   is added. If NULL, any previously-registered callback is cancelled.
-#' @param remove \[default NULL\] an R function callback to be run whenever a
-#'   pipe is removed. If NULL, any previously-registered callback is cancelled.
-#'
-#' @return Invisibly, zero on success (will otherwise error).
-#'
-#' @examplesIf requireNamespace("later", quietly = TRUE)
-#' s <- socket(listen = "inproc://nanopipecb")
-#' pipe_register(s, function() print("hi"), function() print("bye"))
-#'
-#' s1 <- socket(dial = "inproc://nanopipecb")
-#' close(s1)
-#'
-#' close(s)
-#'
-#' @export
-#'
-pipe_register <- function(socket, add = NULL, remove = NULL)
-  invisible(.Call(rnng_pipe_register, socket, add, remove))
 
 #' Signal Forwarder
 #'
