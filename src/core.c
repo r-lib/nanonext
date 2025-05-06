@@ -26,7 +26,12 @@ static void nano_write_bytes(R_outpstream_t stream, void *src, int len) {
     do {
       buf->len += buf->len > NANONEXT_SERIAL_THR ? NANONEXT_SERIAL_THR : buf->len;
     } while (buf->len < req);
-    buf->buf = realloc(buf->buf, buf->len);
+    unsigned char *nbuf = realloc(buf->buf, buf->len);
+    if (nbuf == NULL) {
+      free(buf->buf);
+      Rf_error("memory allocation failed");
+    }
+    buf->buf = nbuf;
   }
 
   memcpy(buf->buf + buf->cur, src, len);

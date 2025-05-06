@@ -529,7 +529,6 @@ char *nano_readline(void) {
 
   size_t sz = NANONEXT_INIT_BUFSIZE;
   size_t cur = 0;
-  char *prev = NULL;
   char *buf = malloc(sz);
   if (buf == NULL) {
     return NULL;
@@ -538,12 +537,11 @@ char *nano_readline(void) {
   int c;
   while ((c = fgetc(stdin)) != EOF) {
     if (cur + 1 >= sz) {
-      sz *= 2;
-      buf = realloc(prev = buf, sz);
-      if (buf == NULL) {
-        free(prev);
-        return NULL;
-      }
+      sz += sz;
+      char *nbuf = realloc(buf, sz);
+      if (nbuf == NULL)
+        break;
+      buf = nbuf;
     }
 
     buf[cur++] = (char) c;

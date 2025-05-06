@@ -129,7 +129,13 @@ static void pipe_cb_monitor(nng_pipe p, nng_pipe_ev ev, void *arg) {
   nng_mtx_lock(mtx);
   if (monitor->updates >= monitor->size) {
     monitor->size += 8;
-    monitor->ids = realloc(monitor->ids, monitor->size * sizeof(int));
+    int *ids = realloc(monitor->ids, monitor->size * sizeof(int));
+    if (ids == NULL) {
+      monitor->size -= 8;
+      nng_mtx_unlock(mtx);
+      return;
+    }
+    monitor->ids = ids;
   }
   monitor->ids[monitor->updates] = ev == NNG_PIPE_EV_ADD_POST ? id : -id;
   monitor->updates++;
