@@ -119,7 +119,6 @@ extern int R_interrupts_pending;
 
 #define ERROR_OUT(xc) Rf_error("%d | %s", xc, nng_strerror(xc))
 #define ERROR_RET(xc) { Rf_warning("%d | %s", xc, nng_strerror(xc)); return mk_error(xc); }
-#define NANONEXT_ENSURE_LATER if (eln2 == NULL) nano_load_later()
 #define NANONEXT_INIT_BUFSIZE 4096
 #define NANONEXT_SERIAL_VER 3
 #define NANONEXT_SERIAL_THR 134217728
@@ -365,7 +364,6 @@ SEXP rnng_ncurl_session(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_ncurl_session_close(SEXP);
 SEXP rnng_ncurl_transact(SEXP);
 SEXP rnng_pipe_notify(SEXP, SEXP, SEXP, SEXP, SEXP);
-SEXP rnng_pipe_register(SEXP, SEXP, SEXP);
 SEXP rnng_protocol_open(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_random(SEXP, SEXP);
 SEXP rnng_read_stdin(SEXP);
