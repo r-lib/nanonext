@@ -565,7 +565,7 @@ void nano_read_thread(void *arg) {
   int xc = 0;
   nng_socket sock = {0};
   nng_dialer dp = {0};
-  if ((xc = nng_pair0_open(&sock)) ||
+  if ((xc = nng_push0_open(&sock)) ||
       (xc = nng_dialer_create(&dp, sock, "inproc://nanonext-reserved-reader")) ||
       (xc = nng_dialer_start(dp, 0)))
     goto cleanup;
@@ -601,7 +601,7 @@ SEXP rnng_read_stdin(SEXP interactive) {
   lp = calloc(1, sizeof(nng_listener));
   NANO_ENSURE_ALLOC(lp);
 
-  if ((xc = nng_pair0_open(sock)) ||
+  if ((xc = nng_pull0_open(sock)) ||
       (xc = nng_listener_create(lp, *sock, "inproc://nanonext-reserved-reader")) ||
       (xc = nng_listener_start(*lp, 0)))
     goto fail;
