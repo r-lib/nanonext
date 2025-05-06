@@ -2,19 +2,19 @@
 
 #### New Features
 
-* Adds `pipe_id()` for returning the integer pipe ID for a resolved 'recvAio'.
+* `serial_config()` now accepts vector arguments to register multiple custom serialization configurations.
 * Adds `ip_addr()` for returning the local network IPv4 address of all network adapters, named by interface.
+* Adds `pipe_id()` for returning the integer pipe ID for a resolved 'recvAio'.
 * Adds `write_stdout()` which performs a non-buffered write to `stdout`, to avoid interleaved messages when used concurrently by different processes.
 * Adds `read_stdin()` which performs a read from `stdin` on a background thread, relayed via an 'inproc' socket so that it may be consumed via `recv()` or `recv_aio()`.
 * `request()` improvements:
+  + Accepts a 'req' socket directly, in which case a single-use context is created automatically for the request.
   + Gains integer argument `msgid`. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).
-  + Accepts a 'req' socket, in which case a single-use context is created automatically for the request.
-* `serial_config()` now accepts vector arguments to register multiple custom serialization configurations.
 
 #### Updates
 
 * `send_aio()` without keeping a reference to the return value no longer potentially drops sends (thanks @wch, #129).
-* More robust interruption on non-Windows platforms if `tools::SIGINT` is supplied or passed through to the `autoexit` argument of `daemon()` (thanks @LennardLux, #97).
+* More robust interruption on non-Windows platforms when `tools::SIGINT` is supplied to the `flag` argument of `pipe_notify()` (thanks @LennardLux, #97).
 * Installation from source specifying 'INCLUDE_DIR' and 'LIB_DIR' environment variables works again, correcting a regression in v1.5.2 (#104).
 * Windows bi-arch source builds for R <= 4.1 using rtools40 and earlier work again (regression since v1.5.1) (thanks @daroczig, #107).
 * Bundled 'libnng' 1.10.2 pre-release updated with latest patches.
