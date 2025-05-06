@@ -529,6 +529,7 @@ char *nano_readline(void) {
 
   size_t sz = NANONEXT_INIT_BUFSIZE;
   size_t cur = 0;
+  char *prev = NULL;
   char *buf = malloc(sz);
   if (buf == NULL) {
     return NULL;
@@ -538,9 +539,9 @@ char *nano_readline(void) {
   while ((c = fgetc(stdin)) != EOF) {
     if (cur + 1 >= sz) {
       sz *= 2;
-      buf = realloc(buf, sz);
+      buf = realloc(prev = buf, sz);
       if (buf == NULL) {
-        free(buf);
+        free(prev);
         return NULL;
       }
     }
@@ -574,17 +575,15 @@ void nano_read_thread(void *arg) {
   while (1) {
     buf = nano_readline();
     if (buf == NULL)
-      continue;
+      break;
     xc = nng_send(sock, buf, strlen(buf) + 1, 0);
     free(buf);
-    buf = NULL;
     if (xc)
       break;
   }
 
   cleanup:
   nng_close(sock);
-  nano_printf(1, "%d | %s", xc, nng_strerror(xc));
 
 }
 
