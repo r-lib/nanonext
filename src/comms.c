@@ -369,11 +369,11 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
 
     nano_stream *nst = (nano_stream *) NANO_PTR(con);
     nng_stream *sp = nst->stream;
-    nng_aio *aiop;
-    nng_iov iov;
-
-    iov.iov_len = buf.cur - nst->textframes;
-    iov.iov_buf = buf.buf;
+    nng_aio *aiop = NULL;
+    nng_iov iov = {
+      .iov_buf = buf.buf,
+      .iov_len = buf.cur - nst->textframes
+    };
 
     if ((xc = nng_aio_alloc(&aiop, NULL, NULL)))
       goto fail;
@@ -491,13 +491,14 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
     const int mod = nano_matchargs(mode);
     const size_t xlen = (size_t) nano_integer(bytes);
     nng_stream **sp = (nng_stream **) NANO_PTR(con);
-    nng_iov iov;
     nng_aio *aiop = NULL;
 
     buf = calloc(xlen, sizeof(unsigned char));
     NANO_ENSURE_ALLOC(buf);
-    iov.iov_len = xlen;
-    iov.iov_buf = buf;
+    nng_iov iov = {
+      .iov_buf = buf,
+      .iov_len = xlen
+    };
 
     if ((xc = nng_aio_alloc(&aiop, NULL, NULL)) ||
         (xc = nng_aio_set_iov(aiop, 1u, &iov))) {

@@ -609,16 +609,14 @@ SEXP rnng_read_stdin(SEXP interactive) {
     ERROR_OUT(xc);
 
   SEXP socket, con, thread;
-  PROTECT(socket = R_MakeExternalPtr(sock, nano_SocketSymbol, R_NilValue));
-  R_RegisterCFinalizerEx(socket, socket_finalizer, TRUE);
-  con = R_MakeExternalPtr(lp, R_NilValue, R_NilValue);
-  Rf_setAttrib(socket, nano_ListenerSymbol, con);
-  R_RegisterCFinalizerEx(con, listener_finalizer, TRUE);
-  thread = R_MakeExternalPtr(thr, R_NilValue, R_NilValue);
-  Rf_setAttrib(socket, nano_ContextSymbol, thread);
+  PROTECT(thread = R_MakeExternalPtr(thr, R_NilValue, R_NilValue));
   R_RegisterCFinalizerEx(thread, thread_finalizer, TRUE);
+  PROTECT(con = R_MakeExternalPtr(lp, R_NilValue, thread));
+  R_RegisterCFinalizerEx(con, listener_finalizer, TRUE);
+  PROTECT(socket = R_MakeExternalPtr(sock, nano_SocketSymbol, con));
+  R_RegisterCFinalizerEx(socket, socket_finalizer, TRUE);
 
-  UNPROTECT(1);
+  UNPROTECT(3);
   return socket;
 
   fail:

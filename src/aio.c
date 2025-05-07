@@ -557,7 +557,6 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
 
     nano_stream *nst = (nano_stream *) NANO_PTR(con);
     nng_stream *sp = nst->stream;
-    nng_iov iov;
 
     saio = calloc(1, sizeof(nano_aio));
     NANO_ENSURE_ALLOC(saio);
@@ -565,8 +564,10 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     saio->data = calloc(buf.cur, sizeof(unsigned char));
     NANO_ENSURE_ALLOC(saio->data);
     memcpy(saio->data, buf.buf, buf.cur);
-    iov.iov_len = buf.cur - nst->textframes;
-    iov.iov_buf = saio->data;
+    nng_iov iov = {
+      .iov_buf = saio->data,
+      .iov_len = buf.cur - nst->textframes
+    };
 
     if ((xc = nng_aio_alloc(&saio->aio, isaio_complete, saio)) ||
         (xc = nng_aio_set_iov(saio->aio, 1u, &iov)))
@@ -645,7 +646,6 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
     const uint8_t mod = (uint8_t) nano_matchargs(mode);
     const size_t xlen = (size_t) nano_integer(bytes);
     nng_stream **sp = (nng_stream **) NANO_PTR(con);
-    nng_iov iov;
 
     raio = calloc(1, sizeof(nano_aio));
     NANO_ENSURE_ALLOC(raio);
@@ -654,8 +654,10 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
     raio->mode = mod;
     raio->data = calloc(xlen, sizeof(unsigned char));
     NANO_ENSURE_ALLOC(raio->data);
-    iov.iov_len = xlen;
-    iov.iov_buf = raio->data;
+    nng_iov iov = {
+      .iov_buf = raio->data,
+      .iov_len = xlen
+    };
 
     if ((xc = nng_aio_alloc(&raio->aio, iraio_complete, raio)) ||
         (xc = nng_aio_set_iov(raio->aio, 1u, &iov)))
