@@ -319,6 +319,22 @@ serial_config <- function(class, sfunc, ufunc, vec = FALSE)
 #'
 write_stdout <- function(x) invisible(.Call(rnng_write_stdout, x))
 
+#' Read stdin
+#'
+#' Reads `stdin` from a background thread, allowing the stream to be accessed as
+#' messages from an NNG 'inproc' socket. As the read is blocking, it can only be
+#' used in non-interactive sessions. Closing `stdin` causes the background
+#' thread to exit and the socket connection to end.
+#'
+#' A 'pull' protocol socket is returned, and hence can only be used with receive
+#' functions.
+#'
+#' @return a Socket.
+#'
+#' @export
+#'
+read_stdin <- function() .Call(rnng_read_stdin, interactive())
+
 #' IP Address
 #'
 #' Returns a character string comprising the local network IPv4 address, or
@@ -336,18 +352,6 @@ write_stdout <- function(x) invisible(.Call(rnng_write_stdout, x))
 #' @export
 #'
 ip_addr <- function() .Call(rnng_ip_addr)
-
-#' Read stdin
-#'
-#' Read `stdin` from a background thread, allowing the stream to be accessed as
-#' messages from an NNG 'inproc' socket. As the read is blocking, it can only be
-#' used in non-interactive sessions. This function is experimental.
-#'
-#' @return a Socket.
-#'
-#' @export
-#'
-read_stdin <- function() .Call(rnng_read_stdin, interactive())
 
 #' Advances the RNG State
 #'

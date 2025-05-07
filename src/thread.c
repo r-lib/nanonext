@@ -588,7 +588,7 @@ void nano_read_thread(void *arg) {
 SEXP rnng_read_stdin(SEXP interactive) {
 
   if (NANO_INTEGER(interactive))
-    Rf_error("Can only be used in non-interactive sessions");
+    Rf_error("can only be used in non-interactive sessions");
 
   int xc;
   nng_socket *sock = NULL;
@@ -615,6 +615,11 @@ SEXP rnng_read_stdin(SEXP interactive) {
   R_RegisterCFinalizerEx(con, listener_finalizer, TRUE);
   PROTECT(socket = R_MakeExternalPtr(sock, nano_SocketSymbol, con));
   R_RegisterCFinalizerEx(socket, socket_finalizer, TRUE);
+
+  NANO_CLASS2(socket, "nanoSocket", "nano");
+  Rf_setAttrib(socket, nano_IdSymbol, Rf_ScalarInteger(nng_socket_id(*sock)));
+  Rf_setAttrib(socket, nano_ProtocolSymbol, Rf_mkString("pull"));
+  Rf_setAttrib(socket, nano_StateSymbol, Rf_mkString("opened"));
 
   UNPROTECT(3);
   return socket;
