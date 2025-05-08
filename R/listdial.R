@@ -26,9 +26,7 @@
 #'   attempting to use the socket before an asynchronous dial has completed. Set
 #'   to FALSE if setting configuration options on the dialer as it is not
 #'   generally possible to change these once started.
-#' @param error \[default FALSE\] behaviour on error: if FALSE, returns an
-#'   integer exit code accompanied by a warning, or, if TRUE, generates an error
-#'   and halts execution.
+#' @param ... not used (and will be removed).
 #'
 #' @return Invisibly, an integer exit code (zero on success). A new Dialer
 #'   (object of class 'nanoDialer' and 'nano') is created and bound to the
@@ -70,8 +68,8 @@
 #'
 #' @export
 #'
-dial <- function(socket, url = "inproc://nanonext", tls = NULL, autostart = TRUE, error = FALSE)
-  invisible(.Call(rnng_dial, socket, url, tls, autostart, error))
+dial <- function(socket, url = "inproc://nanonext", tls = NULL, autostart = TRUE, ...)
+  invisible(.Call(rnng_dial, socket, url, tls, autostart, ...length()))
 
 #' Listen to an Address from a Socket
 #'
@@ -117,8 +115,8 @@ dial <- function(socket, url = "inproc://nanonext", tls = NULL, autostart = TRUE
 #'
 #' @export
 #'
-listen <- function(socket, url = "inproc://nanonext", tls = NULL, autostart = TRUE, error = FALSE)
-  invisible(.Call(rnng_listen, socket, url, tls, autostart, error))
+listen <- function(socket, url = "inproc://nanonext", tls = NULL, autostart = TRUE, ...)
+  invisible(.Call(rnng_listen, socket, url, tls, autostart, ...length()))
 
 #' Start Listener/Dialer
 #'
