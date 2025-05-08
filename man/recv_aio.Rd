@@ -22,7 +22,7 @@ of \code{"serial"} (1L), \code{"character"} (2L), \code{"complex"} (3L), \code{"
 \code{"string"} (9L). The default \code{"serial"} means a serialised R object; for
 the other modes, received bytes are converted into the respective mode.
 \code{"string"} is a faster option for length one character vectors. For
-Streams, \code{"serial"} is not an option and the default is \code{"character"}.}
+Streams, \code{"serial"} will default to \code{"character"}.}
 
 \item{timeout}{[default NULL] integer value in milliseconds or NULL, which
 applies a socket-specific default, usually the same as no timeout.}

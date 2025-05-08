@@ -595,42 +595,6 @@ int nano_matcharg(const SEXP mode) {
 
 }
 
-int nano_matchargs(const SEXP mode) {
-
-  if (TYPEOF(mode) == INTSXP)
-    return NANO_INTEGER(mode);
-
-  const char *mod = CHAR(STRING_ELT(mode, XLENGTH(mode) == 9));
-  size_t slen = strlen(mod);
-  int i;
-  switch (slen) {
-  case 3:
-    if (!memcmp(mod, "raw", slen)) { i = 8; break; }
-    goto fail;
-  case 6:
-    if (!memcmp(mod, "double", slen)) { i = 4; break; }
-    if (!memcmp(mod, "string", slen)) { i = 9; break; }
-    goto fail;
-  case 7:
-    if (!memcmp(mod, "integer", slen)) { i = 5; break; }
-    if (!memcmp(mod, "numeric", slen)) { i = 7; break; }
-    if (!memcmp(mod, "logical", slen)) { i = 6; break; }
-    if (!memcmp(mod, "complex", slen)) { i = 3; break; }
-    goto fail;
-  case 9:
-    if (!memcmp(mod, "character", slen)) { i = 2; break; }
-    goto fail;
-  default:
-    goto fail;
-  }
-
-  return i;
-
-  fail:
-  Rf_error("'mode' should be one of character, complex, double, integer, logical, numeric, raw, string");
-
-}
-
 SEXP rnng_eval_safe(SEXP arg) {
 
   return R_ToplevelExec(nano_eval_safe, arg) ? nano_eval_res : Rf_allocVector(RAWSXP, 1);

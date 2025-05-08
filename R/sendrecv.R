@@ -84,7 +84,7 @@ send <- function(con, data, mode = c("serial", "raw"), block = NULL, pipe = 0L)
 #'   `"string"` (9L). The default `"serial"` means a serialised R object; for
 #'   the other modes, received bytes are converted into the respective mode.
 #'   `"string"` is a faster option for length one character vectors. For
-#'   Streams, `"serial"` is not an option and the default is `"character"`.
+#'   Streams, `"serial"` will default to `"character"`.
 #' @param n \[default 65536L\] applicable to Streams only, the maximum number of
 #'   bytes to receive. Can be an over-estimate, but note that a buffer of this
 #'   size is reserved.
