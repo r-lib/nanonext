@@ -532,28 +532,20 @@ void nano_encode(nano_buf *enc, const SEXP object) {
 
 }
 
-int nano_encodes(const SEXP mode) {
+int nano_encode_raw(const SEXP mode) {
 
   if (TYPEOF(mode) == INTSXP)
-    return NANO_INTEGER(mode);
+    return NANO_INTEGER(mode) == 2;
 
   const char *mod = CHAR(STRING_ELT(mode, 0));
-  size_t slen = strlen(mod);
-  int i;
-  switch (slen) {
-  case 3:
-    if (!memcmp(mod, "raw", slen)) { i = 2; break; }
-    goto fail;
-  case 6:
-    if (!memcmp(mod, "serial", slen)) { i = 1; break; }
-    goto fail;
-  default:
-    goto fail;
-  }
+  const size_t slen = strlen(mod);
 
-  return i;
+  if (slen == 6 && !memcmp(mod, "serial", slen))
+    return 0;
 
-  fail:
+  if (slen == 3 && !memcmp(mod, "raw", slen))
+    return 1;
+
   Rf_error("'mode' should be either serial or raw");
 
 }

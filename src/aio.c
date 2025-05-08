@@ -509,7 +509,7 @@ SEXP rnng_unresolved2(SEXP x) {
 SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP clo) {
 
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
-  const int raw = nano_encodes(mode) == 2;
+  const int raw = nano_encode_raw(mode);
   SEXP aio, env, fun;
   nano_aio *saio = NULL;
   nano_buf buf;

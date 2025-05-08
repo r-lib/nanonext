@@ -298,7 +298,7 @@ SEXP rnng_listener_close(SEXP listener) {
 SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
 
   const int flags = block == R_NilValue ? NNG_DURATION_DEFAULT : TYPEOF(block) == LGLSXP ? 0 : nano_integer(block);
-  const int raw = nano_encodes(mode) == 2;
+  const int raw = nano_encode_raw(mode);
   nano_buf buf;
   int sock, xc;
 
