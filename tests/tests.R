@@ -648,7 +648,7 @@ if (!interactive() && Sys.getenv("NOT_CRAN") == "true") {
   close(f)
   test_true(!wait(cv))
   test_zero(close(reader))
-  test_equal(r$data, 7L)
+  test_equal(collect_aio(r), 7L)
 }
 
 if (Sys.info()[["sysname"]] == "Linux") {
