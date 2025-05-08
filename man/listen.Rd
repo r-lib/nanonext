@@ -4,13 +4,7 @@
 \alias{listen}
 \title{Listen to an Address from a Socket}
 \usage{
-listen(
-  socket,
-  url = "inproc://nanonext",
-  tls = NULL,
-  autostart = TRUE,
-  error = FALSE
-)
+listen(socket, url = "inproc://nanonext", tls = NULL, autostart = TRUE, ...)
 }
 \arguments{
 \item{socket}{a Socket.}
@@ -26,9 +20,7 @@ provide a TLS configuration object created by \code{\link[=tls_config]{tls_confi
 if setting configuration options on the listener as it is not generally
 possible to change these once started.}
 
-\item{error}{[default FALSE] behaviour on error: if FALSE, returns an
-integer exit code accompanied by a warning, or, if TRUE, generates an error
-and halts execution.}
+\item{...}{not used (and will be removed).}
 }
 \value{
 Invisibly, an integer exit code (zero on success). A new Listener
