@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.5.2.9017</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.5.2.9018</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,6 +51,8 @@
 <div class="section level5">
 <h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
 <ul><li>Partial matching is no longer enabled for the ‘mode’ argument to send/receive functions.</li>
+<li>
+<code><a href="../reference/listen.html">listen()</a></code> and <code><a href="../reference/dial.html">dial()</a></code> argument <code>error</code> is retired. Any existing usage of <code>error = TRUE</code> is only guaranteed to work until the next minor version. These functions will now always return a value (with a warning on error).</li>
 <li>
 <code><a href="../reference/send_aio.html">send_aio()</a></code> without keeping a reference to the return value no longer potentially drops sends (thanks <a href="https://github.com/wch" class="external-link">@wch</a>, <a href="https://github.com/r-lib/nanonext/issues/129" class="external-link">#129</a>).</li>
 <li>More robust interruption on non-Windows platforms when <code><a href="https://rdrr.io/r/tools/pskill.html" class="external-link">tools::SIGINT</a></code> is supplied to the <code>flag</code> argument of <code><a href="../reference/pipe_notify.html">pipe_notify()</a></code> (thanks <a href="https://github.com/LennardLux" class="external-link">@LennardLux</a>, <a href="https://github.com/r-lib/nanonext/issues/97" class="external-link">#97</a>).</li>
