@@ -13,6 +13,7 @@
 
 #### Updates
 
+* Partial matching is no longer enabled for the 'mode' argument to send/receive functions.
 * `send_aio()` without keeping a reference to the return value no longer potentially drops sends (thanks @wch, #129).
 * More robust interruption on non-Windows platforms when `tools::SIGINT` is supplied to the `flag` argument of `pipe_notify()` (thanks @LennardLux, #97).
 * Installation from source specifying 'INCLUDE_DIR' and 'LIB_DIR' environment variables works again, correcting a regression in v1.5.2 (#104).

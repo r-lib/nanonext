@@ -488,7 +488,7 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
 
   } else if (!NANO_PTR_CHECK(con, nano_StreamSymbol)) {
 
-    const int mod = nano_matchargs(mode);
+    const int mod = nano_matcharg(mode) == 1 ? 2 : nano_matcharg(mode);
     const size_t xlen = (size_t) nano_integer(bytes);
     nng_stream **sp = (nng_stream **) NANO_PTR(con);
     nng_aio *aiop = NULL;

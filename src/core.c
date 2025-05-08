@@ -534,93 +534,64 @@ void nano_encode(nano_buf *enc, const SEXP object) {
 
 int nano_encodes(const SEXP mode) {
 
-  if (TYPEOF(mode) != INTSXP) {
-    const char *mod = CHAR(STRING_ELT(mode, 0));
-    size_t slen = strlen(mod);
-    switch (slen) {
-    case 1:
-    case 2:
-    case 3:
-      if (!memcmp(mod, "raw", slen)) return 2;
-    case 4:
-    case 5:
-    case 6:
-      if (!memcmp(mod, "serial", slen)) return 1;
-    default:
-      Rf_error("'mode' should be either serial or raw");
-    }
+  if (TYPEOF(mode) == INTSXP)
+    return NANO_INTEGER(mode);
+
+  const char *mod = CHAR(STRING_ELT(mode, 0));
+  size_t slen = strlen(mod);
+  int i;
+  switch (slen) {
+  case 3:
+    if (!memcmp(mod, "raw", slen)) { i = 2; break; }
+    goto fail;
+  case 6:
+    if (!memcmp(mod, "serial", slen)) { i = 1; break; }
+    goto fail;
+  default:
+    goto fail;
   }
 
-  return INTEGER(mode)[0];
+  return i;
+
+  fail:
+  Rf_error("'mode' should be either serial or raw");
 
 }
 
 int nano_matcharg(const SEXP mode) {
 
-  if (TYPEOF(mode) != INTSXP) {
-    const char *mod = CHAR(STRING_ELT(mode, 0));
-    size_t slen = strlen(mod);
-    switch (slen) {
-    case 1:
-      if (!memcmp(mod, "c", slen) || !memcmp(mod, "s", slen))
-        Rf_error("'mode' should be one of serial, character, complex, double, integer, logical, numeric, raw, string");
-    case 2:
-    case 3:
-      if (!memcmp(mod, "raw", slen)) return 8;
-    case 4:
-    case 5:
-    case 6:
-      if (!memcmp(mod, "double", slen)) return 4;
-      if (!memcmp(mod, "serial", slen)) return 1;
-      if (!memcmp(mod, "string", slen)) return 9;
-    case 7:
-      if (!memcmp(mod, "integer", slen)) return 5;
-      if (!memcmp(mod, "numeric", slen)) return 7;
-      if (!memcmp(mod, "logical", slen)) return 6;
-      if (!memcmp(mod, "complex", slen)) return 3;
-    case 8:
-    case 9:
-      if (!memcmp(mod, "character", slen)) return 2;
-    default:
-      Rf_error("'mode' should be one of serial, character, complex, double, integer, logical, numeric, raw, string");
-    }
+  if (TYPEOF(mode) == INTSXP)
+    return NANO_INTEGER(mode);
+
+  const char *mod = CHAR(STRING_ELT(mode, 0));
+  size_t slen = strlen(mod);
+  int i;
+  switch (slen) {
+  case 3:
+    if (!memcmp(mod, "raw", slen)) { i = 8; break; }
+    goto fail;
+  case 6:
+    if (!memcmp(mod, "serial", slen)) { i = 1; break; }
+    if (!memcmp(mod, "double", slen)) { i = 4; break; }
+    if (!memcmp(mod, "string", slen)) { i = 9; break; }
+    goto fail;
+  case 7:
+    if (!memcmp(mod, "integer", slen)) { i = 5; break; }
+    if (!memcmp(mod, "numeric", slen)) { i = 7; break; }
+    if (!memcmp(mod, "logical", slen)) { i = 6; break; }
+    if (!memcmp(mod, "complex", slen)) { i = 3; break; }
+    goto fail;
+  case 9:
+    if (!memcmp(mod, "character", slen)) { i = 2; break; }
+    goto fail;
+  default:
+    goto fail;
   }
 
-  return INTEGER(mode)[0];
+  return i;
 
-}
-
-int nano_matchargs(const SEXP mode) {
-
-  if (TYPEOF(mode) != INTSXP) {
-    const char *mod = CHAR(STRING_ELT(mode, XLENGTH(mode) == 9));
-    size_t slen = strlen(mod);
-    switch (slen) {
-    case 1:
-      if (!memcmp(mod, "c", slen))
-        Rf_error("'mode' should be one of character, complex, double, integer, logical, numeric, raw, string");
-    case 2:
-    case 3:
-      if (!memcmp(mod, "raw", slen)) return 8;
-    case 4:
-    case 5:
-    case 6:
-      if (!memcmp(mod, "double", slen)) return 4;
-      if (!memcmp(mod, "string", slen)) return 9;
-    case 7:
-      if (!memcmp(mod, "integer", slen)) return 5;
-      if (!memcmp(mod, "numeric", slen)) return 7;
-      if (!memcmp(mod, "logical", slen)) return 6;
-      if (!memcmp(mod, "complex", slen)) return 3;
-    case 8:
-    case 9:
-      if (!memcmp(mod, "character", slen)) return 2;
-    default:
-      Rf_error("'mode' should be one of character, complex, double, integer, logical, numeric, raw, string");
-    }
-  }
-
-  return INTEGER(mode)[0];
+  fail:
+  Rf_error("'mode' should be one of serial, character, complex, double, integer, logical, numeric, raw, string");
 
 }
 
