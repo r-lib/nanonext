@@ -527,12 +527,12 @@ void nano_encode(nano_buf *enc, const SEXP object) {
     NANO_INIT(enc, NULL, 0);
     break;
   default:
-    Rf_error("'data' must be an atomic vector type or NULL to send in mode 'raw'");
+    Rf_error("`data` must be an atomic vector type or NULL to send in mode 'raw'");
   }
 
 }
 
-int nano_encode_raw(const SEXP mode) {
+int nano_encode_mode(const SEXP mode) {
 
   if (TYPEOF(mode) == INTSXP)
     return NANO_INTEGER(mode) == 2;
@@ -546,7 +546,7 @@ int nano_encode_raw(const SEXP mode) {
   if (slen == 3 && !memcmp(mod, "raw", slen))
     return 1;
 
-  Rf_error("'mode' should be either serial or raw");
+  Rf_error("`mode` should be one of: serial, raw");
 
 }
 
@@ -583,7 +583,7 @@ int nano_matcharg(const SEXP mode) {
   return i;
 
   fail:
-  Rf_error("'mode' should be one of serial, character, complex, double, integer, logical, numeric, raw, string");
+  Rf_error("`mode` should be one of: serial, character, complex, double, integer, logical, numeric, raw, string");
 
 }
 

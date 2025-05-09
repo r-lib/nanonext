@@ -115,7 +115,6 @@ extern int R_interrupts_pending;
 #define NANO_STRING(x) CHAR(*((const SEXP *) DATAPTR_RO(x)))
 #define NANO_STR_N(x, n) CHAR(((const SEXP *) DATAPTR_RO(x))[n])
 #define NANO_INTEGER(x) *(int *) DATAPTR_RO(x)
-#define NANO_ERROR(x) { Rf_error(x); return R_NilValue; }
 
 #define ERROR_OUT(xc) Rf_error("%d | %s", xc, nng_strerror(xc))
 #define ERROR_RET(xc) { Rf_warning("%d | %s", xc, nng_strerror(xc)); return mk_error(xc); }
@@ -126,7 +125,7 @@ extern int R_interrupts_pending;
 #define NANONEXT_STR_SIZE 40
 #define NANO_ALLOC(x, sz)                                      \
   (x)->buf = calloc(sz, sizeof(unsigned char));                \
-  if ((x)->buf == NULL) Rf_error("Memory allocation failed");  \
+  if ((x)->buf == NULL) Rf_error("memory allocation failed");  \
   (x)->len = sz;                                               \
   (x)->cur = 0
 #define NANO_INIT(x, ptr, sz)                                  \
@@ -303,7 +302,7 @@ void nano_serialize(nano_buf *, const SEXP, SEXP);
 SEXP nano_unserialize(unsigned char *, const size_t, SEXP);
 SEXP nano_decode(unsigned char *, const size_t, const uint8_t, SEXP);
 void nano_encode(nano_buf *, const SEXP);
-int nano_encode_raw(const SEXP);
+int nano_encode_mode(const SEXP);
 int nano_matcharg(const SEXP);
 
 void pipe_cb_signal(nng_pipe, nng_pipe_ev, void *);

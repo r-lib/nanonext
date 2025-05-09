@@ -74,7 +74,7 @@ SEXP rnng_random(SEXP n, SEXP convert) {
     sz = Rf_asInteger(n);
     if (sz >= 0 && sz <= 1024) break;
   default:
-    Rf_error("'n' must be an integer between 0 and 1024 or coercible to such");
+    Rf_error("`n` must be an integer value between 0 and 1024");
   }
 
   SEXP out;

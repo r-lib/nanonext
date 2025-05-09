@@ -509,7 +509,7 @@ SEXP rnng_unresolved2(SEXP x) {
 SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP clo) {
 
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
-  const int raw = nano_encode_raw(mode);
+  const int raw = nano_encode_mode(mode);
   SEXP aio, env, fun;
   nano_aio *saio = NULL;
   nano_buf buf;
@@ -581,7 +581,7 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     R_RegisterCFinalizerEx(aio, saio_finalizer, TRUE);
 
   } else {
-    NANO_ERROR("'con' is not a valid Socket, Context, or Stream");
+    Rf_error("`con` is not a valid Socket, Context, or Stream");
   }
 
   PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
@@ -670,7 +670,7 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
     R_RegisterCFinalizerEx(aio, iaio_finalizer, TRUE);
 
   } else {
-    NANO_ERROR("'con' is not a valid Socket, Context or Stream");
+    Rf_error("`con` is not a valid Socket, Context or Stream");
   }
 
   PROTECT(env = R_NewEnv(R_NilValue, 0, 0));

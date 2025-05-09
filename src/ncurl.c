@@ -139,7 +139,7 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
   const char *mthd = method != R_NilValue ? CHAR(STRING_ELT(method, 0)) : NULL;
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
-    Rf_error("'tls' is not a valid TLS Configuration");
+    Rf_error("`tls` is not a valid TLS Configuration");
   int chk_resp = response != R_NilValue && TYPEOF(response) == STRSXP;
 
   nng_url *url = NULL;
@@ -310,7 +310,7 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
   const char *mthd = method != R_NilValue ? CHAR(STRING_ELT(method, 0)) : NULL;
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
-    Rf_error("'tls' is not a valid TLS Configuration");
+    Rf_error("`tls` is not a valid TLS Configuration");
 
   SEXP aio, env, fun;
   int xc;
@@ -515,7 +515,7 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
   const char *mthd = method != R_NilValue ? CHAR(STRING_ELT(method, 0)) : NULL;
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
-    Rf_error("'tls' is not a valid TLS Configuration");
+    Rf_error("`tls` is not a valid TLS Configuration");
 
   SEXP sess;
   int xc;
@@ -614,7 +614,7 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
 SEXP rnng_ncurl_transact(SEXP session) {
 
   if (NANO_PTR_CHECK(session, nano_StatusSymbol))
-    Rf_error("'session' is not a valid or active ncurlSession");
+    Rf_error("`session` is not a valid or active ncurlSession");
 
   nano_aio *haio = (nano_aio *) NANO_PTR(session);
 
@@ -672,7 +672,7 @@ SEXP rnng_ncurl_transact(SEXP session) {
 SEXP rnng_ncurl_session_close(SEXP session) {
 
   if (NANO_PTR_CHECK(session, nano_StatusSymbol))
-    Rf_error("'session' is not a valid or active ncurlSession");
+    Rf_error("`session` is not a valid or active ncurlSession");
 
   nano_aio *haio = (nano_aio *) NANO_PTR(session);
 

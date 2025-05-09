@@ -483,10 +483,10 @@ static void rnng_signal_thread(void *args) {
 SEXP rnng_signal_thread_create(SEXP cv, SEXP cv2) {
 
   if (NANO_PTR_CHECK(cv, nano_CvSymbol))
-    Rf_error("'cv' is not a valid Condition Variable");
+    Rf_error("`cv` is not a valid Condition Variable");
 
   if (NANO_PTR_CHECK(cv2, nano_CvSymbol))
-    Rf_error("'cv2' is not a valid Condition Variable");
+    Rf_error("`cv2` is not a valid Condition Variable");
 
   int xc;
   nano_thread_duo *duo = malloc(sizeof(nano_thread_duo));
