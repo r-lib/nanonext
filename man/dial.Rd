@@ -4,7 +4,14 @@
 \alias{dial}
 \title{Dial an Address from a Socket}
 \usage{
-dial(socket, url = "inproc://nanonext", tls = NULL, autostart = TRUE, ...)
+dial(
+  socket,
+  url = "inproc://nanonext",
+  tls = NULL,
+  autostart = TRUE,
+  fail = c("warn", "error", "none"),
+  ...
+)
 }
 \arguments{
 \item{socket}{a Socket.}
@@ -22,6 +29,10 @@ if a connection is not immediately possible, but avoids subtle errors from
 attempting to use the socket before an asynchronous dial has completed. Set
 to FALSE if setting configuration options on the dialer as it is not
 generally possible to change these once started.}
+
+\item{fail}{[default 'warn'] failure mode - a character value or integer
+equivalent, whether to warn (1L), error (2L), or for none (3L) just return
+an 'errorValue' without any corresponding warning.}
 
 \item{...}{not used (and will be removed).}
 }
