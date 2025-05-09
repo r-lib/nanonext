@@ -126,7 +126,7 @@ extern int R_interrupts_pending;
 #define NANONEXT_STR_SIZE 40
 #define NANO_ALLOC(x, sz)                                      \
   (x)->buf = calloc(sz, sizeof(unsigned char));                \
-  if ((x)->buf == NULL) Rf_error("Memory allocation failed");  \
+  if ((x)->buf == NULL) Rf_error("memory allocation failed");  \
   (x)->len = sz;                                               \
   (x)->cur = 0
 #define NANO_INIT(x, ptr, sz)                                  \

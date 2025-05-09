@@ -113,7 +113,7 @@ SEXP rnng_protocol_open(SEXP protocol, SEXP dial, SEXP listen, SEXP tls, SEXP au
     }
   default:
     free(sock);
-    NANO_ERROR("'protocol' should be one of bus, pair, poly, push, pull, pub, sub, req, rep, surveyor, respondent");
+    NANO_ERROR("`protocol` should be one of: bus, pair, poly, push, pull, pub, sub, req, rep, surveyor, respondent");
   }
 
   if (xc)
@@ -154,7 +154,7 @@ SEXP rnng_protocol_open(SEXP protocol, SEXP dial, SEXP listen, SEXP tls, SEXP au
 SEXP rnng_close(SEXP socket) {
 
   if (NANO_PTR_CHECK(socket, nano_SocketSymbol))
-    Rf_error("'socket' is not a valid Socket");
+    Rf_error("`socket` is not a valid Socket");
 
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
   const int xc = nng_close(*sock);
@@ -199,7 +199,7 @@ static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP tls) {
 
   const char *add = CHAR(STRING_ELT(url, 0));
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
-    Rf_error("'tls' is not a valid TLS Configuration");
+    Rf_error("`tls` is not a valid TLS Configuration");
 
   nng_url *up = NULL;
   nng_aio *aiop = NULL;
@@ -280,7 +280,7 @@ static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls) {
 
   const char *add = CHAR(STRING_ELT(url, 0));
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
-    Rf_error("'tls' is not a valid TLS Configuration");
+    Rf_error("`tls` is not a valid TLS Configuration");
 
   nng_url *up = NULL;
   nng_aio *aiop = NULL;
@@ -365,16 +365,15 @@ SEXP rnng_stream_open(SEXP dial, SEXP listen, SEXP textframes, SEXP tls) {
     return nano_stream_dial(dial, textframes, tls);
   } else if (listen != R_NilValue) {
     return nano_stream_listen(listen, textframes, tls);
-  } else {
-    NANO_ERROR("specify a URL for either 'dial' or 'listen'");
   }
+  NANO_ERROR("specify a URL for either `dial` or `listen`");
 
 }
 
 SEXP rnng_stream_close(SEXP stream) {
 
   if (NANO_PTR_CHECK(stream, nano_StreamSymbol))
-    Rf_error("'stream' is not a valid Stream");
+    Rf_error("`stream` is not a valid Stream");
 
   stream_finalizer(stream);
   R_ClearExternalPtr(stream);

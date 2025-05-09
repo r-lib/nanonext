@@ -192,12 +192,12 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
       break;
     case VECSXP:
       if (strncmp(op, "serial", 6) || TYPEOF(value) != VECSXP)
-        Rf_error("type of 'value' not supported");
+        Rf_error("type of `value` not supported");
       NANO_SET_PROT(object, Rf_xlength(value) ? value : R_NilValue);
       xc = 0;
       break;
     default:
-      Rf_error("type of 'value' not supported");
+      Rf_error("type of `value` not supported");
     }
 
   } else if (!NANO_PTR_CHECK(object, nano_ContextSymbol)) {
@@ -225,7 +225,7 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
       xc = nng_ctx_set_bool(*ctx, op, (bool) NANO_INTEGER(value));
       break;
     default:
-      Rf_error("type of 'value' not supported");
+      Rf_error("type of `value` not supported");
     }
 
   } else if (!NANO_PTR_CHECK(object, nano_StreamSymbol)) {
@@ -253,7 +253,7 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
       xc = nng_stream_set_bool(*st, op, (bool) NANO_INTEGER(value));
       break;
     default:
-      Rf_error("type of 'value' not supported");
+      Rf_error("type of `value` not supported");
     }
 
   } else if (!NANO_PTR_CHECK(object, nano_ListenerSymbol)) {
@@ -281,7 +281,7 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
       xc = nng_listener_set_bool(*list, op, (bool) NANO_INTEGER(value));
       break;
     default:
-      Rf_error("type of 'value' not supported");
+      Rf_error("type of `value` not supported");
     }
 
   } else if (!NANO_PTR_CHECK(object, nano_DialerSymbol)) {
@@ -309,11 +309,11 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
       xc = nng_dialer_set_bool(*dial, op, (bool) NANO_INTEGER(value));
       break;
     default:
-      Rf_error("type of 'value' not supported");
+      Rf_error("type of `value` not supported");
     }
 
   } else {
-    Rf_error("'object' is not a valid Socket, Context, Stream, Listener or Dialer");
+    Rf_error("`object` is not a valid Socket, Context, Stream, Listener or Dialer");
   }
 
   if (xc)
@@ -342,7 +342,7 @@ SEXP rnng_subscribe(SEXP object, SEXP value, SEXP sub) {
     xc = nng_ctx_set(*ctx, op, buf.buf, buf.cur - (TYPEOF(value) == STRSXP));
 
   } else {
-    Rf_error("'object' is not a valid Socket or Context");
+    Rf_error("`object` is not a valid Socket or Context");
   }
 
   if (xc)
@@ -450,7 +450,7 @@ SEXP rnng_get_opt(SEXP object, SEXP opt) {
     }
 
   } else {
-    Rf_error("'object' is not a valid Socket, Context, Stream, Listener, or Dialer");
+    Rf_error("`object` is not a valid Socket, Context, Stream, Listener, or Dialer");
   }
 
   if (xc)
@@ -509,7 +509,7 @@ SEXP rnng_stats_get(SEXP object, SEXP stat) {
     sst = nng_stat_find_dialer(nst, *dial);
 
   } else {
-    Rf_error("'object' is not a valid Socket, Listener or Dialer");
+    Rf_error("`object` is not a valid Socket, Listener or Dialer");
   }
 
   sst = nng_stat_find(sst, statname);
@@ -533,12 +533,12 @@ SEXP rnng_serial_config(SEXP klass, SEXP sfunc, SEXP ufunc) {
   PROTECT(out = Rf_allocVector(VECSXP, 3));
 
   if (TYPEOF(klass) != STRSXP)
-    Rf_error("'class' must be a character vector");
+    Rf_error("`class` must be a character vector");
   SET_VECTOR_ELT(out, 0, klass);
 
   R_xlen_t xlen = XLENGTH(klass);
   if (Rf_xlength(sfunc) != xlen || Rf_xlength(ufunc) != xlen)
-    Rf_error("`class`, `sfunc` and `ufunc` must be the same length");
+    Rf_error("`class`, `sfunc` and `ufunc` must all be the same length");
 
   switch (TYPEOF(sfunc)) {
   case VECSXP:

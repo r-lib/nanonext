@@ -22,7 +22,7 @@ static int nano_fail_mode(SEXP mode) {
     break;
   }
 
-  Rf_error("`fail` should be one of 'warn', 'error' or 'none'");
+  Rf_error("`fail` should be one of: warn, error, none");
 
 }
 
@@ -42,7 +42,7 @@ static void context_finalizer(SEXP xptr) {
 SEXP rnng_ctx_open(SEXP socket) {
 
   if (NANO_PTR_CHECK(socket, nano_SocketSymbol))
-    Rf_error("'socket' is not a valid Socket");
+    Rf_error("`socket` is not a valid Socket");
 
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
   SEXP context;
@@ -75,7 +75,7 @@ SEXP rnng_ctx_open(SEXP socket) {
 SEXP rnng_ctx_create(SEXP socket) {
 
   if (NANO_PTR_CHECK(socket, nano_SocketSymbol))
-    Rf_error("'socket' is not a valid Socket");
+    Rf_error("`socket` is not a valid Socket");
 
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
   SEXP context;
@@ -101,7 +101,7 @@ SEXP rnng_ctx_create(SEXP socket) {
 SEXP rnng_ctx_close(SEXP context) {
 
   if (NANO_PTR_CHECK(context, nano_ContextSymbol))
-    Rf_error("'context' is not a valid Context");
+    Rf_error("`context` is not a valid Context");
   nng_ctx *ctx = (nng_ctx *) NANO_PTR(context);
 
   const int xc = nng_ctx_close(*ctx);
@@ -118,12 +118,12 @@ SEXP rnng_ctx_close(SEXP context) {
 SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
 
   if (NANO_PTR_CHECK(socket, nano_SocketSymbol))
-    Rf_error("'socket' is not a valid Socket");
+    Rf_error("`socket` is not a valid Socket");
 
   const int sec = tls != R_NilValue;
 
   if (sec && NANO_PTR_CHECK(tls, nano_TlsSymbol))
-    Rf_error("'tls' is not a valid TLS Configuration");
+    Rf_error("`tls` is not a valid TLS Configuration");
 
   const int failmode = nano_fail_mode(fail);
 
@@ -200,12 +200,12 @@ SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
 SEXP rnng_listen(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
 
   if (NANO_PTR_CHECK(socket, nano_SocketSymbol))
-    Rf_error("'socket' is not a valid Socket");
+    Rf_error("`socket` is not a valid Socket");
 
   const int sec = tls != R_NilValue;
 
   if (sec && NANO_PTR_CHECK(tls, nano_TlsSymbol))
-    Rf_error("'tls' is not a valid TLS Configuration");
+    Rf_error("`tls` is not a valid TLS Configuration");
 
   const int failmode = nano_fail_mode(fail);
 
@@ -277,7 +277,7 @@ SEXP rnng_listen(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
 SEXP rnng_dialer_start(SEXP dialer, SEXP async) {
 
   if (NANO_PTR_CHECK(dialer, nano_DialerSymbol))
-    Rf_error("'dialer' is not a valid Dialer");
+    Rf_error("`dialer` is not a valid Dialer");
   nng_dialer *dial = (nng_dialer *) NANO_PTR(dialer);
   const int flags = (NANO_INTEGER(async) == 1) * NNG_FLAG_NONBLOCK;
   const int xc = nng_dialer_start(*dial, flags);
@@ -292,7 +292,7 @@ SEXP rnng_dialer_start(SEXP dialer, SEXP async) {
 SEXP rnng_listener_start(SEXP listener) {
 
   if (NANO_PTR_CHECK(listener, nano_ListenerSymbol))
-    Rf_error("'listener' is not a valid Listener");
+    Rf_error("`listener` is not a valid Listener");
   nng_listener *list = (nng_listener *) NANO_PTR(listener);
   const int xc = nng_listener_start(*list, 0);
   if (xc)
@@ -306,7 +306,7 @@ SEXP rnng_listener_start(SEXP listener) {
 SEXP rnng_dialer_close(SEXP dialer) {
 
   if (NANO_PTR_CHECK(dialer, nano_DialerSymbol))
-    Rf_error("'dialer' is not a valid Dialer");
+    Rf_error("`dialer` is not a valid Dialer");
   nng_dialer *dial = (nng_dialer *) NANO_PTR(dialer);
   const int xc = nng_dialer_close(*dial);
   if (xc)
@@ -319,7 +319,7 @@ SEXP rnng_dialer_close(SEXP dialer) {
 SEXP rnng_listener_close(SEXP listener) {
 
   if (NANO_PTR_CHECK(listener, nano_ListenerSymbol))
-    Rf_error("'listener' is not a valid Listener");
+    Rf_error("`listener` is not a valid Listener");
   nng_listener *list = (nng_listener *) NANO_PTR(listener);
   const int xc = nng_listener_close(*list);
   if (xc)
@@ -427,7 +427,7 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
     nng_aio_free(aiop);
 
   } else {
-    Rf_error("'con' is not a valid Socket, Context or Stream");
+    Rf_error("`con` is not a valid Socket, Context or Stream");
   }
 
   if (xc)
@@ -557,7 +557,7 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
     free(buf);
 
   } else {
-    Rf_error("'con' is not a valid Socket, Context or Stream");
+    Rf_error("`con` is not a valid Socket, Context or Stream");
   }
 
   return res;
