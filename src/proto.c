@@ -113,7 +113,7 @@ SEXP rnng_protocol_open(SEXP protocol, SEXP dial, SEXP listen, SEXP tls, SEXP au
     }
   default:
     free(sock);
-    NANO_ERROR("`protocol` should be one of: bus, pair, poly, push, pull, pub, sub, req, rep, surveyor, respondent");
+    Rf_error("`protocol` should be one of: bus, pair, poly, push, pull, pub, sub, req, rep, surveyor, respondent");
   }
 
   if (xc)

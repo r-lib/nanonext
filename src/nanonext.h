@@ -115,7 +115,6 @@ extern int R_interrupts_pending;
 #define NANO_STRING(x) CHAR(*((const SEXP *) DATAPTR_RO(x)))
 #define NANO_STR_N(x, n) CHAR(((const SEXP *) DATAPTR_RO(x))[n])
 #define NANO_INTEGER(x) *(int *) DATAPTR_RO(x)
-#define NANO_ERROR(x) { Rf_error(x); return R_NilValue; }
 
 #define ERROR_OUT(xc) Rf_error("%d | %s", xc, nng_strerror(xc))
 #define ERROR_RET(xc) { Rf_warning("%d | %s", xc, nng_strerror(xc)); return mk_error(xc); }
