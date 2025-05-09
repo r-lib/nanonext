@@ -4,7 +4,14 @@
 \alias{listen}
 \title{Listen to an Address from a Socket}
 \usage{
-listen(socket, url = "inproc://nanonext", tls = NULL, autostart = TRUE, ...)
+listen(
+  socket,
+  url = "inproc://nanonext",
+  tls = NULL,
+  autostart = TRUE,
+  fail = c("warn", "error", "none"),
+  ...
+)
 }
 \arguments{
 \item{socket}{a Socket.}
@@ -19,6 +26,10 @@ provide a TLS configuration object created by \code{\link[=tls_config]{tls_confi
 \item{autostart}{[default TRUE] whether to start the listener. Set to FALSE
 if setting configuration options on the listener as it is not generally
 possible to change these once started.}
+
+\item{fail}{[default 'warn'] failure mode - a character value or integer
+equivalent, whether to warn (1L), error (2L), or for none (3L) just return
+an 'errorValue' without any corresponding warning.}
 
 \item{...}{not used (and will be removed).}
 }

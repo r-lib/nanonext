@@ -127,11 +127,19 @@ SEXP rnng_protocol_open(SEXP protocol, SEXP dial, SEXP listen, SEXP tls, SEXP au
   Rf_setAttrib(socket, nano_ProtocolSymbol, Rf_mkString(pname));
   Rf_setAttrib(socket, nano_StateSymbol, Rf_mkString("opened"));
 
-  if (dial != R_NilValue)
-    rnng_dial(socket, dial, tls, autostart, Rf_ScalarLogical(1));
+  if (dial != R_NilValue) {
+    SEXP intd;
+    PROTECT(intd = Rf_ScalarInteger(2));
+    rnng_dial(socket, dial, tls, autostart, intd);
+    UNPROTECT(1);
+  }
 
-  if (listen != R_NilValue)
-    rnng_listen(socket, listen, tls, autostart, Rf_ScalarLogical(1));
+  if (listen != R_NilValue) {
+    SEXP intl;
+    PROTECT(intl = Rf_ScalarInteger(2));
+    rnng_listen(socket, listen, tls, autostart, intl);
+    UNPROTECT(1);
+  }
 
   UNPROTECT(1);
   return socket;

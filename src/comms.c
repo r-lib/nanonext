@@ -2,6 +2,30 @@
 
 #include "nanonext.h"
 
+// internal --------------------------------------------------------------------
+
+static int nano_fail_mode(SEXP mode) {
+
+  if (TYPEOF(mode) == INTSXP)
+    return NANO_INTEGER(mode);
+
+  const char *mod = CHAR(STRING_ELT(mode, 0));
+  const size_t slen = strlen(mod);
+
+  switch (slen) {
+  case 4:
+    if (!memcmp(mod, "warn", slen)) return 1;
+    if (!memcmp(mod, "none", slen)) return 3;
+    break;
+  case 5:
+    if (!memcmp(mod, "error", slen)) return 2;
+    break;
+  }
+
+  Rf_error("`fail` should be one of 'warn', 'error' or 'none'");
+
+}
+
 // finalizers ------------------------------------------------------------------
 
 static void context_finalizer(SEXP xptr) {
@@ -91,7 +115,7 @@ SEXP rnng_ctx_close(SEXP context) {
 
 // dialers and listeners -------------------------------------------------------
 
-SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP error) {
+SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
 
   if (NANO_PTR_CHECK(socket, nano_SocketSymbol))
     Rf_error("'socket' is not a valid Socket");
@@ -100,6 +124,8 @@ SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP error) {
 
   if (sec && NANO_PTR_CHECK(tls, nano_TlsSymbol))
     Rf_error("'tls' is not a valid TLS Configuration");
+
+  const int failmode = nano_fail_mode(fail);
 
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
   const int start = NANO_INTEGER(autostart);
@@ -162,12 +188,16 @@ SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP error) {
   nng_url_free(up);
   free(dp);
   failmem:
-  if (NANO_INTEGER(error)) ERROR_OUT(xc);
+  if (failmode == 2) {
+    ERROR_OUT(xc);
+  } else if (failmode == 3) {
+    return mk_error(xc);
+  }
   ERROR_RET(xc);
 
 }
 
-SEXP rnng_listen(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP error) {
+SEXP rnng_listen(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
 
   if (NANO_PTR_CHECK(socket, nano_SocketSymbol))
     Rf_error("'socket' is not a valid Socket");
@@ -176,6 +206,8 @@ SEXP rnng_listen(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP error) {
 
   if (sec && NANO_PTR_CHECK(tls, nano_TlsSymbol))
     Rf_error("'tls' is not a valid TLS Configuration");
+
+  const int failmode = nano_fail_mode(fail);
 
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
   const int start = NANO_INTEGER(autostart);
@@ -233,7 +265,11 @@ SEXP rnng_listen(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP error) {
   fail:
   free(lp);
   failmem:
-  if (NANO_INTEGER(error)) ERROR_OUT(xc);
+  if (failmode == 2) {
+    ERROR_OUT(xc);
+  } else if (failmode == 3) {
+    return mk_error(xc);
+  }
   ERROR_RET(xc);
 
 }

@@ -26,6 +26,9 @@
 #'   attempting to use the socket before an asynchronous dial has completed. Set
 #'   to FALSE if setting configuration options on the dialer as it is not
 #'   generally possible to change these once started.
+#' @param fail \[default 'warn'\] failure mode - a character value or integer
+#'   equivalent, whether to warn (1L), error (2L), or for none (3L) just return
+#'   an 'errorValue' without any corresponding warning.
 #' @param ... not used (and will be removed).
 #'
 #' @return Invisibly, an integer exit code (zero on success). A new Dialer
@@ -68,8 +71,10 @@
 #'
 #' @export
 #'
-dial <- function(socket, url = "inproc://nanonext", tls = NULL, autostart = TRUE, ...)
-  invisible(.Call(rnng_dial, socket, url, tls, autostart, ...length()))
+dial <- function(socket, url = "inproc://nanonext", tls = NULL, autostart = TRUE, fail = c("warn", "error", "none"), ...) {
+  ...length() && { fail <- 2L }
+  invisible(.Call(rnng_dial, socket, url, tls, autostart, fail))
+}
 
 #' Listen to an Address from a Socket
 #'
@@ -115,8 +120,10 @@ dial <- function(socket, url = "inproc://nanonext", tls = NULL, autostart = TRUE
 #'
 #' @export
 #'
-listen <- function(socket, url = "inproc://nanonext", tls = NULL, autostart = TRUE, ...)
-  invisible(.Call(rnng_listen, socket, url, tls, autostart, ...length()))
+listen <- function(socket, url = "inproc://nanonext", tls = NULL, autostart = TRUE, fail = c("warn", "error", "none"), ...) {
+  ...length() && { fail <- 2L }
+  invisible(.Call(rnng_listen, socket, url, tls, autostart, fail))
+}
 
 #' Start Listener/Dialer
 #'

@@ -13,8 +13,9 @@
 
 #### Updates
 
-* Partial matching is no longer enabled for the 'mode' argument to send/receive functions.
-* `listen()` and `dial()` argument `error` is retired. Any existing usage of `error = TRUE` is only guaranteed to work until the next minor version. These functions will now always return a value (with a warning on error).
+* `listen()` and `dial()` argument `error` is replaced with `fail` to specify the failure mode - 'warn', 'error', or 'none' to just return an 'errorValue'.
+ + Any existing usage of `error = TRUE` will work only until the next minor version.
+* Partial matching is no longer enabled for the `mode` argument to send/receive functions.
 * `send_aio()` without keeping a reference to the return value no longer potentially drops sends (thanks @wch, #129).
 * More robust interruption on non-Windows platforms when `tools::SIGINT` is supplied to the `flag` argument of `pipe_notify()` (thanks @LennardLux, #97).
 * Installation from source specifying 'INCLUDE_DIR' and 'LIB_DIR' environment variables works again, correcting a regression in v1.5.2 (#104).
