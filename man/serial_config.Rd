@@ -27,10 +27,12 @@ using \code{\link[=opt<-]{opt<-()}} with option name \code{"serial"}.
 \description{
 Returns a serialization configuration, which may be set on a Socket for
 custom serialization and unserialization of non-system reference objects,
-allowing these to be sent and received between different R sessions. This
-utilises the 'refhook' system of R native serialization. Once set, the
-functions apply to all send and receive operations performed in mode
-\code{"serial"} over the Socket or Context created from the Socket.
+allowing these to be sent and received between different R sessions. Once
+set, the functions apply to all send and receive operations performed in mode
+'serial' over the Socket, or Context created from the Socket.
+}
+\details{
+This feature utilises the 'refhook' system of R native serialization.
 }
 \examples{
 cfg <- serial_config("test_cls", function(x) serialize(x, NULL), unserialize)
