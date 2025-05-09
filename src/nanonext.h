@@ -302,7 +302,7 @@ void nano_serialize(nano_buf *, const SEXP, SEXP);
 SEXP nano_unserialize(unsigned char *, const size_t, SEXP);
 SEXP nano_decode(unsigned char *, const size_t, const uint8_t, SEXP);
 void nano_encode(nano_buf *, const SEXP);
-int nano_encode_raw(const SEXP);
+int nano_encode_mode(const SEXP);
 int nano_matcharg(const SEXP);
 
 void pipe_cb_signal(nng_pipe, nng_pipe_ev, void *);

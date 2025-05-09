@@ -532,7 +532,7 @@ void nano_encode(nano_buf *enc, const SEXP object) {
 
 }
 
-int nano_encode_raw(const SEXP mode) {
+int nano_encode_mode(const SEXP mode) {
 
   if (TYPEOF(mode) == INTSXP)
     return NANO_INTEGER(mode) == 2;
