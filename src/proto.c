@@ -366,7 +366,7 @@ SEXP rnng_stream_open(SEXP dial, SEXP listen, SEXP textframes, SEXP tls) {
   } else if (listen != R_NilValue) {
     return nano_stream_listen(listen, textframes, tls);
   }
-  NANO_ERROR("specify a URL for either `dial` or `listen`");
+  Rf_error("specify a URL for either `dial` or `listen`");
 
 }
 
