@@ -32,6 +32,7 @@ void nano_list_do(nano_list_op listop, nano_aio *saio) {
     break;
   case FINALIZE:
     nng_mtx_lock(free_mtx);
+    nano_list_do(FREE, NULL);
     if (saio->mode == 0x1) {
       nng_mtx_unlock(free_mtx);
       nng_aio_free(saio->aio);
@@ -58,8 +59,13 @@ void nano_list_do(nano_list_op listop, nano_aio *saio) {
     break;
   case SHUTDOWN:
     if (free_mtx == NULL) break;
-  case FREE:
     nng_mtx_lock(free_mtx);
+    nano_list_do(FREE, NULL);
+    nng_mtx_unlock(free_mtx);
+    nng_mtx_free(free_mtx);
+    free_mtx = NULL;
+    break;
+  case FREE: // must be entered under lock
     while (free_list != NULL) {
       nano_node *current = free_list;
       free_list = free_list->next;
@@ -70,14 +76,8 @@ void nano_list_do(nano_list_op listop, nano_aio *saio) {
       free(data);
       free(current);
     }
-    nng_mtx_unlock(free_mtx);
-    if (listop == SHUTDOWN) {
-      nng_mtx_free(free_mtx);
-      free_mtx = NULL;
-    }
     break;
   }
-
 }
 
 static void saio_complete(void *arg) {
@@ -590,8 +590,6 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
 
   PROTECT(fun = R_mkClosure(R_NilValue, nano_aioFuncRes, clo));
   R_MakeActiveBinding(nano_ResultSymbol, fun, env);
-
-  nano_list_do(FREE, NULL);
 
   UNPROTECT(3);
   return env;

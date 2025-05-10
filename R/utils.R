@@ -343,8 +343,8 @@ read_stdin <- function() .Call(rnng_read_stdin, interactive())
 #' vector if there are multiple addresses from multiple network adapters, or
 #' an empty character string if unavailable.
 #'
-#' The IP addresses will be named by interface e.g. 'eth0' or 'en0' (friendly
-#' names on Windows).
+#' The IP addresses will be named by interface (adapter friendly name on
+#' Windows) e.g. 'eth0' or 'en0'.
 #'
 #' @return A named character string.
 #'

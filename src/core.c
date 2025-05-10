@@ -540,11 +540,14 @@ int nano_encode_mode(const SEXP mode) {
   const char *mod = CHAR(STRING_ELT(mode, 0));
   const size_t slen = strlen(mod);
 
-  if (slen == 6 && !memcmp(mod, "serial", slen))
-    return 0;
-
-  if (slen == 3 && !memcmp(mod, "raw", slen))
-    return 1;
+  switch (slen) {
+  case 3:
+    if (!memcmp(mod, "raw", slen)) return 1;
+    break;
+  case 6:
+    if (!memcmp(mod, "serial", slen)) return 0;
+    break;
+  }
 
   Rf_error("`mode` should be one of: serial, raw");
 

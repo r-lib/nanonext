@@ -72,6 +72,8 @@ Web utilities:
   (async) http(s) client
 - [stream](https://nanonext.r-lib.org/articles/nanonext.html#stream-websocket-client) -
   secure websockets client / generic low-level socket interface
+- `ip_addr()` - for retrieving all local network IP addresses by
+  interface
 - `messenger()` - console-based instant messaging with authentication
 
 ### Quick Start
