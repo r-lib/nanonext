@@ -300,8 +300,9 @@ serial_config <- function(class, sfunc, ufunc, vec = FALSE)
 
 #' Write to Stdout
 #'
-#' Performs a non-buffered write to `stdout` using the C function `write()`.
-#' Avoids interleaved output when writing concurrently from multiple processes.
+#' Performs a non-buffered write to `stdout` using the C function `writev()` or
+#' equivalent. Avoids interleaved output when writing concurrently from multiple
+#' processes.
 #'
 #' This function writes to the C-level `stdout` of the process and hence cannot
 #' be re-directed by [sink()].
