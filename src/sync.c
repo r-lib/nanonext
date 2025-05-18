@@ -588,6 +588,7 @@ SEXP rnng_pipe_notify(SEXP socket, SEXP cv, SEXP add, SEXP remove, SEXP flag) {
   if (NANO_INTEGER(remove) && (xc = nng_pipe_notify(*sock, NNG_PIPE_EV_REM_POST, pipe_cb_signal, cvp)))
     ERROR_OUT(xc);
 
+  R_MakeWeakRef(socket, cv, R_NilValue, FALSE);
   return nano_success;
 
 }
