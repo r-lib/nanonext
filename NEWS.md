@@ -17,6 +17,7 @@
  + Any existing usage of `error = TRUE` will work only until the next minor version.
 * Partial matching is no longer enabled for the `mode` argument to send/receive functions.
 * `send_aio()` without keeping a reference to the return value no longer potentially drops sends (thanks @wch, #129).
+* `pipe_notify()` no longer requires any particular sequencing of closing the socket and garbage collection of the socket / 'conditionVariable' (#143).
 * More robust interruption on non-Windows platforms when `tools::SIGINT` is supplied to the `flag` argument of `pipe_notify()` (thanks @LennardLux, #97).
 * Installation from source specifying 'INCLUDE_DIR' and 'LIB_DIR' environment variables works again, correcting a regression in v1.5.2 (#104).
 * Windows bi-arch source builds for R <= 4.1 using rtools40 and earlier work again (regression since v1.5.1) (thanks @daroczig, #107).
