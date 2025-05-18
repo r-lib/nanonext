@@ -56,6 +56,8 @@
 <li>Partial matching is no longer enabled for the <code>mode</code> argument to send/receive functions.</li>
 <li>
 <code><a href="../reference/send_aio.html">send_aio()</a></code> without keeping a reference to the return value no longer potentially drops sends (thanks <a href="https://github.com/wch" class="external-link">@wch</a>, <a href="https://github.com/r-lib/nanonext/issues/129" class="external-link">#129</a>).</li>
+<li>
+<code><a href="../reference/pipe_notify.html">pipe_notify()</a></code> no longer requires any particular sequencing of closing the socket and garbage collection of the socket / ‘conditionVariable’ (<a href="https://github.com/r-lib/nanonext/issues/143" class="external-link">#143</a>).</li>
 <li>More robust interruption on non-Windows platforms when <code><a href="https://rdrr.io/r/tools/pskill.html" class="external-link">tools::SIGINT</a></code> is supplied to the <code>flag</code> argument of <code><a href="../reference/pipe_notify.html">pipe_notify()</a></code> (thanks <a href="https://github.com/LennardLux" class="external-link">@LennardLux</a>, <a href="https://github.com/r-lib/nanonext/issues/97" class="external-link">#97</a>).</li>
 <li>Installation from source specifying ‘INCLUDE_DIR’ and ‘LIB_DIR’ environment variables works again, correcting a regression in v1.5.2 (<a href="https://github.com/r-lib/nanonext/issues/104" class="external-link">#104</a>).</li>
 <li>Windows bi-arch source builds for R &lt;= 4.1 using rtools40 and earlier work again (regression since v1.5.1) (thanks <a href="https://github.com/daroczig" class="external-link">@daroczig</a>, <a href="https://github.com/r-lib/nanonext/issues/107" class="external-link">#107</a>).</li>
