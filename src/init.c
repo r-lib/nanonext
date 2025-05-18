@@ -1,5 +1,22 @@
 // nanonext - package level registrations --------------------------------------
 
+//praveen🍉
+
+#include <Rinternals.h>
+
+extern SEXP rnng_http_echo_server(SEXP);
+
+static const R_CallMethodDef CallEntries[] = {
+    {"rnng_http_echo_server", (DL_FUNC) &rnng_http_echo_server, 1},
+    {NULL, NULL, 0}
+};
+
+void R_init_nanonext(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
+}
+
+
 #include "nanonext.h"
 
 void (*eln2)(void (*)(void *), void *, double, int) = NULL;

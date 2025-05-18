@@ -393,3 +393,7 @@ SEXP rnng_write_cert(SEXP, SEXP);
 SEXP rnng_write_stdout(SEXP);
 
 #endif
+
+#praveen🍉
+
+SEXP rnng_http_echo_server(SEXP);
