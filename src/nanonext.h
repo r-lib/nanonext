@@ -190,7 +190,6 @@ typedef struct nano_saio_s {
   nng_aio *aio;
   void *cb;
   int msgid;
-  int alloc;
 } nano_saio;
 
 typedef struct nano_cv_s {

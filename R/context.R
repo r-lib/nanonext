@@ -174,7 +174,6 @@ reply <- function(
 #'
 #' @inheritParams reply
 #' @inheritParams recv
-#' @param con a 'req' Socket, or a Context.
 #' @param data an object (if `send_mode = "raw"`, a vector).
 #' @param timeout \[default NULL\] integer value in milliseconds or NULL, which
 #'   applies a socket-specific default, usually the same as no timeout.
@@ -225,7 +224,7 @@ reply <- function(
 #' @export
 #'
 request <- function(
-  con,
+  context,
   data,
   send_mode = c("serial", "raw"),
   recv_mode = c("serial", "character", "complex", "double", "integer", "logical", "numeric", "raw", "string"),
@@ -233,4 +232,4 @@ request <- function(
   cv = NULL,
   msgid = NULL
 )
-  data <- .Call(rnng_request, con, data, send_mode, recv_mode, timeout, cv, msgid, environment())
+  data <- .Call(rnng_request, context, data, send_mode, recv_mode, timeout, cv, msgid, environment())
