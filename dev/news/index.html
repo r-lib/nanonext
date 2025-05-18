@@ -43,16 +43,13 @@
 <li>Adds <code><a href="../reference/write_stdout.html">write_stdout()</a></code> which performs a non-buffered write to <code>stdout</code>, to avoid interleaved messages when used concurrently by different processes.</li>
 <li>Adds <code><a href="../reference/read_stdin.html">read_stdin()</a></code> which performs a read from <code>stdin</code> on a background thread, relayed via an ‘inproc’ socket so that it may be consumed via <code><a href="../reference/recv.html">recv()</a></code> or <code><a href="../reference/recv_aio.html">recv_aio()</a></code>.</li>
 <li>
-<code><a href="../reference/request.html">request()</a></code> improvements:
-<ul><li>Accepts a ‘req’ socket directly, in which case a single-use context is created automatically for the request.</li>
-<li>Gains integer argument <code>msgid</code>. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).</li>
-</ul></li>
+<code><a href="../reference/request.html">request()</a></code> gains integer argument <code>msgid</code>. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).</li>
 </ul></div>
 <div class="section level5">
 <h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
 <ul><li>
 <code><a href="../reference/listen.html">listen()</a></code> and <code><a href="../reference/dial.html">dial()</a></code> argument <code>error</code> is replaced with <code>fail</code> to specify the failure mode - ‘warn’, ‘error’, or ‘none’ to just return an ‘errorValue’.</li>
-<li>Any existing usage of <code>error = TRUE</code> will work only until the next minor version.</li>
+<li>Any existing usage of <code>error = TRUE</code> will work only until the next release.</li>
 <li>Partial matching is no longer enabled for the <code>mode</code> argument to send/receive functions.</li>
 <li>
 <code><a href="../reference/send_aio.html">send_aio()</a></code> without keeping a reference to the return value no longer potentially drops sends (thanks <a href="https://github.com/wch" class="external-link">@wch</a>, <a href="https://github.com/r-lib/nanonext/issues/129" class="external-link">#129</a>).</li>
