@@ -7,14 +7,12 @@
 * Adds `pipe_id()` for returning the integer pipe ID for a resolved 'recvAio'.
 * Adds `write_stdout()` which performs a non-buffered write to `stdout`, to avoid interleaved messages when used concurrently by different processes.
 * Adds `read_stdin()` which performs a read from `stdin` on a background thread, relayed via an 'inproc' socket so that it may be consumed via `recv()` or `recv_aio()`.
-* `request()` improvements:
-  + Accepts a 'req' socket directly, in which case a single-use context is created automatically for the request.
-  + Gains integer argument `msgid`. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).
+* `request()` gains integer argument `msgid`. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).
 
 #### Updates
 
 * `listen()` and `dial()` argument `error` is replaced with `fail` to specify the failure mode - 'warn', 'error', or 'none' to just return an 'errorValue'.
- + Any existing usage of `error = TRUE` will work only until the next minor version.
+ + Any existing usage of `error = TRUE` will work only until the next release.
 * Partial matching is no longer enabled for the `mode` argument to send/receive functions.
 * `send_aio()` without keeping a reference to the return value no longer potentially drops sends (thanks @wch, #129).
 * `pipe_notify()` no longer requires any particular sequencing of closing the socket and garbage collection of the socket / 'conditionVariable' (#143).

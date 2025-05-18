@@ -166,10 +166,6 @@ static void request_finalizer(SEXP xptr) {
   nng_aio_free(xp->aio);
   if (xp->data != NULL)
     nng_msg_free((nng_msg *) xp->data);
-  if (saio->alloc) {
-    nng_ctx_close(*saio->ctx);
-    free(saio->ctx);
-  }
   free(saio);
   free(xp);
 
@@ -413,9 +409,8 @@ SEXP rnng_cv_signal(SEXP cvar) {
 
 SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeout, SEXP cvar, SEXP msgid, SEXP clo) {
 
-  const int sock = !NANO_PTR_CHECK(con, nano_SocketSymbol);
-  if (!sock && NANO_PTR_CHECK(con, nano_ContextSymbol))
-    Rf_error("`con` is not a valid Socket or Context");
+  if (NANO_PTR_CHECK(con, nano_ContextSymbol))
+    Rf_error("`con` is not a valid Context");
 
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
   const uint8_t mod = (uint8_t) nano_matcharg(recvmode);
@@ -432,7 +427,6 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
 
   nano_saio *saio = NULL;
   nano_aio *raio = NULL;
-  nng_ctx *ctx = NULL;
   nng_msg *msg = NULL;
   SEXP aio, env, fun;
   nano_buf buf;
@@ -449,20 +443,11 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   raio = calloc(1, sizeof(nano_aio));
   NANO_ENSURE_ALLOC(raio);
 
-  if (sock) {
-    nng_socket *sock = (nng_socket *) NANO_PTR(con);
-    ctx = malloc(sizeof(nng_ctx));
-    NANO_ENSURE_ALLOC(ctx);
-    if ((xc = nng_ctx_open(ctx, *sock)))
-      goto fail;
-  } else {
-    ctx = (nng_ctx *) NANO_PTR(con);
-  }
+  nng_ctx *ctx = (nng_ctx *) NANO_PTR(con);
   nano_cv *ncv = signal ? (nano_cv *) NANO_PTR(cvar) : NULL;
 
   saio->ctx = ctx;
   saio->msgid = id;
-  saio->alloc = sock;
 
   if ((xc = nng_msg_alloc(&msg, 0)) ||
       (xc = nng_msg_append(msg, buf.buf, buf.cur)) ||
@@ -504,8 +489,6 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   fail:
   nng_aio_free(saio->aio);
   failmem:
-  if (sock)
-    free(ctx);
   free(raio);
   free(saio);
   NANO_FREE(buf);
