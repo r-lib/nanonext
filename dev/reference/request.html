@@ -53,7 +53,7 @@ called for the value when required.</p>
 <span>    <span class="st">"numeric"</span>, <span class="st">"raw"</span>, <span class="st">"string"</span><span class="op">)</span>,</span>
 <span>  timeout <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cv <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  msgid <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  id <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -95,10 +95,10 @@ is complete, or NULL. If any other value is supplied, this will cause the
 pipe connection to be dropped when the async receive is complete.</p></dd>
 
 
-<dt id="arg-msgid">msgid<a class="anchor" aria-label="anchor" href="#arg-msgid"></a></dt>
+<dt id="arg-id">id<a class="anchor" aria-label="anchor" href="#arg-id"></a></dt>
 <dd><p>(optional) integer message ID to send a special payload to the
 context upon timeout (asynchronously) consisting of an integer zero,
-followed by the value of <code>msgid</code> supplied.</p></dd>
+followed by the value of <code>id</code> supplied.</p></dd>
 
 </dl></div>
     <div class="section level2">
