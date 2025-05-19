@@ -39,7 +39,7 @@ static void request_complete(void *arg) {
   } else if (res == 5) {
     const int id = saio->msgid;
     if (id) {
-      nng_msg *msg;
+      nng_msg *msg = NULL;
       if (nng_msg_alloc(&msg, 0) == 0) {
         if (nng_msg_append_u32(msg, 0) ||
             nng_msg_append(msg, &id, sizeof(id)) ||
@@ -473,7 +473,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
 
   PROTECT(aio = R_MakeExternalPtr(raio, nano_AioSymbol, NANO_PROT(con)));
   R_RegisterCFinalizerEx(aio, request_finalizer, TRUE);
-  Rf_setAttrib(aio, nano_SocketSymbol, con);
+  Rf_setAttrib(aio, nano_ContextSymbol, con);
   Rf_setAttrib(aio, nano_MsgidSymbol, Rf_ScalarInteger(id));
 
   PROTECT(env = R_NewEnv(R_NilValue, 0, 0));

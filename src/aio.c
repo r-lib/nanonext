@@ -20,6 +20,21 @@ static SEXP mk_error_aio(const int xc, SEXP env) {
 
 // aio completion callbacks ----------------------------------------------------
 
+static inline void nano_list_free(nano_node *list) {
+
+  while (list != NULL) {
+    nano_node *current = list;
+    list = list->next;
+    nano_aio *saio = (nano_aio *) current->data;
+    nng_aio_free(saio->aio);
+    if (saio->data != NULL)
+      free(saio->data);
+    free(saio);
+    free(current);
+  }
+
+}
+
 void nano_list_do(nano_list_op listop, nano_aio *saio) {
 
   static nano_node *free_list = NULL;
@@ -32,7 +47,7 @@ void nano_list_do(nano_list_op listop, nano_aio *saio) {
     break;
   case FINALIZE:
     nng_mtx_lock(free_mtx);
-    nano_list_do(FREE, NULL);
+    nano_list_free(free_list);
     if (saio->mode == 0x1) {
       nng_mtx_unlock(free_mtx);
       nng_aio_free(saio->aio);
@@ -60,24 +75,13 @@ void nano_list_do(nano_list_op listop, nano_aio *saio) {
   case SHUTDOWN:
     if (free_mtx == NULL) break;
     nng_mtx_lock(free_mtx);
-    nano_list_do(FREE, NULL);
+    nano_list_free(free_list);
     nng_mtx_unlock(free_mtx);
     nng_mtx_free(free_mtx);
     free_mtx = NULL;
     break;
-  case FREE: // must be entered under lock
-    while (free_list != NULL) {
-      nano_node *current = free_list;
-      free_list = free_list->next;
-      nano_aio *data = (nano_aio *) current->data;
-      nng_aio_free(data->aio);
-      if (data->data != NULL)
-        free(data->data);
-      free(data);
-      free(current);
-    }
-    break;
   }
+
 }
 
 static void saio_complete(void *arg) {

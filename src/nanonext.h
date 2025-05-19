@@ -235,7 +235,6 @@ typedef enum nano_list_op {
   INIT,
   FINALIZE,
   COMPLETE,
-  FREE,
   SHUTDOWN
 } nano_list_op;
 
