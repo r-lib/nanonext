@@ -7,7 +7,7 @@
 * Adds `pipe_id()` for returning the integer pipe ID for a resolved 'recvAio'.
 * Adds `write_stdout()` which performs a non-buffered write to `stdout`, to avoid interleaved messages when used concurrently by different processes.
 * Adds `read_stdin()` which performs a read from `stdin` on a background thread, relayed via an 'inproc' socket so that it may be consumed via `recv()` or `recv_aio()`.
-* `request()` gains integer argument `msgid`. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).
+* `request()` gains integer argument `id`. This may be specified to have a special payload sent asynchronously upon timeout (to communicate with the connected party).
 
 #### Updates
 

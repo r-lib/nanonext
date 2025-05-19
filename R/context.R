@@ -180,9 +180,9 @@ reply <- function(
 #' @param cv (optional) a 'conditionVariable' to signal when the async receive
 #'   is complete, or NULL. If any other value is supplied, this will cause the
 #'   pipe connection to be dropped when the async receive is complete.
-#' @param msgid (optional) integer message ID to send a special payload to the
+#' @param id (optional) integer message ID to send a special payload to the
 #'   context upon timeout (asynchronously) consisting of an integer zero,
-#'   followed by the value of `msgid` supplied.
+#'   followed by the value of `id` supplied.
 #'
 #' @return A 'recvAio' (object of class 'mirai' and 'recvAio') (invisibly).
 #'
@@ -230,6 +230,6 @@ request <- function(
   recv_mode = c("serial", "character", "complex", "double", "integer", "logical", "numeric", "raw", "string"),
   timeout = NULL,
   cv = NULL,
-  msgid = NULL
+  id = NULL
 )
-  data <- .Call(rnng_request, context, data, send_mode, recv_mode, timeout, cv, msgid, environment())
+  data <- .Call(rnng_request, context, data, send_mode, recv_mode, timeout, cv, id, environment())

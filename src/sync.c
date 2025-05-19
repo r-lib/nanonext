@@ -36,16 +36,13 @@ static void request_complete(void *arg) {
     raio->data = msg;
     nng_pipe p = nng_msg_get_pipe(msg);
     res = - (int) p.id;
-  } else if (res == 5) {
-    const int id = saio->msgid;
-    if (id) {
-      nng_msg *msg = NULL;
-      if (nng_msg_alloc(&msg, 0) == 0) {
-        if (nng_msg_append_u32(msg, 0) ||
-            nng_msg_append(msg, &id, sizeof(id)) ||
-            nng_ctx_sendmsg(*saio->ctx, msg, 0)) {
-          nng_msg_free(msg);
-        }
+  } else if (res == 5 && saio->id) {
+    nng_msg *msg = NULL;
+    if (nng_msg_alloc(&msg, 0) == 0) {
+      if (nng_msg_append_u32(msg, 0) ||
+          nng_msg_append(msg, &saio->id, sizeof(int)) ||
+          nng_ctx_sendmsg(*saio->ctx, msg, 0)) {
+        nng_msg_free(msg);
       }
     }
   }
@@ -447,7 +444,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   nano_cv *ncv = signal ? (nano_cv *) NANO_PTR(cvar) : NULL;
 
   saio->ctx = ctx;
-  saio->msgid = id;
+  saio->id = id;
 
   if ((xc = nng_msg_alloc(&msg, 0)) ||
       (xc = nng_msg_append(msg, buf.buf, buf.cur)) ||
@@ -474,7 +471,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   PROTECT(aio = R_MakeExternalPtr(raio, nano_AioSymbol, NANO_PROT(con)));
   R_RegisterCFinalizerEx(aio, request_finalizer, TRUE);
   Rf_setAttrib(aio, nano_ContextSymbol, con);
-  Rf_setAttrib(aio, nano_MsgidSymbol, Rf_ScalarInteger(id));
+  Rf_setAttrib(aio, nano_IdSymbol, Rf_ScalarInteger(id));
 
   PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
   Rf_classgets(env, nano_reqAio);
