@@ -13,7 +13,7 @@ to run the examples.
 \examples{
 if (Sys.info()[["sysname"]] == "Linux") {
   rm(list = ls())
-  gc()
+  invisible(gc())
   .Call(nanonext:::rnng_fini_priors)
   Sys.sleep(1L)
   .Call(nanonext:::rnng_fini)
