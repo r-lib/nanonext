@@ -11,3 +11,4 @@
 ^compile_commands\.json$
 ^\.cache$
 ^vignettes-src$
+^cran-comments\.md$
