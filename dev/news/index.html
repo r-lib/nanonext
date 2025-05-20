@@ -51,8 +51,9 @@
 <div class="section level5">
 <h5 id="updates-1-6-0">Updates<a class="anchor" aria-label="anchor" href="#updates-1-6-0"></a></h5>
 <ul><li>
-<code><a href="../reference/listen.html">listen()</a></code> and <code><a href="../reference/dial.html">dial()</a></code> argument <code>error</code> is replaced with <code>fail</code> to specify the failure mode - ‘warn’, ‘error’, or ‘none’ to just return an ‘errorValue’.</li>
-<li>Any existing usage of <code>error = TRUE</code> will work only until the next release.</li>
+<code><a href="../reference/listen.html">listen()</a></code> and <code><a href="../reference/dial.html">dial()</a></code> argument <code>error</code> is replaced with <code>fail</code> to specify the failure mode - ‘warn’, ‘error’, or ‘none’ to just return an ‘errorValue’.
+<ul><li>Any existing usage of <code>error = TRUE</code> will work only until the next release.</li>
+</ul></li>
 <li>Partial matching is no longer enabled for the <code>mode</code> argument to send/receive functions.</li>
 <li>
 <code><a href="../reference/send_aio.html">send_aio()</a></code> without keeping a reference to the return value no longer potentially drops sends (thanks <a href="https://github.com/wch" class="external-link">@wch</a>, <a href="https://github.com/r-lib/nanonext/issues/129" class="external-link">#129</a>).</li>
