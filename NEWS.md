@@ -14,7 +14,7 @@
 #### Updates
 
 * `listen()` and `dial()` argument `error` is replaced with `fail` to specify the failure mode - 'warn', 'error', or 'none' to just return an 'errorValue'.
- + Any existing usage of `error = TRUE` will work only until the next release.
+  + Any existing usage of `error = TRUE` will work only until the next release.
 * Partial matching is no longer enabled for the `mode` argument to send/receive functions.
 * `send_aio()` without keeping a reference to the return value no longer potentially drops sends (thanks @wch, #129).
 * `pipe_notify()` no longer requires any particular sequencing of closing the socket and garbage collection of the socket / 'conditionVariable' (#143).
