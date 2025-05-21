@@ -7,8 +7,10 @@ TLS_VER="362"
 # Initialise
 PKG_CFLAGS=""
 PKG_LIBS=""
+MBEDTLS_CFLAGS=""
+MBEDTLS_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto"
 NNG_CFLAGS=""
-NNG_LIBS=""
+NNG_LIBS="-lnng"
 
 # Find compiler and export flags
 CC=`"${R_HOME}/bin/R" CMD config CC`
@@ -38,32 +40,29 @@ if [ -z "$NANONEXT_LIBS" ]; then
 # Find MbedTLS and compile if necessary
 if [ "$INCLUDE_DIR" ] || [ "$LIB_DIR" ]
 then
-  PKG_CFLAGS="-I$INCLUDE_DIR $PKG_CFLAGS"
-  PKG_LIBS="-L$LIB_DIR -lmbedtls -lmbedx509 -lmbedcrypto $PKG_LIBS"
+  MBEDTLS_CFLAGS="-I$INCLUDE_DIR"
+  MBEDTLS_LIBS="-L$LIB_DIR $MBEDTLS_LIBS"
   echo "Found INCLUDE_DIR $INCLUDE_DIR"
   echo "Found LIB_DIR $LIB_DIR"
 elif [ -d "/usr/local/include/mbedtls" ]
 then
-  PKG_CFLAGS="-I/usr/local/include $PKG_CFLAGS"
-  PKG_LIBS="-L/usr/local/lib -lmbedtls -lmbedx509 -lmbedcrypto $PKG_LIBS"
-  echo "Found 'libmbedtls' $PKG_CFLAGS"
+  MBEDTLS_CFLAGS="-I/usr/local/include"
+  MBEDTLS_LIBS="-L/usr/local/lib $MBEDTLS_LIBS"
 elif [ -d "/usr/include/mbedtls" ]
 then
-  PKG_CFLAGS="-I/usr/include $PKG_CFLAGS"
-  PKG_LIBS="-L/usr/lib -lmbedtls -lmbedx509 -lmbedcrypto $PKG_LIBS"
-  echo "Found 'libmbedtls' $PKG_CFLAGS"
+  MBEDTLS_CFLAGS="-I/usr/include"
+  MBEDTLS_LIBS="-L/usr/lib $MBEDTLS_LIBS"
 elif [ -d "/usr/local/opt/mbedtls" ]
 then
-  PKG_CFLAGS="-I/usr/local/opt/mbedtls/include $PKG_CFLAGS"
-  PKG_LIBS="-L/usr/local/opt/mbedtls/lib -lmbedtls -lmbedx509 -lmbedcrypto $PKG_LIBS"
-  echo "Found 'libmbedtls' $PKG_CFLAGS"
+  MBEDTLS_CFLAGS="-I/usr/local/opt/mbedtls/include"
+  MBEDTLS_LIBS="-L/usr/local/opt/mbedtls/lib $MBEDTLS_LIBS"
 fi
 echo "#include <mbedtls/version.h>
 int main() {
 #if MBEDTLS_VERSION_MAJOR < 2 || MBEDTLS_VERSION_MAJOR == 2 && MBEDTLS_VERSION_MINOR < 5
     *(void *) 0 = 0;
 #endif
-}" | ${CC} ${PKG_CFLAGS} -xc - -o /dev/null > /dev/null 2>&1
+}" | ${CC} ${MBEDTLS_CFLAGS} -xc - -o /dev/null > /dev/null 2>&1
 
 else
   echo "NANONEXT_LIBS is set... skipping detection"
@@ -104,6 +103,10 @@ then
   cmake --build . --target install
   cd ..
   rm -rf mbedtls-$TLS_VER
+else
+  echo "Found 'libmbedtls' $MBEDTLS_CFLAGS"
+  PKG_CFLAGS="$MBEDTLS_CFLAGS $PKG_CFLAGS"
+  PKG_LIBS="$MBEDTLS_LIBS $PKG_LIBS"
 fi
 
 # Force build bundled libs
@@ -113,19 +116,19 @@ if [ -z "$NANONEXT_LIBS" ]; then
 if [ "$INCLUDE_DIR" ] || [ "$LIB_DIR" ]
 then
   NNG_CFLAGS="-I$INCLUDE_DIR"
-  NNG_LIBS="-L$LIB_DIR -lnng"
+  NNG_LIBS="-L$LIB_DIR $NNG_LIBS"
 elif [ -d "/usr/local/include/nng" ]
 then
   NNG_CFLAGS="-I/usr/local/include"
-  NNG_LIBS="-L/usr/local/lib -lnng"
+  NNG_LIBS="-L/usr/local/lib $NNG_LIBS"
 elif [ -d "/usr/include/nng" ]
 then
   NNG_CFLAGS="-I/usr/include"
-  NNG_LIBS="-L/usr/lib -lnng"
+  NNG_LIBS="-L/usr/lib $NNG_LIBS"
 elif [ -d "/usr/local/opt/nng" ]
 then
   NNG_CFLAGS="-I/usr/local/opt/nng/include"
-  NNG_LIBS="-L/usr/local/opt/nng/lib -lnng"
+  NNG_LIBS="-L/usr/local/opt/nng/lib $NNG_LIBS"
 fi
 
 echo "#include <nng/nng.h>
