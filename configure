@@ -6,7 +6,7 @@ TLS_VER="362"
 
 # Initialise
 PKG_CFLAGS=""
-PKG_LIBS=""
+PKG_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto"
 NNG_CFLAGS=""
 NNG_LIBS=""
 
@@ -39,24 +39,21 @@ if [ -z "$NANONEXT_LIBS" ]; then
 if [ "$INCLUDE_DIR" ] || [ "$LIB_DIR" ]
 then
   PKG_CFLAGS="-I$INCLUDE_DIR $PKG_CFLAGS"
-  PKG_LIBS="-L$LIB_DIR -lmbedtls -lmbedx509 -lmbedcrypto $PKG_LIBS"
+  PKG_LIBS="-L$LIB_DIR $PKG_LIBS"
   echo "Found INCLUDE_DIR $INCLUDE_DIR"
   echo "Found LIB_DIR $LIB_DIR"
 elif [ -d "/usr/local/include/mbedtls" ]
 then
   PKG_CFLAGS="-I/usr/local/include $PKG_CFLAGS"
-  PKG_LIBS="-L/usr/local/lib -lmbedtls -lmbedx509 -lmbedcrypto $PKG_LIBS"
-  echo "Found 'libmbedtls' $PKG_CFLAGS"
+  PKG_LIBS="-L/usr/local/lib $PKG_LIBS"
 elif [ -d "/usr/include/mbedtls" ]
 then
   PKG_CFLAGS="-I/usr/include $PKG_CFLAGS"
-  PKG_LIBS="-L/usr/lib -lmbedtls -lmbedx509 -lmbedcrypto $PKG_LIBS"
-  echo "Found 'libmbedtls' $PKG_CFLAGS"
+  PKG_LIBS="-L/usr/lib $PKG_LIBS"
 elif [ -d "/usr/local/opt/mbedtls" ]
 then
   PKG_CFLAGS="-I/usr/local/opt/mbedtls/include $PKG_CFLAGS"
-  PKG_LIBS="-L/usr/local/opt/mbedtls/lib -lmbedtls -lmbedx509 -lmbedcrypto $PKG_LIBS"
-  echo "Found 'libmbedtls' $PKG_CFLAGS"
+  PKG_LIBS="-L/usr/local/opt/mbedtls/lib $PKG_LIBS"
 fi
 echo "#include <mbedtls/version.h>
 int main() {
@@ -66,12 +63,14 @@ int main() {
 }" | ${CC} ${PKG_CFLAGS} -xc - -o /dev/null > /dev/null 2>&1
 
 else
+  PKG_LIBS=""
   echo "NANONEXT_LIBS is set... skipping detection"
   false
 fi
 
 if [ $? -ne 0 ]
 then
+  PKG_LIBS=""
   echo "Existing 'libmbedtls' >= 2.5.0 not found"
   echo "Detecting 'cmake'..."
   which cmake
@@ -104,6 +103,8 @@ then
   cmake --build . --target install
   cd ..
   rm -rf mbedtls-$TLS_VER
+else
+  echo "Found 'libmbedtls' $PKG_CFLAGS"
 fi
 
 # Force build bundled libs
