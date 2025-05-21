@@ -1,5 +1,9 @@
 # nanonext (development version)
 
+#### Updates
+
+* Fixes package installation with 'libmbedtls' in a non-standard filesystem location, even if known to the compiler (thanks @tdhock, #150).
+
 # nanonext 1.6.0
 
 #### New Features
