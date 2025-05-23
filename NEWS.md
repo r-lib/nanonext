@@ -2,6 +2,11 @@
 
 #### Updates
 
+* The previous `listen()` and `dial()` argument `error`, removed in v1.6.0, is now defunct.
+* The previous `serial_config()` argument `vec`, unutilised since v1.6.0, is removed.
+
+#### Updates
+
 * Fixes package installation with 'libmbedtls' in a non-standard filesystem location, even if known to the compiler (thanks @tdhock, #150).
 
 # nanonext 1.6.0

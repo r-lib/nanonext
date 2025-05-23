@@ -9,8 +9,7 @@ listen(
   url = "inproc://nanonext",
   tls = NULL,
   autostart = TRUE,
-  fail = c("warn", "error", "none"),
-  ...
+  fail = c("warn", "error", "none")
 )
 }
 \arguments{
@@ -30,8 +29,6 @@ possible to change these once started.}
 \item{fail}{[default 'warn'] failure mode - a character value or integer
 equivalent, whether to warn (1L), error (2L), or for none (3L) just return
 an 'errorValue' without any corresponding warning.}
-
-\item{...}{not used (and will be removed).}
 }
 \value{
 Invisibly, an integer exit code (zero on success). A new Listener
