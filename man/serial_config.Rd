@@ -4,7 +4,7 @@
 \alias{serial_config}
 \title{Create Serialization Configuration}
 \usage{
-serial_config(class, sfunc, ufunc, vec = FALSE)
+serial_config(class, sfunc, ufunc)
 }
 \arguments{
 \item{class}{a character string (or vector) of the class of object custom
@@ -16,9 +16,6 @@ object inheriting from \code{class} and returns a raw vector.}
 
 \item{ufunc}{a function (or list of functions) that accepts a raw vector and
 returns a reference object.}
-
-\item{vec}{do not specify (retained for compatibility only and will be
-removed).}
 }
 \value{
 A list comprising the configuration. This should be set on a Socket

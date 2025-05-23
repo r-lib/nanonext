@@ -268,8 +268,6 @@ status_code <- function(x) .Call(rnng_status_code, x)
 #'   object inheriting from `class` and returns a raw vector.
 #' @param ufunc a function (or list of functions) that accepts a raw vector and
 #'   returns a reference object.
-#' @param vec do not specify (retained for compatibility only and will be
-#'   removed).
 #'
 #' @return A list comprising the configuration. This should be set on a Socket
 #'   using [opt<-()] with option name `"serial"`.
@@ -295,7 +293,7 @@ status_code <- function(x) .Call(rnng_status_code, x)
 #'
 #' @export
 #'
-serial_config <- function(class, sfunc, ufunc, vec = FALSE)
+serial_config <- function(class, sfunc, ufunc)
   .Call(rnng_serial_config, class, sfunc, ufunc)
 
 #' Write to Stdout
