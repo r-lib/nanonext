@@ -244,6 +244,7 @@ typedef struct nano_node_s {
   struct nano_node_s *next;
 } nano_node;
 
+extern int special_header;
 extern void (*eln2)(void (*)(void *), void *, double, int);
 
 extern SEXP nano_AioSymbol;

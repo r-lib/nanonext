@@ -408,19 +408,17 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
 
   if (NANO_PTR_CHECK(con, nano_ContextSymbol))
     Rf_error("`con` is not a valid Context");
+  nng_ctx *ctx = (nng_ctx *) NANO_PTR(con);
 
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
   const uint8_t mod = (uint8_t) nano_matcharg(recvmode);
   const int raw = nano_encode_mode(sendmode);
-  const int id = msgid != R_NilValue ? NANO_INTEGER(msgid) : 0;
-  int signal, drop, xc;
-  if (cvar == R_NilValue) {
-    signal = 0;
-    drop = 0;
-  } else {
-    signal = !NANO_PTR_CHECK(cvar, nano_CvSymbol);
-    drop = 1 - signal;
-  }
+  const int id = msgid != R_NilValue ? nng_ctx_id(*ctx) : 0;
+  const int signal = cvar != R_NilValue && !NANO_PTR_CHECK(cvar, nano_CvSymbol);
+  const int drop = cvar != R_NilValue && !signal;
+  int xc;
+
+  nano_cv *ncv = signal ? (nano_cv *) NANO_PTR(cvar) : NULL;
 
   nano_saio *saio = NULL;
   nano_aio *raio = NULL;
@@ -431,6 +429,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   if (raw) {
     nano_encode(&buf, data);
   } else {
+    special_header = id;
     nano_serialize(&buf, data, NANO_PROT(con));
   }
 
@@ -439,9 +438,6 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
 
   raio = calloc(1, sizeof(nano_aio));
   NANO_ENSURE_ALLOC(raio);
-
-  nng_ctx *ctx = (nng_ctx *) NANO_PTR(con);
-  nano_cv *ncv = signal ? (nano_cv *) NANO_PTR(cvar) : NULL;
 
   saio->ctx = ctx;
   saio->id = id;
