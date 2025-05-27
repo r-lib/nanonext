@@ -4,8 +4,8 @@
 
 // internals -------------------------------------------------------------------
 
+int special_header = 0;
 static int special_marker = 0;
-static int special_header = 0;
 static nano_serial_bundle nano_bundle;
 static SEXP nano_eval_res;
 
