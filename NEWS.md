@@ -2,6 +2,7 @@
 
 #### Updates
 
+* `request()` argument `id` is now a logical rather than integer argument.
 * The previous `listen()` and `dial()` argument `error`, removed in v1.6.0, is now defunct.
 * The previous `serial_config()` argument `vec`, unutilised since v1.6.0, is removed.
 
