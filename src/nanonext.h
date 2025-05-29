@@ -244,7 +244,6 @@ typedef struct nano_node_s {
   struct nano_node_s *next;
 } nano_node;
 
-extern int special_header;
 extern void (*eln2)(void (*)(void *), void *, double, int);
 
 extern SEXP nano_AioSymbol;
@@ -297,7 +296,7 @@ int nano_integer(const SEXP);
 SEXP mk_error(const int);
 SEXP mk_error_data(const int);
 SEXP nano_raw_char(const unsigned char *, const size_t);
-void nano_serialize(nano_buf *, const SEXP, SEXP);
+void nano_serialize(nano_buf *, const SEXP, SEXP, int);
 SEXP nano_unserialize(unsigned char *, const size_t, SEXP);
 SEXP nano_decode(unsigned char *, const size_t, const uint8_t, SEXP);
 void nano_encode(nano_buf *, const SEXP);
@@ -341,7 +340,6 @@ SEXP rnng_fini(void);
 SEXP rnng_fini_priors(void);
 SEXP rnng_get_opt(SEXP, SEXP);
 SEXP rnng_header_read(SEXP);
-SEXP rnng_header_set(SEXP);
 SEXP rnng_interrupt_switch(SEXP);
 SEXP rnng_ip_addr(void);
 SEXP rnng_is_error_value(SEXP);

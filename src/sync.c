@@ -429,8 +429,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   if (raw) {
     nano_encode(&buf, data);
   } else {
-    special_header = id;
-    nano_serialize(&buf, data, NANO_PROT(con));
+    nano_serialize(&buf, data, NANO_PROT(con), id);
   }
 
   saio = calloc(1, sizeof(nano_saio));

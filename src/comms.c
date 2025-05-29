@@ -344,7 +344,7 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
     if (raw) {
       nano_encode(&buf, data);
     } else {
-      nano_serialize(&buf, data, NANO_PROT(con));
+      nano_serialize(&buf, data, NANO_PROT(con), 0);
     }
     nng_msg *msgp = NULL;
 
