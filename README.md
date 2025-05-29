@@ -229,6 +229,8 @@ We would like to acknowledge in particular:
   Cheng](https://github.com/coolbutuseless) for meticulous documentation
   of the R serialization mechanism, which led to the package’s own
   implementation of a low-level interface to R serialization.
+- [Travers Ching](https://github.com/traversc) for a novel idea in
+  extending the original custom serialization support in the package.
 - [Jeroen Ooms](https://github.com/jeroen) - for his ‘Anticonf (tm)’
   configure script, on which our original ‘configure’ was based,
   although much modified since.
