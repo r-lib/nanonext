@@ -360,7 +360,7 @@ SEXP rnng_cv_reset(SEXP cvar) {
   nng_mtx *mtx = ncv->mtx;
 
   nng_mtx_lock(mtx);
-  ncv->flag = 0;
+  ncv->flag = ncv->flag < 0;
   ncv->condition = 0;
   nng_mtx_unlock(mtx);
 
