@@ -368,23 +368,11 @@ ip_addr <- function() .Call(rnng_ip_addr)
 #'
 #' Internal package functions.
 #'
-#' @param value integer value.
-#'
-#' @return For `.header()`: the integer `value` supplied.
-#'
-#' @keywords internal
-#' @export
-#'
-.header <- function(value = 0L) .Call(rnng_header_set, value)
-
-#' Read Serialization Header
-#'
 #' @param x raw vector.
 #'
 #' @return For `.read_header()`: integer value.
 #'
 #' @keywords internal
-#' @rdname dot-header
 #' @export
 #'
 .read_header <- function(x) .Call(rnng_header_read, x)
@@ -396,7 +384,7 @@ ip_addr <- function() .Call(rnng_ip_addr)
 #' @return For `.mark()`: the logical `bool` supplied.
 #'
 #' @keywords internal
-#' @rdname dot-header
+#' @rdname dot-read_header
 #' @export
 #'
 .mark <- function(bool = TRUE) .Call(rnng_marker_set, bool)
@@ -408,7 +396,7 @@ ip_addr <- function() .Call(rnng_ip_addr)
 #' @return For `.read_marker()`: logical value `TRUE` or `FALSE`.
 #'
 #' @keywords internal
-#' @rdname dot-header
+#' @rdname dot-read_header
 #' @export
 #'
 .read_marker <- function(x) .Call(rnng_marker_read, x)

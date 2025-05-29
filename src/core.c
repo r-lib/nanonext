@@ -4,7 +4,6 @@
 
 // internals -------------------------------------------------------------------
 
-int special_header = 0;
 static int special_marker = 0;
 static nano_serial_bundle nano_bundle;
 static SEXP nano_eval_res;
@@ -316,16 +315,16 @@ SEXP nano_raw_char(const unsigned char *buf, const size_t sz) {
 
 }
 
-void nano_serialize(nano_buf *buf, SEXP object, SEXP hook) {
+void nano_serialize(nano_buf *buf, SEXP object, SEXP hook, int header) {
 
   NANO_ALLOC(buf, NANONEXT_INIT_BUFSIZE);
   struct R_outpstream_st output_stream;
 
-  if (special_header || special_marker) {
+  if (header || special_marker) {
     buf->buf[0] = 0x7;
     buf->buf[3] = (uint8_t) special_marker;
-    if (special_header)
-      memcpy(buf->buf + 4, &special_header, sizeof(int));
+    if (header)
+      memcpy(buf->buf + 4, &header, sizeof(int));
     buf->cur += 8;
   }
 
@@ -613,13 +612,6 @@ SEXP rnng_marker_read(SEXP x) {
     res = buf[0] == 0x7 && buf[3] == 0x1;
   }
   return Rf_ScalarLogical(res);
-
-}
-
-SEXP rnng_header_set(SEXP x) {
-
-  special_header = NANO_INTEGER(x);
-  return x;
 
 }
 
