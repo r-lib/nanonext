@@ -653,6 +653,12 @@ if (!interactive() && Sys.getenv("NOT_CRAN") == "true") {
   test_equal(collect_aio(r), 7L)
 }
 
+if (Sys.getenv("NOT_CRAN") == "true") {
+  system2(file.path(R.home("bin"), if (.Platform$OS.type == "unix") "Rscript" else "Rscript.exe"), args = c("-e", shQuote("nanonext:::.test()")), wait = FALSE)
+  test_class("nanoStream", s <- stream(listen = "ws://127.0.0.1:5555", textframes = TRUE))
+  test_zero(close(s))
+}
+
 if (Sys.info()[["sysname"]] == "Linux") {
   rm(list = ls())
   invisible(gc())

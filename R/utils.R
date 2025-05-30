@@ -415,6 +415,11 @@ ip_addr <- function() .Call(rnng_ip_addr)
 #'
 .interrupt <- function(x = TRUE) .Call(rnng_interrupt_switch, x)
 
+.test <- function() {
+  Sys.sleep(0.5)
+  close(stream(dial = "ws://127.0.0.1:5555", textframes = TRUE))
+}
+
 #' Internal Package Function
 #'
 #' Only present for cleaning up after running examples and tests. Do not attempt
