@@ -179,8 +179,8 @@ install.packages("nanonext", repos = "https://r-lib.r-universe.dev")
 
 Installation from source requires ‘libnng’ \>= v1.9.0 and ‘libmbedtls’
 \>= 2.5.0 (suitable installations are automatically detected), or else
-‘cmake’ to compile ‘libnng’ v1.10.2 pre-release and ‘libmbedtls’ v3.6.2
-included within the package sources.
+‘cmake’ to compile ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.2 included
+within the package sources.
 
 **It is recommended for optimal performance and stability to let the
 package automatically compile bundled versions of ‘libmbedtls’ and
@@ -202,9 +202,9 @@ OpenCSW - refer to the ‘cmake’ website for the latest source file.*
 
 #### Windows
 
-On Windows, ‘libnng’ v1.10.2 pre-release and ‘libmbedtls’ v3.6.2 will be
-compiled from the package sources during installation and hence requires
-the ‘Rtools’ toolchain.
+On Windows, ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.2 will be compiled
+from the package sources during installation and hence requires the
+‘Rtools’ toolchain.
 
 For R \>= 4.2 using the ‘Rtools42’ or newer toolchains, the prerequisite
 ‘cmake’ is included. For previous R versions using ‘Rtools40’ or

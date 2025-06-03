@@ -1,5 +1,5 @@
 # Library versions
-LIB_VER="110-2a"
+LIB_VER="111"
 TLS_VER="362"
 
 tar -xf src/mbedtls-$TLS_VER.tar.xz
