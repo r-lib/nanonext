@@ -5,11 +5,8 @@
 * `cv_reset()` now correctly resets the flag in the case a flag event has already been registered with `pipe_notify()`.
 * The previous `listen()` and `dial()` argument `error`, removed in v1.6.0, is now defunct.
 * The previous `serial_config()` argument `vec`, unutilised since v1.6.0, is removed.
-* Bundled 'libnng' updated to 1.11.0 release.
-
-#### Updates
-
 * Fixes package installation with 'libmbedtls' in a non-standard filesystem location, even if known to the compiler (thanks @tdhock, #150).
+* Bundled 'libnng' updated to 1.11.0 release.
 
 # nanonext 1.6.0
 
