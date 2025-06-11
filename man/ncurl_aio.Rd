@@ -32,7 +32,7 @@ A non-character or non-named vector will be ignored.}
 
 \item{data}{(optional) character string request data to be submitted. If a
 vector, only the first element is taken, and non-character objects are
-ignored.}
+ignored. Alternatively a raw vector giving the data to transfer directly}
 
 \item{response}{(optional) a character vector specifying the response headers
 to return e.g. \code{c("date", "server")}. These are case-insensitive and
@@ -72,9 +72,19 @@ nano cURL - a minimalist http(s) client - async edition.
 
 The promises created are completely event-driven and non-polling.
 
-If a status code of 200 (OK) is returned then the promise is resolved with
-the reponse body, otherwise it is rejected with a translation of the status
-code or 'errorValue' as the case may be.
+The promise is resolved to a list with the following elements:
+\itemize{
+\item \verb{$status} - integer HTTP repsonse status code (200 - OK).
+Use \code{\link[=status_code]{status_code()}} for a translation of the meaning.
+\item \verb{$headers} - named list of response headers supplied in \code{response},
+or NULL otherwise. If the status code is within the 300 range, i.e. a
+redirect, the response header 'Location' is automatically appended to
+return the redirect address.
+\item \verb{$body} - the response body, as a character string if
+\code{convert = TRUE} (may be further parsed as html, json, xml etc. as
+required), or a raw byte vector if FALSE (use \code{\link[=writeBin]{writeBin()}} to save as a
+file).
+}
 }
 
 \examples{

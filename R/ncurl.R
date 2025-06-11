@@ -19,7 +19,7 @@
 #'   A non-character or non-named vector will be ignored.
 #' @param data (optional) character string request data to be submitted. If a
 #'   vector, only the first element is taken, and non-character objects are
-#'   ignored.
+#'   ignored. Alternatively a raw vector giving the data to transfer directly
 #' @param response (optional) a character vector specifying the response headers
 #'   to return e.g. `c("date", "server")`. These are case-insensitive and
 #'   will return NULL if not present. A non-character vector will be ignored.
@@ -111,9 +111,19 @@ ncurl <- function(
 #'
 #' The promises created are completely event-driven and non-polling.
 #'
-#' If a status code of 200 (OK) is returned then the promise is resolved with
-#' the reponse body, otherwise it is rejected with a translation of the status
-#' code or 'errorValue' as the case may be.
+#' The promise is resolved to a list with the following elements:
+#'   \itemize{
+#'     \item `$status` - integer HTTP repsonse status code (200 - OK).
+#'     Use [status_code()] for a translation of the meaning.
+#'     \item `$headers` - named list of response headers supplied in `response`,
+#'     or NULL otherwise. If the status code is within the 300 range, i.e. a
+#'     redirect, the response header 'Location' is automatically appended to
+#'     return the redirect address.
+#'     \item `$body` - the response body, as a character string if
+#'     `convert = TRUE` (may be further parsed as html, json, xml etc. as
+#'     required), or a raw byte vector if FALSE (use [writeBin()] to save as a
+#'     file).
+#'   }
 #'
 #' @seealso [ncurl()] for synchronous http requests; [ncurl_session()] for
 #'   persistent connections.
@@ -246,8 +256,11 @@ as.promise.ncurlAio <- function(x) {
         function(resolve, reject) .keep(x, environment())
       )$then(
         onFulfilled = function(value, .visible) {
-          value == 200L || stop(if (value < 100) nng_error(value) else status_code(value))
-          .subset2(x, "value")
+          list(
+            status = .subset2(x, "status"),
+            headers = .subset2(x, "headers"),
+            body = .subset2(x, "data")
+          )
         }
       )
     } else {
@@ -255,8 +268,11 @@ as.promise.ncurlAio <- function(x) {
       promises::promise(
         function(resolve, reject)
           resolve({
-            value == 200L || stop(if (value < 100) nng_error(value) else status_code(value))
-            .subset2(x, "value")
+            list(
+              status = .subset2(x, "status"),
+              headers = .subset2(x, "headers"),
+              body = .subset2(x, "data")
+            )
           })
       )
     }

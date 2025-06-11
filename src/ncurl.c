@@ -1,5 +1,6 @@
 // nanonext - C level - ncurl --------------------------------------------------
 
+#include "Rinternals.h"
 #define NANONEXT_HTTP
 #include "nanonext.h"
 
@@ -55,6 +56,15 @@ static nano_buf nano_char_buf(const SEXP data) {
   nano_buf buf;
   const char *s = NANO_STRING(data);
   NANO_INIT(&buf, (unsigned char *) s, strlen(s));
+
+  return buf;
+
+}
+
+static nano_buf nano_raw_buf(const SEXP data) {
+
+  nano_buf buf;
+  NANO_INIT(&buf, RAW(data), Rf_xlength(data));
 
   return buf;
 
@@ -175,8 +185,11 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
       }
     }
   }
-  if (data != R_NilValue && TYPEOF(data) == STRSXP) {
-    nano_buf enc = nano_char_buf(data);
+  if (data != R_NilValue) {
+    nano_buf enc;
+    if (TYPEOF(data) == STRSXP) enc = nano_char_buf(data);
+    else if (TYPEOF(data) == RAWSXP) enc = nano_raw_buf(data);
+    else goto fail;
     if ((xc = nng_http_req_set_data(req, enc.buf, enc.cur)))
       goto fail;
   }
@@ -345,8 +358,11 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
       }
     }
   }
-  if (data != R_NilValue && TYPEOF(data) == STRSXP) {
-    nano_buf enc = nano_char_buf(data);
+  if (data != R_NilValue) {
+    nano_buf enc;
+    if (TYPEOF(data) == STRSXP) enc = nano_char_buf(data);
+    else if (TYPEOF(data) == RAWSXP) enc = nano_raw_buf(data);
+    else goto fail;
     if ((xc = nng_http_req_set_data(handle->req, enc.buf, enc.cur)))
       goto fail;
   }
@@ -550,8 +566,11 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
       }
     }
   }
-  if (data != R_NilValue && TYPEOF(data) == STRSXP) {
-    nano_buf enc = nano_char_buf(data);
+  if (data != R_NilValue) {
+    nano_buf enc;
+    if (TYPEOF(data) == STRSXP) enc = nano_char_buf(data);
+    else if (TYPEOF(data) == RAWSXP) enc = nano_raw_buf(data);
+    else goto fail;
     if ((xc = nng_http_req_set_data(handle->req, enc.buf, enc.cur)))
       goto fail;
   }
