@@ -37,7 +37,7 @@ A non-character or non-named vector will be ignored.}
 
 \item{data}{(optional) character string request data to be submitted. If a
 vector, only the first element is taken, and non-character objects are
-ignored.}
+ignored. Alternatively a raw vector giving the data to transfer directly}
 
 \item{response}{(optional) a character vector specifying the response headers
 to return e.g. \code{c("date", "server")}. These are case-insensitive and
