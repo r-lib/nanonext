@@ -17,9 +17,11 @@
 #'   request headers, for example: \cr
 #'   `c(Authorization = "Bearer APIKEY", "Content-Type" = "text/plain")` \cr
 #'   A non-character or non-named vector will be ignored.
-#' @param data (optional) character string request data to be submitted. If a
-#'   vector, only the first element is taken, and non-character objects are
-#'   ignored.
+#' @param data (optional) request data to be submitted. Must be a character
+#'   string or raw vector, and other objects are ignored. If a character vector,
+#'   only the first element is taken. When supplying binary data, the
+#'   appropriate 'Content-Type' header should be set to specify the binary
+#'   format.
 #' @param response (optional) a character vector specifying the response headers
 #'   to return e.g. `c("date", "server")`. These are case-insensitive and
 #'   will return NULL if not present. A non-character vector will be ignored.

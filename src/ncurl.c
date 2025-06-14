@@ -52,9 +52,16 @@ static SEXP mk_error_ncurlaio(const int xc) {
 
 static nano_buf nano_char_buf(const SEXP data) {
 
-  nano_buf buf;
-  const char *s = NANO_STRING(data);
-  NANO_INIT(&buf, (unsigned char *) s, strlen(s));
+  nano_buf buf = {0};
+  switch (TYPEOF(data)) {
+  case STRSXP: ;
+    const char *s = NANO_STRING(data);
+    NANO_INIT(&buf, (unsigned char *) s, strlen(s));
+    break;
+  case RAWSXP:
+    NANO_INIT(&buf, NANO_DATAPTR(data), XLENGTH(data));
+    break;
+  }
 
   return buf;
 
@@ -175,9 +182,9 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
       }
     }
   }
-  if (data != R_NilValue && TYPEOF(data) == STRSXP) {
+  if (data != R_NilValue) {
     nano_buf enc = nano_char_buf(data);
-    if ((xc = nng_http_req_set_data(req, enc.buf, enc.cur)))
+    if (enc.cur && (xc = nng_http_req_set_data(req, enc.buf, enc.cur)))
       goto fail;
   }
 
@@ -345,9 +352,9 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
       }
     }
   }
-  if (data != R_NilValue && TYPEOF(data) == STRSXP) {
+  if (data != R_NilValue) {
     nano_buf enc = nano_char_buf(data);
-    if ((xc = nng_http_req_set_data(handle->req, enc.buf, enc.cur)))
+    if (enc.cur && (xc = nng_http_req_set_data(handle->req, enc.buf, enc.cur)))
       goto fail;
   }
 
@@ -550,9 +557,9 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
       }
     }
   }
-  if (data != R_NilValue && TYPEOF(data) == STRSXP) {
+  if (data != R_NilValue) {
     nano_buf enc = nano_char_buf(data);
-    if ((xc = nng_http_req_set_data(handle->req, enc.buf, enc.cur)))
+    if (enc.cur && (xc = nng_http_req_set_data(handle->req, enc.buf, enc.cur)))
       goto fail;
   }
 
