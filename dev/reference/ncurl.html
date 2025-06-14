@@ -84,9 +84,11 @@ A non-character or non-named vector will be ignored.</p></dd>
 
 
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
-<dd><p>(optional) character string request data to be submitted. If a
-vector, only the first element is taken, and non-character objects are
-ignored.</p></dd>
+<dd><p>(optional) request data to be submitted. Must be a character
+string or raw vector, and other objects are ignored. If a character vector,
+only the first element is taken. When supplying binary data, the
+appropriate 'Content-Type' header should be set to specify the binary
+format.</p></dd>
 
 
 <dt id="arg-response">response<a class="anchor" aria-label="anchor" href="#arg-response"></a></dt>
@@ -134,13 +136,23 @@ persistent connections.</p></div>
 <span class="r-in"><span>  timeout <span class="op">=</span> <span class="fl">1200L</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $status</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 'errorValue' int 5 | Timed out</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 200</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 'errorValue' int 5 | Timed out</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $headers$date</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Sat, 14 Jun 2025 16:47:18 GMT"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $headers$`content-type`</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "application/json; charset=utf-8"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $data</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 'errorValue' int 5 | Timed out</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [1] 7b 22 61 72 67 73 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [23] 22 68 6f 73 74 22 3a 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [45] 6f 6d 22 2c 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 72 6f 74 6f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [67] 22 3a 22 68 74 74 70 73 22 7d 2c 22 75 72 6c 22 3a 22 68 74 74 70</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [89] 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 2f 67</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [111] 65 74 22 7d</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu">ncurl</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="st">"https://postman-echo.com/put"</span>,</span></span>
@@ -156,7 +168,7 @@ persistent connections.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $data</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "{\n  \"args\": {},\n  \"data\": \"hello world\",\n  \"files\": {},\n  \"form\": {},\n  \"headers\": {\n    \"host\": \"postman-echo.com\",\n    \"x-request-start\": \"t1749020867.006\",\n    \"connection\": \"close\",\n    \"content-length\": \"11\",\n    \"x-forwarded-proto\": \"https\",\n    \"x-forwarded-port\": \"443\",\n    \"x-amzn-trace-id\": \"Root=1-683ff0c2-0694273872ad44863c5e0802\",\n    \"authorization\": \"Bearer APIKEY\",\n    \"content-type\": \"application/json\"\n  },\n  \"json\": null,\n  \"url\": \"https://postman-echo.com/put\"\n}"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "{\"args\":{},\"data\":\"hello world\",\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"authorization\":\"Bearer APIKEY\",\"content-length\":\"11\",\"x-forwarded-proto\":\"https\",\"content-type\":\"application/json\"},\"json\":null,\"url\":\"https://postman-echo.com/put\"}"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu">ncurl</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="st">"https://postman-echo.com/post"</span>,</span></span>
@@ -172,7 +184,7 @@ persistent connections.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $data</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "{\n  \"args\": {},\n  \"data\": {\n    \"key\": \"value\"\n  },\n  \"files\": {},\n  \"form\": {},\n  \"headers\": {\n    \"host\": \"postman-echo.com\",\n    \"x-request-start\": \"t1749020867.205\",\n    \"connection\": \"close\",\n    \"content-length\": \"15\",\n    \"x-forwarded-proto\": \"https\",\n    \"x-forwarded-port\": \"443\",\n    \"x-amzn-trace-id\": \"Root=1-683ff0c3-5d1e1ea84b8490e57f273f98\",\n    \"content-type\": \"application/json\"\n  },\n  \"json\": {\n    \"key\": \"value\"\n  },\n  \"url\": \"https://postman-echo.com/post\"\n}"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "{\"args\":{},\"data\":{\"key\":\"value\"},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"content-type\":\"application/json\",\"content-length\":\"15\",\"x-forwarded-proto\":\"https\"},\"json\":{\"key\":\"value\"},\"url\":\"https://postman-echo.com/post\"}"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
