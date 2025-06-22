@@ -38,9 +38,9 @@ applies a socket-specific default, usually the same as no timeout.}
 is complete, or NULL. If any other value is supplied, this will cause the
 pipe connection to be dropped when the async receive is complete.}
 
-\item{id}{(optional) specify a non-NULL value to send a message via the
+\item{id}{(optional) specify any non-NULL value to send a message via the
 context upon timeout (asynchronously) consisting of an integer zero,
-followed by the integer context ID.}
+followed by the integer \code{context} ID.}
 }
 \value{
 A 'recvAio' (object of class 'mirai' and 'recvAio') (invisibly).
