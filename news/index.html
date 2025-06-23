@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.6.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,9 +29,23 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/r-lib/nanonext/blob/dev/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/r-lib/nanonext/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.6.1" id="nanonext-161">nanonext 1.6.1<a class="anchor" aria-label="anchor" href="#nanonext-161"></a></h2><p class="text-muted">CRAN release: 2025-06-23</p>
+<div class="section level5">
+<h5 id="updates-1-6-1">Updates<a class="anchor" aria-label="anchor" href="#updates-1-6-1"></a></h5>
+<ul><li>
+<code><a href="../reference/ncurl.html">ncurl()</a></code> and variants now accept request data supplied as a raw vector (thanks <a href="https://github.com/thomasp85" class="external-link">@thomasp85</a>, <a href="https://github.com/r-lib/nanonext/issues/158" class="external-link">#158</a>).</li>
+<li>
+<code><a href="../reference/cv.html">cv_reset()</a></code> now correctly resets the flag in the case a flag event has already been registered with <code><a href="../reference/pipe_notify.html">pipe_notify()</a></code>.</li>
+<li>The previous <code><a href="../reference/listen.html">listen()</a></code> and <code><a href="../reference/dial.html">dial()</a></code> argument <code>error</code>, removed in v1.6.0, is now defunct.</li>
+<li>The previous <code><a href="../reference/serial_config.html">serial_config()</a></code> argument <code>vec</code>, unutilised since v1.6.0, is removed.</li>
+<li>Fixes package installation with ‘libmbedtls’ in a non-standard filesystem location, even if known to the compiler (thanks <a href="https://github.com/tdhock" class="external-link">@tdhock</a>, <a href="https://github.com/r-lib/nanonext/issues/150" class="external-link">#150</a>).</li>
+<li>Bundled ‘libnng’ updated to 1.11.0 release.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.6.0" id="nanonext-160">nanonext 1.6.0<a class="anchor" aria-label="anchor" href="#nanonext-160"></a></h2><p class="text-muted">CRAN release: 2025-05-19</p>
 <div class="section level5">
@@ -907,7 +921,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.2.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
 </div>
 
   </div></footer></body></html>
