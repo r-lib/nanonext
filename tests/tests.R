@@ -281,11 +281,11 @@ test_error(serial_config("custom", identity, "func2"), "must be a function or li
 test_error(opt(rep, "wrong") <- cfg, "not supported")
 test_error(opt(rep, "serial") <- pairlist(a = 1L), "not supported")
 
-test_class("recvAio", cs <- request(req$context, "test", send_mode = "serial", cv = cv, timeout = 500, id = 12345L))
+test_class("recvAio", cs <- request(req$context, "test", send_mode = "serial", cv = cv, timeout = 500, id = TRUE))
 test_notnull(cs$data)
 test_type("externalptr", ctxn <- .context(rep))
 test_class("recvAio", cr <- recv_aio(ctxn, mode = 8L, cv = cv, timeout = 500))
-test_equal(.read_header(call_aio(cr)$data), 12345L)
+test_equal(.read_header(call_aio(cr)$data), 1L)
 test_type("integer", cr$aio)
 test_type("integer", send(ctxn, TRUE, mode = 0L, block = FALSE))
 test_type("externalptr", ctxn <- .context(rep))

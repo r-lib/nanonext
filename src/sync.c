@@ -413,7 +413,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
   const uint8_t mod = (uint8_t) nano_matcharg(recvmode);
   const int raw = nano_encode_mode(sendmode);
-  const int id = msgid == R_NilValue ? 0 : TYPEOF(msgid) == INTSXP ? NANO_INTEGER(msgid) : nng_ctx_id(*ctx);
+  const int id = msgid != R_NilValue ? nng_ctx_id(*ctx) : 0;
   const int signal = cvar != R_NilValue && !NANO_PTR_CHECK(cvar, nano_CvSymbol);
   const int drop = cvar != R_NilValue && !signal;
   int xc;
