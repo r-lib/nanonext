@@ -3,6 +3,7 @@
 ^LICENSE\.md$
 ^README\.Rmd$
 ^_pkgdown\.yml$
+^dev$
 ^docs$
 ^pkgdown$
 ^revdep$
@@ -10,5 +11,4 @@
 ^codecov\.yml$
 ^compile_commands\.json$
 ^\.cache$
-^vignettes-src$
 ^cran-comments\.md$
