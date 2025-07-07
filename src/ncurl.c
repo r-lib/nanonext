@@ -153,14 +153,13 @@ SEXP nano_aio_http_status(SEXP env) {
 
   void *dat;
   size_t sz;
-  SEXP out, vec, rvec, response;
+  SEXP vec, rvec, response;
   nano_handle *handle = (nano_handle *) haio->next;
 
   PROTECT(response = Rf_findVarInFrame(env, nano_ResponseSymbol));
   int chk_resp = response != R_NilValue && TYPEOF(response) == STRSXP;
   const uint16_t code = nng_http_res_get_status(handle->res), relo = code >= 300 && code < 400;
-  out = Rf_ScalarInteger(code);
-  Rf_defineVar(nano_ResultSymbol, out, env);
+  Rf_defineVar(nano_ResultSymbol, Rf_ScalarInteger(code), env);
 
   if (relo) {
     if (chk_resp) {
@@ -202,7 +201,7 @@ SEXP nano_aio_http_status(SEXP env) {
 
   Rf_defineVar(nano_AioSymbol, R_NilValue, env);
 
-  return out;
+  return Rf_findVarInFrame(env, nano_ResultSymbol);
 
 }
 
