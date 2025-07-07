@@ -290,8 +290,7 @@ SEXP nano_aio_get_msg(SEXP env) {
       return mk_error_aio(res, env);
     break;
   default:
-    res = 0;
-    return mk_error_aio(res, env);
+    return R_MissingArg;
   }
 
   return create_aio_msg(env, aio, raio, res);
@@ -354,8 +353,7 @@ SEXP rnng_aio_get_msg(SEXP env) {
 
     break;
   default:
-    res = 0;
-    return mk_error_aio(res, env);
+    return R_MissingArg;
   }
 
   return create_aio_msg(env, aio, raio, res);
