@@ -203,6 +203,27 @@ static inline SEXP create_aio_http(SEXP env, nano_aio *haio, int typ) {
 
 }
 
+static inline SEXP nano_aio_http_impl(SEXP env, const int typ) {
+
+  SEXP exist;
+  switch (typ) {
+  case 0: exist = Rf_findVarInFrame(env, nano_ResultSymbol); break;
+  case 1: exist = Rf_findVarInFrame(env, nano_ProtocolSymbol); break;
+  default: exist = Rf_findVarInFrame(env, nano_ValueSymbol); break;
+  }
+  if (exist != R_UnboundValue)
+    return exist;
+
+  const SEXP aio = Rf_findVarInFrame(env, nano_AioSymbol);
+  nano_aio *haio = (nano_aio *) NANO_PTR(aio);
+
+  if (nng_aio_busy(haio->aio))
+    return nano_unresolved;
+
+  return create_aio_http(env, haio, typ);
+
+}
+
 SEXP nano_aio_http_status(SEXP env) {
 
   SEXP exist = Rf_findVarInFrame(env, nano_ResultSymbol);
@@ -500,37 +521,16 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
 
 }
 
-static SEXP rnng_aio_http_impl(SEXP env, const int typ) {
-
-  SEXP exist;
-  switch (typ) {
-  case 0: exist = Rf_findVarInFrame(env, nano_ResultSymbol); break;
-  case 1: exist = Rf_findVarInFrame(env, nano_ProtocolSymbol); break;
-  default: exist = Rf_findVarInFrame(env, nano_ValueSymbol); break;
-  }
-  if (exist != R_UnboundValue)
-    return exist;
-
-  const SEXP aio = Rf_findVarInFrame(env, nano_AioSymbol);
-  nano_aio *haio = (nano_aio *) NANO_PTR(aio);
-
-  if (nng_aio_busy(haio->aio))
-    return nano_unresolved;
-
-  return create_aio_http(env, haio, typ);
-
-}
-
 SEXP rnng_aio_http_status(SEXP env) {
-  return rnng_aio_http_impl(env, 0);
+  return nano_aio_http_impl(env, 0);
 }
 
 SEXP rnng_aio_http_headers(SEXP env) {
-  return rnng_aio_http_impl(env, 1);
+  return nano_aio_http_impl(env, 1);
 }
 
 SEXP rnng_aio_http_data(SEXP env) {
-  return rnng_aio_http_impl(env, 2);
+  return nano_aio_http_impl(env, 2);
 }
 
 // ncurl session ---------------------------------------------------------------
