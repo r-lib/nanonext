@@ -72,7 +72,7 @@ static nano_buf nano_char_buf(const SEXP data) {
 static void haio_invoke_cb(void *arg) {
 
   SEXP call, status, node = (SEXP) arg, x = TAG(node);
-  status = rnng_aio_http_status(x);
+  status = nano_aio_http_status(x);
   PROTECT(call = Rf_lcons(nano_ResolveSymbol, Rf_cons(status, R_NilValue)));
   Rf_eval(call, NANO_ENCLOS(x));
   UNPROTECT(1);
@@ -134,6 +134,106 @@ static void session_finalizer(SEXP xptr) {
   nng_url_free(handle->url);
   free(handle);
   free(xp);
+
+}
+
+// ncurl - internal ------------------------------------------------------------
+
+static inline SEXP create_aio_http(SEXP env, nano_aio *haio, int typ) {
+
+  if (haio->result > 0)
+    return mk_error_haio(haio->result, env);
+
+  void *dat;
+  size_t sz;
+  SEXP out, vec, rvec, response;
+  nano_handle *handle = (nano_handle *) haio->next;
+
+  PROTECT(response = Rf_findVarInFrame(env, nano_ResponseSymbol));
+  int chk_resp = response != R_NilValue && TYPEOF(response) == STRSXP;
+  const uint16_t code = nng_http_res_get_status(handle->res), relo = code >= 300 && code < 400;
+  Rf_defineVar(nano_ResultSymbol, Rf_ScalarInteger(code), env);
+
+  if (relo) {
+    if (chk_resp) {
+      const R_xlen_t rlen = XLENGTH(response);
+      PROTECT(response = Rf_xlengthgets(response, rlen + 1));
+      SET_STRING_ELT(response, rlen, Rf_mkChar("Location"));
+    } else {
+      PROTECT(response = Rf_mkString("Location"));
+      chk_resp = 1;
+    }
+  }
+
+  if (chk_resp) {
+    const R_xlen_t rlen = XLENGTH(response);
+    PROTECT(rvec = Rf_allocVector(VECSXP, rlen));
+    Rf_namesgets(rvec, response);
+    for (R_xlen_t i = 0; i < rlen; i++) {
+      const char *r = nng_http_res_get_header(handle->res, NANO_STR_N(response, i));
+      SET_VECTOR_ELT(rvec, i, r == NULL ? R_NilValue : Rf_mkString(r));
+    }
+    UNPROTECT(1);
+  } else {
+    rvec = R_NilValue;
+  }
+  if (relo) UNPROTECT(1);
+  UNPROTECT(1);
+  Rf_defineVar(nano_ProtocolSymbol, rvec, env);
+
+  nng_http_res_get_data(handle->res, &dat, &sz);
+
+  if (haio->mode) {
+    vec = nano_raw_char(dat, sz);
+  } else {
+    vec = Rf_allocVector(RAWSXP, sz);
+    if (dat != NULL)
+      memcpy(NANO_DATAPTR(vec), dat, sz);
+  }
+  Rf_defineVar(nano_ValueSymbol, vec, env);
+
+  Rf_defineVar(nano_AioSymbol, R_NilValue, env);
+
+  switch (typ) {
+  case 0: out = Rf_findVarInFrame(env, nano_ResultSymbol); break;
+  case 1: out = Rf_findVarInFrame(env, nano_ProtocolSymbol); break;
+  default: out = Rf_findVarInFrame(env, nano_ValueSymbol); break;
+  }
+  return out;
+
+}
+
+static inline SEXP nano_aio_http_impl(SEXP env, const int typ) {
+
+  SEXP exist;
+  switch (typ) {
+  case 0: exist = Rf_findVarInFrame(env, nano_ResultSymbol); break;
+  case 1: exist = Rf_findVarInFrame(env, nano_ProtocolSymbol); break;
+  default: exist = Rf_findVarInFrame(env, nano_ValueSymbol); break;
+  }
+  if (exist != R_UnboundValue)
+    return exist;
+
+  const SEXP aio = Rf_findVarInFrame(env, nano_AioSymbol);
+  nano_aio *haio = (nano_aio *) NANO_PTR(aio);
+
+  if (nng_aio_busy(haio->aio))
+    return nano_unresolved;
+
+  return create_aio_http(env, haio, typ);
+
+}
+
+SEXP nano_aio_http_status(SEXP env) {
+
+  SEXP exist = Rf_findVarInFrame(env, nano_ResultSymbol);
+  if (exist != R_UnboundValue)
+    return exist;
+
+  const SEXP aio = Rf_findVarInFrame(env, nano_AioSymbol);
+  nano_aio *haio = (nano_aio *) NANO_PTR(aio);
+
+  return create_aio_http(env, haio, 0);
 
 }
 
@@ -421,96 +521,16 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
 
 }
 
-static SEXP rnng_aio_http_impl(SEXP env, const int typ) {
-
-  SEXP exist;
-  switch (typ) {
-  case 0: exist = Rf_findVarInFrame(env, nano_ResultSymbol); break;
-  case 1: exist = Rf_findVarInFrame(env, nano_ProtocolSymbol); break;
-  default: exist = Rf_findVarInFrame(env, nano_ValueSymbol); break;
-  }
-  if (exist != R_UnboundValue)
-    return exist;
-
-  const SEXP aio = Rf_findVarInFrame(env, nano_AioSymbol);
-
-  nano_aio *haio = (nano_aio *) NANO_PTR(aio);
-
-  if (nng_aio_busy(haio->aio))
-    return nano_unresolved;
-
-  if (haio->result > 0)
-    return mk_error_haio(haio->result, env);
-
-  void *dat;
-  size_t sz;
-  SEXP out, vec, rvec, response;
-  nano_handle *handle = (nano_handle *) haio->next;
-
-  PROTECT(response = Rf_findVarInFrame(env, nano_ResponseSymbol));
-  int chk_resp = response != R_NilValue && TYPEOF(response) == STRSXP;
-  const uint16_t code = nng_http_res_get_status(handle->res), relo = code >= 300 && code < 400;
-  Rf_defineVar(nano_ResultSymbol, Rf_ScalarInteger(code), env);
-
-  if (relo) {
-    if (chk_resp) {
-      const R_xlen_t rlen = XLENGTH(response);
-      PROTECT(response = Rf_xlengthgets(response, rlen + 1));
-      SET_STRING_ELT(response, rlen, Rf_mkChar("Location"));
-    } else {
-      PROTECT(response = Rf_mkString("Location"));
-      chk_resp = 1;
-    }
-  }
-
-  if (chk_resp) {
-    const R_xlen_t rlen = XLENGTH(response);
-    PROTECT(rvec = Rf_allocVector(VECSXP, rlen));
-    Rf_namesgets(rvec, response);
-    for (R_xlen_t i = 0; i < rlen; i++) {
-      const char *r = nng_http_res_get_header(handle->res, NANO_STR_N(response, i));
-      SET_VECTOR_ELT(rvec, i, r == NULL ? R_NilValue : Rf_mkString(r));
-    }
-    UNPROTECT(1);
-  } else {
-    rvec = R_NilValue;
-  }
-  if (relo) UNPROTECT(1);
-  UNPROTECT(1);
-  Rf_defineVar(nano_ProtocolSymbol, rvec, env);
-
-  nng_http_res_get_data(handle->res, &dat, &sz);
-
-  if (haio->mode) {
-    vec = nano_raw_char(dat, sz);
-  } else {
-    vec = Rf_allocVector(RAWSXP, sz);
-    if (dat != NULL)
-      memcpy(NANO_DATAPTR(vec), dat, sz);
-  }
-  Rf_defineVar(nano_ValueSymbol, vec, env);
-
-  Rf_defineVar(nano_AioSymbol, R_NilValue, env);
-
-  switch (typ) {
-  case 0: out = Rf_findVarInFrame(env, nano_ResultSymbol); break;
-  case 1: out = Rf_findVarInFrame(env, nano_ProtocolSymbol); break;
-  default: out = Rf_findVarInFrame(env, nano_ValueSymbol); break;
-  }
-  return out;
-
-}
-
 SEXP rnng_aio_http_status(SEXP env) {
-  return rnng_aio_http_impl(env, 0);
+  return nano_aio_http_impl(env, 0);
 }
 
 SEXP rnng_aio_http_headers(SEXP env) {
-  return rnng_aio_http_impl(env, 1);
+  return nano_aio_http_impl(env, 1);
 }
 
 SEXP rnng_aio_http_data(SEXP env) {
-  return rnng_aio_http_impl(env, 2);
+  return nano_aio_http_impl(env, 2);
 }
 
 // ncurl session ---------------------------------------------------------------

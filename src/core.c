@@ -262,7 +262,7 @@ void later2(void (*fun)(void *), void *data) {
 void raio_invoke_cb(void *arg) {
 
   SEXP call, node = (SEXP) arg, x = TAG(node);
-  PROTECT(call = Rf_lcons(nano_ResolveSymbol, Rf_cons(rnng_aio_get_msg(x), R_NilValue)));
+  PROTECT(call = Rf_lcons(nano_ResolveSymbol, Rf_cons(nano_aio_get_msg(x), R_NilValue)));
   Rf_eval(call, NANO_ENCLOS(x));
   UNPROTECT(1);
   nano_ReleaseObject(node);
