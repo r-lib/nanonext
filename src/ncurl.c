@@ -139,21 +139,14 @@ static void session_finalizer(SEXP xptr) {
 
 // ncurl - internal ------------------------------------------------------------
 
-SEXP nano_aio_http_status(SEXP env) {
-
-  SEXP exist = Rf_findVarInFrame(env, nano_ResultSymbol);
-  if (exist != R_UnboundValue)
-    return exist;
-
-  const SEXP aio = Rf_findVarInFrame(env, nano_AioSymbol);
-  nano_aio *haio = (nano_aio *) NANO_PTR(aio);
+static inline SEXP create_aio_http(SEXP env, nano_aio *haio, int typ) {
 
   if (haio->result > 0)
     return mk_error_haio(haio->result, env);
 
   void *dat;
   size_t sz;
-  SEXP vec, rvec, response;
+  SEXP out, vec, rvec, response;
   nano_handle *handle = (nano_handle *) haio->next;
 
   PROTECT(response = Rf_findVarInFrame(env, nano_ResponseSymbol));
@@ -201,7 +194,25 @@ SEXP nano_aio_http_status(SEXP env) {
 
   Rf_defineVar(nano_AioSymbol, R_NilValue, env);
 
-  return Rf_findVarInFrame(env, nano_ResultSymbol);
+  switch (typ) {
+  case 0: out = Rf_findVarInFrame(env, nano_ResultSymbol); break;
+  case 1: out = Rf_findVarInFrame(env, nano_ProtocolSymbol); break;
+  default: out = Rf_findVarInFrame(env, nano_ValueSymbol); break;
+  }
+  return out;
+
+}
+
+SEXP nano_aio_http_status(SEXP env) {
+
+  SEXP exist = Rf_findVarInFrame(env, nano_ResultSymbol);
+  if (exist != R_UnboundValue)
+    return exist;
+
+  const SEXP aio = Rf_findVarInFrame(env, nano_AioSymbol);
+  nano_aio *haio = (nano_aio *) NANO_PTR(aio);
+
+  return create_aio_http(env, haio, 0);
 
 }
 
@@ -501,71 +512,12 @@ static SEXP rnng_aio_http_impl(SEXP env, const int typ) {
     return exist;
 
   const SEXP aio = Rf_findVarInFrame(env, nano_AioSymbol);
-
   nano_aio *haio = (nano_aio *) NANO_PTR(aio);
 
   if (nng_aio_busy(haio->aio))
     return nano_unresolved;
 
-  if (haio->result > 0)
-    return mk_error_haio(haio->result, env);
-
-  void *dat;
-  size_t sz;
-  SEXP out, vec, rvec, response;
-  nano_handle *handle = (nano_handle *) haio->next;
-
-  PROTECT(response = Rf_findVarInFrame(env, nano_ResponseSymbol));
-  int chk_resp = response != R_NilValue && TYPEOF(response) == STRSXP;
-  const uint16_t code = nng_http_res_get_status(handle->res), relo = code >= 300 && code < 400;
-  Rf_defineVar(nano_ResultSymbol, Rf_ScalarInteger(code), env);
-
-  if (relo) {
-    if (chk_resp) {
-      const R_xlen_t rlen = XLENGTH(response);
-      PROTECT(response = Rf_xlengthgets(response, rlen + 1));
-      SET_STRING_ELT(response, rlen, Rf_mkChar("Location"));
-    } else {
-      PROTECT(response = Rf_mkString("Location"));
-      chk_resp = 1;
-    }
-  }
-
-  if (chk_resp) {
-    const R_xlen_t rlen = XLENGTH(response);
-    PROTECT(rvec = Rf_allocVector(VECSXP, rlen));
-    Rf_namesgets(rvec, response);
-    for (R_xlen_t i = 0; i < rlen; i++) {
-      const char *r = nng_http_res_get_header(handle->res, NANO_STR_N(response, i));
-      SET_VECTOR_ELT(rvec, i, r == NULL ? R_NilValue : Rf_mkString(r));
-    }
-    UNPROTECT(1);
-  } else {
-    rvec = R_NilValue;
-  }
-  if (relo) UNPROTECT(1);
-  UNPROTECT(1);
-  Rf_defineVar(nano_ProtocolSymbol, rvec, env);
-
-  nng_http_res_get_data(handle->res, &dat, &sz);
-
-  if (haio->mode) {
-    vec = nano_raw_char(dat, sz);
-  } else {
-    vec = Rf_allocVector(RAWSXP, sz);
-    if (dat != NULL)
-      memcpy(NANO_DATAPTR(vec), dat, sz);
-  }
-  Rf_defineVar(nano_ValueSymbol, vec, env);
-
-  Rf_defineVar(nano_AioSymbol, R_NilValue, env);
-
-  switch (typ) {
-  case 0: out = Rf_findVarInFrame(env, nano_ResultSymbol); break;
-  case 1: out = Rf_findVarInFrame(env, nano_ProtocolSymbol); break;
-  default: out = Rf_findVarInFrame(env, nano_ValueSymbol); break;
-  }
-  return out;
+  return create_aio_http(env, haio, typ);
 
 }
 

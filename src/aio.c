@@ -218,6 +218,43 @@ static void raio_finalizer(SEXP xptr) {
 
 // core aio - internal ---------------------------------------------------------
 
+static inline SEXP create_aio_result(SEXP env, nano_aio *saio) {
+
+  if (saio->result > 0)
+    return mk_error_aio(saio->result, env);
+
+  Rf_defineVar(nano_ValueSymbol, nano_success, env);
+  Rf_defineVar(nano_AioSymbol, R_NilValue, env);
+  return nano_success;
+
+}
+
+static inline SEXP create_aio_msg(SEXP env, SEXP aio, nano_aio *raio, int res) {
+
+  SEXP out, pipe;
+  unsigned char *buf;
+  size_t sz;
+
+  if (raio->type == IOV_RECVAIO || raio->type == IOV_RECVAIOS) {
+    buf = raio->data;
+    sz = nng_aio_count(raio->aio);
+  } else {
+    nng_msg *msg = (nng_msg *) raio->data;
+    buf = nng_msg_body(msg);
+    sz = nng_msg_len(msg);
+  }
+
+  PROTECT(out = nano_decode(buf, sz, raio->mode, NANO_PROT(aio)));
+  PROTECT(pipe = Rf_ScalarInteger(-res));
+  Rf_defineVar(nano_ValueSymbol, out, env);
+  Rf_defineVar(nano_AioSymbol, pipe, env);
+
+  UNPROTECT(2);
+  return out;
+
+}
+
+
 SEXP nano_aio_result(SEXP env) {
 
   const SEXP exist = Rf_findVarInFrame(env, nano_ValueSymbol);
@@ -227,12 +264,7 @@ SEXP nano_aio_result(SEXP env) {
   const SEXP aio = Rf_findVarInFrame(env, nano_AioSymbol);
   nano_aio *saio = (nano_aio *) NANO_PTR(aio);
 
-  if (saio->result > 0)
-    return mk_error_aio(saio->result, env);
-
-  Rf_defineVar(nano_ValueSymbol, nano_success, env);
-  Rf_defineVar(nano_AioSymbol, R_NilValue, env);
-  return nano_success;
+  return create_aio_result(env, saio);
 
 }
 
@@ -259,29 +291,10 @@ SEXP nano_aio_get_msg(SEXP env) {
     break;
   default:
     res = 0;
-  return mk_error_aio(res, env);
+    return mk_error_aio(res, env);
   }
 
-  SEXP out, pipe;
-  unsigned char *buf;
-  size_t sz;
-
-  if (raio->type == IOV_RECVAIO || raio->type == IOV_RECVAIOS) {
-    buf = raio->data;
-    sz = nng_aio_count(raio->aio);
-  } else {
-    nng_msg *msg = (nng_msg *) raio->data;
-    buf = nng_msg_body(msg);
-    sz = nng_msg_len(msg);
-  }
-
-  PROTECT(out = nano_decode(buf, sz, raio->mode, NANO_PROT(aio)));
-  PROTECT(pipe = Rf_ScalarInteger(-res));
-  Rf_defineVar(nano_ValueSymbol, out, env);
-  Rf_defineVar(nano_AioSymbol, pipe, env);
-
-  UNPROTECT(2);
-  return out;
+  return create_aio_msg(env, aio, raio, res);
 
 }
 
@@ -299,12 +312,7 @@ SEXP rnng_aio_result(SEXP env) {
   if (nng_aio_busy(saio->aio))
     return nano_unresolved;
 
-  if (saio->result > 0)
-    return mk_error_aio(saio->result, env);
-
-  Rf_defineVar(nano_ValueSymbol, nano_success, env);
-  Rf_defineVar(nano_AioSymbol, R_NilValue, env);
-  return nano_success;
+  return create_aio_result(env, saio);
 
 }
 
@@ -347,29 +355,10 @@ SEXP rnng_aio_get_msg(SEXP env) {
     break;
   default:
     res = 0;
-  return mk_error_aio(res, env);
+    return mk_error_aio(res, env);
   }
 
-  SEXP out, pipe;
-  unsigned char *buf;
-  size_t sz;
-
-  if (raio->type == IOV_RECVAIO || raio->type == IOV_RECVAIOS) {
-    buf = raio->data;
-    sz = nng_aio_count(raio->aio);
-  } else {
-    nng_msg *msg = (nng_msg *) raio->data;
-    buf = nng_msg_body(msg);
-    sz = nng_msg_len(msg);
-  }
-
-  PROTECT(out = nano_decode(buf, sz, raio->mode, NANO_PROT(aio)));
-  PROTECT(pipe = Rf_ScalarInteger(-res));
-  Rf_defineVar(nano_ValueSymbol, out, env);
-  Rf_defineVar(nano_AioSymbol, pipe, env);
-
-  UNPROTECT(2);
-  return out;
+  return create_aio_msg(env, aio, raio, res);
 
 }
 
