@@ -231,42 +231,8 @@ inline SEXP R_mkClosure(SEXP formals, SEXP body, SEXP env) {
 
 #endif
 
-inline SEXP nano_PreserveObject(const SEXP x) {
-
-  SEXP tail = CDR(nano_precious);
-  SEXP node = Rf_cons(nano_precious, tail);
-  SETCDR(nano_precious, node);
-  if (tail != R_NilValue)
-    SETCAR(tail, node);
-  SET_TAG(node, x);
-
-  return node;
-
-}
-
-inline void nano_ReleaseObject(SEXP node) {
-
-  SET_TAG(node, R_NilValue);
-  SEXP head = CAR(node);
-  SEXP tail = CDR(node);
-  SETCDR(head, tail);
-  if (tail != R_NilValue)
-    SETCAR(tail, head);
-
-}
-
 void later2(void (*fun)(void *), void *data) {
   eln2(fun, data, 0, 0);
-}
-
-void raio_invoke_cb(void *arg) {
-
-  SEXP call, node = (SEXP) arg, x = TAG(node);
-  PROTECT(call = Rf_lcons(nano_ResolveSymbol, Rf_cons(nano_aio_get_msg(x), R_NilValue)));
-  Rf_eval(call, NANO_ENCLOS(x));
-  UNPROTECT(1);
-  nano_ReleaseObject(node);
-
 }
 
 inline int nano_integer(const SEXP x) {

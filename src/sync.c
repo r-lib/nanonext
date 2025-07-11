@@ -16,7 +16,53 @@ static void nano_load_later(void) {
 
 }
 
+static inline SEXP nano_PreserveObject(const SEXP x) {
+
+  SEXP tail = CDR(nano_precious);
+  SEXP node = Rf_cons(nano_precious, tail);
+  SETCDR(nano_precious, node);
+  if (tail != R_NilValue)
+    SETCAR(tail, node);
+  SET_TAG(node, x);
+
+  return node;
+
+}
+
+static inline void nano_ReleaseObject(SEXP node) {
+
+  SET_TAG(node, R_NilValue);
+  SEXP head = CAR(node);
+  SEXP tail = CDR(node);
+  SETCDR(head, tail);
+  if (tail != R_NilValue)
+    SETCAR(tail, head);
+
+}
+
 // aio completion callbacks ----------------------------------------------------
+
+
+void raio_invoke_cb(void *arg) {
+
+  SEXP call, node = (SEXP) arg, x = TAG(node);
+  PROTECT(call = Rf_lcons(nano_ResolveSymbol, Rf_cons(nano_aio_get_msg(x), R_NilValue)));
+  Rf_eval(call, NANO_ENCLOS(x));
+  UNPROTECT(1);
+  nano_ReleaseObject(node);
+
+}
+
+void haio_invoke_cb(void *arg) {
+
+  SEXP call, status, node = (SEXP) arg, x = TAG(node);
+  status = nano_aio_http_status(x);
+  PROTECT(call = Rf_lcons(nano_ResolveSymbol, Rf_cons(status, R_NilValue)));
+  Rf_eval(call, NANO_ENCLOS(x));
+  UNPROTECT(1);
+  nano_ReleaseObject(node);
+
+}
 
 static void sendaio_complete(void *arg) {
 

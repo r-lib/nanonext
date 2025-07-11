@@ -285,13 +285,12 @@ SEXP R_NewEnv(SEXP, int, int);
 #if R_VERSION < R_Version(4, 5, 0)
 SEXP R_mkClosure(SEXP, SEXP, SEXP);
 #endif
-SEXP nano_PreserveObject(const SEXP);
-void nano_ReleaseObject(SEXP);
 void dialer_finalizer(SEXP);
 void listener_finalizer(SEXP);
 void socket_finalizer(SEXP);
 void later2(void (*)(void *), void *);
 void raio_invoke_cb(void *);
+void haio_invoke_cb(void *);
 int nano_integer(const SEXP);
 SEXP mk_error(const int);
 SEXP mk_error_data(const int);
