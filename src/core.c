@@ -231,7 +231,7 @@ inline SEXP R_mkClosure(SEXP formals, SEXP body, SEXP env) {
 
 #endif
 
-void later2(void (*fun)(void *), void *data) {
+inline void later2(void (*fun)(void *), void *data) {
   eln2(fun, data, 0, 0);
 }
 
