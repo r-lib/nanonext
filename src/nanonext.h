@@ -280,18 +280,41 @@ extern SEXP nano_success;
 extern SEXP nano_unresolved;
 
 #if R_VERSION < R_Version(4, 1, 0)
-SEXP R_NewEnv(SEXP, int, int);
+
+static inline SEXP R_NewEnv(SEXP parent, int hash, int size) {
+  (void) parent;
+  (void) hash;
+  (void) size;
+  return Rf_allocSExp(ENVSXP);
+}
+
 #endif
+
 #if R_VERSION < R_Version(4, 5, 0)
-SEXP R_mkClosure(SEXP, SEXP, SEXP);
+
+static inline SEXP R_mkClosure(SEXP formals, SEXP body, SEXP env) {
+  SEXP fun = Rf_allocSExp(CLOSXP);
+  SET_FORMALS(fun, formals);
+  SET_BODY(fun, body);
+  SET_CLOENV(fun, env);
+  return fun;
+}
+
 #endif
+
+static inline int nano_integer(const SEXP x) {
+  return (TYPEOF(x) == INTSXP || TYPEOF(x) == LGLSXP) ? NANO_INTEGER(x) : Rf_asInteger(x);
+}
+
+static inline void later2(void (*fun)(void *), void *data) {
+  eln2(fun, data, 0, 0);
+}
+
 void dialer_finalizer(SEXP);
 void listener_finalizer(SEXP);
 void socket_finalizer(SEXP);
-void later2(void (*)(void *), void *);
 void raio_invoke_cb(void *);
 void haio_invoke_cb(void *);
-int nano_integer(const SEXP);
 SEXP mk_error(const int);
 SEXP mk_error_data(const int);
 SEXP nano_raw_char(const unsigned char *, const size_t);

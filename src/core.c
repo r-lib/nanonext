@@ -208,37 +208,6 @@ void tls_finalizer(SEXP xptr) {
 
 }
 
-#if R_VERSION < R_Version(4, 1, 0)
-
-inline SEXP R_NewEnv(SEXP parent, int hash, int size) {
-  (void) parent;
-  (void) hash;
-  (void) size;
-  return Rf_allocSExp(ENVSXP);
-}
-
-#endif
-
-#if R_VERSION < R_Version(4, 5, 0)
-
-inline SEXP R_mkClosure(SEXP formals, SEXP body, SEXP env) {
-  SEXP fun = Rf_allocSExp(CLOSXP);
-  SET_FORMALS(fun, formals);
-  SET_BODY(fun, body);
-  SET_CLOENV(fun, env);
-  return fun;
-}
-
-#endif
-
-void later2(void (*fun)(void *), void *data) {
-  eln2(fun, data, 0, 0);
-}
-
-inline int nano_integer(const SEXP x) {
-  return (TYPEOF(x) == INTSXP || TYPEOF(x) == LGLSXP) ? NANO_INTEGER(x) : Rf_asInteger(x);
-}
-
 SEXP mk_error(const int xc) {
 
   SEXP err = Rf_ScalarInteger(xc);
