@@ -2,7 +2,7 @@
 
 #### Updates
 
-* Fixes rare cases of `unresolvedValue` being returned by fulfilled promises (#163).
+* Fixes very rare cases of `unresolvedValue` being returned by fulfilled promises (#163).
 
 # nanonext 1.6.1
 
