@@ -11,7 +11,7 @@ called for the value when required."><meta property="og:image" content="https://
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.6.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,7 +33,7 @@ called for the value when required."><meta property="og:image" content="https://
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Request over Context (RPC Client for Req/Rep Protocol)</h1>
-      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/v1.6.1/R/context.R" class="external-link"><code>R/context.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/main/R/context.R" class="external-link"><code>R/context.R</code></a></small>
       <div class="d-none name"><code>request.Rd</code></div>
     </div>
 
@@ -96,9 +96,9 @@ pipe connection to be dropped when the async receive is complete.</p></dd>
 
 
 <dt id="arg-id">id<a class="anchor" aria-label="anchor" href="#arg-id"></a></dt>
-<dd><p>(optional) specify any non-NULL value to send a message via the
-context upon timeout (asynchronously) consisting of an integer zero,
-followed by the integer <code>context</code> ID.</p></dd>
+<dd><p>(optional) set to <code>TRUE</code> (or any non-NULL value) to send a message
+via the context upon timeout (asynchronously) consisting of an integer
+zero, followed by the integer <code>context</code> ID.</p></dd>
 
 </dl></div>
     <div class="section level2">
