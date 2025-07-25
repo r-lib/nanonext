@@ -5,8 +5,6 @@
 
 // internals -------------------------------------------------------------------
 
-static int nano_interrupt = 0;
-
 static SEXP mk_error_aio(const int xc, SEXP env) {
 
   SEXP err = PROTECT(Rf_ScalarInteger(xc));
@@ -149,7 +147,7 @@ static void raio_complete_interrupt(void *arg) {
   if (raio->cb != NULL)
     later2(raio_invoke_cb, raio->cb);
 
-  if (nano_interrupt) {
+  if (res <= 0) {
 #ifdef _WIN32
     UserBreak = 1;
 #else
@@ -740,12 +738,5 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
   failmem:
   free(raio);
   return mk_error_data(xc);
-
-}
-
-SEXP rnng_interrupt_switch(SEXP x) {
-
-  nano_interrupt = NANO_INTEGER(x);
-  return x;
 
 }

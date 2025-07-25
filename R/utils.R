@@ -403,8 +403,7 @@ ip_addr <- function() .Call(rnng_ip_addr)
 
 #' Interrupt Switch
 #'
-#' Sets whether async receive completions trigger an interrupt.
-#' Internal package function.
+#' Internal package function. No longer used.
 #'
 #' @param x logical value.
 #'
@@ -413,7 +412,7 @@ ip_addr <- function() .Call(rnng_ip_addr)
 #' @keywords internal
 #' @export
 #'
-.interrupt <- function(x = TRUE) .Call(rnng_interrupt_switch, x)
+.interrupt <- function(x = TRUE) x
 
 #' Internal Package Function
 #'
