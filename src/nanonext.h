@@ -365,7 +365,6 @@ SEXP rnng_fini(void);
 SEXP rnng_fini_priors(void);
 SEXP rnng_get_opt(SEXP, SEXP);
 SEXP rnng_header_read(SEXP);
-SEXP rnng_interrupt_switch(SEXP);
 SEXP rnng_ip_addr(void);
 SEXP rnng_is_error_value(SEXP);
 SEXP rnng_is_nul_byte(SEXP);
