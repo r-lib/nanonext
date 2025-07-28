@@ -243,25 +243,16 @@ as.promise.ncurlAio <- function(x) {
   promise <- .subset2(x, "promise")
 
   if (is.null(promise)) {
-    promise <- if (unresolved(x)) {
-      promises::promise(
-        function(resolve, reject) .keep(x, environment())
-      )$then(
-        onFulfilled = function(value, .visible) {
-          value == 200L || stop(if (value < 100) nng_error(value) else status_code(value))
-          .subset2(x, "value")
-        }
-      )
-    } else {
-      value <- .subset2(x, "result")
-      promises::promise(
-        function(resolve, reject)
-          resolve({
-            value == 200L || stop(if (value < 100) nng_error(value) else status_code(value))
-            .subset2(x, "value")
-          })
-      )
-    }
+    promise <- promises::promise(
+      function(resolve, reject) {
+        if (unresolved(x)) .keep(x, environment()) else resolve(.subset2(x, "result"))
+      }
+    )$then(
+      onFulfilled = function(value, .visible) {
+        value == 200L || stop(if (value < 100) nng_error(value) else status_code(value))
+        .subset2(x, "value")
+      }
+    )
 
     `[[<-`(x, "promise", promise)
   }
