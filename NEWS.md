@@ -1,5 +1,9 @@
 # nanonext (development version)
 
+#### Updates
+
+* `as.promise()` method for `recvAio` and `ncurlAio` objects made robust for high-throughput cases (#171).
+
 # nanonext 1.6.2
 
 #### Updates
