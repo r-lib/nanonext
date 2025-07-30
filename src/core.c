@@ -12,7 +12,7 @@ static SEXP nano_eval_prot (void *call) {
   return Rf_eval((SEXP) call, R_GlobalEnv);
 }
 
-static void nano_reset(void *data, Rboolean jump) {
+static void nano_cleanup(void *data, Rboolean jump) {
   if (jump)
     free(data);
 }
@@ -93,12 +93,8 @@ static int nano_read_char(R_inpstream_t stream) {
 
 static SEXP nano_serialize_hook(SEXP x, SEXP hook_func) {
 
-  R_outpstream_t stream = nano_bundle.outpstream;
   SEXP klass = nano_bundle.klass;
-  unsigned char *buf = nano_bundle.buf;
-
   int len = (int) XLENGTH(klass), match = 0, i;
-  void (*OutBytes)(R_outpstream_t, void *, int) = stream->OutBytes;
 
   for (i = 0; i < len; i++) {
     if (Rf_inherits(x, NANO_STR_N(klass, i))) {
@@ -110,9 +106,12 @@ static SEXP nano_serialize_hook(SEXP x, SEXP hook_func) {
   if (!match)
     return R_NilValue;
 
+  R_outpstream_t stream = nano_bundle.outpstream;
+  void (*OutBytes)(R_outpstream_t, void *, int) = stream->OutBytes;
+
   SEXP out, call;
   PROTECT(call = Rf_lcons(NANO_VECTOR(hook_func)[i], Rf_cons(x, R_NilValue)));
-  out = R_UnwindProtect(nano_eval_prot, call, nano_reset, buf, NULL);
+  out = R_UnwindProtect(nano_eval_prot, call, nano_cleanup, nano_bundle.buf, NULL);
   UNPROTECT(1);
   if (TYPEOF(out) != RAWSXP) {
     free(nano_bundle.buf);
