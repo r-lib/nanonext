@@ -13,7 +13,6 @@
 The logical value \code{x} supplied.
 }
 \description{
-Sets whether async receive completions trigger an interrupt.
-Internal package function.
+Internal package function. No longer used.
 }
 \keyword{internal}
