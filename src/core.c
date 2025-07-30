@@ -8,6 +8,15 @@ static int special_marker = 0;
 static nano_serial_bundle nano_bundle;
 static SEXP nano_eval_res;
 
+static SEXP nano_eval_prot (void *call) {
+  return Rf_eval((SEXP) call, R_GlobalEnv);
+}
+
+static void nano_cleanup(void *data, Rboolean jump) {
+  if (jump)
+    free(data);
+}
+
 static void nano_eval_safe (void *call) {
   nano_eval_res = Rf_eval((SEXP) call, R_GlobalEnv);
 }
@@ -82,13 +91,10 @@ static int nano_read_char(R_inpstream_t stream) {
  *
  */
 
-static SEXP nano_serialize_hook(SEXP x, SEXP bundle_xptr) {
+static SEXP nano_serialize_hook(SEXP x, SEXP hook_func) {
 
-  R_outpstream_t stream = nano_bundle.outpstream;
   SEXP klass = nano_bundle.klass;
-  SEXP hook_func = nano_bundle.hook_func;
   int len = (int) XLENGTH(klass), match = 0, i;
-  void (*OutBytes)(R_outpstream_t, void *, int) = stream->OutBytes;
 
   for (i = 0; i < len; i++) {
     if (Rf_inherits(x, NANO_STR_N(klass, i))) {
@@ -100,15 +106,19 @@ static SEXP nano_serialize_hook(SEXP x, SEXP bundle_xptr) {
   if (!match)
     return R_NilValue;
 
-  SEXP call;
-  PROTECT(call = Rf_lcons(NANO_VECTOR(hook_func)[i], Rf_cons(x, R_NilValue)));
-  if (!R_ToplevelExec(nano_eval_safe, call) || TYPEOF(nano_eval_res) != RAWSXP) {
-    UNPROTECT(1);
-    return R_NilValue;
-  }
-  UNPROTECT(1);
+  R_outpstream_t stream = nano_bundle.outpstream;
+  void (*OutBytes)(R_outpstream_t, void *, int) = stream->OutBytes;
 
-  uint64_t size = XLENGTH(nano_eval_res);
+  SEXP out, call;
+  PROTECT(call = Rf_lcons(NANO_VECTOR(hook_func)[i], Rf_cons(x, R_NilValue)));
+  out = R_UnwindProtect(nano_eval_prot, call, nano_cleanup, nano_bundle.buf, NULL);
+  UNPROTECT(1);
+  if (TYPEOF(out) != RAWSXP) {
+    free(nano_bundle.buf);
+    Rf_error("Serialization function for `%s` did not return a raw vector", NANO_STR_N(klass, i));
+  }
+
+  uint64_t size = XLENGTH(out);
   char size_string[21];
   snprintf(size_string, sizeof(size_string), "%020" PRIu64, size);
 
@@ -125,7 +135,7 @@ static SEXP nano_serialize_hook(SEXP x, SEXP bundle_xptr) {
   OutBytes(stream, &int_20, sizeof(int));         // 20
   OutBytes(stream, &size_string[0], 20);          // 40
 
-  unsigned char *src = (unsigned char *) DATAPTR_RO(nano_eval_res);
+  unsigned char *src = (unsigned char *) DATAPTR_RO(out);
   while (size > NANONEXT_CHUNK_SIZE) {
     OutBytes(stream, src, NANONEXT_CHUNK_SIZE);
     src += NANONEXT_CHUNK_SIZE;
@@ -138,10 +148,9 @@ static SEXP nano_serialize_hook(SEXP x, SEXP bundle_xptr) {
 
 }
 
-static SEXP nano_unserialize_hook(SEXP x, SEXP bundle_xptr) {
+static SEXP nano_unserialize_hook(SEXP x, SEXP hook_func) {
 
   R_inpstream_t stream = nano_bundle.inpstream;
-  SEXP hook_func = nano_bundle.hook_func;
   void (*InBytes)(R_inpstream_t, void *, int) = stream->InBytes;
 
   const char *size_string = NANO_STRING(x);
@@ -265,8 +274,8 @@ void nano_serialize(nano_buf *buf, SEXP object, SEXP hook, int header) {
 
   if (hook != R_NilValue) {
     nano_bundle.klass = NANO_VECTOR(hook)[0];
-    nano_bundle.hook_func = NANO_VECTOR(hook)[1];
     nano_bundle.outpstream = &output_stream;
+    nano_bundle.buf = buf->buf;
   }
 
   R_InitOutPStream(
@@ -277,7 +286,7 @@ void nano_serialize(nano_buf *buf, SEXP object, SEXP hook, int header) {
     NULL,
     nano_write_bytes,
     hook != R_NilValue ? nano_serialize_hook : NULL,
-    R_NilValue
+    hook != R_NilValue ? NANO_VECTOR(hook)[1] : R_NilValue
   );
 
   R_Serialize(object, &output_stream);
@@ -314,7 +323,6 @@ SEXP nano_unserialize(unsigned char *buf, size_t sz, SEXP hook) {
   struct R_inpstream_st input_stream;
 
   if (hook != R_NilValue) {
-    nano_bundle.hook_func = NANO_VECTOR(hook)[2];
     nano_bundle.inpstream = &input_stream;
   }
 
@@ -325,7 +333,7 @@ SEXP nano_unserialize(unsigned char *buf, size_t sz, SEXP hook) {
     nano_read_char,
     nano_read_bytes,
     hook != R_NilValue ? nano_unserialize_hook : NULL,
-    R_NilValue
+    hook != R_NilValue ? NANO_VECTOR(hook)[2] : R_NilValue
   );
 
   return R_Unserialize(&input_stream);

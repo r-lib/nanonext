@@ -2,6 +2,8 @@
 
 #### Updates
 
+* Improved behaviour when using `serial_config()` configurations applied to a socket.
+  If the serialization hook function errors or otherwise fails to return a raw vector, this will error out rather than be silently ignored (#173).
 * `as.promise()` method for `recvAio` and `ncurlAio` objects made robust for high-throughput cases (#171).
 
 # nanonext 1.6.2
