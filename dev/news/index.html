@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.6.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.6.2.9001</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,7 +36,8 @@
 <h2 class="pkg-version" data-toc-text="development version" id="nanonext-development-version">nanonext (development version)<a class="anchor" aria-label="anchor" href="#nanonext-development-version"></a></h2>
 <div class="section level5">
 <h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
-<ul><li>
+<ul><li>Improved behaviour when using <code><a href="../reference/serial_config.html">serial_config()</a></code> configurations applied to a socket. If the serialization hook function errors or otherwise fails to return a raw vector, this will error out rather than be silently ignored (<a href="https://github.com/r-lib/nanonext/issues/173" class="external-link">#173</a>).</li>
+<li>
 <code><a href="https://rstudio.github.io/promises/reference/is.promise.html" class="external-link">as.promise()</a></code> method for <code>recvAio</code> and <code>ncurlAio</code> objects made robust for high-throughput cases (<a href="https://github.com/r-lib/nanonext/issues/171" class="external-link">#171</a>).</li>
 </ul></div>
 </div>
