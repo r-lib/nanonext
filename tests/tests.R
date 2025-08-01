@@ -659,7 +659,7 @@ if (!interactive() && Sys.getenv("NOT_CRAN") == "true") {
   test_equal(collect_aio(r), 7L)
 }
 
-if (Sys.info()[["sysname"]] == "Linux") {
+if (!interactive() && Sys.info()[["sysname"]] == "Linux") {
   rm(list = ls())
   invisible(gc())
   .Call(nanonext:::rnng_fini_priors)
