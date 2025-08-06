@@ -253,7 +253,6 @@ as.promise.ncurlAio <- function(x) {
         .subset2(x, "value")
       }
     )
-
     `[[<-`(x, "promise", promise)
   }
 
