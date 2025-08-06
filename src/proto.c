@@ -117,7 +117,7 @@ SEXP rnng_protocol_open(SEXP protocol, SEXP dial, SEXP listen, SEXP tls, SEXP au
   }
 
   if (xc)
-    goto fail;
+    goto failmem;
 
   PROTECT(socket = R_MakeExternalPtr(sock, nano_SocketSymbol, R_NilValue));
   R_RegisterCFinalizerEx(socket, socket_finalizer, TRUE);
@@ -144,9 +144,8 @@ SEXP rnng_protocol_open(SEXP protocol, SEXP dial, SEXP listen, SEXP tls, SEXP au
   UNPROTECT(1);
   return socket;
 
-  fail:
-  free(sock);
   failmem:
+  free(sock);
   ERROR_OUT(xc);
 
 }

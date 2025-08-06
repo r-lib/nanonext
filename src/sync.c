@@ -637,10 +637,10 @@ SEXP rnng_monitor_create(SEXP socket, SEXP cv) {
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
 
   if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_ADD_POST, pipe_cb_monitor, monitor)))
-    goto fail;
+    goto failmem;
 
   if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_REM_POST, pipe_cb_monitor, monitor)))
-    goto fail;
+    goto failmem;
 
   PROTECT(xptr = R_MakeExternalPtr(monitor, nano_MonitorSymbol, R_NilValue));
   R_RegisterCFinalizerEx(xptr, monitor_finalizer, TRUE);
@@ -650,7 +650,6 @@ SEXP rnng_monitor_create(SEXP socket, SEXP cv) {
 
   return xptr;
 
-  fail:
   failmem:
   if (monitor != NULL)
     free(monitor->ids);
