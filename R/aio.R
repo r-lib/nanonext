@@ -358,16 +358,17 @@ as.promise.recvAio <- function(x) {
         if (unresolved(x)) .keep(x, environment()) else resolve(.subset2(x, "value"))
       }
     )$then(
-      onFulfilled = function(value, .visible) {
-        is_error_value(value) && stop(nng_error(value))
-        value
-      }
+      onFulfilled = handle_fulfilled
     )
-
     `[[<-`(x, "promise", promise)
   }
 
   promise
+}
+
+handle_fulfilled <- function(value, .visible) {
+  is_error_value(value) && stop(nng_error(value))
+  value
 }
 
 #' @exportS3Method promises::is.promising
