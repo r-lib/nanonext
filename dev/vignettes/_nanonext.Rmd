@@ -475,13 +475,13 @@ In this respect, it may be used as a performant and lightweight method for makin
 
 `ncurl_aio()` may also be used anywhere that accepts a ‘promise’ from the promises package, including with Shiny ExtendedTask.
 
-If a status code of 200 (OK) is returned then the promise is resolved with the reponse body, otherwise it is rejected with a translation of the status code or ‘errorValue’ as the case may be.
+The promise is resolved with a list of 'status', 'headers' and 'data', or rejected with a translation of the error if an NNG error was returned e.g. for '15 | Address invalid'.
 
 ```{r}
 #| label: ncurlprom
 library(promises)
 
-p <- ncurl_aio("https://postman-echo.com/get") %...>% cat
+p <- ncurl_aio("https://postman-echo.com/get") |> then(\(x) cat(x$data))
 is.promise(p)
 ```
 ##### ncurl Session

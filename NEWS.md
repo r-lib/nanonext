@@ -2,8 +2,8 @@
 
 #### Behavioural Changes
 
-* The promises method for `ncurlAio` has been updated for ease of use:
-  + Returns a named list of 'status', 'headers' and 'data'.
+* The promises method for `ncurlAio` has been updated for ease of use (#176):
+  + Returns a list of 'status', 'headers' and 'data'.
   + Rejects only if an NNG error is returned (all HTTP status codes are resolved).
 * Improved behaviour when using `serial_config()` configurations applied to a socket.
   If the serialization hook function errors or otherwise fails to return a raw vector, this will error out rather than be silently ignored (#173).

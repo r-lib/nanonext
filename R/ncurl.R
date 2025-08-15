@@ -234,6 +234,10 @@ close.ncurlSession <- function(con, ...) invisible(.Call(rnng_ncurl_session_clos
 #' Allows an 'ncurlAio' to be used with functions such as `promises::then()`,
 #' which schedules a function to run upon resolution of the Aio.
 #'
+#' The promise is resolved with a list of 'status', 'headers' and 'data' or
+#' rejected with the error translation if an NNG error is returned e.g. for an
+#' invalid address.
+#'
 #' @param x an object of class 'ncurlAio'.
 #'
 #' @return A 'promise' object.
