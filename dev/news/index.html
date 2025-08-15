@@ -35,9 +35,16 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="nanonext-development-version">nanonext (development version)<a class="anchor" aria-label="anchor" href="#nanonext-development-version"></a></h2>
 <div class="section level5">
+<h5 id="behavioural-changes-development-version">Behavioural Changes<a class="anchor" aria-label="anchor" href="#behavioural-changes-development-version"></a></h5>
+<ul><li>The promises method for <code>ncurlAio</code> has been updated for ease of use (<a href="https://github.com/r-lib/nanonext/issues/176" class="external-link">#176</a>):
+<ul><li>Returns a list of ‘status’, ‘headers’ and ‘data’.</li>
+<li>Rejects only if an NNG error is returned (all HTTP status codes are resolved).</li>
+</ul></li>
+<li>Improved behaviour when using <code><a href="../reference/serial_config.html">serial_config()</a></code> configurations applied to a socket. If the serialization hook function errors or otherwise fails to return a raw vector, this will error out rather than be silently ignored (<a href="https://github.com/r-lib/nanonext/issues/173" class="external-link">#173</a>).</li>
+</ul></div>
+<div class="section level5">
 <h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
-<ul><li>Improved behaviour when using <code><a href="../reference/serial_config.html">serial_config()</a></code> configurations applied to a socket. If the serialization hook function errors or otherwise fails to return a raw vector, this will error out rather than be silently ignored (<a href="https://github.com/r-lib/nanonext/issues/173" class="external-link">#173</a>).</li>
-<li>
+<ul><li>
 <code><a href="https://rstudio.github.io/promises/reference/is.promise.html" class="external-link">as.promise()</a></code> method for <code>recvAio</code> and <code>ncurlAio</code> objects made robust for high-throughput cases (<a href="https://github.com/r-lib/nanonext/issues/171" class="external-link">#171</a>).</li>
 </ul></div>
 </div>

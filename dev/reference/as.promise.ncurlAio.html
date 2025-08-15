@@ -60,8 +60,11 @@
     <p>This function is an S3 method for the generic <code>as.promise</code> for class
 'ncurlAio'.</p>
 <p>Requires the <span class="pkg">promises</span> package.</p>
-<p>Allows an 'ncurlAio' to be used with the promise pipe <code>%...&gt;%</code>, which
-schedules a function to run upon resolution of the Aio.</p>
+<p>Allows an 'ncurlAio' to be used with functions such as <code><a href="https://rstudio.github.io/promises/reference/then.html" class="external-link">promises::then()</a></code>,
+which schedules a function to run upon resolution of the Aio.</p>
+<p>The promise is resolved with a list of 'status', 'headers' and 'data' or
+rejected with the error translation if an NNG error is returned e.g. for an
+invalid address.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
