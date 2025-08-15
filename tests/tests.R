@@ -636,10 +636,10 @@ if (promises) test_true(is_aio(n <- ncurl_aio("https://www.cam.ac.uk/", timeout 
 if (promises) test_true(promises::is.promise(promises::then(n, identity, identity)))
 if (promises) test_true(promises::is.promising(call_aio(n)))
 if (promises) test_true(promises::is.promise(promises::as.promise(call_aio(ncurl_aio("https://www.cam.ac.uk/", timeout = 3000L)))))
-if (promises) later::run_now(1L)
+if (promises) { later::run_now(1L); later::run_now() }
 if (promises) test_zero(close(s1))
 if (promises) test_zero(close(s))
-if (promises) later::run_now(1L)
+if (promises) { later::run_now(1L); later::run_now() }
 test_type("character", ip_addr())
 test_type("character", names(ip_addr()))
 test_null(write_stdout(""))

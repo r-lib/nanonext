@@ -21,6 +21,10 @@ This function is an S3 method for the generic \code{as.promise} for class
 
 Requires the \pkg{promises} package.
 
-Allows an 'ncurlAio' to be used with the promise pipe \verb{\%...>\%}, which
-schedules a function to run upon resolution of the Aio.
+Allows an 'ncurlAio' to be used with functions such as \code{promises::then()},
+which schedules a function to run upon resolution of the Aio.
+
+The promise is resolved with a list of 'status', 'headers' and 'data' or
+rejected with the error translation if an NNG error is returned e.g. for an
+invalid address.
 }
