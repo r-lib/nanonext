@@ -55,11 +55,15 @@ void raio_invoke_cb(void *arg) {
 
 void haio_invoke_cb(void *arg) {
 
-  SEXP call, status, node = (SEXP) arg, x = TAG(node);
-  status = nano_aio_http_status(x);
-  PROTECT(call = Rf_lcons(nano_ResolveSymbol, Rf_cons(status, R_NilValue)));
+  SEXP call, out, node = (SEXP) arg, x = TAG(node);
+  const char *names[] = {"status", "headers", "data", ""};
+  PROTECT(out = Rf_mkNamed(VECSXP, names));
+  SET_VECTOR_ELT(out, 0, nano_aio_http_status(x));
+  SET_VECTOR_ELT(out, 1, Rf_findVarInFrame(x, nano_ProtocolSymbol));
+  SET_VECTOR_ELT(out, 2, Rf_findVarInFrame(x, nano_ValueSymbol));
+  PROTECT(call = Rf_lcons(nano_ResolveSymbol, Rf_cons(out, R_NilValue)));
   Rf_eval(call, NANO_ENCLOS(x));
-  UNPROTECT(1);
+  UNPROTECT(2);
   nano_ReleaseObject(node);
 
 }

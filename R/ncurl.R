@@ -136,7 +136,8 @@ ncurl <- function(
 #' p <- as.promise(nc)
 #' print(p)
 #'
-#' p2 <- ncurl_aio("https://postman-echo.com/get") %...>% cat
+#' p2 <- ncurl_aio("https://postman-echo.com/get") %>%
+#'   then(function(x) cat(x$data))
 #' is.promise(p2)
 #'
 #' @export
@@ -230,8 +231,8 @@ close.ncurlSession <- function(con, ...) invisible(.Call(rnng_ncurl_session_clos
 #'
 #' Requires the \pkg{promises} package.
 #'
-#' Allows an 'ncurlAio' to be used with the promise pipe `%...>%`, which
-#' schedules a function to run upon resolution of the Aio.
+#' Allows an 'ncurlAio' to be used with functions such as `promises::then()`,
+#' which schedules a function to run upon resolution of the Aio.
 #'
 #' @param x an object of class 'ncurlAio'.
 #'
@@ -245,14 +246,19 @@ as.promise.ncurlAio <- function(x) {
   if (is.null(promise)) {
     promise <- promises::promise(
       function(resolve, reject) {
-        if (unresolved(x)) .keep(x, environment()) else resolve(.subset2(x, "result"))
+        if (unresolved(x)) {
+          .keep(x, environment())
+        } else {
+          resolve(
+            list(
+              status = .subset2(x, "result"),
+              headers = .subset2(x, "protocol"),
+              data = .subset2(x, "value")
+            )
+          )
+        }
       }
-    )$then(
-      onFulfilled = function(value, .visible) {
-        value == 200L || stop(if (value < 100) nng_error(value) else status_code(value))
-        .subset2(x, "value")
-      }
-    )
+    )$then(onFulfilled = check_for_nng_error)
     `[[<-`(x, "promise", promise)
   }
 
@@ -262,3 +268,8 @@ as.promise.ncurlAio <- function(x) {
 #' @exportS3Method promises::is.promising
 #'
 is.promising.ncurlAio <- function(x) TRUE
+
+check_for_nng_error <- function(value, .visible) {
+  value[["status"]] >= 100 || stop(nng_error(value[["status"]]))
+  value
+}
