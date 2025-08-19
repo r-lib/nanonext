@@ -11,7 +11,7 @@ called for the value when required."><meta property="og:image" content="https://
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.6.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.6.2.9002</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -118,9 +118,8 @@ result.</p>
 This allows an error to be easily distinguished from a NULL return value.
 <code><a href="is_error_value.html">is_nul_byte()</a></code> can be used to test for a nul byte.</p>
 <p>It is recommended to use a new context for each request to ensure consistent
-state tracking. For safety, the context used for the request is closed when
-all references to the returned 'recvAio' are removed and the object is
-garbage collected.</p>
+state tracking. The integer context ID is appended as the attribute <code>id</code> to
+the returned 'recvAio'.</p>
     </div>
     <div class="section level2">
     <h2 id="send-modes">Send Modes<a class="anchor" aria-label="anchor" href="#send-modes"></a></h2>

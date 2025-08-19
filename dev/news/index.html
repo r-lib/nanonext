@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.6.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.6.2.9002</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,6 +41,10 @@
 <li>Rejects only if an NNG error is returned (all HTTP status codes are resolved).</li>
 </ul></li>
 <li>Improved behaviour when using <code><a href="../reference/serial_config.html">serial_config()</a></code> configurations applied to a socket. If the serialization hook function errors or otherwise fails to return a raw vector, this will error out rather than be silently ignored (<a href="https://github.com/r-lib/nanonext/issues/173" class="external-link">#173</a>).</li>
+</ul></div>
+<div class="section level5">
+<h5 id="new-features-development-version">New Features<a class="anchor" aria-label="anchor" href="#new-features-development-version"></a></h5>
+<ul><li>A ‘recvAio’ returned by <code><a href="../reference/request.html">request()</a></code> now has an attribute <code>id</code>, which is the integer ID of the context passed to it.</li>
 </ul></div>
 <div class="section level5">
 <h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
