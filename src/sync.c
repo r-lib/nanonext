@@ -463,7 +463,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
   const uint8_t mod = (uint8_t) nano_matcharg(recvmode);
   const int raw = nano_encode_mode(sendmode);
-  const int id = msgid != R_NilValue ? nng_ctx_id(*ctx) : 0;
+  const int id = nng_ctx_id(*ctx);
   const int signal = cvar != R_NilValue && !NANO_PTR_CHECK(cvar, nano_CvSymbol);
   const int drop = cvar != R_NilValue && !signal;
   int xc;
@@ -489,7 +489,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   NANO_ENSURE_ALLOC(raio);
 
   saio->ctx = ctx;
-  saio->id = id;
+  saio->id = msgid != R_NilValue ? id : 0;
 
   if ((xc = nng_msg_alloc(&msg, 0)) ||
       (xc = nng_msg_append(msg, buf.buf, buf.cur)) ||
@@ -516,10 +516,11 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   PROTECT(aio = R_MakeExternalPtr(raio, nano_AioSymbol, NANO_PROT(con)));
   R_RegisterCFinalizerEx(aio, request_finalizer, TRUE);
   Rf_setAttrib(aio, nano_ContextSymbol, con);
-  Rf_setAttrib(aio, nano_IdSymbol, Rf_ScalarInteger(id));
+  Rf_setAttrib(aio, nano_IdSymbol, Rf_ScalarInteger(saio->id));
 
   PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
   Rf_classgets(env, nano_reqAio);
+  Rf_setAttrib(env, nano_IdSymbol, Rf_ScalarInteger(id));
   Rf_defineVar(nano_AioSymbol, aio, env);
 
   PROTECT(fun = R_mkClosure(R_NilValue, nano_aioFuncMsg, clo));

@@ -8,6 +8,10 @@
 * Improved behaviour when using `serial_config()` configurations applied to a socket.
   If the serialization hook function errors or otherwise fails to return a raw vector, this will error out rather than be silently ignored (#173).
 
+#### New Features
+
+* A 'recvAio' returned by `request()` now has an attribute `id`, which is the integer ID of the context passed to it.
+
 #### Updates
 
 * `as.promise()` method for `recvAio` and `ncurlAio` objects made robust for high-throughput cases (#171).
