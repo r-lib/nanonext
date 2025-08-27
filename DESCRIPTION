@@ -27,11 +27,11 @@ Depends:
     R (>= 3.6)
 Suggests: 
     later,
-    litedown
+    quarto
 Enhances:
     promises
 VignetteBuilder: 
-    litedown
+    quarto
 Biarch: true
 Config/build/compilation-database: true
 Config/Needs/website: tidyverse/tidytemplate
