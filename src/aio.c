@@ -454,8 +454,26 @@ SEXP rnng_aio_stop(SEXP x) {
   case ENVSXP: ;
     const SEXP coreaio = Rf_findVarInFrame(x, nano_AioSymbol);
     if (NANO_PTR_CHECK(coreaio, nano_AioSymbol)) break;
+    PROTECT(coreaio);
     nano_aio *aiop = (nano_aio *) NANO_PTR(coreaio);
     nng_aio_stop(aiop->aio);
+    if (aiop->type == REQAIO || aiop->type == REQAIOS) {
+      nano_saio *saio = (nano_saio *) aiop->cb;
+      if (saio->id == 0) goto fail;
+      const SEXP context = Rf_getAttrib(coreaio, nano_ContextSymbol);
+      if (NANO_PTR_CHECK(context, nano_ContextSymbol)) goto fail;
+      nng_ctx *ctx = (nng_ctx *) NANO_PTR(context);
+      nng_msg *msg = NULL;
+      if (nng_msg_alloc(&msg, 0) == 0) {
+        if (nng_msg_append_u32(msg, 0) ||
+            nng_msg_append(msg, &saio->id, sizeof(int)) ||
+            nng_ctx_sendmsg(*ctx, msg, 0)) {
+          nng_msg_free(msg);
+        }
+      }
+    }
+    fail:
+    UNPROTECT(1);
     break;
   case VECSXP: ;
     const R_xlen_t xlen = Rf_xlength(x);
