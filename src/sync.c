@@ -88,12 +88,11 @@ static void request_complete(void *arg) {
     res = - (int) p.id;
   } else if (res == 5 && saio->id) {
     nng_msg *msg = NULL;
-    if (nng_msg_alloc(&msg, 0) == 0) {
-      if (nng_msg_append_u32(msg, 0) ||
-          nng_msg_append(msg, &saio->id, sizeof(int)) ||
-          nng_ctx_sendmsg(*saio->ctx, msg, 0)) {
-        nng_msg_free(msg);
-      }
+    if (nng_msg_alloc(&msg, 0) ||
+        nng_msg_append_u32(msg, 0) ||
+        nng_msg_append(msg, &saio->id, sizeof(int)) ||
+        nng_ctx_sendmsg(*saio->ctx, msg, NNG_FLAG_NONBLOCK)) {
+      nng_msg_free(msg);
     }
   }
 
