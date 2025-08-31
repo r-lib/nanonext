@@ -516,6 +516,8 @@ SEXP rnng_request_stop(SEXP x) {
     }
     UNPROTECT(1);
     break;
+  default:
+    out = Rf_ScalarLogical(0);
   }
 
   return out;
