@@ -488,7 +488,7 @@ SEXP rnng_request_stop(SEXP x) {
     const SEXP context = Rf_getAttrib(coreaio, nano_ContextSymbol);
     if (NANO_PTR_CHECK(context, nano_ContextSymbol)) goto fail;
     nng_ctx *ctx = (nng_ctx *) NANO_PTR(context);
-    const nng_duration dur = 5000;
+    const nng_duration dur = NANONEXT_WAIT_DUR;
     if (nng_ctx_set_ms(*ctx, "send-timeout", dur) ||
         nng_ctx_set_ms(*ctx, "recv-timeout", dur) ||
         nng_msg_alloc(&msgp, 0) ||
