@@ -6,8 +6,12 @@
 \usage{
 stop_request(x)
 }
+\arguments{
+\item{x}{an Aio or list of Aios (objects of class 'recvAio' returned by
+\code{\link[=request]{request()}}).}
+}
 \value{
-Invisibly, loigcal \code{TRUE} or \code{FALSE}.
+Invisibly, a logical vector.
 }
 \description{
 Stop an asynchronous Aio operation, or a list of Aio operations, created by

@@ -271,7 +271,10 @@ stop_aio <- function(x) invisible(.Call(rnng_aio_stop, x))
 #' requests cancellation by sending an integer zero followed by the context ID
 #' over the context, and waiting for the response.
 #'
-#' @return Invisibly, loigcal `TRUE` or `FALSE`.
+#' @param x an Aio or list of Aios (objects of class 'recvAio' returned by
+#'   [request()]).
+#'
+#' @return Invisibly, a logical vector.
 #'
 #' @keywords internal
 #' @export
