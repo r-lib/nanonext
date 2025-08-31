@@ -14,6 +14,7 @@
 
 #### Updates
 
+* `opt()` for a boolean NNG option now correctly returns a logical value instead of an integer (#186).
 * `as.promise()` method for `recvAio` and `ncurlAio` objects made robust for high-throughput cases (#171).
 
 # nanonext 1.6.2

@@ -471,7 +471,7 @@ SEXP rnng_get_opt(SEXP object, SEXP opt) {
     out = Rf_ScalarInteger(optval.i);
     break;
   case 5:
-    out = Rf_ScalarInteger((int) optval.b);
+    out = Rf_ScalarLogical((int) optval.b);
     break;
   default:
     out = Rf_ScalarReal((double) optval.u);
