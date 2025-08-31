@@ -264,6 +264,20 @@ collect_aio_ <- function(x) .Call(rnng_aio_collect_safe, x)
 #'
 stop_aio <- function(x) invisible(.Call(rnng_aio_stop, x))
 
+#' Stop Request Operation
+#'
+#' Stop an asynchronous Aio operation, or a list of Aio operations, created by
+#' [request()]. This is an augmented version of [stop_aio()] that additionally
+#' requests cancellation by sending an integer zero followed by the context ID
+#' over the context, and waiting for the response.
+#'
+#' @return Invisibly, loigcal `TRUE` or `FALSE`.
+#'
+#' @keywords internal
+#' @export
+#'
+stop_request <- function(x) invisible(.Call(rnng_request_stop, x))
+
 #' Query if an Aio is Unresolved
 #'
 #' Query whether an Aio, Aio value or list of Aios remains unresolved. Unlike
