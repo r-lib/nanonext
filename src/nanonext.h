@@ -123,6 +123,7 @@ extern int R_interrupts_pending;
 #define NANONEXT_SERIAL_THR 134217728
 #define NANONEXT_CHUNK_SIZE INT_MAX // must be <= INT_MAX
 #define NANONEXT_STR_SIZE 40
+#define NANONEXT_WAIT_DUR 1000
 #define NANO_ALLOC(x, sz)                                      \
   (x)->buf = calloc(sz, sizeof(unsigned char));                \
   if ((x)->buf == NULL) Rf_error("memory allocation failed");  \
@@ -390,6 +391,7 @@ SEXP rnng_reap(SEXP);
 SEXP rnng_recv(SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_recv_aio(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_request(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP rnng_request_stop(SEXP);
 SEXP rnng_send(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_send_aio(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_serial_config(SEXP, SEXP, SEXP);
