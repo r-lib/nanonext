@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.6.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,7 +29,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Make ncurlAio Promise</h1>
-      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/v1.6.2/R/ncurl.R" class="external-link"><code>R/ncurl.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/main/R/ncurl.R" class="external-link"><code>R/ncurl.R</code></a></small>
       <div class="d-none name"><code>as.promise.ncurlAio.Rd</code></div>
     </div>
 
@@ -60,8 +60,11 @@
     <p>This function is an S3 method for the generic <code>as.promise</code> for class
 'ncurlAio'.</p>
 <p>Requires the <span class="pkg">promises</span> package.</p>
-<p>Allows an 'ncurlAio' to be used with the promise pipe <code>%...&gt;%</code>, which
-schedules a function to run upon resolution of the Aio.</p>
+<p>Allows an 'ncurlAio' to be used with functions such as <code><a href="https://rstudio.github.io/promises/reference/then.html" class="external-link">promises::then()</a></code>,
+which schedules a function to run upon resolution of the Aio.</p>
+<p>The promise is resolved with a list of 'status', 'headers' and 'data' or
+rejected with the error translation if an NNG error is returned e.g. for an
+invalid address.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
