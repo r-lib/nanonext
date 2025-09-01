@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.6.2.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.7.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,8 +34,11 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="nanonext-development-version">nanonext (development version)<a class="anchor" aria-label="anchor" href="#nanonext-development-version"></a></h2>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.7.0" id="nanonext-170">nanonext 1.7.0<a class="anchor" aria-label="anchor" href="#nanonext-170"></a></h2><p class="text-muted">CRAN release: 2025-09-01</p>
 <div class="section level5">
-<h5 id="behavioural-changes-development-version">Behavioural Changes<a class="anchor" aria-label="anchor" href="#behavioural-changes-development-version"></a></h5>
+<h5 id="behavioural-changes-1-7-0">Behavioural Changes<a class="anchor" aria-label="anchor" href="#behavioural-changes-1-7-0"></a></h5>
 <ul><li>The promises method for <code>ncurlAio</code> has been updated for ease of use (<a href="https://github.com/r-lib/nanonext/issues/176" class="external-link">#176</a>):
 <ul><li>Returns a list of ‘status’, ‘headers’ and ‘data’.</li>
 <li>Rejects only if an NNG error is returned (all HTTP status codes are resolved).</li>
@@ -43,11 +46,11 @@
 <li>Improved behaviour when using <code><a href="../reference/serial_config.html">serial_config()</a></code> configurations applied to a socket. If the serialization hook function errors or otherwise fails to return a raw vector, this will error out rather than be silently ignored (<a href="https://github.com/r-lib/nanonext/issues/173" class="external-link">#173</a>).</li>
 </ul></div>
 <div class="section level5">
-<h5 id="new-features-development-version">New Features<a class="anchor" aria-label="anchor" href="#new-features-development-version"></a></h5>
+<h5 id="new-features-1-7-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-1-7-0"></a></h5>
 <ul><li>A ‘recvAio’ returned by <code><a href="../reference/request.html">request()</a></code> now has an attribute <code>id</code>, which is the integer ID of the context passed to it.</li>
 </ul></div>
 <div class="section level5">
-<h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
+<h5 id="updates-1-7-0">Updates<a class="anchor" aria-label="anchor" href="#updates-1-7-0"></a></h5>
 <ul><li>
 <code><a href="../reference/opt.html">opt()</a></code> for a boolean NNG option now correctly returns a logical value instead of an integer (<a href="https://github.com/r-lib/nanonext/issues/186" class="external-link">#186</a>).</li>
 <li>
