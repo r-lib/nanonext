@@ -464,7 +464,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   const int raw = nano_encode_mode(sendmode);
   const int id = nng_ctx_id(*ctx);
   const int signal = cvar != R_NilValue && !NANO_PTR_CHECK(cvar, nano_CvSymbol);
-  const int drop = cvar != R_NilValue && !signal;
+  const int drop = cvar == R_MissingArg;
   int xc;
 
   nano_cv *ncv = signal ? (nano_cv *) NANO_PTR(cvar) : NULL;
