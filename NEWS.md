@@ -1,4 +1,4 @@
-# nanonext (development version)
+# nanonext 1.7.0
 
 #### Behavioural Changes
 
