@@ -16,3 +16,7 @@ authors:
     html: "<img src='https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp' alt='R Consortium' width='100' height='22' />"
 development:
   mode: auto
+news:
+ releases:
+ - text: "nanonext 1.7.0"
+   href: https://www.tidyverse.org/blog/2025/09/nanonext-1-7-0/
