@@ -464,7 +464,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   const int raw = nano_encode_mode(sendmode);
   const int id = nng_ctx_id(*ctx);
   const int signal = cvar != R_NilValue && !NANO_PTR_CHECK(cvar, nano_CvSymbol);
-  const int drop = cvar != R_NilValue && !signal;
+  const int drop = cvar == R_MissingArg;
   int xc;
 
   nano_cv *ncv = signal ? (nano_cv *) NANO_PTR(cvar) : NULL;
@@ -515,7 +515,6 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   PROTECT(aio = R_MakeExternalPtr(raio, nano_AioSymbol, NANO_PROT(con)));
   R_RegisterCFinalizerEx(aio, request_finalizer, TRUE);
   Rf_setAttrib(aio, nano_ContextSymbol, con);
-  Rf_setAttrib(aio, nano_IdSymbol, Rf_ScalarInteger(saio->id));
 
   PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
   Rf_classgets(env, nano_reqAio);
