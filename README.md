@@ -211,9 +211,7 @@ For R \>= 4.2 using the ‘Rtools42’ or newer toolchains, the prerequisite
 earlier, it may be necessary to separately install a version of ‘cmake’
 in Windows and ensure that it is added to your system’s `PATH`.
 
-### Acknowledgements and Links
-
-We would like to acknowledge in particular:
+### Acknowledgements
 
 - [Garrett D’Amore](https://github.com/gdamore), author of the NNG
   library, for generous advice and for implementing a feature request
@@ -235,18 +233,14 @@ We would like to acknowledge in particular:
   configure script, on which our original ‘configure’ was based,
   although much modified since.
 
-Links:
+### Links
 
-◈ nanonext R package: <https://nanonext.r-lib.org/>
-
-nanonext is listed in CRAN Task Views:
-
-- High Performance Computing:
-  <https://cran.r-project.org/view=HighPerformanceComputing>
-- Web Technologies: <https://cran.r-project.org/view=WebTechnologies>
-
-NNG: <https://nng.nanomsg.org/><br /> Mbed TLS:
-<https://www.trustedfirmware.org/projects/mbed-tls/>
+[nanonext](https://nanonext.r-lib.org/) • [CRAN HPC Task
+View](https://cran.r-project.org/view=HighPerformanceComputing) • [CRAN
+Web Technologies Task
+View](https://cran.r-project.org/view=WebTechnologies) •
+[NNG](https://nng.nanomsg.org/) • [Mbed
+TLS](https://www.trustedfirmware.org/projects/mbed-tls/)
 
 –
 

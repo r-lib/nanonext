@@ -173,9 +173,7 @@ On Windows, 'libnng' v1.11.0 and 'libmbedtls' v3.6.2 will be compiled from the p
 
 For R >= 4.2 using the 'Rtools42' or newer toolchains, the prerequisite 'cmake' is included. For previous R versions using 'Rtools40' or earlier, it may be necessary to separately install a version of 'cmake' in Windows and ensure that it is added to your system's `PATH`.
 
-### Acknowledgements and Links
-
-We would like to acknowledge in particular:
+### Acknowledgements
 
 - [Garrett D'Amore](https://github.com/gdamore), author of the NNG library, for generous advice and for implementing a feature request specifically for a more efficient 'aio' implementation in `nanonext`.
 - The [R Consortium](https://r-consortium.org/) for funding the development of the secure TLS capabilities in the package, and [Henrik Bengtsson](https://github.com/HenrikBengtsson) and [Will Landau](https://github.com/wlandau/)'s roles in making this possible.
@@ -184,17 +182,13 @@ We would like to acknowledge in particular:
 - [Travers Ching](https://github.com/traversc) for a novel idea in extending the original custom serialization support in the package.
 - [Jeroen Ooms](https://github.com/jeroen) - for his 'Anticonf (tm)' configure script, on which our original 'configure' was based, although much modified since.
 
-Links:
+### Links
 
-◈ nanonext R package: <https://nanonext.r-lib.org/>
-
-nanonext is listed in CRAN Task Views:
-
-- High Performance Computing: <https://cran.r-project.org/view=HighPerformanceComputing>
-- Web Technologies: <https://cran.r-project.org/view=WebTechnologies>
-
-NNG: <https://nng.nanomsg.org/><br />
-Mbed TLS: <https://www.trustedfirmware.org/projects/mbed-tls/>
+[nanonext](https://nanonext.r-lib.org/) •
+[CRAN HPC Task View](https://cran.r-project.org/view=HighPerformanceComputing) •
+[CRAN Web Technologies Task View](https://cran.r-project.org/view=WebTechnologies) •
+[NNG](https://nng.nanomsg.org/) •
+[Mbed TLS](https://www.trustedfirmware.org/projects/mbed-tls/)
 
 --
 
