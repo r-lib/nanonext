@@ -511,7 +511,7 @@ test_error(parse_url("tcp:/"), "argument")
 for (i in c(100:103, 200:208, 226, 300:308, 400:426, 428:431, 451, 500:511, 600))
   test_type("character", status_code(i))
 
-s <- tryCatch(stream(dial = "wss://echo.websocket.events/", textframes = TRUE), error = function(e) NULL)
+s <- tryCatch(stream(dial = "wss://echo.websocket.org/", textframes = TRUE), error = function(e) NULL)
 if (is_nano(s)) test_notnull(recv(s, block = 500L))
 if (is_nano(s)) test_type("character", opt(s, "ws:response-headers"))
 if (is_nano(s)) test_error(opt(s, "ws:request-headers") <- "test\n", 24)
