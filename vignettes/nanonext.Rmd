@@ -12,11 +12,11 @@ vignette: >
 
 1. [Cross-language Exchange](#cross-language-exchange)
 2. [Async and Concurrency](#async-and-concurrency)
-3. [RPC and Distributed Computing](#rpc-and-distributed-computing)
-4. [Synchronisation Primitives](#synchronisation-primitives)
-5. [TLS Secure Connections](#tls-secure-connections)
-6. [Publisher / Subscriber Model](#publisher-subscriber-model)
-7. [Surveyor / Respondent Model](#surveyor-respondent-model)
+3. [Synchronisation Primitives](#synchronisation-primitives)
+4. [TLS Secure Connections](#tls-secure-connections)
+5. [Request / Reply Protocol](#request-reply-protocol)
+6. [Publisher / Subscriber Protocol](#publisher-subscriber-protocol)
+7. [Surveyor / Respondent Protocol](#surveyor-respondent-protocol)
 8. [ncurl: (Async) HTTP Client](#ncurl-async-http-client)
 9. [stream: Websocket Client](#stream-websocket-client)
 10. [Options, Serialization and Statistics](#options-serialization-and-statistics)
@@ -171,61 +171,6 @@ close(s2)
 
 [&laquo; Back to ToC](#table-of-contents)
 
-### RPC and Distributed Computing
-
-`nanonext` implements remote procedure calls (RPC) using NNG's req/rep protocol to provide a basis for distributed computing.
-
-Can be used to perform computationally-expensive calculations or I/O-bound operations such as writing large amounts of data to disk in a separate 'server' process running concurrently.
-
-[S] Server process: `reply()` will wait for a message and apply a function, in this case `rnorm()`, before sending back the result. This is started in a background 'mirai' process.
-
-
-``` r
-m <- mirai::mirai({
-  library(nanonext)
-  rep <- socket("rep", listen = "tcp://127.0.0.1:6556")
-  reply(context(rep), execute = rnorm, send_mode = "raw")
-  Sys.sleep(2) # linger period to flush system socket send
-})
-
-```
-
-[C] Client process: `request()` performs an async send and receive request and returns immediately with a `recvAio` object.
-
-
-``` r
-library(nanonext)
-req <- socket("req", dial = "tcp://127.0.0.1:6556")
-aio <- request(context(req), data = 1e8, recv_mode = "double")
-
-```
-At this point, the client can run additional code concurrent with the server processing the request.
-
-
-``` r
-# do more...
-```
-
-When the result of the server calculation is required, the `recvAio` may be called using `call_aio()`.
-
-The return value from the server request is then retrieved and stored in the Aio as `$data`.
-
-
-``` r
-call_aio(aio)$data |> str()
-#>  num [1:100000000] 1.2354 -0.0363 -0.9229 -0.3835 1.3604 ...
-```
-
-As `call_aio()` is blocking and will wait for completion, an alternative is to query `aio$data` directly. This will return an 'unresolved' logical NA value if the calculation is yet to complete.
-
-In this example the calculation is returned, but other operations may reside entirely on the server side, for example writing data to disk.
-
-In such a case, calling or querying the value confirms that the operation has completed, and provides the return value of the function, which may typically be NULL or an exit code.
-
-The [`mirai`](https://doi.org/10.5281/zenodo.7912722) package (<https://mirai.r-lib.org/>) uses `nanonext` as the back-end to provide asynchronous execution of arbitrary R code using the RPC model.
-
-[&laquo; Back to ToC](#table-of-contents)
-
 ### Synchronisation Primitives
 
 `nanonext` implements cross-platform synchronisation primitives provided by the NNG library.
@@ -334,7 +279,7 @@ Additionally, the convenience function `write_cert()` can automatically generate
 cert <- write_cert(cn = "127.0.0.1")
 str(cert)
 #> List of 2
-#>  $ server: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ "-----BEGIN RSA PRIVATE KEY-----\nMIIJKAIBAAKCAgEAnUy3if3SCAzwygcJQBQybALAwcxYRGxdwFa0kPc+tbqZ66YA\n402Jf8b+oNl/"| __truncated__
+#>  $ server: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ "-----BEGIN RSA PRIVATE KEY-----\nMIIJKAIBAAKCAgEAnM4fRU63IE3EnjHYD28HaxEMwfsPj1hbFPLY88kUwS6yikJd\n31fRGOQnpMjw"| __truncated__
 #>  $ client: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ ""
 
 ser <- tls_config(server = cert$server)
@@ -357,7 +302,62 @@ close(s)
 
 [&laquo; Back to ToC](#table-of-contents)
 
-### Publisher Subscriber Model
+### Request Reply Protocol
+
+`nanonext` implements remote procedure calls (RPC) using NNG's req/rep protocol to provide a basis for distributed computing.
+
+Can be used to perform computationally-expensive calculations or I/O-bound operations such as writing large amounts of data to disk in a separate 'server' process running concurrently.
+
+[S] Server process: `reply()` will wait for a message and apply a function, in this case `rnorm()`, before sending back the result. This is started in a background 'mirai' process.
+
+
+``` r
+m <- mirai::mirai({
+  library(nanonext)
+  rep <- socket("rep", listen = "tcp://127.0.0.1:6556")
+  reply(context(rep), execute = rnorm, send_mode = "raw")
+  Sys.sleep(2) # linger period to flush system socket send
+})
+
+```
+
+[C] Client process: `request()` performs an async send and receive request and returns immediately with a `recvAio` object.
+
+
+``` r
+library(nanonext)
+req <- socket("req", dial = "tcp://127.0.0.1:6556")
+aio <- request(context(req), data = 1e8, recv_mode = "double")
+
+```
+At this point, the client can run additional code concurrent with the server processing the request.
+
+
+``` r
+# do more...
+```
+
+When the result of the server calculation is required, the `recvAio` may be called using `call_aio()`.
+
+The return value from the server request is then retrieved and stored in the Aio as `$data`.
+
+
+``` r
+call_aio(aio)$data |> str()
+#>  num [1:100000000] -1.03 0.19 -0.219 0.473 -0.775 ...
+```
+
+As `call_aio()` is blocking and will wait for completion, an alternative is to query `aio$data` directly. This will return an 'unresolved' logical NA value if the calculation is yet to complete.
+
+In this example the calculation is returned, but other operations may reside entirely on the server side, for example writing data to disk.
+
+In such a case, calling or querying the value confirms that the operation has completed, and provides the return value of the function, which may typically be NULL or an exit code.
+
+The [`mirai`](https://doi.org/10.5281/zenodo.7912722) package (<https://mirai.r-lib.org/>) uses `nanonext` as the back-end to provide asynchronous execution of arbitrary R code using the RPC model.
+
+[&laquo; Back to ToC](#table-of-contents)
+
+### Publisher Subscriber Protocol
 
 `nanonext` fully implements NNG's pub/sub protocol as per the below example. A subscriber can subscribe to one or multiple topics broadcast by a publisher.
 
@@ -424,7 +424,7 @@ close(sub)
 
 [&laquo; Back to ToC](#table-of-contents)
 
-### Surveyor Respondent Model
+### Surveyor Respondent Protocol
 
 This type of pattern is useful for applications such as service discovery.
 
@@ -495,7 +495,7 @@ ncurl("https://postman-echo.com/get")
 #> NULL
 #> 
 #> $data
-#> [1] "{\n  \"args\": {},\n  \"headers\": {\n    \"host\": \"postman-echo.com\",\n    \"x-request-start\": \"t1755250533.245\",\n    \"connection\": \"close\",\n    \"x-forwarded-proto\": \"https\",\n    \"x-forwarded-port\": \"443\",\n    \"x-amzn-trace-id\": \"Root=1-689eff65-353e08f93efc9a4b22a2632e\"\n  },\n  \"url\": \"https://postman-echo.com/get\"\n}"
+#> [1] "{\n  \"args\": {},\n  \"headers\": {\n    \"host\": \"postman-echo.com\",\n    \"x-request-start\": \"t1757325117.423\",\n    \"connection\": \"close\",\n    \"x-forwarded-proto\": \"https\",\n    \"x-forwarded-port\": \"443\",\n    \"x-amzn-trace-id\": \"Root=1-68bea73d-359dc37d61c0beec06554f90\"\n  },\n  \"url\": \"https://postman-echo.com/get\"\n}"
 ```
 
 For advanced use, supports additional HTTP methods such as POST or PUT.
@@ -512,10 +512,10 @@ res
 
 call_aio(res)$headers
 #> $date
-#> [1] "Fri, 15 Aug 2025 09:35:33 GMT"
+#> [1] "Mon, 08 Sep 2025 09:51:57 GMT"
 
 res$data
-#> [1] "{\n  \"args\": {},\n  \"data\": {\n    \"key\": \"value\"\n  },\n  \"files\": {},\n  \"form\": {},\n  \"headers\": {\n    \"host\": \"postman-echo.com\",\n    \"x-request-start\": \"t1755250533.827\",\n    \"connection\": \"close\",\n    \"content-length\": \"16\",\n    \"x-forwarded-proto\": \"https\",\n    \"x-forwarded-port\": \"443\",\n    \"x-amzn-trace-id\": \"Root=1-689eff65-78c71ab742a40a275473017e\",\n    \"content-type\": \"application/json\",\n    \"authorization\": \"Bearer APIKEY\"\n  },\n  \"json\": {\n    \"key\": \"value\"\n  },\n  \"url\": \"https://postman-echo.com/post\"\n}"
+#> [1] "{\n  \"args\": {},\n  \"data\": {\n    \"key\": \"value\"\n  },\n  \"files\": {},\n  \"form\": {},\n  \"headers\": {\n    \"host\": \"postman-echo.com\",\n    \"x-request-start\": \"t1757325117.974\",\n    \"connection\": \"close\",\n    \"content-length\": \"16\",\n    \"x-forwarded-proto\": \"https\",\n    \"x-forwarded-port\": \"443\",\n    \"x-amzn-trace-id\": \"Root=1-68bea73d-295741f97817358c06050d6b\",\n    \"content-type\": \"application/json\",\n    \"authorization\": \"Bearer APIKEY\"\n  },\n  \"json\": {\n    \"key\": \"value\"\n  },\n  \"url\": \"https://postman-echo.com/post\"\n}"
 ```
 
 In this respect, it may be used as a performant and lightweight method for making REST API requests.
@@ -555,7 +555,7 @@ transact(sess)
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Fri, 15 Aug 2025 09:35:34 GMT"
+#> [1] "Mon, 08 Sep 2025 09:51:58 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -564,12 +564,12 @@ transact(sess)
 #> $data
 #>   [1] 7b 0a 20 20 22 61 72 67 73 22 3a 20 7b 7d 2c 0a 20 20 22 68 65 61 64 65 72 73 22 3a 20 7b 0a 20 20 20
 #>  [35] 20 22 68 6f 73 74 22 3a 20 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 0a 20 20 20 20 22
-#>  [69] 78 2d 72 65 71 75 65 73 74 2d 73 74 61 72 74 22 3a 20 22 74 31 37 35 35 32 35 30 35 33 34 2e 32 34 39
+#>  [69] 78 2d 72 65 71 75 65 73 74 2d 73 74 61 72 74 22 3a 20 22 74 31 37 35 37 33 32 35 31 31 38 2e 34 33 36
 #> [103] 22 2c 0a 20 20 20 20 22 63 6f 6e 6e 65 63 74 69 6f 6e 22 3a 20 22 63 6c 6f 73 65 22 2c 0a 20 20 20 20
 #> [137] 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 72 6f 74 6f 22 3a 20 22 68 74 74 70 73 22 2c 0a 20 20 20 20
 #> [171] 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 6f 72 74 22 3a 20 22 34 34 33 22 2c 0a 20 20 20 20 22 78 2d
-#> [205] 61 6d 7a 6e 2d 74 72 61 63 65 2d 69 64 22 3a 20 22 52 6f 6f 74 3d 31 2d 36 38 39 65 66 66 36 36 2d 35
-#> [239] 65 63 63 35 39 36 63 37 65 38 34 62 32 36 34 35 61 34 35 30 61 37 33 22 2c 0a 20 20 20 20 22 63 6f 6e
+#> [205] 61 6d 7a 6e 2d 74 72 61 63 65 2d 69 64 22 3a 20 22 52 6f 6f 74 3d 31 2d 36 38 62 65 61 37 33 65 2d 32
+#> [239] 32 61 63 65 66 61 38 32 63 64 33 63 38 62 64 37 66 30 65 30 65 36 39 22 2c 0a 20 20 20 20 22 63 6f 6e
 #> [273] 74 65 6e 74 2d 74 79 70 65 22 3a 20 22 61 70 70 6c 69 63 61 74 69 6f 6e 2f 6a 73 6f 6e 22 2c 0a 20 20
 #> [307] 20 20 22 61 75 74 68 6f 72 69 7a 61 74 69 6f 6e 22 3a 20 22 42 65 61 72 65 72 20 41 50 49 4b 45 59 22
 #> [341] 0a 20 20 7d 2c 0a 20 20 22 75 72 6c 22 3a 20 22 68 74 74 70 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63
@@ -587,12 +587,12 @@ The stream interface can be used to communicate with (secure) websocket servers.
 
 ``` r
 # connecting to an echo service
-s <- stream(dial = "wss://echo.websocket.events/", textframes = TRUE)
+s <- stream(dial = "wss://echo.websocket.org/", textframes = TRUE)
 s
 #> < nanoStream >
 #>  - mode: dialer text frames
 #>  - state: opened
-#>  - url: wss://echo.websocket.events/
+#>  - url: wss://echo.websocket.org/
 ```
 
 `send()` and `recv()`, as well as their asynchronous counterparts `send_aio()` and `recv_aio()` can be used on Streams in the same way as Sockets. This affords a great deal of flexibility in ingesting and processing streaming data.
@@ -600,7 +600,7 @@ s
 
 ``` r
 s |> recv()
-#> [1] "echo.websocket.events sponsored by Lob.com"
+#> [1] "Request served by 4d896d95b55478"
 
 s |> send("initial message")
 #> [1] 0
