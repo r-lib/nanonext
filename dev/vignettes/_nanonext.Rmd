@@ -19,11 +19,11 @@ knitr::opts_chunk$set(
 
 1. [Cross-language Exchange](#cross-language-exchange)
 2. [Async and Concurrency](#async-and-concurrency)
-3. [RPC and Distributed Computing](#rpc-and-distributed-computing)
-4. [Synchronisation Primitives](#synchronisation-primitives)
-5. [TLS Secure Connections](#tls-secure-connections)
-6. [Publisher / Subscriber Model](#publisher-subscriber-model)
-7. [Surveyor / Respondent Model](#surveyor-respondent-model)
+3. [Synchronisation Primitives](#synchronisation-primitives)
+4. [TLS Secure Connections](#tls-secure-connections)
+5. [Request / Reply Protocol](#request-reply-protocol)
+6. [Publisher / Subscriber Protocol](#publisher-subscriber-protocol)
+7. [Surveyor / Respondent Protocol](#surveyor-respondent-protocol)
 8. [ncurl: (Async) HTTP Client](#ncurl-async-http-client)
 9. [stream: Websocket Client](#stream-websocket-client)
 10. [Options, Serialization and Statistics](#options-serialization-and-statistics)
@@ -167,60 +167,6 @@ close(s2)
 
 [&laquo; Back to ToC](#table-of-contents)
 
-### RPC and Distributed Computing
-
-`nanonext` implements remote procedure calls (RPC) using NNG's req/rep protocol to provide a basis for distributed computing.
-
-Can be used to perform computationally-expensive calculations or I/O-bound operations such as writing large amounts of data to disk in a separate 'server' process running concurrently.
-
-[S] Server process: `reply()` will wait for a message and apply a function, in this case `rnorm()`, before sending back the result. This is started in a background 'mirai' process.
-
-```{r}
-#| label: rpcserver
-m <- mirai::mirai({
-  library(nanonext)
-  rep <- socket("rep", listen = "tcp://127.0.0.1:6556")
-  reply(context(rep), execute = rnorm, send_mode = "raw")
-  Sys.sleep(2) # linger period to flush system socket send
-})
-
-```
-
-[C] Client process: `request()` performs an async send and receive request and returns immediately with a `recvAio` object.
-
-```{r}
-#| label: rpcclient
-library(nanonext)
-req <- socket("req", dial = "tcp://127.0.0.1:6556")
-aio <- request(context(req), data = 1e8, recv_mode = "double")
-
-```
-At this point, the client can run additional code concurrent with the server processing the request.
-
-```{r}
-#| label: rpcclient2
-# do more...
-```
-
-When the result of the server calculation is required, the `recvAio` may be called using `call_aio()`.
-
-The return value from the server request is then retrieved and stored in the Aio as `$data`.
-
-```{r}
-#| label: rpcclient3
-call_aio(aio)$data |> str()
-```
-
-As `call_aio()` is blocking and will wait for completion, an alternative is to query `aio$data` directly. This will return an 'unresolved' logical NA value if the calculation is yet to complete.
-
-In this example the calculation is returned, but other operations may reside entirely on the server side, for example writing data to disk.
-
-In such a case, calling or querying the value confirms that the operation has completed, and provides the return value of the function, which may typically be NULL or an exit code.
-
-The [`mirai`](https://doi.org/10.5281/zenodo.7912722) package (<https://mirai.r-lib.org/>) uses `nanonext` as the back-end to provide asynchronous execution of arbitrary R code using the RPC model.
-
-[&laquo; Back to ToC](#table-of-contents)
-
 ### Synchronisation Primitives
 
 `nanonext` implements cross-platform synchronisation primitives provided by the NNG library.
@@ -339,7 +285,61 @@ close(s)
 
 [&laquo; Back to ToC](#table-of-contents)
 
-### Publisher Subscriber Model
+### Request Reply Protocol
+
+`nanonext` implements remote procedure calls (RPC) using NNG's req/rep protocol to provide a basis for distributed computing.
+
+Can be used to perform computationally-expensive calculations or I/O-bound operations such as writing large amounts of data to disk in a separate 'server' process running concurrently.
+
+[S] Server process: `reply()` will wait for a message and apply a function, in this case `rnorm()`, before sending back the result. This is started in a background 'mirai' process.
+
+```{r}
+#| label: rpcserver
+m <- mirai::mirai({
+  library(nanonext)
+  rep <- socket("rep", listen = "tcp://127.0.0.1:6556")
+  reply(context(rep), execute = rnorm, send_mode = "raw")
+  Sys.sleep(2) # linger period to flush system socket send
+})
+
+```
+
+[C] Client process: `request()` performs an async send and receive request and returns immediately with a `recvAio` object.
+
+```{r}
+#| label: rpcclient
+library(nanonext)
+req <- socket("req", dial = "tcp://127.0.0.1:6556")
+aio <- request(context(req), data = 1e8, recv_mode = "double")
+
+```
+At this point, the client can run additional code concurrent with the server processing the request.
+
+```{r}
+#| label: rpcclient2
+# do more...
+```
+
+When the result of the server calculation is required, the `recvAio` may be called using `call_aio()`.
+
+The return value from the server request is then retrieved and stored in the Aio as `$data`.
+
+```{r}
+#| label: rpcclient3
+call_aio(aio)$data |> str()
+```
+
+As `call_aio()` is blocking and will wait for completion, an alternative is to query `aio$data` directly. This will return an 'unresolved' logical NA value if the calculation is yet to complete.
+
+In this example the calculation is returned, but other operations may reside entirely on the server side, for example writing data to disk.
+
+In such a case, calling or querying the value confirms that the operation has completed, and provides the return value of the function, which may typically be NULL or an exit code.
+
+The [`mirai`](https://doi.org/10.5281/zenodo.7912722) package (<https://mirai.r-lib.org/>) uses `nanonext` as the back-end to provide asynchronous execution of arbitrary R code using the RPC model.
+
+[&laquo; Back to ToC](#table-of-contents)
+
+### Publisher Subscriber Protocol
 
 `nanonext` fully implements NNG's pub/sub protocol as per the below example. A subscriber can subscribe to one or multiple topics broadcast by a publisher.
 
@@ -391,7 +391,7 @@ close(sub)
 
 [&laquo; Back to ToC](#table-of-contents)
 
-### Surveyor Respondent Model
+### Surveyor Respondent Protocol
 
 This type of pattern is useful for applications such as service discovery.
 
@@ -513,7 +513,7 @@ The stream interface can be used to communicate with (secure) websocket servers.
 ```{r}
 #| label: stream
 # connecting to an echo service
-s <- stream(dial = "wss://echo.websocket.events/", textframes = TRUE)
+s <- stream(dial = "wss://echo.websocket.org/", textframes = TRUE)
 s
 
 ```
