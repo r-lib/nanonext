@@ -790,7 +790,7 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
 
 }
 
-SEXP rnng_reset_interrupts_pending(void) {
+SEXP rnng_reset_interrupts(void) {
 #ifdef _WIN32
   UserBreak = 0;
 #else

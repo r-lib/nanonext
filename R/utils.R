@@ -401,7 +401,7 @@ ip_addr <- function() .Call(rnng_ip_addr)
 #'
 .read_marker <- function(x) .Call(rnng_marker_read, x)
 
-#' Reset Interrupt State
+#' Reset Interrupts
 #'
 #' Internal package function.
 #'
@@ -410,7 +410,7 @@ ip_addr <- function() .Call(rnng_ip_addr)
 #' @keywords internal
 #' @export
 #'
-.reset <- function() .Call(rnng_reset_interrupts_pending)
+.reset_interrupts <- function() .Call(rnng_reset_interrupts)
 
 #' Internal Package Function
 #'
