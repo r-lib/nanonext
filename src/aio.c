@@ -158,11 +158,6 @@ static void raio_complete_interrupt(void *arg) {
 
 }
 
-SEXP rnng_reset_interrupts_pending(void) {
-  R_interrupts_pending = 0;
-  return R_NilValue;
-}
-
 static void iraio_complete(void *arg) {
 
   nano_aio *iaio = (nano_aio *) arg;
@@ -793,4 +788,13 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
   free(raio);
   return mk_error_data(xc);
 
+}
+
+SEXP rnng_reset_interrupts_pending(void) {
+#ifdef _WIN32
+  UserBreak = 0;
+#else
+  R_interrupts_pending = 0;
+#endif
+  return R_NilValue;
 }
