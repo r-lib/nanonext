@@ -2,12 +2,12 @@
 % Please edit documentation in R/utils.R
 \name{.reset}
 \alias{.reset}
-\title{Reset Interrupts Pending}
+\title{Reset Interrupt State}
 \usage{
 .reset()
 }
 \value{
-Invisible NULL
+NULL.
 }
 \description{
 Internal package function.
