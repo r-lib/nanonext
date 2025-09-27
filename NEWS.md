@@ -1,5 +1,9 @@
 # nanonext (development version)
 
+#### Updates
+
+* The `cv` arguments at `recv_aio()` and `request()` have been simplified.
+
 # nanonext 1.7.0
 
 #### Behavioural Changes
