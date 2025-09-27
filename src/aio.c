@@ -158,6 +158,11 @@ static void raio_complete_interrupt(void *arg) {
 
 }
 
+SEXP rnng_reset_interrupts_pending(void) {
+  R_interrupts_pending = 0;
+  return R_NilValue;
+}
+
 static void iraio_complete(void *arg) {
 
   nano_aio *iaio = (nano_aio *) arg;

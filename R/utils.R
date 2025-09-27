@@ -414,6 +414,17 @@ ip_addr <- function() .Call(rnng_ip_addr)
 #'
 .interrupt <- function(x = TRUE) x
 
+#' Reset Interrupts Pending
+#'
+#' Internal package function.
+#'
+#' @return Invisible NULL
+#'
+#' @keywords internal
+#' @export
+#'
+.reset <- function() .Call(rnng_reset_interrupts_pending)
+
 #' Internal Package Function
 #'
 #' Only present for cleaning up after running examples and tests. Do not attempt
