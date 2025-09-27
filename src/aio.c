@@ -151,7 +151,6 @@ static void raio_complete_interrupt(void *arg) {
 #ifdef _WIN32
     UserBreak = 1;
 #else
-    R_interrupts_pending = 1;
     kill(getpid(), SIGINT);
 #endif
   }

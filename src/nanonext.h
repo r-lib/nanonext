@@ -98,8 +98,6 @@ typedef struct nano_handle_s {
 #if defined(NANONEXT_SIGNALS)
 #ifdef _WIN32
 #include <Rembedded.h>
-#else
-extern int R_interrupts_pending;
 #endif
 #endif
 

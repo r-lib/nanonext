@@ -151,8 +151,6 @@ void pipe_cb_signal(nng_pipe p, nng_pipe_ev ev, void *arg) {
 #ifdef _WIN32
     raise(sig);
 #else
-    if (sig == SIGINT)
-      R_interrupts_pending = 1;
     kill(getpid(), sig);
 #endif
 
