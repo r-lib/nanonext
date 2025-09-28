@@ -649,7 +649,6 @@ if (promises) { later::run_now(1L); later::run_now() }
 test_type("character", ip_addr())
 test_type("character", names(ip_addr()))
 test_null(write_stdout(""))
-test_null(.reset_interrupts())
 test_false(identical(get0(".Random.seed"), {.advance(); .Random.seed}))
 test_type("integer", .Call(nanonext:::rnng_traverse_precious))
 

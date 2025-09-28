@@ -154,7 +154,6 @@ static const R_CallMethodDef callMethods[] = {
   {"rnng_recv_aio", (DL_FUNC) &rnng_recv_aio, 6},
   {"rnng_request", (DL_FUNC) &rnng_request, 8},
   {"rnng_request_stop", (DL_FUNC) &rnng_request_stop, 1},
-  {"rnng_reset_interrupts", (DL_FUNC) &rnng_reset_interrupts, 0},
   {"rnng_send", (DL_FUNC) &rnng_send, 5},
   {"rnng_send_aio", (DL_FUNC) &rnng_send_aio, 6},
   {"rnng_serial_config", (DL_FUNC) &rnng_serial_config, 3},
