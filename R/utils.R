@@ -401,19 +401,6 @@ ip_addr <- function() .Call(rnng_ip_addr)
 #'
 .read_marker <- function(x) .Call(rnng_marker_read, x)
 
-#' Interrupt Switch
-#'
-#' Internal package function. No longer used.
-#'
-#' @param x logical value.
-#'
-#' @return The logical value `x` supplied.
-#'
-#' @keywords internal
-#' @export
-#'
-.interrupt <- function(x = TRUE) x
-
 #' Internal Package Function
 #'
 #' Only present for cleaning up after running examples and tests. Do not attempt
