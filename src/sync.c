@@ -86,7 +86,12 @@ static void request_complete(void *arg) {
     raio->data = msg;
     nng_pipe p = nng_msg_get_pipe(msg);
     res = - (int) p.id;
-  } else if (res == 5 && saio->id) {
+    if (saio->id == 0) {
+      unsigned char *buf = (unsigned char *) nng_msg_body(msg);
+      if (buf[0] == 0x7 && buf[3] == 0x1)
+        nng_pipe_close(p);
+    }
+  } else if (res == 5 && saio->id > 0) {
     nng_msg *msg = NULL;
     if (nng_msg_alloc(&msg, 0) ||
         nng_msg_append_u32(msg, 0) ||
@@ -115,6 +120,7 @@ static void request_complete(void *arg) {
 
 }
 
+// Can be removed after mirai >= 2.5.1 is released
 static void request_complete_dropcon(void *arg) {
 
   nano_aio *raio = (nano_aio *) arg;
@@ -490,7 +496,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   NANO_ENSURE_ALLOC(raio);
 
   saio->ctx = ctx;
-  saio->id = msgid != R_NilValue ? id : 0;
+  saio->id = msgid != R_NilValue ? id : mod != 1 ? -id : 0;
 
   if ((xc = nng_msg_alloc(&msg, 0)) ||
       (xc = nng_msg_append(msg, buf.buf, buf.cur)) ||
