@@ -149,6 +149,8 @@ void pipe_cb_signal(nng_pipe p, nng_pipe_ev ev, void *arg) {
   nng_mtx_unlock(mtx);
   if (sig > 1) {
 #ifdef _WIN32
+    if (sig == SIGINT)
+      UserBreak = 1;
     raise(sig);
 #else
     if (sig == SIGINT)
