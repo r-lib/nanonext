@@ -121,7 +121,7 @@ extern int R_interrupts_pending;
 #define NANONEXT_INIT_BUFSIZE 4096
 #define NANONEXT_SERIAL_VER 3
 #define NANONEXT_SERIAL_THR 67108864
-#define NANONEXT_CHUNK_SIZE INT_MAX // must be <= INT_MAX
+#define NANONEXT_CHUNK_SIZE 67108864 // must be <= INT_MAX
 #define NANONEXT_STR_SIZE 40
 #define NANONEXT_WAIT_DUR 1000
 #define NANO_ALLOC(x, sz)                                      \
