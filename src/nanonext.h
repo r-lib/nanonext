@@ -120,7 +120,7 @@ extern int R_interrupts_pending;
 #define ERROR_RET(xc) { Rf_warning("%d | %s", xc, nng_strerror(xc)); return mk_error(xc); }
 #define NANONEXT_INIT_BUFSIZE 4096
 #define NANONEXT_SERIAL_VER 3
-#define NANONEXT_SERIAL_THR 134217728
+#define NANONEXT_SERIAL_THR 67108864
 #define NANONEXT_CHUNK_SIZE INT_MAX // must be <= INT_MAX
 #define NANONEXT_STR_SIZE 40
 #define NANONEXT_WAIT_DUR 1000
