@@ -456,13 +456,6 @@ SEXP rnng_aio_stop(SEXP x) {
     if (NANO_PTR_CHECK(coreaio, nano_AioSymbol)) break;
     nano_aio *aiop = (nano_aio *) NANO_PTR(coreaio);
     nng_aio_stop(aiop->aio);
-    // See #194, this is to reset the R interrupts state after an interrupt
-    // requested by `stop_request()` has already triggered
-#ifdef _WIN32
-    UserBreak = 0;
-#else
-    R_interrupts_pending = 0;
-#endif
     break;
   case VECSXP: ;
     const R_xlen_t xlen = Rf_xlength(x);
