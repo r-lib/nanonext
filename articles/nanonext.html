@@ -28,7 +28,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,7 +69,7 @@
       <img src="../logo.png" class="logo" alt=""><h1>nanonext - NNG Lightweight Messaging Library</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/release/vignettes/nanonext.Rmd" class="external-link"><code>vignettes/nanonext.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/main/vignettes/nanonext.Rmd" class="external-link"><code>vignettes/nanonext.Rmd</code></a></small>
       <div class="d-none name"><code>nanonext.Rmd</code></div>
     </div>
 
@@ -81,15 +81,14 @@
 <ol style="list-style-type: decimal">
 <li><a href="#cross-language-exchange">Cross-language Exchange</a></li>
 <li><a href="#async-and-concurrency">Async and Concurrency</a></li>
-<li><a href="#rpc-and-distributed-computing">RPC and Distributed
-Computing</a></li>
 <li><a href="#synchronisation-primitives">Synchronisation
 Primitives</a></li>
 <li><a href="#tls-secure-connections">TLS Secure Connections</a></li>
-<li><a href="#publisher-subscriber-model">Publisher / Subscriber
-Model</a></li>
-<li><a href="#surveyor-respondent-model">Surveyor / Respondent
-Model</a></li>
+<li><a href="#request-reply-protocol">Request / Reply Protocol</a></li>
+<li><a href="#publisher-subscriber-protocol">Publisher / Subscriber
+Protocol</a></li>
+<li><a href="#surveyor-respondent-protocol">Surveyor / Respondent
+Protocol</a></li>
 <li><a href="#ncurl-async-http-client">ncurl: (Async) HTTP
 Client</a></li>
 <li><a href="#stream-websocket-client">stream: Websocket Client</a></li>
@@ -227,58 +226,6 @@ Aio, both before and after. This means there is no need to actually wait
 <p><a href="#table-of-contents">« Back to ToC</a></p>
 </div>
 <div class="section level3">
-<h3 id="rpc-and-distributed-computing">RPC and Distributed Computing<a class="anchor" aria-label="anchor" href="#rpc-and-distributed-computing"></a>
-</h3>
-<p><code>nanonext</code> implements remote procedure calls (RPC) using
-NNG’s req/rep protocol to provide a basis for distributed computing.</p>
-<p>Can be used to perform computationally-expensive calculations or
-I/O-bound operations such as writing large amounts of data to disk in a
-separate ‘server’ process running concurrently.</p>
-<p>[S] Server process: <code><a href="../reference/reply.html">reply()</a></code> will wait for a message and
-apply a function, in this case <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm()</a></code>, before sending back
-the result. This is started in a background ‘mirai’ process.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">mirai</span><span class="fu">::</span><span class="fu">mirai</span><span class="op">(</span><span class="op">{</span></span>
-<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nanonext.r-lib.org">nanonext</a></span><span class="op">)</span></span>
-<span>  <span class="va">rep</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"rep"</span>, listen <span class="op">=</span> <span class="st">"tcp://127.0.0.1:6556"</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="../reference/reply.html">reply</a></span><span class="op">(</span><span class="fu"><a href="../reference/context.html">context</a></span><span class="op">(</span><span class="va">rep</span><span class="op">)</span>, execute <span class="op">=</span> <span class="va">rnorm</span>, send_mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span> <span class="co"># linger period to flush system socket send</span></span>
-<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
-<p>[C] Client process: <code><a href="../reference/request.html">request()</a></code> performs an async send and
-receive request and returns immediately with a <code>recvAio</code>
-object.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nanonext.r-lib.org">nanonext</a></span><span class="op">)</span></span>
-<span><span class="va">req</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"req"</span>, dial <span class="op">=</span> <span class="st">"tcp://127.0.0.1:6556"</span><span class="op">)</span></span>
-<span><span class="va">aio</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/request.html">request</a></span><span class="op">(</span><span class="fu"><a href="../reference/context.html">context</a></span><span class="op">(</span><span class="va">req</span><span class="op">)</span>, data <span class="op">=</span> <span class="fl">1e8</span>, recv_mode <span class="op">=</span> <span class="st">"double"</span><span class="op">)</span></span></code></pre></div>
-<p>At this point, the client can run additional code concurrent with the
-server processing the request.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># do more...</span></span></code></pre></div>
-<p>When the result of the server calculation is required, the
-<code>recvAio</code> may be called using <code><a href="../reference/call_aio.html">call_aio()</a></code>.</p>
-<p>The return value from the server request is then retrieved and stored
-in the Aio as <code>$data</code>.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/call_aio.html">call_aio</a></span><span class="op">(</span><span class="va">aio</span><span class="op">)</span><span class="op">$</span><span class="va">data</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  num [1:100000000] 1.2354 -0.0363 -0.9229 -0.3835 1.3604 ...</span></span></code></pre></div>
-<p>As <code><a href="../reference/call_aio.html">call_aio()</a></code> is blocking and will wait for completion,
-an alternative is to query <code>aio$data</code> directly. This will
-return an ‘unresolved’ logical NA value if the calculation is yet to
-complete.</p>
-<p>In this example the calculation is returned, but other operations may
-reside entirely on the server side, for example writing data to
-disk.</p>
-<p>In such a case, calling or querying the value confirms that the
-operation has completed, and provides the return value of the function,
-which may typically be NULL or an exit code.</p>
-<p>The <a href="https://doi.org/10.5281/zenodo.7912722" class="external-link"><code>mirai</code></a>
-package (<a href="https://mirai.r-lib.org/" class="external-link uri">https://mirai.r-lib.org/</a>) uses <code>nanonext</code> as
-the back-end to provide asynchronous execution of arbitrary R code using
-the RPC model.</p>
-<p><a href="#table-of-contents">« Back to ToC</a></p>
-</div>
-<div class="section level3">
 <h3 id="synchronisation-primitives">Synchronisation Primitives<a class="anchor" aria-label="anchor" href="#synchronisation-primitives"></a>
 </h3>
 <p><code>nanonext</code> implements cross-platform synchronisation
@@ -305,7 +252,7 @@ synchronised with the event (having no latency).</p>
 practice.</p>
 <p>Example 1: set up a socket, and wait for the other side to
 connect:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sock</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pair"</span>, listen <span class="op">=</span> <span class="st">"inproc://nanopipe"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">cv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cv.html">cv</a></span><span class="op">(</span><span class="op">)</span> <span class="co"># create new condition variable</span></span>
@@ -335,7 +282,7 @@ connect:</p>
 <span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">sock</span><span class="op">)</span></span></code></pre></div>
 <p>Example 2: wait until a message is received or connection is
 dropped:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sock</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pair"</span>, listen <span class="op">=</span> <span class="st">"inproc://nanosignal"</span><span class="op">)</span></span>
 <span><span class="va">sock2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pair"</span>, dial <span class="op">=</span> <span class="st">"inproc://nanosignal"</span><span class="op">)</span></span>
 <span></span>
@@ -408,11 +355,11 @@ certificate in the format required by <code><a href="../reference/tls_config.htm
 address of the URL that is being used, e.g. in the example below
 ‘127.0.0.1’ must be used throughout, or alternatively ‘localhost’, but
 not a mixture of the two.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cert</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/write_cert.html">write_cert</a></span><span class="op">(</span>cn <span class="op">=</span> <span class="st">"127.0.0.1"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">cert</span><span class="op">)</span></span>
 <span><span class="co">#&gt; List of 2</span></span>
-<span><span class="co">#&gt;  $ server: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ "-----BEGIN RSA PRIVATE KEY-----\nMIIJKAIBAAKCAgEAnUy3if3SCAzwygcJQBQybALAwcxYRGxdwFa0kPc+tbqZ66YA\n402Jf8b+oNl/"| __truncated__</span></span>
+<span><span class="co">#&gt;  $ server: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ "-----BEGIN RSA PRIVATE KEY-----\nMIIJKAIBAAKCAgEAnM4fRU63IE3EnjHYD28HaxEMwfsPj1hbFPLY88kUwS6yikJd\n31fRGOQnpMjw"| __truncated__</span></span>
 <span><span class="co">#&gt;  $ client: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ ""</span></span>
 <span></span>
 <span><span class="va">ser</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tls_config.html">tls_config</a></span><span class="op">(</span>server <span class="op">=</span> <span class="va">cert</span><span class="op">$</span><span class="va">server</span><span class="op">)</span></span>
@@ -433,7 +380,59 @@ not a mixture of the two.</p>
 <p><a href="#table-of-contents">« Back to ToC</a></p>
 </div>
 <div class="section level3">
-<h3 id="publisher-subscriber-model">Publisher Subscriber Model<a class="anchor" aria-label="anchor" href="#publisher-subscriber-model"></a>
+<h3 id="request-reply-protocol">Request Reply Protocol<a class="anchor" aria-label="anchor" href="#request-reply-protocol"></a>
+</h3>
+<p><code>nanonext</code> implements remote procedure calls (RPC) using
+NNG’s req/rep protocol to provide a basis for distributed computing.</p>
+<p>Can be used to perform computationally-expensive calculations or
+I/O-bound operations such as writing large amounts of data to disk in a
+separate ‘server’ process running concurrently.</p>
+<p>[S] Server process: <code><a href="../reference/reply.html">reply()</a></code> will wait for a message and
+apply a function, in this case <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm()</a></code>, before sending back
+the result. This is started in a background ‘mirai’ process.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">mirai</span><span class="fu">::</span><span class="fu">mirai</span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nanonext.r-lib.org">nanonext</a></span><span class="op">)</span></span>
+<span>  <span class="va">rep</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"rep"</span>, listen <span class="op">=</span> <span class="st">"tcp://127.0.0.1:6556"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/reply.html">reply</a></span><span class="op">(</span><span class="fu"><a href="../reference/context.html">context</a></span><span class="op">(</span><span class="va">rep</span><span class="op">)</span>, execute <span class="op">=</span> <span class="va">rnorm</span>, send_mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span> <span class="co"># linger period to flush system socket send</span></span>
+<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
+<p>[C] Client process: <code><a href="../reference/request.html">request()</a></code> performs an async send and
+receive request and returns immediately with a <code>recvAio</code>
+object.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nanonext.r-lib.org">nanonext</a></span><span class="op">)</span></span>
+<span><span class="va">req</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"req"</span>, dial <span class="op">=</span> <span class="st">"tcp://127.0.0.1:6556"</span><span class="op">)</span></span>
+<span><span class="va">aio</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/request.html">request</a></span><span class="op">(</span><span class="fu"><a href="../reference/context.html">context</a></span><span class="op">(</span><span class="va">req</span><span class="op">)</span>, data <span class="op">=</span> <span class="fl">1e8</span>, recv_mode <span class="op">=</span> <span class="st">"double"</span><span class="op">)</span></span></code></pre></div>
+<p>At this point, the client can run additional code concurrent with the
+server processing the request.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># do more...</span></span></code></pre></div>
+<p>When the result of the server calculation is required, the
+<code>recvAio</code> may be called using <code><a href="../reference/call_aio.html">call_aio()</a></code>.</p>
+<p>The return value from the server request is then retrieved and stored
+in the Aio as <code>$data</code>.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/call_aio.html">call_aio</a></span><span class="op">(</span><span class="va">aio</span><span class="op">)</span><span class="op">$</span><span class="va">data</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  num [1:100000000] -1.03 0.19 -0.219 0.473 -0.775 ...</span></span></code></pre></div>
+<p>As <code><a href="../reference/call_aio.html">call_aio()</a></code> is blocking and will wait for completion,
+an alternative is to query <code>aio$data</code> directly. This will
+return an ‘unresolved’ logical NA value if the calculation is yet to
+complete.</p>
+<p>In this example the calculation is returned, but other operations may
+reside entirely on the server side, for example writing data to
+disk.</p>
+<p>In such a case, calling or querying the value confirms that the
+operation has completed, and provides the return value of the function,
+which may typically be NULL or an exit code.</p>
+<p>The <a href="https://doi.org/10.5281/zenodo.7912722" class="external-link"><code>mirai</code></a>
+package (<a href="https://mirai.r-lib.org/" class="external-link uri">https://mirai.r-lib.org/</a>) uses <code>nanonext</code> as
+the back-end to provide asynchronous execution of arbitrary R code using
+the RPC model.</p>
+<p><a href="#table-of-contents">« Back to ToC</a></p>
+</div>
+<div class="section level3">
+<h3 id="publisher-subscriber-protocol">Publisher Subscriber Protocol<a class="anchor" aria-label="anchor" href="#publisher-subscriber-protocol"></a>
 </h3>
 <p><code>nanonext</code> fully implements NNG’s pub/sub protocol as per
 the below example. A subscriber can subscribe to one or multiple topics
@@ -496,7 +495,7 @@ and received.</p>
 <p><a href="#table-of-contents">« Back to ToC</a></p>
 </div>
 <div class="section level3">
-<h3 id="surveyor-respondent-model">Surveyor Respondent Model<a class="anchor" aria-label="anchor" href="#surveyor-respondent-model"></a>
+<h3 id="surveyor-respondent-protocol">Surveyor Respondent Protocol<a class="anchor" aria-label="anchor" href="#surveyor-respondent-protocol"></a>
 </h3>
 <p>This type of pattern is useful for applications such as service
 discovery.</p>
@@ -565,7 +564,7 @@ asynchronously, returning immediately with an ‘ncurlAio’.</p>
 <span><span class="co">#&gt; NULL</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $data</span></span>
-<span><span class="co">#&gt; [1] "{\n  \"args\": {},\n  \"headers\": {\n    \"host\": \"postman-echo.com\",\n    \"x-request-start\": \"t1755250533.245\",\n    \"connection\": \"close\",\n    \"x-forwarded-proto\": \"https\",\n    \"x-forwarded-port\": \"443\",\n    \"x-amzn-trace-id\": \"Root=1-689eff65-353e08f93efc9a4b22a2632e\"\n  },\n  \"url\": \"https://postman-echo.com/get\"\n}"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "{\n  \"args\": {},\n  \"headers\": {\n    \"host\": \"postman-echo.com\",\n    \"x-request-start\": \"t1757325117.423\",\n    \"connection\": \"close\",\n    \"x-forwarded-proto\": \"https\",\n    \"x-forwarded-port\": \"443\",\n    \"x-amzn-trace-id\": \"Root=1-68bea73d-359dc37d61c0beec06554f90\"\n  },\n  \"url\": \"https://postman-echo.com/get\"\n}"</span></span></code></pre></div>
 <p>For advanced use, supports additional HTTP methods such as POST or
 PUT.</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
@@ -579,10 +578,10 @@ PUT.</p>
 <span></span>
 <span><span class="fu"><a href="../reference/call_aio.html">call_aio</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span><span class="op">$</span><span class="va">headers</span></span>
 <span><span class="co">#&gt; $date</span></span>
-<span><span class="co">#&gt; [1] "Fri, 15 Aug 2025 09:35:33 GMT"</span></span>
+<span><span class="co">#&gt; [1] "Mon, 08 Sep 2025 09:51:57 GMT"</span></span>
 <span></span>
 <span><span class="va">res</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="co">#&gt; [1] "{\n  \"args\": {},\n  \"data\": {\n    \"key\": \"value\"\n  },\n  \"files\": {},\n  \"form\": {},\n  \"headers\": {\n    \"host\": \"postman-echo.com\",\n    \"x-request-start\": \"t1755250533.827\",\n    \"connection\": \"close\",\n    \"content-length\": \"16\",\n    \"x-forwarded-proto\": \"https\",\n    \"x-forwarded-port\": \"443\",\n    \"x-amzn-trace-id\": \"Root=1-689eff65-78c71ab742a40a275473017e\",\n    \"content-type\": \"application/json\",\n    \"authorization\": \"Bearer APIKEY\"\n  },\n  \"json\": {\n    \"key\": \"value\"\n  },\n  \"url\": \"https://postman-echo.com/post\"\n}"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "{\n  \"args\": {},\n  \"data\": {\n    \"key\": \"value\"\n  },\n  \"files\": {},\n  \"form\": {},\n  \"headers\": {\n    \"host\": \"postman-echo.com\",\n    \"x-request-start\": \"t1757325117.974\",\n    \"connection\": \"close\",\n    \"content-length\": \"16\",\n    \"x-forwarded-proto\": \"https\",\n    \"x-forwarded-port\": \"443\",\n    \"x-amzn-trace-id\": \"Root=1-68bea73d-295741f97817358c06050d6b\",\n    \"content-type\": \"application/json\",\n    \"authorization\": \"Bearer APIKEY\"\n  },\n  \"json\": {\n    \"key\": \"value\"\n  },\n  \"url\": \"https://postman-echo.com/post\"\n}"</span></span></code></pre></div>
 <p>In this respect, it may be used as a performant and lightweight
 method for making REST API requests.</p>
 <div class="section level5">
@@ -626,7 +625,7 @@ which can operate directly on such data etc.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $headers</span></span>
 <span><span class="co">#&gt; $headers$Date</span></span>
-<span><span class="co">#&gt; [1] "Fri, 15 Aug 2025 09:35:34 GMT"</span></span>
+<span><span class="co">#&gt; [1] "Mon, 08 Sep 2025 09:51:58 GMT"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $headers$`Content-Type`</span></span>
 <span><span class="co">#&gt; [1] "application/json; charset=utf-8"</span></span>
@@ -635,12 +634,12 @@ which can operate directly on such data etc.</p>
 <span><span class="co">#&gt; $data</span></span>
 <span><span class="co">#&gt;   [1] 7b 0a 20 20 22 61 72 67 73 22 3a 20 7b 7d 2c 0a 20 20 22 68 65 61 64 65 72 73 22 3a 20 7b 0a 20 20 20</span></span>
 <span><span class="co">#&gt;  [35] 20 22 68 6f 73 74 22 3a 20 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 0a 20 20 20 20 22</span></span>
-<span><span class="co">#&gt;  [69] 78 2d 72 65 71 75 65 73 74 2d 73 74 61 72 74 22 3a 20 22 74 31 37 35 35 32 35 30 35 33 34 2e 32 34 39</span></span>
+<span><span class="co">#&gt;  [69] 78 2d 72 65 71 75 65 73 74 2d 73 74 61 72 74 22 3a 20 22 74 31 37 35 37 33 32 35 31 31 38 2e 34 33 36</span></span>
 <span><span class="co">#&gt; [103] 22 2c 0a 20 20 20 20 22 63 6f 6e 6e 65 63 74 69 6f 6e 22 3a 20 22 63 6c 6f 73 65 22 2c 0a 20 20 20 20</span></span>
 <span><span class="co">#&gt; [137] 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 72 6f 74 6f 22 3a 20 22 68 74 74 70 73 22 2c 0a 20 20 20 20</span></span>
 <span><span class="co">#&gt; [171] 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 6f 72 74 22 3a 20 22 34 34 33 22 2c 0a 20 20 20 20 22 78 2d</span></span>
-<span><span class="co">#&gt; [205] 61 6d 7a 6e 2d 74 72 61 63 65 2d 69 64 22 3a 20 22 52 6f 6f 74 3d 31 2d 36 38 39 65 66 66 36 36 2d 35</span></span>
-<span><span class="co">#&gt; [239] 65 63 63 35 39 36 63 37 65 38 34 62 32 36 34 35 61 34 35 30 61 37 33 22 2c 0a 20 20 20 20 22 63 6f 6e</span></span>
+<span><span class="co">#&gt; [205] 61 6d 7a 6e 2d 74 72 61 63 65 2d 69 64 22 3a 20 22 52 6f 6f 74 3d 31 2d 36 38 62 65 61 37 33 65 2d 32</span></span>
+<span><span class="co">#&gt; [239] 32 61 63 65 66 61 38 32 63 64 33 63 38 62 64 37 66 30 65 30 65 36 39 22 2c 0a 20 20 20 20 22 63 6f 6e</span></span>
 <span><span class="co">#&gt; [273] 74 65 6e 74 2d 74 79 70 65 22 3a 20 22 61 70 70 6c 69 63 61 74 69 6f 6e 2f 6a 73 6f 6e 22 2c 0a 20 20</span></span>
 <span><span class="co">#&gt; [307] 20 20 22 61 75 74 68 6f 72 69 7a 61 74 69 6f 6e 22 3a 20 22 42 65 61 72 65 72 20 41 50 49 4b 45 59 22</span></span>
 <span><span class="co">#&gt; [341] 0a 20 20 7d 2c 0a 20 20 22 75 72 6c 22 3a 20 22 68 74 74 70 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63</span></span>
@@ -660,12 +659,12 @@ specified where the websocket server uses text rather than binary
 frames.</p>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># connecting to an echo service</span></span>
-<span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/stream.html">stream</a></span><span class="op">(</span>dial <span class="op">=</span> <span class="st">"wss://echo.websocket.events/"</span>, textframes <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/stream.html">stream</a></span><span class="op">(</span>dial <span class="op">=</span> <span class="st">"wss://echo.websocket.org/"</span>, textframes <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">s</span></span>
 <span><span class="co">#&gt; &lt; nanoStream &gt;</span></span>
 <span><span class="co">#&gt;  - mode: dialer text frames</span></span>
 <span><span class="co">#&gt;  - state: opened</span></span>
-<span><span class="co">#&gt;  - url: wss://echo.websocket.events/</span></span></code></pre></div>
+<span><span class="co">#&gt;  - url: wss://echo.websocket.org/</span></span></code></pre></div>
 <p><code><a href="../reference/send.html">send()</a></code> and <code><a href="../reference/recv.html">recv()</a></code>, as well as their
 asynchronous counterparts <code><a href="../reference/send_aio.html">send_aio()</a></code> and
 <code><a href="../reference/recv_aio.html">recv_aio()</a></code> can be used on Streams in the same way as
@@ -673,7 +672,7 @@ Sockets. This affords a great deal of flexibility in ingesting and
 processing streaming data.</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">s</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "echo.websocket.events sponsored by Lob.com"</span></span>
+<span><span class="co">#&gt; [1] "Request served by 4d896d95b55478"</span></span>
 <span></span>
 <span><span class="va">s</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="st">"initial message"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 0</span></span>
