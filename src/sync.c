@@ -120,26 +120,6 @@ static void request_complete(void *arg) {
 
 }
 
-// Can be removed after mirai >= 2.5.1 is released
-static void request_complete_dropcon(void *arg) {
-
-  nano_aio *raio = (nano_aio *) arg;
-  int res = nng_aio_result(raio->aio);
-  if (res == 0) {
-    nng_msg *msg = nng_aio_get_msg(raio->aio);
-    raio->data = msg;
-    nng_pipe p = nng_msg_get_pipe(msg);
-    res = - (int) p.id;
-    nng_pipe_close(p);
-  }
-  raio->result = res;
-
-  nano_saio *saio = (nano_saio *) raio->cb;
-  if (saio->cb != NULL)
-    later2(raio_invoke_cb, saio->cb);
-
-}
-
 void pipe_cb_signal(nng_pipe p, nng_pipe_ev ev, void *arg) {
 
   int sig;
@@ -472,7 +452,6 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   const int raw = nano_encode_mode(sendmode);
   const int id = nng_ctx_id(*ctx);
   const int signal = cvar != R_NilValue && !NANO_PTR_CHECK(cvar, nano_CvSymbol);
-  const int drop = cvar == R_MissingArg;
   int xc;
 
   nano_cv *ncv = signal ? (nano_cv *) NANO_PTR(cvar) : NULL;
@@ -513,7 +492,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   raio->cb = saio;
   raio->next = ncv;
 
-  if ((xc = nng_aio_alloc(&raio->aio, drop ? request_complete_dropcon : request_complete, raio)))
+  if ((xc = nng_aio_alloc(&raio->aio, request_complete, raio)))
     goto fail;
 
   nng_aio_set_timeout(raio->aio, dur);
