@@ -72,6 +72,7 @@ static void rnng_messenger_thread(void *args) {
   SEXP socket = CADR(plist);
   SEXP key = CADDR(plist);
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
+  nng_msg *msgp = NULL;
   unsigned char *buf;
   size_t sz;
   time_t now;
@@ -79,7 +80,7 @@ static void rnng_messenger_thread(void *args) {
   int xc;
 
   while (1) {
-    xc = nng_recv(*sock, &buf, &sz, NNG_FLAG_ALLOC);
+    xc = nng_recvmsg(*sock, &msgp, 0);
     time(&now);
     tms = localtime(&now);
 
@@ -91,13 +92,16 @@ static void rnng_messenger_thread(void *args) {
       break;
     }
 
+    buf = nng_msg_body(msgp);
+    sz = nng_msg_len(msgp);
+
     if (!strncmp((char *) buf, ":", 1)) {
       if (!strncmp((char *) buf, ":c ", 3)) {
         nano_printf(1,
                     "| <- peer connected: %d-%02d-%02d %02d:%02d:%02d\n",
                     tms->tm_year + 1900, tms->tm_mon + 1, tms->tm_mday,
                     tms->tm_hour, tms->tm_min, tms->tm_sec);
-        nng_free(buf, sz);
+        nng_msg_free(msgp);
         nano_buf enc;
         nano_encode(&enc, key);
         xc = nng_send(*sock, enc.buf, enc.cur, NNG_FLAG_NONBLOCK);
@@ -115,7 +119,7 @@ static void rnng_messenger_thread(void *args) {
                     "| -> peer disconnected: %d-%02d-%02d %02d:%02d:%02d\n",
                     tms->tm_year + 1900, tms->tm_mon + 1, tms->tm_mday,
                     tms->tm_hour, tms->tm_min, tms->tm_sec);
-        nng_free(buf, sz);
+        nng_msg_free(msgp);
         continue;
       }
     }
@@ -125,7 +129,7 @@ static void rnng_messenger_thread(void *args) {
                 (char *) buf, (int) sz, "",
                 tms->tm_year + 1900, tms->tm_mon + 1, tms->tm_mday,
                 tms->tm_hour, tms->tm_min, tms->tm_sec);
-    nng_free(buf, sz);
+    nng_msg_free(msgp);
 
   }
 

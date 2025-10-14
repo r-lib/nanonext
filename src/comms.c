@@ -453,15 +453,13 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
 
     const int mod = nano_matcharg(mode);
     nng_socket *sock = (nng_socket *) NANO_PTR(con);
+    nng_msg *msgp = NULL;
 
     if (flags <= 0) {
 
-      if ((xc = nng_recv(*sock, &buf, &sz, NNG_FLAG_ALLOC + (flags < 0 || NANO_INTEGER(block) != 1) * NNG_FLAG_NONBLOCK)))
+      if ((xc = nng_recvmsg(*sock, &msgp, (flags < 0 || NANO_INTEGER(block) != 1) * NNG_FLAG_NONBLOCK)))
         goto fail;
-
-      res = nano_decode(buf, sz, mod, NANO_PROT(con));
-      nng_free(buf, sz);
-
+      
     } else {
 
       nng_aio *aiop = NULL;
@@ -474,13 +472,13 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
         nng_aio_free(aiop);
         goto fail;
       }
-      nng_msg *msgp = nng_aio_get_msg(aiop);
+      msgp = nng_aio_get_msg(aiop);
       nng_aio_free(aiop);
-      buf = nng_msg_body(msgp);
-      sz = nng_msg_len(msgp);
-      res = nano_decode(buf, sz, mod, NANO_PROT(con));
-      nng_msg_free(msgp);
     }
+    buf = nng_msg_body(msgp);
+    sz = nng_msg_len(msgp);
+    res = nano_decode(buf, sz, mod, NANO_PROT(con));
+    nng_msg_free(msgp);
 
   } else if (!NANO_PTR_CHECK(con, nano_ContextSymbol)) {
 
