@@ -13,3 +13,5 @@ inst/doc
 compile_commands.json
 .cache
 revdep/
+CLAUDE.md
+.DS_Store
