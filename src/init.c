@@ -109,7 +109,6 @@ static const R_CallMethodDef callMethods[] = {
   {"rnng_aio_result", (DL_FUNC) &rnng_aio_result, 1},
   {"rnng_aio_stop", (DL_FUNC) &rnng_aio_stop, 1},
   {"rnng_clock", (DL_FUNC) &rnng_clock, 0},
-  {"rnng_close", (DL_FUNC) &rnng_close, 1},
   {"rnng_ctx_close", (DL_FUNC) &rnng_ctx_close, 1},
   {"rnng_ctx_create", (DL_FUNC) &rnng_ctx_create, 1},
   {"rnng_ctx_open", (DL_FUNC) &rnng_ctx_open, 1},
@@ -161,6 +160,7 @@ static const R_CallMethodDef callMethods[] = {
   {"rnng_set_promise_context", (DL_FUNC) &rnng_set_promise_context, 2},
   {"rnng_signal_thread_create", (DL_FUNC) &rnng_signal_thread_create, 2},
   {"rnng_sleep", (DL_FUNC) &rnng_sleep, 1},
+  {"rnng_socket_close", (DL_FUNC) &rnng_socket_close, 1},
   {"rnng_stats_get", (DL_FUNC) &rnng_stats_get, 2},
   {"rnng_status_code", (DL_FUNC) &rnng_status_code, 1},
   {"rnng_stream_close", (DL_FUNC) &rnng_stream_close, 1},
@@ -187,6 +187,7 @@ static const R_ExternalMethodDef externalMethods[] = {
 void attribute_visible R_init_nanonext(DllInfo* dll) {
   RegisterSymbols();
   PreserveObjects();
+  nng_init(NULL);
   nano_list_do(INIT, NULL);
   R_registerRoutines(dll, NULL, callMethods, NULL, externalMethods);
   R_useDynamicSymbols(dll, FALSE);

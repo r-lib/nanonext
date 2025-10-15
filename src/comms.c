@@ -143,8 +143,8 @@ SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
     cfg = (nng_tls_config *) NANO_PTR(tls);
     if ((xc = nng_dialer_create(dp, *sock, ur)) ||
         (xc = nng_url_parse(&up, ur)) ||
-        (xc = nng_tls_config_server_name(cfg, up->u_hostname)) ||
-        (xc = nng_dialer_set_ptr(*dp, NNG_OPT_TLS_CONFIG, cfg)))
+        (xc = nng_tls_config_server_name(cfg, nng_url_hostname(up))) ||
+        (xc = nng_dialer_set_tls(*dp, cfg)))
       goto fail;
     nng_url_free(up);
     if (start && (xc = nng_dialer_start(*dp, start == 1 ? NNG_FLAG_NONBLOCK : 0)))
@@ -223,7 +223,7 @@ SEXP rnng_listen(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
   if (sec) {
     cfg = (nng_tls_config *) NANO_PTR(tls);
     if ((xc = nng_listener_create(lp, *sock, ur)) ||
-        (xc = nng_listener_set_ptr(*lp, NNG_OPT_TLS_CONFIG, cfg)) ||
+        (xc = nng_listener_set_tls(*lp, cfg)) ||
         (start && (xc = nng_listener_start(*lp, 0))))
       goto fail;
     nng_tls_config_hold(cfg);
@@ -389,7 +389,7 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
 
       nng_aio_set_msg(aiop, msgp);
       nng_aio_set_timeout(aiop, flags);
-      sock ? nng_send_aio(*(nng_socket *) NANO_PTR(con), aiop) :
+      sock ? nng_socket_send(*(nng_socket *) NANO_PTR(con), aiop) :
              nng_ctx_send(*(nng_ctx *) NANO_PTR(con), aiop);
       NANO_FREE(buf);
       nng_aio_wait(aiop);
@@ -459,14 +459,14 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
 
       if ((xc = nng_recvmsg(*sock, &msgp, (flags < 0 || NANO_INTEGER(block) != 1) * NNG_FLAG_NONBLOCK)))
         goto fail;
-      
+
     } else {
 
       nng_aio *aiop = NULL;
       if ((xc = nng_aio_alloc(&aiop, NULL, NULL)))
         goto fail;
       nng_aio_set_timeout(aiop, flags);
-      nng_recv_aio(*sock, aiop);
+      nng_socket_recv(*sock, aiop);
       nng_aio_wait(aiop);
       if ((xc = nng_aio_result(aiop))) {
         nng_aio_free(aiop);

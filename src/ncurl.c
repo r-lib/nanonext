@@ -98,8 +98,6 @@ static void haio_finalizer(SEXP xptr) {
   nng_aio_free(xp->aio);
   if (handle->cfg != NULL)
     nng_tls_config_free(handle->cfg);
-  nng_http_res_free(handle->res);
-  nng_http_req_free(handle->req);
   nng_http_client_free(handle->cli);
   nng_url_free(handle->url);
   free(handle);
@@ -112,13 +110,9 @@ static void session_finalizer(SEXP xptr) {
   if (NANO_PTR(xptr) == NULL) return;
   nano_aio *xp = (nano_aio *) NANO_PTR(xptr);
   nano_handle *handle = (nano_handle *) xp->next;
-  if (xp->data != NULL)
-    nng_http_conn_close((nng_http_conn *) xp->data);
   nng_aio_free(xp->aio);
   if (handle->cfg != NULL)
     nng_tls_config_free(handle->cfg);
-  nng_http_res_free(handle->res);
-  nng_http_req_free(handle->req);
   nng_http_client_free(handle->cli);
   nng_url_free(handle->url);
   free(handle);
@@ -140,7 +134,8 @@ static inline SEXP create_aio_http(SEXP env, nano_aio *haio, int typ) {
 
   PROTECT(response = Rf_findVarInFrame(env, nano_ResponseSymbol));
   int chk_resp = response != R_NilValue && TYPEOF(response) == STRSXP;
-  const uint16_t code = nng_http_res_get_status(handle->res), relo = code >= 300 && code < 400;
+  const uint16_t code = nng_http_get_status(handle->conn);
+  const uint16_t relo = code >= 300 && code < 400;
   Rf_defineVar(nano_ResultSymbol, Rf_ScalarInteger(code), env);
 
   if (relo) {
@@ -159,7 +154,7 @@ static inline SEXP create_aio_http(SEXP env, nano_aio *haio, int typ) {
     PROTECT(rvec = Rf_allocVector(VECSXP, rlen));
     Rf_namesgets(rvec, response);
     for (R_xlen_t i = 0; i < rlen; i++) {
-      const char *r = nng_http_res_get_header(handle->res, NANO_STR_N(response, i));
+      const char *r = nng_http_get_header(handle->conn, NANO_STR_N(response, i));
       SET_VECTOR_ELT(rvec, i, r == NULL ? R_NilValue : Rf_mkString(r));
     }
     UNPROTECT(1);
@@ -170,7 +165,7 @@ static inline SEXP create_aio_http(SEXP env, nano_aio *haio, int typ) {
   UNPROTECT(1);
   Rf_defineVar(nano_ProtocolSymbol, rvec, env);
 
-  nng_http_res_get_data(handle->res, &dat, &sz);
+  nng_http_get_body(handle->conn, &dat, &sz);
 
   if (haio->mode) {
     vec = nano_raw_char(dat, sz);
@@ -240,8 +235,7 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
 
   nng_url *url = NULL;
   nng_http_client *client = NULL;
-  nng_http_req *req = NULL;
-  nng_http_res *res = NULL;
+  nng_http *conn = NULL;
   nng_aio *aio = NULL;
   nng_tls_config *cfg = NULL;
   uint16_t code, relo;
@@ -253,35 +247,14 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
   relocall:
 
   if ((xc = nng_http_client_alloc(&client, url)) ||
-      (xc = nng_http_req_alloc(&req, url)) ||
-      (xc = nng_http_res_alloc(&res)) ||
       (xc = nng_aio_alloc(&aio, NULL, NULL)))
     goto fail;
 
-  if (mthd != NULL && (xc = nng_http_req_set_method(req, mthd)))
-    goto fail;
-
-  if (headers != R_NilValue && TYPEOF(headers) == STRSXP) {
-    const R_xlen_t hlen = XLENGTH(headers);
-    SEXP hnames = Rf_getAttrib(headers, R_NamesSymbol);
-    if (TYPEOF(hnames) == STRSXP && XLENGTH(hnames) == hlen) {
-      for (R_xlen_t i = 0; i < hlen; i++) {
-        if ((xc = nng_http_req_set_header(req, NANO_STR_N(hnames, i), NANO_STR_N(headers, i))))
-          goto fail;
-      }
-    }
-  }
-  if (data != R_NilValue) {
-    nano_buf enc = nano_char_buf(data);
-    if (enc.cur && (xc = nng_http_req_set_data(req, enc.buf, enc.cur)))
-      goto fail;
-  }
-
-  if (!strcmp(url->u_scheme, "https")) {
+  if (!strcmp(nng_url_scheme(url), "https")) {
 
     if (tls == R_NilValue) {
       if ((xc = nng_tls_config_alloc(&cfg, NNG_TLS_MODE_CLIENT)) ||
-          (xc = nng_tls_config_server_name(cfg, url->u_hostname)) ||
+          (xc = nng_tls_config_server_name(cfg, nng_url_hostname(url))) ||
           (xc = nng_tls_config_auth_mode(cfg, NNG_TLS_AUTH_MODE_NONE)) ||
           (xc = nng_http_client_set_tls(client, cfg)))
         goto fail;
@@ -290,7 +263,7 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
       cfg = (nng_tls_config *) NANO_PTR(tls);
       nng_tls_config_hold(cfg);
 
-      if ((xc = nng_tls_config_server_name(cfg, url->u_hostname)) ||
+      if ((xc = nng_tls_config_server_name(cfg, nng_url_hostname(url))) ||
           (xc = nng_http_client_set_tls(client, cfg)))
         goto fail;
     }
@@ -298,27 +271,50 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
   }
 
   nng_aio_set_timeout(aio, dur);
-  nng_http_client_transact(client, req, res, aio);
+  nng_http_client_connect(client, aio);
   nng_aio_wait(aio);
   if ((xc = nng_aio_result(aio)))
     goto fail;
+
+  conn = nng_aio_get_output(aio, 0);
+
+  if (mthd != NULL)
+    nng_http_set_method(conn, mthd);
+
+  if (headers != R_NilValue && TYPEOF(headers) == STRSXP) {
+    const R_xlen_t hlen = XLENGTH(headers);
+    SEXP hnames = Rf_getAttrib(headers, R_NamesSymbol);
+    if (TYPEOF(hnames) == STRSXP && XLENGTH(hnames) == hlen) {
+      for (R_xlen_t i = 0; i < hlen; i++) {
+        if ((xc = nng_http_set_header(conn, NANO_STR_N(hnames, i), NANO_STR_N(headers, i))))
+          goto fail;
+      }
+    }
+  }
+  if (data != R_NilValue) {
+    nano_buf enc = nano_char_buf(data);
+    if (enc.cur)
+      nng_http_set_body(conn, enc.buf, enc.cur);
+  }
+
+  nng_http_transact(conn, aio);
+  nng_aio_wait(aio);
 
   if (cfg != NULL)
     nng_tls_config_free(cfg);
   nng_aio_free(aio);
 
-  code = nng_http_res_get_status(res), relo = code >= 300 && code < 400;
+  code = nng_http_get_status(conn);
+  relo = code >= 300 && code < 400;
 
   if (relo && NANO_INTEGER(follow)) {
-    const char *location = nng_http_res_get_header(res, "Location");
+    const char *location = nng_http_get_header(conn, "Location");
     if (location == NULL) goto resume;
     nng_url *oldurl = url;
     xc = nng_url_parse(&url, location);
     if (xc) goto resume;
-    nng_http_res_free(res);
-    res = NULL;
-    nng_http_req_free(req);
-    req = NULL;
+    nng_http_close(conn);
+    conn = NULL;
     nng_http_client_free(client);
     client = NULL;
     nng_url_free(oldurl);
@@ -354,7 +350,7 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
     SET_VECTOR_ELT(out, 1, rvec);
     Rf_namesgets(rvec, response);
     for (R_xlen_t i = 0; i < rlen; i++) {
-      const char *r = nng_http_res_get_header(res, NANO_STR_N(response, i));
+      const char *r = nng_http_get_header(conn, NANO_STR_N(response, i));
       SET_VECTOR_ELT(rvec, i, r == NULL ? R_NilValue : Rf_mkString(r));
     }
   } else {
@@ -363,7 +359,7 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
   }
   if (relo) UNPROTECT(1);
 
-  nng_http_res_get_data(res, &dat, &sz);
+  nng_http_get_body(conn, &dat, &sz);
 
   if (NANO_INTEGER(convert)) {
     vec = nano_raw_char(dat, sz);
@@ -374,8 +370,7 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
   }
   SET_VECTOR_ELT(out, 2, vec);
 
-  nng_http_res_free(res);
-  nng_http_req_free(req);
+  nng_http_close(conn);
   nng_http_client_free(client);
   nng_url_free(url);
 
@@ -386,10 +381,8 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
   if (cfg != NULL)
     nng_tls_config_free(cfg);
   nng_aio_free(aio);
-  if (res != NULL)
-    nng_http_res_free(res);
-  if (req != NULL)
-    nng_http_req_free(req);
+  if (conn != NULL)
+    nng_http_close(conn);
   if (client != NULL)
     nng_http_client_free(client);
   nng_url_free(url);
@@ -423,35 +416,14 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
 
   if ((xc = nng_url_parse(&handle->url, httr)) ||
       (xc = nng_http_client_alloc(&handle->cli, handle->url)) ||
-      (xc = nng_http_req_alloc(&handle->req, handle->url)) ||
-      (xc = nng_http_res_alloc(&handle->res)) ||
       (xc = nng_aio_alloc(&haio->aio, haio_complete, haio)))
     goto fail;
 
-  if (mthd != NULL && (xc = nng_http_req_set_method(handle->req, mthd)))
-    goto fail;
-
-  if (headers != R_NilValue && TYPEOF(headers) == STRSXP) {
-    const R_xlen_t hlen = XLENGTH(headers);
-    SEXP hnames = Rf_getAttrib(headers, R_NamesSymbol);
-    if (TYPEOF(hnames) == STRSXP && XLENGTH(hnames) == hlen) {
-      for (R_xlen_t i = 0; i < hlen; i++) {
-        if ((xc = nng_http_req_set_header(handle->req, NANO_STR_N(hnames, i), NANO_STR_N(headers, i))))
-          goto fail;
-      }
-    }
-  }
-  if (data != R_NilValue) {
-    nano_buf enc = nano_char_buf(data);
-    if (enc.cur && (xc = nng_http_req_copy_data(handle->req, enc.buf, enc.cur)))
-      goto fail;
-  }
-
-  if (!strcmp(handle->url->u_scheme, "https")) {
+  if (!strcmp(nng_url_scheme(handle->url), "https")) {
 
     if (tls == R_NilValue) {
       if ((xc = nng_tls_config_alloc(&handle->cfg, NNG_TLS_MODE_CLIENT)) ||
-          (xc = nng_tls_config_server_name(handle->cfg, handle->url->u_hostname)) ||
+          (xc = nng_tls_config_server_name(handle->cfg, nng_url_hostname(handle->url))) ||
           (xc = nng_tls_config_auth_mode(handle->cfg, NNG_TLS_AUTH_MODE_NONE)) ||
           (xc = nng_http_client_set_tls(handle->cli, handle->cfg)))
         goto fail;
@@ -460,7 +432,7 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
       handle->cfg = (nng_tls_config *) NANO_PTR(tls);
       nng_tls_config_hold(handle->cfg);
 
-      if ((xc = nng_tls_config_server_name(handle->cfg, handle->url->u_hostname)) ||
+      if ((xc = nng_tls_config_server_name(handle->cfg, nng_url_hostname(handle->url))) ||
           (xc = nng_http_client_set_tls(handle->cli, handle->cfg)))
         goto fail;
     }
@@ -468,7 +440,33 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
   }
 
   nng_aio_set_timeout(haio->aio, dur);
-  nng_http_client_transact(handle->cli, handle->req, handle->res, haio->aio);
+  nng_http_client_connect(handle->cli, haio->aio);
+  nng_aio_wait(haio->aio);
+
+  if ((xc = nng_aio_result(haio->aio)))
+    goto fail;
+  handle->conn = nng_aio_get_output(haio->aio, 0);
+
+  if (mthd != NULL)
+    nng_http_set_method(handle->conn, mthd);
+
+  if (headers != R_NilValue && TYPEOF(headers) == STRSXP) {
+    const R_xlen_t hlen = XLENGTH(headers);
+    SEXP hnames = Rf_getAttrib(headers, R_NamesSymbol);
+    if (TYPEOF(hnames) == STRSXP && XLENGTH(hnames) == hlen) {
+      for (R_xlen_t i = 0; i < hlen; i++) {
+        if ((xc = nng_http_set_header(handle->conn, NANO_STR_N(hnames, i), NANO_STR_N(headers, i))))
+          goto fail;
+      }
+    }
+  }
+  if (data != R_NilValue) {
+    nano_buf enc = nano_char_buf(data);
+    if (enc.cur)
+      nng_http_copy_body(handle->conn, enc.buf, enc.cur);
+  }
+
+  nng_http_transact(handle->conn, haio->aio);
 
   PROTECT(aio = R_MakeExternalPtr(haio, nano_AioSymbol, R_NilValue));
   R_RegisterCFinalizerEx(aio, haio_finalizer, TRUE);
@@ -496,10 +494,8 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
   if (handle->cfg != NULL)
     nng_tls_config_free(handle->cfg);
   nng_aio_free(haio->aio);
-  if (handle->res != NULL)
-    nng_http_res_free(handle->res);
-  if (handle->req != NULL)
-    nng_http_req_free(handle->req);
+  if (handle->conn != NULL)
+    nng_http_close(handle->conn);
   if (handle->cli != NULL)
     nng_http_client_free(handle->cli);
   nng_url_free(handle->url);
@@ -548,35 +544,14 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
 
   if ((xc = nng_url_parse(&handle->url, httr)) ||
       (xc = nng_http_client_alloc(&handle->cli, handle->url)) ||
-      (xc = nng_http_req_alloc(&handle->req, handle->url)) ||
-      (xc = nng_http_res_alloc(&handle->res)) ||
       (xc = nng_aio_alloc(&haio->aio, session_complete, haio)))
     goto fail;
 
-  if (mthd != NULL && (xc = nng_http_req_set_method(handle->req, mthd)))
-    goto fail;
-
-  if (headers != R_NilValue && TYPEOF(headers) == STRSXP) {
-    const R_xlen_t hlen = XLENGTH(headers);
-    SEXP hnames = Rf_getAttrib(headers, R_NamesSymbol);
-    if (TYPEOF(hnames) == STRSXP && XLENGTH(hnames) == hlen) {
-      for (R_xlen_t i = 0; i < hlen; i++) {
-        if ((xc = nng_http_req_set_header(handle->req, NANO_STR_N(hnames, i), NANO_STR_N(headers, i))))
-          goto fail;
-      }
-    }
-  }
-  if (data != R_NilValue) {
-    nano_buf enc = nano_char_buf(data);
-    if (enc.cur && (xc = nng_http_req_copy_data(handle->req, enc.buf, enc.cur)))
-      goto fail;
-  }
-
-  if (!strcmp(handle->url->u_scheme, "https")) {
+  if (!strcmp(nng_url_scheme(handle->url), "https")) {
 
     if (tls == R_NilValue) {
       if ((xc = nng_tls_config_alloc(&handle->cfg, NNG_TLS_MODE_CLIENT)) ||
-          (xc = nng_tls_config_server_name(handle->cfg, handle->url->u_hostname)) ||
+          (xc = nng_tls_config_server_name(handle->cfg, nng_url_hostname(handle->url))) ||
           (xc = nng_tls_config_auth_mode(handle->cfg, NNG_TLS_AUTH_MODE_NONE)) ||
           (xc = nng_http_client_set_tls(handle->cli, handle->cfg)))
         goto fail;
@@ -586,7 +561,7 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
       handle->cfg = (nng_tls_config *) NANO_PTR(tls);
       nng_tls_config_hold(handle->cfg);
 
-      if ((xc = nng_tls_config_server_name(handle->cfg, handle->url->u_hostname)) ||
+      if ((xc = nng_tls_config_server_name(handle->cfg, nng_url_hostname(handle->url))) ||
           (xc = nng_http_client_set_tls(handle->cli, handle->cfg)))
         goto fail;
     }
@@ -599,8 +574,26 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
   if ((xc = haio->result) > 0)
     goto fail;
 
-  nng_http_conn *conn = nng_aio_get_output(haio->aio, 0);
-  haio->data = conn;
+  handle->conn = nng_aio_get_output(haio->aio, 0);
+
+  if (mthd != NULL)
+    nng_http_set_method(handle->conn, mthd);
+
+  if (headers != R_NilValue && TYPEOF(headers) == STRSXP) {
+    const R_xlen_t hlen = XLENGTH(headers);
+    SEXP hnames = Rf_getAttrib(headers, R_NamesSymbol);
+    if (TYPEOF(hnames) == STRSXP && XLENGTH(hnames) == hlen) {
+      for (R_xlen_t i = 0; i < hlen; i++) {
+        if ((xc = nng_http_set_header(handle->conn, NANO_STR_N(hnames, i), NANO_STR_N(headers, i))))
+          goto fail;
+      }
+    }
+  }
+  if (data != R_NilValue) {
+    nano_buf enc = nano_char_buf(data);
+    if (enc.cur)
+      nng_http_copy_body(handle->conn, enc.buf, enc.cur);
+  }
 
   PROTECT(sess = R_MakeExternalPtr(haio, nano_StatusSymbol, (response != R_NilValue && TYPEOF(response) == STRSXP) ? response : R_NilValue));
   R_RegisterCFinalizerEx(sess, session_finalizer, TRUE);
@@ -613,10 +606,8 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
   if (handle->cfg != NULL)
     nng_tls_config_free(handle->cfg);
   nng_aio_free(haio->aio);
-  if (handle->res != NULL)
-    nng_http_res_free(handle->res);
-  if (handle->req != NULL)
-    nng_http_req_free(handle->req);
+  if (handle->conn != NULL)
+    nng_http_close(handle->conn);
   if (handle->cli != NULL)
     nng_http_client_free(handle->cli);
   nng_url_free(handle->url);
@@ -633,13 +624,10 @@ SEXP rnng_ncurl_transact(SEXP session) {
     Rf_error("`session` is not a valid or active ncurlSession");
 
   nano_aio *haio = (nano_aio *) NANO_PTR(session);
-
-  if (haio->data == NULL)
-    return mk_error_ncurl(7);
-
-  nng_http_conn *conn = (nng_http_conn *) haio->data;
   nano_handle *handle = (nano_handle *) haio->next;
-  nng_http_conn_transact(conn, handle->req, handle->res, haio->aio);
+  nng_http *conn = handle->conn;
+
+  nng_http_transact(conn, haio->aio);
   nng_aio_wait(haio->aio);
   if (haio->result > 0)
     return mk_error_ncurl(haio->result);
@@ -651,7 +639,7 @@ SEXP rnng_ncurl_transact(SEXP session) {
 
   PROTECT(out = Rf_mkNamed(VECSXP, names));
 
-  const uint16_t code = nng_http_res_get_status(handle->res);
+  const uint16_t code = nng_http_get_status(conn);
   SET_VECTOR_ELT(out, 0, Rf_ScalarInteger(code));
 
   response = NANO_PROT(session);
@@ -661,7 +649,7 @@ SEXP rnng_ncurl_transact(SEXP session) {
     SET_VECTOR_ELT(out, 1, rvec);
     Rf_namesgets(rvec, response);
     for (R_xlen_t i = 0; i < rlen; i++) {
-      const char *r = nng_http_res_get_header(handle->res, NANO_STR_N(response, i));
+      const char *r = nng_http_get_header(conn, NANO_STR_N(response, i));
       SET_VECTOR_ELT(rvec, i, r == NULL ? R_NilValue : Rf_mkString(r));
     }
   } else {
@@ -669,7 +657,7 @@ SEXP rnng_ncurl_transact(SEXP session) {
     SET_VECTOR_ELT(out, 1, rvec);
   }
 
-  nng_http_res_get_data(handle->res, &dat, &sz);
+  nng_http_get_body(conn, &dat, &sz);
 
   if (haio->mode) {
     vec = nano_raw_char(dat, sz);
@@ -691,12 +679,9 @@ SEXP rnng_ncurl_session_close(SEXP session) {
     Rf_error("`session` is not a valid or active ncurlSession");
 
   nano_aio *haio = (nano_aio *) NANO_PTR(session);
+  nano_handle *handle = (nano_handle *) haio->next;
 
-  if (haio->data == NULL)
-    ERROR_RET(7);
-
-  nng_http_conn_close((nng_http_conn *) haio->data);
-  haio->data = NULL;
+  nng_http_close(handle->conn);
   Rf_setAttrib(session, nano_StateSymbol, R_MissingArg);
 
   return nano_success;

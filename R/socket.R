@@ -138,7 +138,7 @@ NULL
 #' @method close nanoSocket
 #' @export
 #'
-close.nanoSocket <- function(con, ...) invisible(.Call(rnng_close, con))
+close.nanoSocket <- function(con, ...) invisible(.Call(rnng_socket_close, con))
 
 #' Reap
 #'

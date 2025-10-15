@@ -41,27 +41,25 @@ SEXP rnng_sleep(SEXP msec) {
 
 SEXP rnng_url_parse(SEXP url) {
 
-  const char *up = CHAR(STRING_ELT(url, 0));
   nng_url *urlp;
-
-  const int xc = nng_url_parse(&urlp, up);
+  const int xc = nng_url_parse(&urlp, CHAR(STRING_ELT(url, 0)));
   if (xc)
     ERROR_OUT(xc);
 
   SEXP out;
-  const char *names[] = {"rawurl", "scheme", "userinfo", "host", "hostname",
-                         "port", "path", "query", "fragment", "requri", ""};
+  const char *names[] = {"scheme", "userinfo", "hostname", "port", "path",
+                         "query", "fragment", ""};
+
   PROTECT(out = Rf_mkNamed(STRSXP, names));
-  SET_STRING_ELT(out, 0, Rf_mkChar(urlp->u_rawurl));
-  SET_STRING_ELT(out, 1, Rf_mkChar(urlp->u_scheme == NULL ? "" : urlp->u_scheme));
-  SET_STRING_ELT(out, 2, Rf_mkChar(urlp->u_userinfo == NULL ? "" : urlp->u_userinfo));
-  SET_STRING_ELT(out, 3, Rf_mkChar(urlp->u_host == NULL ? "" : urlp->u_host));
-  SET_STRING_ELT(out, 4, Rf_mkChar(urlp->u_hostname == NULL ? "" : urlp->u_hostname));
-  SET_STRING_ELT(out, 5, Rf_mkChar(urlp->u_port == NULL ? "" : urlp->u_port));
-  SET_STRING_ELT(out, 6, Rf_mkChar(urlp->u_path == NULL ? "" : urlp->u_path));
-  SET_STRING_ELT(out, 7, Rf_mkChar(urlp->u_query == NULL ? "" : urlp->u_query));
-  SET_STRING_ELT(out, 8, Rf_mkChar(urlp->u_fragment == NULL ? "" : urlp->u_fragment));
-  SET_STRING_ELT(out, 9, Rf_mkChar(urlp->u_requri == NULL ? "" : urlp->u_requri));
+  SET_STRING_ELT(out, 0, Rf_mkChar(nng_url_scheme(urlp) == NULL ? "" : nng_url_scheme(urlp)));
+  SET_STRING_ELT(out, 1, Rf_mkChar(nng_url_userinfo(urlp) == NULL ? "" : nng_url_userinfo(urlp)));
+  SET_STRING_ELT(out, 2, Rf_mkChar(nng_url_hostname(urlp) == NULL ? "" : nng_url_hostname(urlp)));
+  char port[NANONEXT_STR_SIZE];
+  snprintf(port, NANONEXT_STR_SIZE, "%d", (int) nng_url_port(urlp));
+  SET_STRING_ELT(out, 3, Rf_mkChar(port));
+  SET_STRING_ELT(out, 4, Rf_mkChar(nng_url_path(urlp) == NULL ? "" : nng_url_path(urlp)));
+  SET_STRING_ELT(out, 5, Rf_mkChar(nng_url_query(urlp) == NULL ? "" : nng_url_query(urlp)));
+  SET_STRING_ELT(out, 6, Rf_mkChar(nng_url_fragment(urlp) == NULL ? "" : nng_url_fragment(urlp)));
   nng_url_free(urlp);
 
   UNPROTECT(1);
@@ -170,12 +168,6 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
 
     nng_socket *sock = (nng_socket *) NANO_PTR(object);
     switch (typ) {
-    case NILSXP:
-      xc = nng_socket_set(*sock, op, NULL, 0);
-      break;
-    case STRSXP:
-      xc = nng_socket_set_string(*sock, op, NANO_STRING(value));
-      break;
     case REALSXP:
     case INTSXP:
       val = nano_integer(value);
@@ -184,8 +176,6 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
       xc = nng_socket_set_size(*sock, op, (size_t) val);
       if (xc == 0) break;
       xc = nng_socket_set_int(*sock, op, val);
-      if (xc == 0) break;
-      xc = nng_socket_set_uint64(*sock, op, (uint64_t) val);
       break;
     case LGLSXP:
       xc = nng_socket_set_bool(*sock, op, (bool) NANO_INTEGER(value));
@@ -204,12 +194,6 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
 
     nng_ctx *ctx = (nng_ctx *) NANO_PTR(object);
     switch (typ) {
-    case NILSXP:
-      xc = nng_ctx_set(*ctx, op, NULL, 0);
-      break;
-    case STRSXP:
-      xc = nng_ctx_set_string(*ctx, op, NANO_STRING(value));
-      break;
     case REALSXP:
     case INTSXP:
       val = nano_integer(value);
@@ -218,8 +202,6 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
       xc = nng_ctx_set_size(*ctx, op, (size_t) val);
       if (xc == 0) break;
       xc = nng_ctx_set_int(*ctx, op, val);
-      if (xc == 0) break;
-      xc = nng_ctx_set_uint64(*ctx, op, (uint64_t) val);
       break;
     case LGLSXP:
       xc = nng_ctx_set_bool(*ctx, op, (bool) NANO_INTEGER(value));
@@ -230,27 +212,19 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
 
   } else if (!NANO_PTR_CHECK(object, nano_StreamSymbol)) {
 
-    nng_stream **st = (nng_stream **) NANO_PTR(object);
+    nano_stream *nst = (nano_stream *) NANO_PTR(object);
     switch (typ) {
-    case NILSXP:
-      xc = nng_stream_set(*st, op, NULL, 0);
-      break;
-    case STRSXP:
-      xc = nng_stream_set_string(*st, op, NANO_STRING(value));
-      break;
     case REALSXP:
     case INTSXP:
       val = nano_integer(value);
-      xc = nng_stream_set_ms(*st, op, (nng_duration) val);
+      xc = nst->mode == NANO_STREAM_DIALER ? nng_stream_dialer_set_ms(nst->endpoint.dial, op, (nng_duration) val) : nng_stream_listener_set_ms(nst->endpoint.list, op, (nng_duration) val);
       if (xc == 0) break;
-      xc = nng_stream_set_size(*st, op, (size_t) val);
+      xc = nst->mode == NANO_STREAM_DIALER ? nng_stream_dialer_set_size(nst->endpoint.dial, op, (size_t) val) : nng_stream_listener_set_size(nst->endpoint.list, op, (size_t) val);
       if (xc == 0) break;
-      xc = nng_stream_set_int(*st, op, val);
-      if (xc == 0) break;
-      xc = nng_stream_set_uint64(*st, op, (uint64_t) val);
+      xc = nst->mode == NANO_STREAM_DIALER ? nng_stream_dialer_set_int(nst->endpoint.dial, op, val) : nng_stream_listener_set_int(nst->endpoint.list, op, val);
       break;
     case LGLSXP:
-      xc = nng_stream_set_bool(*st, op, (bool) NANO_INTEGER(value));
+      xc = nst->mode == NANO_STREAM_DIALER ? nng_stream_dialer_set_bool(nst->endpoint.dial, op, (bool) NANO_INTEGER(value)) : nng_stream_listener_set_bool(nst->endpoint.list, op, (bool) NANO_INTEGER(value));
       break;
     default:
       Rf_error("type of `value` not supported");
@@ -260,9 +234,6 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
 
     nng_listener *list = (nng_listener *) NANO_PTR(object);
     switch (typ) {
-    case NILSXP:
-      xc = nng_listener_set(*list, op, NULL, 0);
-      break;
     case STRSXP:
       xc = nng_listener_set_string(*list, op, NANO_STRING(value));
       break;
@@ -274,8 +245,6 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
       xc = nng_listener_set_size(*list, op, (size_t) val);
       if (xc == 0) break;
       xc = nng_listener_set_int(*list, op, val);
-      if (xc == 0) break;
-      xc = nng_listener_set_uint64(*list, op, (uint64_t) val);
       break;
     case LGLSXP:
       xc = nng_listener_set_bool(*list, op, (bool) NANO_INTEGER(value));
@@ -288,9 +257,6 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
 
     nng_dialer *dial = (nng_dialer *) NANO_PTR(object);
     switch (typ) {
-    case NILSXP:
-      xc = nng_dialer_set(*dial, op, NULL, 0);
-      break;
     case STRSXP:
       xc = nng_dialer_set_string(*dial, op, NANO_STRING(value));
       break;
@@ -302,8 +268,6 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
       xc = nng_dialer_set_size(*dial, op, (size_t) val);
       if (xc == 0) break;
       xc = nng_dialer_set_int(*dial, op, val);
-      if (xc == 0) break;
-      xc = nng_dialer_set_uint64(*dial, op, (uint64_t) val);
       break;
     case LGLSXP:
       xc = nng_dialer_set_bool(*dial, op, (bool) NANO_INTEGER(value));
@@ -325,7 +289,6 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
 
 SEXP rnng_subscribe(SEXP object, SEXP value, SEXP sub) {
 
-  const char *op = NANO_INTEGER(sub) ? "sub:subscribe" : "sub:unsubscribe";
   nano_buf buf;
   int xc;
 
@@ -333,13 +296,17 @@ SEXP rnng_subscribe(SEXP object, SEXP value, SEXP sub) {
 
     nng_socket *sock = (nng_socket *) NANO_PTR(object);
     nano_encode(&buf, value);
-    xc = nng_socket_set(*sock, op, buf.buf, buf.cur - (TYPEOF(value) == STRSXP));
+    xc = NANO_INTEGER(sub) ?
+         nng_sub0_socket_subscribe(*sock, buf.buf, buf.cur - (TYPEOF(value) == STRSXP)) :
+         nng_sub0_socket_unsubscribe(*sock, buf.buf, buf.cur - (TYPEOF(value) == STRSXP));
 
   } else if (!NANO_PTR_CHECK(object, nano_ContextSymbol)) {
 
     nng_ctx *ctx = (nng_ctx *) NANO_PTR(object);
     nano_encode(&buf, value);
-    xc = nng_ctx_set(*ctx, op, buf.buf, buf.cur - (TYPEOF(value) == STRSXP));
+    xc = NANO_INTEGER(sub) ?
+         nng_sub0_ctx_subscribe(*ctx, buf.buf, buf.cur - (TYPEOF(value) == STRSXP)) :
+         nng_sub0_ctx_unsubscribe(*ctx, buf.buf, buf.cur - (TYPEOF(value) == STRSXP));
 
   } else {
     Rf_error("`object` is not a valid Socket or Context");
@@ -363,8 +330,6 @@ SEXP rnng_get_opt(SEXP object, SEXP opt) {
 
     nng_socket *sock = (nng_socket *) NANO_PTR(object);
     for (;;) {
-      xc = nng_socket_get_string(*sock, op, &optval.str);
-      if (xc == 0) { typ = 1; break; }
       xc = nng_socket_get_ms(*sock, op, &optval.d);
       if (xc == 0) { typ = 2; break; }
       xc = nng_socket_get_size(*sock, op, &optval.s);
@@ -372,17 +337,13 @@ SEXP rnng_get_opt(SEXP object, SEXP opt) {
       xc = nng_socket_get_int(*sock, op, &optval.i);
       if (xc == 0) { typ = 4; break; }
       xc = nng_socket_get_bool(*sock, op, &optval.b);
-      if (xc == 0) { typ = 5; break; }
-      xc = nng_socket_get_uint64(*sock, op, &optval.u);
-      typ = 6; break;
+      typ = 5; break;
     }
 
   } else if (!NANO_PTR_CHECK(object, nano_ContextSymbol)) {
 
     nng_ctx *ctx = (nng_ctx *) NANO_PTR(object);
     for (;;) {
-      xc = nng_ctx_get_string(*ctx, op, &optval.str);
-      if (xc == 0) { typ = 1; break; }
       xc = nng_ctx_get_ms(*ctx, op, &optval.d);
       if (xc == 0) { typ = 2; break; }
       xc = nng_ctx_get_size(*ctx, op, &optval.s);
@@ -390,12 +351,12 @@ SEXP rnng_get_opt(SEXP object, SEXP opt) {
       xc = nng_ctx_get_int(*ctx, op, &optval.i);
       if (xc == 0) { typ = 4; break; }
       xc = nng_ctx_get_bool(*ctx, op, &optval.b);
-      if (xc == 0) { typ = 5; break; }
-      xc = nng_ctx_get_uint64(*ctx, op, &optval.u);
-      typ = 6; break;
+      typ = 5; break;
     }
 
   } else if (!NANO_PTR_CHECK(object, nano_StreamSymbol)) {
+
+    // Switch to stream dialer and stream listener options
 
     nng_stream **st = (nng_stream **) NANO_PTR(object);
     for (;;) {
@@ -408,9 +369,7 @@ SEXP rnng_get_opt(SEXP object, SEXP opt) {
       xc = nng_stream_get_int(*st, op, &optval.i);
       if (xc == 0) { typ = 4; break; }
       xc = nng_stream_get_bool(*st, op, &optval.b);
-      if (xc == 0) { typ = 5; break; }
-      xc = nng_stream_get_uint64(*st, op, &optval.u);
-      typ = 6; break;
+      typ = 5; break;
     }
 
   } else if (!NANO_PTR_CHECK(object, nano_ListenerSymbol)) {
@@ -426,9 +385,7 @@ SEXP rnng_get_opt(SEXP object, SEXP opt) {
       xc = nng_listener_get_int(*list, op, &optval.i);
       if (xc == 0) { typ = 4; break; }
       xc = nng_listener_get_bool(*list, op, &optval.b);
-      if (xc == 0) { typ = 5; break; }
-      xc = nng_listener_get_uint64(*list, op, &optval.u);
-      typ = 6; break;
+      typ = 5; break;
     }
 
   } else if (!NANO_PTR_CHECK(object, nano_DialerSymbol)) {
@@ -444,9 +401,7 @@ SEXP rnng_get_opt(SEXP object, SEXP opt) {
       xc = nng_dialer_get_int(*dial, op, &optval.i);
       if (xc == 0) { typ = 4; break; }
       xc = nng_dialer_get_bool(*dial, op, &optval.b);
-      if (xc == 0) { typ = 5; break; }
-      xc = nng_dialer_get_uint64(*dial, op, &optval.u);
-      typ = 6; break;
+      typ = 5; break;
     }
 
   } else {
@@ -473,8 +428,6 @@ SEXP rnng_get_opt(SEXP object, SEXP opt) {
   case 5:
     out = Rf_ScalarLogical((int) optval.b);
     break;
-  default:
-    out = Rf_ScalarReal((double) optval.u);
   }
 
   return out;
@@ -488,7 +441,8 @@ SEXP rnng_stats_get(SEXP object, SEXP stat) {
   const char *statname = CHAR(STRING_ELT(stat, 0));
   SEXP out;
   int xc;
-  nng_stat *nst, *sst;
+  nng_stat *nst;
+  const nng_stat *sst, *res;
 
   if (!NANO_PTR_CHECK(object, nano_SocketSymbol)) {
     if ((xc = nng_stats_get(&nst)))
@@ -512,13 +466,13 @@ SEXP rnng_stats_get(SEXP object, SEXP stat) {
     Rf_error("`object` is not a valid Socket, Listener or Dialer");
   }
 
-  sst = nng_stat_find(sst, statname);
-  if (sst == NULL) {
+  res = nng_stat_find(sst, statname);
+  if (res == NULL) {
     nng_stats_free(nst);
     return R_NilValue;
   }
 
-  out = nng_stat_type(sst) == NNG_STAT_STRING ? Rf_mkString(nng_stat_string(sst)) : Rf_ScalarReal((double) nng_stat_value(sst));
+  out = nng_stat_type(res) == NNG_STAT_STRING ? Rf_mkString(nng_stat_string(res)) : Rf_ScalarReal((double) nng_stat_value(res));
 
   nng_stats_free(nst);
   return out;
