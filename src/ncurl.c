@@ -95,6 +95,8 @@ static void haio_finalizer(SEXP xptr) {
   if (NANO_PTR(xptr) == NULL) return;
   nano_aio *xp = (nano_aio *) NANO_PTR(xptr);
   nano_handle *handle = (nano_handle *) xp->next;
+  if (handle->conn != NULL)
+    nng_http_close(handle->conn);
   nng_aio_free(xp->aio);
   if (handle->cfg != NULL)
     nng_tls_config_free(handle->cfg);
@@ -110,6 +112,8 @@ static void session_finalizer(SEXP xptr) {
   if (NANO_PTR(xptr) == NULL) return;
   nano_aio *xp = (nano_aio *) NANO_PTR(xptr);
   nano_handle *handle = (nano_handle *) xp->next;
+  if (handle->conn != NULL)
+    nng_http_close(handle->conn);
   nng_aio_free(xp->aio);
   if (handle->cfg != NULL)
     nng_tls_config_free(handle->cfg);
@@ -626,6 +630,8 @@ SEXP rnng_ncurl_transact(SEXP session) {
   nano_aio *haio = (nano_aio *) NANO_PTR(session);
   nano_handle *handle = (nano_handle *) haio->next;
   nng_http *conn = handle->conn;
+  if (conn == NULL)
+    return mk_error_ncurl(7);
 
   nng_http_transact(conn, haio->aio);
   nng_aio_wait(haio->aio);
@@ -681,8 +687,12 @@ SEXP rnng_ncurl_session_close(SEXP session) {
   nano_aio *haio = (nano_aio *) NANO_PTR(session);
   nano_handle *handle = (nano_handle *) haio->next;
 
-  nng_http_close(handle->conn);
-  Rf_setAttrib(session, nano_StateSymbol, R_MissingArg);
+  if (handle->conn != NULL) {
+    nng_http_close(handle->conn);
+    handle->conn = NULL;
+  } else {
+    ERROR_RET(7);
+  }
 
   return nano_success;
 
