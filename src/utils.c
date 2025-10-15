@@ -51,15 +51,17 @@ SEXP rnng_url_parse(SEXP url) {
                          "query", "fragment", ""};
 
   PROTECT(out = Rf_mkNamed(STRSXP, names));
-  SET_STRING_ELT(out, 0, Rf_mkChar(nng_url_scheme(urlp) == NULL ? "" : nng_url_scheme(urlp)));
-  SET_STRING_ELT(out, 1, Rf_mkChar(nng_url_userinfo(urlp) == NULL ? "" : nng_url_userinfo(urlp)));
-  SET_STRING_ELT(out, 2, Rf_mkChar(nng_url_hostname(urlp) == NULL ? "" : nng_url_hostname(urlp)));
+  const char *scheme = nng_url_scheme(urlp);
+  SET_STRING_ELT(out, 0, Rf_mkChar(scheme != NULL ? scheme : NULL));
+  SET_STRING_ELT(out, 1, Rf_mkChar(nng_url_userinfo(urlp) != NULL ? nng_url_userinfo(urlp) : ""));
+  SET_STRING_ELT(out, 2, Rf_mkChar(nng_url_hostname(urlp) != NULL ? nng_url_hostname(urlp) : ""));
   char port[NANONEXT_STR_SIZE];
   snprintf(port, NANONEXT_STR_SIZE, "%d", (int) nng_url_port(urlp));
-  SET_STRING_ELT(out, 3, Rf_mkChar(port));
-  SET_STRING_ELT(out, 4, Rf_mkChar(nng_url_path(urlp) == NULL ? "" : nng_url_path(urlp)));
-  SET_STRING_ELT(out, 5, Rf_mkChar(nng_url_query(urlp) == NULL ? "" : nng_url_query(urlp)));
-  SET_STRING_ELT(out, 6, Rf_mkChar(nng_url_fragment(urlp) == NULL ? "" : nng_url_fragment(urlp)));
+  const int haveport = !strncmp(scheme, "tcp", 3) || !strncmp(scheme, "ws", 2) || !strncmp(scheme, "tls", 3) || !strncmp(scheme, "ssh", 3);
+  SET_STRING_ELT(out, 3, Rf_mkChar(haveport ? port : ""));
+  SET_STRING_ELT(out, 4, Rf_mkChar(nng_url_path(urlp) != NULL ? nng_url_path(urlp) : ""));
+  SET_STRING_ELT(out, 5, Rf_mkChar(nng_url_query(urlp) != NULL ? nng_url_query(urlp) : ""));
+  SET_STRING_ELT(out, 6, Rf_mkChar(nng_url_fragment(urlp) != NULL ? nng_url_fragment(urlp) : ""));
   nng_url_free(urlp);
 
   UNPROTECT(1);
