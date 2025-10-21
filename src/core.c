@@ -204,7 +204,7 @@ void socket_finalizer(SEXP xptr) {
 
   if (NANO_PTR(xptr) == NULL) return;
   nng_socket *xp = (nng_socket *) NANO_PTR(xptr);
-  nng_close(*xp);
+  nng_socket_close(*xp);
   free(xp);
 
 }

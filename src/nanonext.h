@@ -4,31 +4,14 @@
 #define NANONEXT_H
 
 #include <nng/nng.h>
-#include <nng/supplemental/util/platform.h>
-#include <nng/supplemental/tls/tls.h>
-
-#ifdef NANONEXT_PROTOCOLS
-#include <nng/protocol/bus0/bus.h>
-#include <nng/protocol/pair0/pair.h>
-#include <nng/protocol/pair1/pair.h>
-#include <nng/protocol/pubsub0/pub.h>
-#include <nng/protocol/pubsub0/sub.h>
-#include <nng/protocol/pipeline0/pull.h>
-#include <nng/protocol/pipeline0/push.h>
-#include <nng/protocol/reqrep0/req.h>
-#include <nng/protocol/reqrep0/rep.h>
-#include <nng/protocol/survey0/survey.h>
-#include <nng/protocol/survey0/respond.h>
-#endif
 
 #ifdef NANONEXT_HTTP
-#include <nng/supplemental/http/http.h>
+#include <nng/http.h>
 
 typedef struct nano_handle_s {
   nng_url *url;
   nng_http_client *cli;
-  nng_http_req *req;
-  nng_http_res *res;
+  nng_http *conn;
   nng_tls_config *cfg;
 } nano_handle;
 
@@ -143,7 +126,6 @@ extern int R_interrupts_pending;
 
 typedef union nano_opt_u {
   char *str;
-  uint64_t u;
   size_t s;
   nng_duration d;
   int i;
@@ -346,7 +328,6 @@ SEXP rnng_aio_http_status(SEXP);
 SEXP rnng_aio_result(SEXP);
 SEXP rnng_aio_stop(SEXP);
 SEXP rnng_clock(void);
-SEXP rnng_close(SEXP);
 SEXP rnng_ctx_close(SEXP);
 SEXP rnng_ctx_create(SEXP);
 SEXP rnng_ctx_open(SEXP);
@@ -399,6 +380,7 @@ SEXP rnng_set_opt(SEXP, SEXP, SEXP);
 SEXP rnng_set_promise_context(SEXP, SEXP);
 SEXP rnng_signal_thread_create(SEXP, SEXP);
 SEXP rnng_sleep(SEXP);
+SEXP rnng_socket_close(SEXP);
 SEXP rnng_stats_get(SEXP, SEXP);
 SEXP rnng_status_code(SEXP);
 SEXP rnng_stream_close(SEXP);

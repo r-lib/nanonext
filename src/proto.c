@@ -1,6 +1,5 @@
 // nanonext - C level - Socket and Stream Constructors -------------------------
 
-#define NANONEXT_PROTOCOLS
 #include "nanonext.h"
 
 // finalizers ------------------------------------------------------------------
@@ -150,13 +149,13 @@ SEXP rnng_protocol_open(SEXP protocol, SEXP dial, SEXP listen, SEXP tls, SEXP au
 
 }
 
-SEXP rnng_close(SEXP socket) {
+SEXP rnng_socket_close(SEXP socket) {
 
   if (NANO_PTR_CHECK(socket, nano_SocketSymbol))
     Rf_error("`socket` is not a valid Socket");
 
   nng_socket *sock = (nng_socket *) NANO_PTR(socket);
-  const int xc = nng_close(*sock);
+  const int xc = nng_socket_close(*sock);
   if (xc)
     ERROR_RET(xc);
 
@@ -173,7 +172,7 @@ SEXP rnng_reap(SEXP con) {
     xc = nng_ctx_close(*(nng_ctx *) NANO_PTR(con));
 
   } else if (!NANO_PTR_CHECK(con, nano_SocketSymbol)) {
-    xc = nng_close(*(nng_socket *) NANO_PTR(con));
+    xc = nng_socket_close(*(nng_socket *) NANO_PTR(con));
 
   } else if (!NANO_PTR_CHECK(con, nano_ListenerSymbol)) {
     xc = nng_listener_close(*(nng_listener *) NANO_PTR(con));
@@ -215,28 +214,28 @@ static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP tls) {
       (xc = nng_aio_alloc(&aiop, NULL, NULL)))
     goto fail;
 
-  if (!strcmp(up->u_scheme, "ws") || !strcmp(up->u_scheme, "wss")) {
+  if (!strcmp(nng_url_scheme(up), "ws") || !strcmp(nng_url_scheme(up), "wss")) {
     if (nst->textframes &&
         ((xc = nng_stream_dialer_set_bool(nst->endpoint.dial, "ws:recv-text", 1)) ||
         (xc = nng_stream_dialer_set_bool(nst->endpoint.dial, "ws:send-text", 1))))
       goto fail;
   }
 
-  if (!strcmp(up->u_scheme, "wss")) {
+  if (!strcmp(nng_url_scheme(up), "wss")) {
 
     if (tls == R_NilValue) {
       if ((xc = nng_tls_config_alloc(&nst->tls, NNG_TLS_MODE_CLIENT)) ||
-          (xc = nng_tls_config_server_name(nst->tls, up->u_hostname)) ||
+          (xc = nng_tls_config_server_name(nst->tls, nng_url_hostname(up))) ||
           (xc = nng_tls_config_auth_mode(nst->tls, NNG_TLS_AUTH_MODE_NONE)) ||
-          (xc = nng_stream_dialer_set_ptr(nst->endpoint.dial, NNG_OPT_TLS_CONFIG, nst->tls)))
+          (xc = nng_stream_dialer_set_tls(nst->endpoint.dial, nst->tls)))
         goto fail;
     } else {
 
       nst->tls = (nng_tls_config *) NANO_PTR(tls);
       nng_tls_config_hold(nst->tls);
 
-      if ((xc = nng_tls_config_server_name(nst->tls, up->u_hostname)) ||
-          (xc = nng_stream_dialer_set_ptr(nst->endpoint.dial, NNG_OPT_TLS_CONFIG, nst->tls)))
+      if ((xc = nng_tls_config_server_name(nst->tls, nng_url_hostname(up))) ||
+          (xc = nng_stream_dialer_set_tls(nst->endpoint.dial, nst->tls)))
         goto fail;
     }
 
@@ -296,27 +295,27 @@ static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls) {
       (xc = nng_aio_alloc(&aiop, NULL, NULL)))
     goto fail;
 
-  if (!strcmp(up->u_scheme, "ws") || !strcmp(up->u_scheme, "wss")) {
+  if (!strcmp(nng_url_scheme(up), "ws") || !strcmp(nng_url_scheme(up), "wss")) {
     if (nst->textframes &&
         ((xc = nng_stream_listener_set_bool(nst->endpoint.list, "ws:recv-text", 1)) ||
         (xc = nng_stream_listener_set_bool(nst->endpoint.list, "ws:send-text", 1))))
       goto fail;
   }
 
-  if (!strcmp(up->u_scheme, "wss")) {
+  if (!strcmp(nng_url_scheme(up), "wss")) {
 
     if (tls == R_NilValue) {
       if ((xc = nng_tls_config_alloc(&nst->tls, NNG_TLS_MODE_SERVER)) ||
           (xc = nng_tls_config_auth_mode(nst->tls, NNG_TLS_AUTH_MODE_NONE)) ||
-          (xc = nng_stream_listener_set_ptr(nst->endpoint.list, NNG_OPT_TLS_CONFIG, nst->tls)))
+          (xc = nng_stream_listener_set_tls(nst->endpoint.list, nst->tls)))
         goto fail;
     } else {
 
       nst->tls = (nng_tls_config *) NANO_PTR(tls);
       nng_tls_config_hold(nst->tls);
 
-      if ((xc = nng_tls_config_server_name(nst->tls, up->u_hostname)) ||
-          (xc = nng_stream_listener_set_ptr(nst->endpoint.list, NNG_OPT_TLS_CONFIG, nst->tls)))
+      if ((xc = nng_tls_config_server_name(nst->tls, nng_url_hostname(up))) ||
+          (xc = nng_stream_listener_set_tls(nst->endpoint.list, nst->tls)))
         goto fail;
     }
 

@@ -1,6 +1,5 @@
 // nanonext - C level - Threaded Applications ----------------------------------
 
-#define NANONEXT_PROTOCOLS
 #define NANONEXT_IO
 #include "nanonext.h"
 
@@ -181,7 +180,7 @@ SEXP rnng_messenger(SEXP url) {
   free(dp);
   free(lp);
   if (sock != NULL)
-    nng_close(*sock);
+    nng_socket_close(*sock);
   free(sock);
   ERROR_OUT(xc);
 
@@ -585,7 +584,7 @@ void nano_read_thread(void *arg) {
   }
 
   cleanup:
-  nng_close(sock);
+  nng_socket_close(sock);
 
 }
 
@@ -629,7 +628,7 @@ SEXP rnng_read_stdin(SEXP interactive) {
   return socket;
 
   fail:
-  nng_close(*sock);
+  nng_socket_close(*sock);
   failmem:
   free(lp);
   free(sock);

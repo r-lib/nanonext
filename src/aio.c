@@ -657,7 +657,7 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
 
     nng_aio_set_msg(saio->aio, msg);
     nng_aio_set_timeout(saio->aio, dur);
-    sock ? nng_send_aio(*(nng_socket *) NANO_PTR(con), saio->aio) :
+    sock ? nng_socket_send(*(nng_socket *) NANO_PTR(con), saio->aio) :
            nng_ctx_send(*(nng_ctx *) NANO_PTR(con), saio->aio);
     NANO_FREE(buf);
 
@@ -740,7 +740,7 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
       goto fail;
 
     nng_aio_set_timeout(raio->aio, dur);
-    sock ? nng_recv_aio(*(nng_socket *) NANO_PTR(con), raio->aio) :
+    sock ? nng_socket_recv(*(nng_socket *) NANO_PTR(con), raio->aio) :
       nng_ctx_recv(*(nng_ctx *) NANO_PTR(con), raio->aio);
 
     PROTECT(aio = R_MakeExternalPtr(raio, nano_AioSymbol, NANO_PROT(con)));
