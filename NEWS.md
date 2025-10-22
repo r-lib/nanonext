@@ -1,5 +1,9 @@
 # nanonext (development version)
 
+#### Updates
+
+* `parse_url()` drops 'rawurl', 'host' and 'requri' from the output vector as these can be derived from the other parts.
+
 # nanonext 1.7.1
 
 #### Updates
