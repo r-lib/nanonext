@@ -114,15 +114,12 @@ random <- function(n = 1L, convert = TRUE) .Call(rnng_random, n, convert)
 #'
 #' @param url character string containing a URL.
 #'
-#' @return A named character vector of length 10, comprising:
+#' @return A named character vector of length 7, comprising:
 #'  \itemize{
-#'     \item `rawurl` - the unparsed URL string.
 #'     \item `scheme` - the URL scheme, such as "http" or "inproc" (always lower
 #'     case).
-#'     \item `userinfo` - the username and password if supplied in the URL
-#'     string.
-#'     \item `host` - the full host part of the URL, including the port if
-#'     present (separated by a colon).
+#'     \item `userinfo` - the username and password (if supplied in the URL
+#'     string).
 #'     \item `hostname` - the name of the host.
 #'     \item `port` - the port (if not specified, the default port if defined by
 #'     the scheme).
@@ -130,7 +127,6 @@ random <- function(n = 1L, convert = TRUE) .Call(rnng_random, n, convert)
 #'     \item `query` - the query info (typically following ? in the URL).
 #'     \item `fragment` - used for specifying an anchor, the part after # in a
 #'     URL.
-#'     \item `requri` - the full Request-URI (path\[?query\]\[#fragment\]).
 #'  }
 #'  Values that cannot be determined are represented by an empty string `""`.
 #'

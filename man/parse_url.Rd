@@ -10,15 +10,12 @@ parse_url(url)
 \item{url}{character string containing a URL.}
 }
 \value{
-A named character vector of length 10, comprising:
+A named character vector of length 7, comprising:
 \itemize{
-\item \code{rawurl} - the unparsed URL string.
 \item \code{scheme} - the URL scheme, such as "http" or "inproc" (always lower
 case).
-\item \code{userinfo} - the username and password if supplied in the URL
-string.
-\item \code{host} - the full host part of the URL, including the port if
-present (separated by a colon).
+\item \code{userinfo} - the username and password (if supplied in the URL
+string).
 \item \code{hostname} - the name of the host.
 \item \code{port} - the port (if not specified, the default port if defined by
 the scheme).
@@ -26,7 +23,6 @@ the scheme).
 \item \code{query} - the query info (typically following ? in the URL).
 \item \code{fragment} - used for specifying an anchor, the part after # in a
 URL.
-\item \code{requri} - the full Request-URI (path[?query][#fragment]).
 }
 Values that cannot be determined are represented by an empty string \code{""}.
 }
