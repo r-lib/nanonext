@@ -12,7 +12,7 @@ status](https://r-lib.r-universe.dev/badges/nanonext?color=3f72af)](https://r-li
 [![R-CMD-check](https://github.com/r-lib/nanonext/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/r-lib/nanonext/actions/workflows/R-CMD-check.yaml)
 [![Codecov test
 coverage](https://codecov.io/gh/r-lib/nanonext/graph/badge.svg)](https://app.codecov.io/gh/r-lib/nanonext)
-[![DOI](https://zenodo.org/badge/451104675.svg)](https://zenodo.org/badge/latestdoi/451104675)
+[![DOI](https://zenodo.org/badge/451104675.svg)](https://doi.org/10.5281/zenodo.7903429)
 <!-- badges: end -->
 
 R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. NNG is a
@@ -29,8 +29,7 @@ asynchronous operations complete, and [synchronisation
 primitives](https://nanonext.r-lib.org/articles/nanonext.html#synchronisation-primitives)
 allow R to wait upon events signalled by concurrent threads.
 
-Designed for performance and reliability,
-[`nanonext`](https://doi.org/10.5281/zenodo.7903429) is a lightweight
+Designed for performance and reliability, nanonext is a lightweight
 wrapper around the NNG C library, and is itself implemented almost
 entirely in C.
 
@@ -78,8 +77,8 @@ Web utilities:
 
 ### Quick Start
 
-`nanonext` offers 2 equivalent interfaces: a functional interface, and
-an object-oriented interface.
+nanonext offers 2 equivalent interfaces: a functional interface, and an
+object-oriented interface.
 
 #### Functional Interface
 

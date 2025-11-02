@@ -21,14 +21,14 @@ knitr::opts_chunk$set(
 [![R-universe status](https://r-lib.r-universe.dev/badges/nanonext?color=3f72af)](https://r-lib.r-universe.dev/nanonext)
 [![R-CMD-check](https://github.com/r-lib/nanonext/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/r-lib/nanonext/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/r-lib/nanonext/graph/badge.svg)](https://app.codecov.io/gh/r-lib/nanonext)
-[![DOI](https://zenodo.org/badge/451104675.svg)](https://zenodo.org/badge/latestdoi/451104675)
+[![DOI](https://zenodo.org/badge/451104675.svg)](https://doi.org/10.5281/zenodo.7903429)
 <!-- badges: end -->
 
 R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. NNG is a socket library for reliable, high-performance messaging over in-process, IPC, TCP, WebSocket and secure TLS transports. Implements 'Scalability Protocols', a standard for common communications patterns including publish/subscribe, request/reply and service discovery.
 
 As its own [threaded concurrency framework](https://nanonext.r-lib.org/articles/nanonext.html#async-and-concurrency), provides a toolkit for asynchronous programming and distributed computing. Intuitive 'aio' objects resolve automatically when asynchronous operations complete, and [synchronisation primitives](https://nanonext.r-lib.org/articles/nanonext.html#synchronisation-primitives) allow R to wait upon events signalled by concurrent threads.
 
-Designed for performance and reliability, [`nanonext`](https://doi.org/10.5281/zenodo.7903429) is a lightweight wrapper around the NNG C library, and is itself implemented almost entirely in C.
+Designed for performance and reliability, nanonext is a lightweight wrapper around the NNG C library, and is itself implemented almost entirely in C.
 
 Provides the interface for code and processes to communicate with each other - [receive data generated in Python, perform analysis in R, and send results to a C++ program](https://nanonext.r-lib.org/articles/nanonext.html#cross-language-exchange) – on the same computer or across networks spanning the globe.
 
@@ -62,7 +62,7 @@ Web utilities:
 
 ### Quick Start
 
-`nanonext` offers 2 equivalent interfaces: a functional interface, and an object-oriented interface.
+nanonext offers 2 equivalent interfaces: a functional interface, and an object-oriented interface.
 
 #### Functional Interface 
 
