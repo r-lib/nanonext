@@ -24,7 +24,7 @@ signal, and causes any subsequent \code{\link[=wait]{wait()}} to return FALSE in
 If a signal from the \pkg{tools} package, e.g. \code{tools::SIGINT}, or an
 equivalent integer value is supplied, this sets a flag and additionally
 raises this signal upon the flag being set. For \code{tools::SIGTERM}, the
-signal is raised with a 100ms grace period to allow a process to exit
+signal is raised with a 200ms grace period to allow a process to exit
 normally.}
 }
 \value{

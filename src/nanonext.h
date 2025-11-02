@@ -124,7 +124,7 @@ extern int R_interrupts_pending;
 #define NANONEXT_CHUNK_SIZE 67108864 // must be <= INT_MAX
 #define NANONEXT_STR_SIZE 40
 #define NANONEXT_WAIT_DUR 1000
-#define NANONEXT_SLEEP_DUR 100
+#define NANONEXT_SLEEP_DUR 200
 #define NANO_ALLOC(x, sz)                                      \
   (x)->buf = calloc(sz, sizeof(unsigned char));                \
   if ((x)->buf == NULL) Rf_error("memory allocation failed");  \
