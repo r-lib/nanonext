@@ -9,7 +9,7 @@ added or removed at a socket."><meta property="og:image" content="https://nanone
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.7.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.7.1.9001</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -80,7 +80,9 @@ signal) when a pipe is removed.</p></dd>
 signal, and causes any subsequent <code><a href="cv.html">wait()</a></code> to return FALSE instead of TRUE.
 If a signal from the <span class="pkg">tools</span> package, e.g. <code><a href="https://rdrr.io/r/tools/pskill.html" class="external-link">tools::SIGINT</a></code>, or an
 equivalent integer value is supplied, this sets a flag and additionally
-raises this signal upon the flag being set.</p></dd>
+raises this signal upon the flag being set. For <code><a href="https://rdrr.io/r/tools/pskill.html" class="external-link">tools::SIGTERM</a></code>, the
+signal is raised with a 100ms grace period to allow a process to exit
+normally.</p></dd>
 
 </dl></div>
     <div class="section level2">

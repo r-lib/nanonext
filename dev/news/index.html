@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.7.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.7.1.9001</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,8 @@
 <div class="section level5">
 <h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
 <ul><li>
+<code>pipe_notify(flag = tools::SIGTERM)</code> will now raise the signal with a 100ms grace period to allow a process to exit normally (<a href="https://github.com/r-lib/nanonext/issues/212" class="external-link">#212</a>).</li>
+<li>
 <code><a href="../reference/parse_url.html">parse_url()</a></code> drops ‘rawurl’, ‘host’ and ‘requri’ from the output vector as these can be derived from the other parts.</li>
 </ul></div>
 </div>
