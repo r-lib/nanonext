@@ -30,7 +30,7 @@ aio <- send_aio(s1, "test", timeout = 100)
 while (unresolved(aio)) {
   # do stuff before checking resolution again
   cat("unresolved\n")
-  msleep(20)
+  msleep(100)
 }
 
 unresolved(aio)

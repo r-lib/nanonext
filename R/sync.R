@@ -167,7 +167,9 @@ cv_signal <- function(cv) invisible(.Call(rnng_cv_signal, cv))
 #'   signal, and causes any subsequent [wait()] to return FALSE instead of TRUE.
 #'   If a signal from the \pkg{tools} package, e.g. `tools::SIGINT`, or an
 #'   equivalent integer value is supplied, this sets a flag and additionally
-#'   raises this signal upon the flag being set.
+#'   raises this signal upon the flag being set. For `tools::SIGTERM`, the
+#'   signal is raised with a 100ms grace period to allow a process to exit
+#'   normally.
 #'
 #' @return Invisibly, zero on success (will otherwise error).
 #'

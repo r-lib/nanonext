@@ -120,6 +120,16 @@ static void request_complete(void *arg) {
 
 }
 
+void delayed_sigterm(void *arg) {
+  (void) arg;
+  nng_msleep(NANONEXT_SLEEP_DUR);
+#ifdef _WIN32
+  raise(SIGTERM);
+#else
+  kill(getpid(), SIGTERM);
+#endif
+}
+
 void pipe_cb_signal(nng_pipe p, nng_pipe_ev ev, void *arg) {
 
   int sig;
@@ -134,16 +144,20 @@ void pipe_cb_signal(nng_pipe p, nng_pipe_ev ev, void *arg) {
   nng_cv_wake(cv);
   nng_mtx_unlock(mtx);
   if (sig > 1) {
+    if (sig == SIGTERM) {
+      nng_thread *thr;
+      nng_thread_create(&thr, delayed_sigterm, NULL);
+    } else {
 #ifdef _WIN32
-    if (sig == SIGINT)
-      UserBreak = 1;
-    raise(sig);
+      if (sig == SIGINT)
+        UserBreak = 1;
+      raise(sig);
 #else
-    if (sig == SIGINT)
-      R_interrupts_pending = 1;
-    kill(getpid(), sig);
+      if (sig == SIGINT)
+        R_interrupts_pending = 1;
+      kill(getpid(), sig);
 #endif
-
+    }
   }
 
 }

@@ -303,7 +303,7 @@ stop_request <- function(x) invisible(.Call(rnng_request_stop, x))
 #' while (unresolved(aio)) {
 #'   # do stuff before checking resolution again
 #'   cat("unresolved\n")
-#'   msleep(20)
+#'   msleep(100)
 #' }
 #'
 #' unresolved(aio)
