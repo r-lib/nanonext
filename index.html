@@ -21,7 +21,7 @@
 <meta name="description" content="R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. NNG is a socket library for reliable, high-performance messaging over in-process, IPC, TCP, WebSocket and secure TLS transports. Implements Scalability Protocols, a standard for common communications patterns including publish/subscribe, request/reply and service discovery. As its own threaded concurrency framework, provides a toolkit for asynchronous programming and distributed computing. Intuitive aio objects resolve automatically when asynchronous operations complete, and synchronisation primitives allow R to wait upon events signalled by concurrent threads.">
 <meta property="og:description" content="R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. NNG is a socket library for reliable, high-performance messaging over in-process, IPC, TCP, WebSocket and secure TLS transports. Implements Scalability Protocols, a standard for common communications patterns including publish/subscribe, request/reply and service discovery. As its own threaded concurrency framework, provides a toolkit for asynchronous programming and distributed computing. Intuitive aio objects resolve automatically when asynchronous operations complete, and synchronisation primitives allow R to wait upon events signalled by concurrent threads.">
 <meta property="og:image" content="https://nanonext.r-lib.org/logo.png">
-<script defer data-domain="nanonext.r-lib.org,all.tidyverse.org" src="https://plausible.io/js/plausible.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/posit-dev/supported-by-posit/js/badge.min.js" data-max-height="43" data-light-bg="#666f76" data-light-fg="#f9f9f9"></script><script defer data-domain="nanonext.r-lib.org,all.tidyverse.org" src="https://plausible.io/js/plausible.js"></script>
 </head>
 <body>
     <a href="#container" class="visually-hidden-focusable">Skip to content</a>
@@ -31,7 +31,7 @@
 
     <a class="navbar-brand me-2" href="index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.7.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -74,7 +74,7 @@
 
 <p>R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. NNG is a socket library for reliable, high-performance messaging over in-process, IPC, TCP, WebSocket and secure TLS transports. Implements ‘Scalability Protocols’, a standard for common communications patterns including publish/subscribe, request/reply and service discovery.</p>
 <p>As its own <a href="https://nanonext.r-lib.org/articles/nanonext.html#async-and-concurrency">threaded concurrency framework</a>, provides a toolkit for asynchronous programming and distributed computing. Intuitive ‘aio’ objects resolve automatically when asynchronous operations complete, and <a href="https://nanonext.r-lib.org/articles/nanonext.html#synchronisation-primitives">synchronisation primitives</a> allow R to wait upon events signalled by concurrent threads.</p>
-<p>Designed for performance and reliability, <a href="https://doi.org/10.5281/zenodo.7903429" class="external-link"><code>nanonext</code></a> is a lightweight wrapper around the NNG C library, and is itself implemented almost entirely in C.</p>
+<p>Designed for performance and reliability, nanonext is a lightweight wrapper around the NNG C library, and is itself implemented almost entirely in C.</p>
 <p>Provides the interface for code and processes to communicate with each other - <a href="https://nanonext.r-lib.org/articles/nanonext.html#cross-language-exchange">receive data generated in Python, perform analysis in R, and send results to a C++ program</a> – on the same computer or across networks spanning the globe.</p>
 <p>Implemented scalability protocols:</p>
 <ul>
@@ -113,7 +113,7 @@
 <div class="section level3">
 <h3 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h3>
-<p><code>nanonext</code> offers 2 equivalent interfaces: a functional interface, and an object-oriented interface.</p>
+<p>nanonext offers 2 equivalent interfaces: a functional interface, and an object-oriented interface.</p>
 <div class="section level4">
 <h4 id="functional-interface">Functional Interface<a class="anchor" aria-label="anchor" href="#functional-interface"></a>
 </h4>
@@ -250,7 +250,8 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Charlie Gao <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-0750-061X" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
+<li>
+<a href="https://github.com/shikokuchuo" class="external-link">Charlie Gao</a> <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-0750-061X" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
 <li>
 <a href="https://www.posit.co" class="external-link"><img src="https://www.tidyverse.org/posit-logo.svg" alt="Posit" height="16" width="62" style="margin-bottom: 3px;"></a> <br><small class="roles"> Copyright holder, funder </small>  <a href="https://ror.org/03wc8by49" class="external-link"><img src="https://raw.githubusercontent.com/ror-community/ror-logos/main/ror-icon-rgb.svg" class="ror" alt="ROR"></a> </li>
 <li>
@@ -268,7 +269,7 @@
    </div>
   <footer><div class="container">
   <div class="pkgdown-footer-left">
-  <p>Developed by Charlie Gao, <a href="https://www.posit.co" class="external-link"><img src="https://www.tidyverse.org/posit-logo.svg" alt="Posit" height="16" width="62" style="margin-bottom: 3px;"></a>, <img src="https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp" alt="R Consortium" width="100" height="22">.</p>
+  <p>Developed by <a href="https://github.com/shikokuchuo" class="external-link">Charlie Gao</a>, <a href="https://www.posit.co" class="external-link"><img src="https://www.tidyverse.org/posit-logo.svg" alt="Posit" height="16" width="62" style="margin-bottom: 3px;"></a>, <img src="https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp" alt="R Consortium" width="100" height="22">.</p>
 </div>
 
 <div class="pkgdown-footer-right">
