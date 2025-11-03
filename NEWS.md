@@ -3,7 +3,7 @@
 #### Updates
 
 * `pipe_notify(flag = tools::SIGTERM)` will now raise the signal with a 200ms grace period to allow a process to exit normally (#212).
-* `parse_url()` drops 'rawurl', 'host' and 'requri' from the output vector as these can be derived from the other parts.
+* `parse_url()` drops 'rawurl', 'host' and 'requri' from the output vector as these can be derived from the other parts (#209).
 
 # nanonext 1.7.1
 
