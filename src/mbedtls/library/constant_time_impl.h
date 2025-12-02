@@ -11,10 +11,6 @@
 #if defined(MBEDTLS_BIGNUM_C)
 #include "mbedtls/bignum.h"
 #endif
-#if defined(MBEDTLS_COMPILER_IS_GCC) && (__GNUC__ > 4)
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wredundant-decls"
-#endif
 #if defined(MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN) || \
     (defined(MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND) && !defined(MBEDTLS_TEST_CONSTANT_FLOW_ASM))
 #define MBEDTLS_CT_NO_ASM 
@@ -112,16 +108,9 @@ static inline mbedtls_ct_condition_t mbedtls_ct_bool(mbedtls_ct_uint_t x)
     return (mbedtls_ct_condition_t) x;
 #else
     const mbedtls_ct_uint_t xo = mbedtls_ct_compiler_opaque(x);
-#if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning( disable : 4146 )
-#endif
     mbedtls_ct_int_t y = (-xo) | -(xo >> 1);
     y = (((mbedtls_ct_uint_t) y) >> (MBEDTLS_CT_SIZE - 1));
     return (mbedtls_ct_condition_t) (-y);
-#if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
 #endif
 }
 static inline mbedtls_ct_uint_t mbedtls_ct_if(mbedtls_ct_condition_t condition,
@@ -390,7 +379,4 @@ static inline mbedtls_ct_condition_t mbedtls_ct_bool_not(mbedtls_ct_condition_t 
 {
     return (mbedtls_ct_condition_t) (~x);
 }
-#if defined(MBEDTLS_COMPILER_IS_GCC) && (__GNUC__ > 4)
-    #pragma GCC diagnostic pop
-#endif
 #endif

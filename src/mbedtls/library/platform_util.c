@@ -72,17 +72,11 @@ void mbedtls_platform_zeroize(void *buf, size_t len)
 #if defined(__GNUC__)
 #if defined(__clang__) || (__GNUC__ >= 10)
 #if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wvla"
 #elif defined(MBEDTLS_COMPILER_IS_GCC)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wvla"
 #endif
         asm volatile ("" : : "m" (*(char (*)[len]) buf) :);
 #if defined(__clang__)
-#pragma clang diagnostic pop
 #elif defined(MBEDTLS_COMPILER_IS_GCC)
-#pragma GCC diagnostic pop
 #endif
 #endif
 #endif
