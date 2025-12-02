@@ -164,7 +164,7 @@ Installation from source requires 'libnng' >= v1.9.0 and 'libmbedtls' >= 2.5.0 (
 
 As system libraries, 'libnng' is available as libnng-dev (deb) or nng-devel (rpm), and 'libmbedtls' as libmbedtls-dev (deb) or libmbedtls-devel (rpm). The `INCLUDE_DIR` and `LIB_DIR` environment variables may be set prior to package installation to specify a custom location for 'libmbedtls' or 'libnng' other than the standard filesystem locations.
 
-*Additional requirements for Solaris: (i) the 'xz' package - available on OpenCSW, and (ii) a more recent version of 'cmake' than available on OpenCSW - refer to the 'cmake' website for the latest source file.*
+*Solaris: requires a more recent version of 'cmake' than available on OpenCSW - refer to the 'cmake' website for the latest source file.*
 
 #### Windows
 

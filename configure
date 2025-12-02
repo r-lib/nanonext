@@ -1,9 +1,5 @@
 #!/bin/sh
 
-# Library versions
-LIB_VER="111"
-TLS_VER="362"
-
 # Initialise
 PKG_CFLAGS=""
 PKG_LIBS=""
@@ -84,25 +80,10 @@ then
       exit 1
     fi
   fi
-  echo "Detecting 'xz'..."
-  which xz
-  if [ $? -ne 0 ]
-  then
-    tar -xf src/mbedtls-$TLS_VER.tar.xz
-    if [ $? -ne 0 ]
-    then
-      echo "No 'xz' command found"
-      exit 1
-    fi
-  else
-    xz -dc src/mbedtls-$TLS_VER.tar.xz | tar -xf -
-  fi
-  cd mbedtls-$TLS_VER
   echo "Compiling 'libmbedtls' from source ..."
-  cmake -DCMAKE_INSTALL_PREFIX=../install -DCMAKE_INSTALL_LIBDIR=lib .
-  cmake --build . --target install
-  cd ..
-  rm -rf mbedtls-$TLS_VER
+  cmake -S src/mbedtls -B build -DCMAKE_INSTALL_PREFIX=install -DCMAKE_INSTALL_LIBDIR=lib
+  cmake --build build --target install
+  rm -rf build
 else
   echo "Found 'libmbedtls' $MBEDTLS_CFLAGS"
   PKG_CFLAGS="$MBEDTLS_CFLAGS $PKG_CFLAGS"
@@ -158,25 +139,10 @@ then
       exit 1
     fi
   fi
-  echo "Detecting 'xz'..."
-  which xz
-  if [ $? -ne 0 ]
-  then
-    tar -xf src/nng-$LIB_VER.tar.xz
-    if [ $? -ne 0 ]
-    then
-      echo "No 'xz' command found"
-      exit 1
-    fi
-  else
-    xz -dc src/nng-$LIB_VER.tar.xz | tar -xf -
-  fi
-  cd nng-$LIB_VER
   echo "Compiling 'libnng' from source ..."
-  cmake -DCMAKE_INSTALL_PREFIX=../install -DCMAKE_INSTALL_LIBDIR=lib .
-  cmake --build . --target install
-  cd ..
-  rm -rf nng-$LIB_VER
+  cmake -S src/nng -B build -DCMAKE_INSTALL_PREFIX=install -DCMAKE_INSTALL_LIBDIR=lib
+  cmake --build build --target install
+  rm -rf build
 else
   echo "Found 'libnng' $NNG_CFLAGS"
   PKG_CFLAGS="$NNG_CFLAGS $PKG_CFLAGS"

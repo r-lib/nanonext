@@ -1,2 +1,2 @@
 #!/bin/sh
-rm -rf src/Makevars install
+rm -rf src/Makevars build install

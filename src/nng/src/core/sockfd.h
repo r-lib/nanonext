@@ -1,0 +1,22 @@
+//
+// Copyright 2023 Staysail Systems, Inc. <info@staysail.tech>
+//
+// This software is supplied under the terms of the MIT License, a
+// copy of which should be located in the distribution where this
+// file was obtained (LICENSE.txt).  A copy of the license may also be
+// found online at https://opensource.org/licenses/MIT.
+//
+
+#ifndef CORE_FDC_H
+#define CORE_FDC_H
+
+#include "core/nng_impl.h"
+
+typedef struct nni_sfd_conn nni_sfd_conn;
+extern int nni_sfd_conn_alloc(nni_sfd_conn **cp, int fd);
+extern int nni_sfd_dialer_alloc(nng_stream_dialer **, const nng_url *);
+extern int nni_sfd_listener_alloc(nng_stream_listener **, const nng_url *);
+
+extern void nni_sfd_close_fd(int fd);
+
+#endif // CORE_FDC_H

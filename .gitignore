@@ -7,12 +7,13 @@ src/Makevars
 nanonext.Rcheck/00_pkg_src/nanonext/
 nanonext.Rcheck/
 *.gz
-docs
-install
+/docs/
+/build/
+/install/
 inst/doc
 compile_commands.json
 .cache
-revdep/
+/revdep/
 .claude
 CLAUDE.md
 .DS_Store
