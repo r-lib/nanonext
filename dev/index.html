@@ -183,7 +183,7 @@
 <p>Installation from source requires ‘libnng’ &gt;= v1.9.0 and ‘libmbedtls’ &gt;= 2.5.0 (suitable installations are automatically detected), or else ‘cmake’ to compile ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.2 included within the package sources.</p>
 <p><strong>It is recommended for optimal performance and stability to let the package automatically compile bundled versions of ‘libmbedtls’ and ‘libnng’ during installation.</strong> To ensure the libraries are compiled from source even if system installations are present, set the <code>NANONEXT_LIBS</code> environment variable prior to installation e.g. by <code>Sys.setenv(NANONEXT_LIBS = 1)</code>.</p>
 <p>As system libraries, ‘libnng’ is available as libnng-dev (deb) or nng-devel (rpm), and ‘libmbedtls’ as libmbedtls-dev (deb) or libmbedtls-devel (rpm). The <code>INCLUDE_DIR</code> and <code>LIB_DIR</code> environment variables may be set prior to package installation to specify a custom location for ‘libmbedtls’ or ‘libnng’ other than the standard filesystem locations.</p>
-<p><em>Additional requirements for Solaris: (i) the ‘xz’ package - available on OpenCSW, and (ii) a more recent version of ‘cmake’ than available on OpenCSW - refer to the ‘cmake’ website for the latest source file.</em></p>
+<p><em>Solaris: requires a more recent version of ‘cmake’ than available on OpenCSW - refer to the ‘cmake’ website for the latest source file.</em></p>
 </div>
 <div class="section level4">
 <h4 id="windows">Windows<a class="anchor" aria-label="anchor" href="#windows"></a>

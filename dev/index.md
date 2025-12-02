@@ -186,8 +186,7 @@ variables may be set prior to package installation to specify a custom
 location for ‘libmbedtls’ or ‘libnng’ other than the standard filesystem
 locations.
 
-*Additional requirements for Solaris: (i) the ‘xz’ package - available
-on OpenCSW, and (ii) a more recent version of ‘cmake’ than available on
+*Solaris: requires a more recent version of ‘cmake’ than available on
 OpenCSW - refer to the ‘cmake’ website for the latest source file.*
 
 #### Windows

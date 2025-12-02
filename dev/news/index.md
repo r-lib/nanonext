@@ -2,6 +2,8 @@
 
 ## nanonext (development version)
 
+- Building from source no longer requires `xz`.
+
 ## nanonext 1.7.2
 
 CRAN release: 2025-11-03
