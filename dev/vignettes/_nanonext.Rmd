@@ -15,20 +15,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-### Table of Contents
-
-1. [Cross-language Exchange](#cross-language-exchange)
-2. [Async and Concurrency](#async-and-concurrency)
-3. [Synchronisation Primitives](#synchronisation-primitives)
-4. [TLS Secure Connections](#tls-secure-connections)
-5. [Request / Reply Protocol](#request-reply-protocol)
-6. [Publisher / Subscriber Protocol](#publisher-subscriber-protocol)
-7. [Surveyor / Respondent Protocol](#surveyor-respondent-protocol)
-8. [ncurl: (Async) HTTP Client](#ncurl-async-http-client)
-9. [stream: Websocket Client](#stream-websocket-client)
-10. [Options, Serialization and Statistics](#options-serialization-and-statistics)
-
-### Cross-language Exchange
+### 1. Cross-language Exchange
 
 `nanonext` provides a fast, reliable data interface between different programming languages where NNG has an implementation, including C, C++, Java, Python, Go, and Rust.
 
@@ -82,9 +69,7 @@ n$recv(mode = "double")
 n$close()
 ```
 
-[&laquo; Back to ToC](#table-of-contents)
-
-### Async and Concurrency
+### 2. Async and Concurrency
 
 `nanonext` implements true async send and receive, leveraging NNG as a massively-scalable concurrency framework.
 
@@ -162,9 +147,7 @@ close(s2)
 
 ```
 
-[&laquo; Back to ToC](#table-of-contents)
-
-### Synchronisation Primitives
+### 3. Synchronisation Primitives
 
 `nanonext` implements cross-platform synchronisation primitives from the NNG library, enabling synchronisation between NNG events and the main R execution thread.
 
@@ -232,9 +215,7 @@ When `flag = TRUE` is set for pipe notifications, `wait()` returns FALSE for pip
 
 This mechanism enables waiting simultaneously on multiple events while distinguishing between them. `pipe_notify()` can signal up to two condition variables per event for additional flexibility in concurrent applications.
 
-[&laquo; Back to ToC](#table-of-contents)
-
-### TLS Secure Connections
+### 4. TLS Secure Connections
 
 Secure connections use NNG and Mbed TLS libraries. Enable them by:
 
@@ -270,9 +251,7 @@ close(s)
 
 ```
 
-[&laquo; Back to ToC](#table-of-contents)
-
-### Request Reply Protocol
+### 5. Request Reply Protocol
 
 `nanonext` implements remote procedure calls (RPC) using NNG's req/rep protocol for distributed computing. Use this for computationally-expensive calculations or I/O-bound operations in separate server processes.
 
@@ -318,9 +297,7 @@ For server-side operations (e.g., writing to disk), calling or querying the valu
 
 The [`mirai`](https://doi.org/10.5281/zenodo.7912722) package (<https://mirai.r-lib.org/>) uses `nanonext` as the back-end to provide asynchronous execution of arbitrary R code using the RPC model.
 
-[&laquo; Back to ToC](#table-of-contents)
-
-### Publisher Subscriber Protocol
+### 6. Publisher Subscriber Protocol
 
 `nanonext` implements NNG's pub/sub protocol. Subscribers can subscribe to one or multiple topics broadcast by a publisher.
 
@@ -370,9 +347,7 @@ close(sub)
 
 ```
 
-[&laquo; Back to ToC](#table-of-contents)
-
-### Surveyor Respondent Protocol
+### 7. Surveyor Respondent Protocol
 
 Useful for service discovery and similar applications. A surveyor broadcasts a survey to all respondents, who may reply within a timeout period. Late responses are discarded.
 
@@ -415,9 +390,7 @@ close(res2)
 
 The final value resolves to a timeout error (integer 5 classed as 'errorValue'). All error codes are classed as 'errorValue' for easy distinction from integer message values.
 
-[&laquo; Back to ToC](#table-of-contents)
-
-### ncurl: Async HTTP Client
+### 8. ncurl: Async HTTP Client
 
 `ncurl()` is a minimalist http(s) client. `ncurl_aio()` performs async requests, returning immediately with an 'ncurlAio'.
 
@@ -479,9 +452,7 @@ transact(sess)
 
 ```
 
-[&laquo; Back to ToC](#table-of-contents)
-
-### stream: Websocket Client
+### 9. stream: Websocket Client
 
 `stream()` exposes NNG's low-level byte stream interface for communicating with raw sockets, including arbitrary non-NNG endpoints.
 
@@ -519,9 +490,7 @@ close(s)
 
 ```
 
-[&laquo; Back to ToC](#table-of-contents)
-
-### Options, Serialization and Statistics
+### 10. Options, Serialization and Statistics
 
 Use `opt()` and `'opt<-'()` to get and set options on Sockets, Contexts, Streams, Listeners, or Dialers. See function documentation for available options.
 
@@ -569,5 +538,3 @@ stat(s, "pipes")
 
 close(s)
 ```
-
-[&laquo; Back to ToC](#table-of-contents)
