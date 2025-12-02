@@ -1,20 +1,6 @@
 # nanonext - NNG Lightweight Messaging Library
 
-### Table of Contents
-
-1.  [Cross-language Exchange](#cross-language-exchange)
-2.  [Async and Concurrency](#async-and-concurrency)
-3.  [Synchronisation Primitives](#synchronisation-primitives)
-4.  [TLS Secure Connections](#tls-secure-connections)
-5.  [Request / Reply Protocol](#request-reply-protocol)
-6.  [Publisher / Subscriber Protocol](#publisher-subscriber-protocol)
-7.  [Surveyor / Respondent Protocol](#surveyor-respondent-protocol)
-8.  [ncurl: (Async) HTTP Client](#ncurl-async-http-client)
-9.  [stream: Websocket Client](#stream-websocket-client)
-10. [Options, Serialization and
-    Statistics](#options-serialization-and-statistics)
-
-### Cross-language Exchange
+### 1. Cross-language Exchange
 
 `nanonext` provides a fast, reliable data interface between different
 programming languages where NNG has an implementation, including C, C++,
@@ -72,9 +58,7 @@ n$recv(mode = "double")
 n$close()
 ```
 
-[« Back to ToC](#table-of-contents)
-
-### Async and Concurrency
+### 2. Async and Concurrency
 
 `nanonext` implements true async send and receive, leveraging NNG as a
 massively-scalable concurrency framework.
@@ -165,9 +149,7 @@ close(s1)
 close(s2)
 ```
 
-[« Back to ToC](#table-of-contents)
-
-### Synchronisation Primitives
+### 3. Synchronisation Primitives
 
 `nanonext` implements cross-platform synchronisation primitives from the
 NNG library, enabling synchronisation between NNG events and the main R
@@ -258,9 +240,7 @@ distinguishing between them.
 can signal up to two condition variables per event for additional
 flexibility in concurrent applications.
 
-[« Back to ToC](#table-of-contents)
-
-### TLS Secure Connections
+### 4. TLS Secure Connections
 
 Secure connections use NNG and Mbed TLS libraries. Enable them by:
 
@@ -289,7 +269,7 @@ mixed).
 cert <- write_cert(cn = "127.0.0.1")
 str(cert)
 #> List of 2
-#>  $ server: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ "-----BEGIN RSA PRIVATE KEY-----\nMIIJJwIBAAKCAgEAjt5sNS09hjIbA7SepY8Yv+TCkvNdFDXlwVGC0AQnxWnRr/9k\nHHZTSnt85rbG"| __truncated__
+#>  $ server: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ "-----BEGIN RSA PRIVATE KEY-----\nMIIJKAIBAAKCAgEAwupvOgQzC3RQVt95gOTaOsDQ72tAbDzhHHLk9JfABqqWNpyl\nL7Fw3Foh7Nb9"| __truncated__
 #>  $ client: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ ""
 
 ser <- tls_config(server = cert$server)
@@ -309,9 +289,7 @@ close(s1)
 close(s)
 ```
 
-[« Back to ToC](#table-of-contents)
-
-### Request Reply Protocol
+### 5. Request Reply Protocol
 
 `nanonext` implements remote procedure calls (RPC) using NNG’s req/rep
 protocol for distributed computing. Use this for
@@ -356,7 +334,7 @@ retrieve the value at `$data`.
 
 ``` r
 call_aio(aio)$data |> str()
-#>  num [1:100000000] -1.0996 -0.068 -1.2462 -0.5909 -0.0194 ...
+#>  num [1:100000000] -1.532 -1.493 0.499 0.478 -0.118 ...
 ```
 
 Since
@@ -372,9 +350,7 @@ The [`mirai`](https://doi.org/10.5281/zenodo.7912722) package
 (<https://mirai.r-lib.org/>) uses `nanonext` as the back-end to provide
 asynchronous execution of arbitrary R code using the RPC model.
 
-[« Back to ToC](#table-of-contents)
-
-### Publisher Subscriber Protocol
+### 6. Publisher Subscriber Protocol
 
 `nanonext` implements NNG’s pub/sub protocol. Subscribers can subscribe
 to one or multiple topics broadcast by a publisher.
@@ -439,9 +415,7 @@ close(pub)
 close(sub)
 ```
 
-[« Back to ToC](#table-of-contents)
-
-### Surveyor Respondent Protocol
+### 7. Surveyor Respondent Protocol
 
 Useful for service discovery and similar applications. A surveyor
 broadcasts a survey to all respondents, who may reply within a timeout
@@ -494,9 +468,7 @@ The final value resolves to a timeout error (integer 5 classed as
 ‘errorValue’). All error codes are classed as ‘errorValue’ for easy
 distinction from integer message values.
 
-[« Back to ToC](#table-of-contents)
-
-### ncurl: Async HTTP Client
+### 8. ncurl: Async HTTP Client
 
 [`ncurl()`](https://nanonext.r-lib.org/dev/reference/ncurl.md) is a
 minimalist http(s) client.
@@ -530,7 +502,7 @@ res
 
 call_aio(res)$headers
 #> $date
-#> [1] "Tue, 02 Dec 2025 11:11:53 GMT"
+#> [1] "Tue, 02 Dec 2025 12:02:22 GMT"
 
 res$data
 #> [1] "{\"args\":{},\"data\":{\"key\":\"value\"},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\",\"content-type\":\"application/json\",\"authorization\":\"Bearer APIKEY\",\"content-length\":\"16\"},\"json\":{\"key\":\"value\"},\"url\":\"https://postman-echo.com/post\"}"
@@ -581,7 +553,7 @@ transact(sess)
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Tue, 02 Dec 2025 11:11:53 GMT"
+#> [1] "Tue, 02 Dec 2025 12:02:22 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -598,9 +570,7 @@ transact(sess)
 #> [204] 2f 67 65 74 22 7d
 ```
 
-[« Back to ToC](#table-of-contents)
-
-### stream: Websocket Client
+### 9. stream: Websocket Client
 
 [`stream()`](https://nanonext.r-lib.org/dev/reference/stream.md) exposes
 NNG’s low-level byte stream interface for communicating with raw
@@ -654,9 +624,7 @@ r$data
 close(s)
 ```
 
-[« Back to ToC](#table-of-contents)
-
-### Options, Serialization and Statistics
+### 10. Options, Serialization and Statistics
 
 Use [`opt()`](https://nanonext.r-lib.org/dev/reference/opt.md) and
 [`'opt<-'()`](https://nanonext.r-lib.org/dev/reference/opt.md) to get
@@ -717,5 +685,3 @@ stat(s, "pipes")
 
 close(s)
 ```
-
-[« Back to ToC](#table-of-contents)
