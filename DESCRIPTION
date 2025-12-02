@@ -39,5 +39,5 @@ Config/usethis/last-upkeep: 2025-04-23
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
-SystemRequirements: 'libnng' >= 1.9 and 'libmbedtls' >= 2.5, or 'cmake'
-    and 'xz' to compile NNG and/or Mbed TLS included in package sources
+SystemRequirements: 'libnng' >= 1.9 and 'libmbedtls' >= 2.5, or 'cmake' to
+    compile NNG and/or Mbed TLS included in package sources

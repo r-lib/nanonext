@@ -1,10 +1,3 @@
-# Library versions
-LIB_VER="111"
-TLS_VER="362"
-
-tar -xf src/mbedtls-$TLS_VER.tar.xz
-tar -xf src/nng-$LIB_VER.tar.xz
-
 for ARCH in x64 i386; do
 
   if [ -e "${R_HOME}/bin/${ARCH}/R" ]; then
@@ -13,30 +6,21 @@ for ARCH in x64 i386; do
     LDFLAGS=`"${R_HOME}/bin/${ARCH}/R" CMD config LDFLAGS`
     export CC CFLAGS LDFLAGS
 
-    cd mbedtls-$TLS_VER
-    mkdir ${ARCH}
-    cd ${ARCH}
     echo "Compiling 'libmbedtls' from source for ${ARCH} ..."
-    cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=../../install/${ARCH} ..
-    cmake --build . --target install
-    cd ../..
+    cmake -S src/mbedtls -B build -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=install/${ARCH}
+    cmake --build build --target install
+    rm -rf build
 
-    cd nng-$LIB_VER
-    mkdir ${ARCH}
-    cd ${ARCH}
     echo "Compiling 'libnng' from source for ${ARCH} ..."
-    cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=../../install/${ARCH} ..
-    cmake --build . --target install
-    cd ../..
+    cmake -S src/nng -B build -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=install/${ARCH}
+    cmake --build build --target install
+    rm -rf build
 
   else
   echo "Note: ${ARCH} not installed, skipping ..."
   fi
 
 done
-
-rm -rf mbedtls-$TLS_VER
-rm -rf nng-$LIB_VER
 
 # Success
 exit 0
