@@ -62,7 +62,7 @@ static void nano_printf(const int err, const char *fmt, ...) {
   int bytes = vsnprintf(buf, NANONEXT_INIT_BUFSIZE, fmt, arg_ptr);
   va_end(arg_ptr);
 
-  if (write(err ? STDERR_FILENO : STDOUT_FILENO, buf, (size_t) bytes)) {};
+  if (write(err ? STDERR_FILENO : STDOUT_FILENO, buf, (size_t) bytes)) {}
 
 }
 
