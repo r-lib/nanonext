@@ -23,15 +23,16 @@ vignette: >
 
 ### Cross-language Exchange
 
-`nanonext` provides a fast and reliable data interface between different programming languages where NNG has an implementation, including C, C++, Java, Python, Go, Rust etc.
+`nanonext` provides a fast, reliable data interface between different programming languages where NNG has an implementation, including C, C++, Java, Python, Go, and Rust.
 
-The following example demonstrates the exchange of numerical data between R and Python (NumPy), two of the most commonly-used languages for data science and machine learning.
+This messaging interface is lightweight, robust, and has limited points of failure. It enables:
 
-Using a messaging interface provides a clean and robust approach, light on resources with limited and identifiable points of failure.
+- Communication between processes in the same or different languages
+- Distributed computing across networks or on the same machine
+- Real-time data pipelines where computation times exceed data frequency
+- Modular software design following Unix philosophy
 
-This approach can also serve as an interface / pipe between different processes written in the same or different languages, running on the same computer or distributed across networks, and is an enabler of modular software design as espoused by the Unix philosophy.
-
-One solution it provides is that of processing real-time data where computation times exceed the data frequency - by dividing the computation into stages, this may be set up as a pipeline or 'cascade' of processes, each connected using NNG sockets.
+The following example demonstrates numerical data exchange between R and Python (NumPy).
 
 Create socket in Python using the NNG binding 'pynng':
 
@@ -81,7 +82,7 @@ n$close()
 
 ### Async and Concurrency
 
-`nanonext` implements true async send and receive, leveraging NNG as a massively-scaleable concurrency framework.
+`nanonext` implements true async send and receive, leveraging NNG as a massively-scalable concurrency framework.
 
 
 ``` r
@@ -90,13 +91,11 @@ s2 <- socket("pair", dial = "inproc://nano")
 
 ```
 
-`send_aio()` and `recv_aio()` functions return immediately with an 'Aio' object, but perform their operations async.
-
-An 'Aio' object returns an unresolved value whilst its asynchronous operation is ongoing, automatically resolving to a final value once complete.
+`send_aio()` and `recv_aio()` return immediately with an 'Aio' object that performs operations asynchronously. Aio objects return an unresolved value while the operation is ongoing, then automatically resolve once complete.
 
 
 ``` r
-# an async receive is requested, but no messages are waiting (yet to be sent)
+# async receive requested, but no messages waiting yet
 msg <- recv_aio(s2)
 msg
 #> < recvAio | $data >
@@ -104,7 +103,7 @@ msg$data
 #> 'unresolved' logi NA
 ```
 
-For a 'sendAio' object, the result is stored at `$result`.
+For 'sendAio' objects, the result is stored at `$result`. For 'recvAio' objects, the message is stored at `$data`.
 
 
 ``` r
@@ -114,45 +113,43 @@ res
 res$result
 #> [1] 0
 ```
-*Note: a return value of 0 denotes a successful send, meaning that the message has been accepted by the socket for sending; the message itself may still be buffered within the system.*
-
-For a 'recvAio' object, the message is stored at `$data`.
+*Note: 0 indicates successful send - the message has been accepted by the socket for sending but may still be buffered within the system.*
 
 
 ``` r
-# now that a message has been sent, the 'recvAio' resolves automatically
+# once a message is sent, the recvAio resolves automatically
 msg$data
 #>   a b
 #> 1 1 2
 ```
 
-Auxiliary function `unresolved()` may be used in control flow statements to perform actions which depend on resolution of the Aio, both before and after. This means there is no need to actually wait (block) for an Aio to resolve, as the example below demonstrates.
+Use `unresolved()` in control flow to perform actions before or after Aio resolution without blocking.
 
 
 ``` r
 msg <- recv_aio(s2)
 
-# unresolved() queries for resolution itself so no need to use it again within the while loop
+# unresolved() checks resolution status
 while (unresolved(msg)) {
-  # do stuff before checking resolution again
+  # perform other tasks while waiting
   send_aio(s1, "resolved")
   cat("unresolved")
 }
 #> unresolved
 
-# perform actions which depend on the Aio value outside the while loop
+# access resolved value
 msg$data
 #> [1] "resolved"
 ```
 
-The values may also be called explicitly using `call_aio()`. This will wait for completion of the Aio (blocking).
+Explicitly wait for completion with `call_aio()` (blocking).
 
 
 ``` r
-# will wait for completion then return the resolved Aio
+# wait for completion and return resolved Aio
 call_aio(msg)
 
-# to access the resolved value (waiting if required):
+# access resolved value (waiting if required):
 call_aio(msg)$data
 #> [1] "resolved"
 
@@ -173,71 +170,65 @@ close(s2)
 
 ### Synchronisation Primitives
 
-`nanonext` implements cross-platform synchronisation primitives provided by the NNG library.
+`nanonext` implements cross-platform synchronisation primitives from the NNG library, enabling synchronisation between NNG events and the main R execution thread.
 
-As the R interpreter runs on a single thread, synchronisation primitives such as mutexes and condition variables are not natively implemented in the R language. However, as NNG is inherently threaded and messaging can be asynchronous, it is possible to synchronise between NNG events and the main R execution thread.
+Condition variables can signal events such as asynchronous receive completions and pipe events (connections established or dropped). Each condition variable has a value (counter) and flag (boolean). Signals increment the value; successful `wait()` or `until()` calls decrement it. A non-zero value allows waiting threads to continue.
 
-The events that can be signalled include asynchronous receive completions, and pipe events - when connections are established or dropped.
+This approach is more efficient than polling - consuming no resources while waiting and synchronising with zero latency.
 
-Condition variables can be used simply to record such events, or more powerfully, to wait upon them. The condition variables implemented in `nanonext` include a both a condition (value) and flag (boolean). Each signal increments the value, and each successful return of `wait()` or `until()` decrements the value. A non-zero condition allows waiting threads to continue.
-
-In any situation where polling for an event presents a solution, waiting upon a condition to be signalled can be more efficient, both in terms of consuming no resources while waiting, and also being synchronised with the event (having no latency).
-
-The following shows how condition variables and signalling work in practice.
-
-Example 1: set up a socket, and wait for the other side to connect:
+**Example 1: Wait for connection**
 
 
 ``` r
 sock <- socket("pair", listen = "inproc://nanopipe")
 
-cv <- cv() # create new condition variable
+cv <- cv()
 cv_value(cv)
 #> [1] 0
 
 pipe_notify(sock, cv = cv, add = TRUE, remove = TRUE)
 
-# wait(cv) # uncomment in normal usage - but would block
+# wait(cv) would block until connection established
 
 # for illustration:
 sock2 <- socket("pair", dial = "inproc://nanopipe")
 
-cv_value(cv) # incremented when pipe to 'sock2' was created
+cv_value(cv) # incremented when pipe created
 #> [1] 1
 
-wait(cv) # wait() now does not block
+wait(cv) # does not block as cv value is non-zero
 
-cv_value(cv) # wait() decrements the CV value - calling wait() again will block
+cv_value(cv) # decremented by wait()
 #> [1] 0
 
 close(sock2)
 
-cv_value(cv) # incremented when pipe to 'sock2' was destroyed
+cv_value(cv) # incremented when pipe destroyed
 #> [1] 1
 
 close(sock)
 
 ```
 
-Example 2: wait until a message is received or connection is dropped:
+**Example 2: Wait for message or disconnection**
 
 
 ``` r
 sock <- socket("pair", listen = "inproc://nanosignal")
 sock2 <- socket("pair", dial = "inproc://nanosignal")
 
-cv <- cv() # create new condition variable
+cv <- cv()
 cv_value(cv)
 #> [1] 0
 
 pipe_notify(sock, cv = cv, add = FALSE, remove = TRUE, flag = TRUE)
 
-send(sock2, "this message will wake waiting thread") # in real usage happens concurrently with wait()
+send(sock2, "this message will wake waiting thread")
 #> [1] 0
 
-r <- recv_aio(sock, cv = cv) # same cv passed to recv_aio()
+r <- recv_aio(sock, cv = cv)
 
-# wakes as soon as the asynchronous receive completes
+# wakes when async receive completes
 wait(cv) || stop("peer disconnected")
 #> [1] TRUE
 
@@ -249,37 +240,33 @@ close(sock2)
 
 ```
 
-The above example shows the working of the flag within the condition variable. As the pipe notification was specified to raise a flag, this can be used to distinguish between a pipe event signal and a message receive signal.
+When `flag = TRUE` is set for pipe notifications, `wait()` returns FALSE for pipe events (rather than TRUE for message events). This distinguishes between disconnections and successful receives, something not possible using `call_aio()` alone.
 
-In the case a flag is raised, `wait()` returns FALSE rather than TRUE. So the above code will stop with the custom error message upon disconnect or else continue. This affords a way of handling disconnects that would not be possible if simply using `call_aio()`, which is also a blocking wait (on a single message).
-
-As can be seen, this type of mechanism presents a powerful way of waiting simulatenously on multiple events, and also distinguishing between them. `pipe_notify()` can also be set to signal two condition variables upon each event, providing even more flexibility in creating complex concurrent applications.
-
-For further details, please refer to the function documentation for `cv()`.
+This mechanism enables waiting simultaneously on multiple events while distinguishing between them. `pipe_notify()` can signal up to two condition variables per event for additional flexibility in concurrent applications.
 
 [&laquo; Back to ToC](#table-of-contents)
 
 ### TLS Secure Connections
 
-Secure connections are enabled through the combination of NNG and Mbed TLS libraries.
+Secure connections use NNG and Mbed TLS libraries. Enable them by:
 
-Authentication of endpoints and encryption of the TCP transport layer is achieved transparently by:
+1. Specifying a secure `tls+tcp://` or `wss://` URL
+2. Passing a TLS configuration object to the 'tls' argument of `listen()` or `dial()`
 
-i) Specifying a secure `tls+tcp://` or `wss://` URL, and
-ii) Passing a TLS configuration object to the 'tls' argument of `listen()` or `dial()`.
+Create TLS configurations with `tls_config()`:
+- Client configuration: requires PEM-encoded CA certificate to verify server identity
+- Server configuration: requires certificate and private key
 
-A TLS configuration, or 'tlsConfig', object is created by the `tls_config()` function. Specify the argument 'client' to create a client configuration, and 'server' to create a server configuration.
+Certificates may be supplied as files or character vectors. Valid X.509 certificates from Certificate Authorities are supported.
 
-A client configuration requires a PEM-encoded CA certificate (chain) used to verify the server identity. A server configuration requires the certificate and associated private key. These may be supplied as files or directly as character vectors. Valid X.509 certificates generated via a Certificate Signing Request to a Certificate Authority are supported in this way.
-
-Additionally, the convenience function `write_cert()` can automatically generate a 4096 bit RSA key pair and self-signed X.509 certificate in the format required by `tls_config()`. The 'cn' argument must be provided and match exactly the hostname / IP address of the URL that is being used, e.g. in the example below '127.0.0.1' must be used throughout, or alternatively 'localhost', but not a mixture of the two.
+The convenience function `write_cert()` generates a 4096-bit RSA key pair and self-signed X.509 certificate. The 'cn' argument must match exactly the hostname/IP address of the URL (e.g., use '127.0.0.1' throughout, or 'localhost' throughout, not mixed).
 
 
 ``` r
 cert <- write_cert(cn = "127.0.0.1")
 str(cert)
 #> List of 2
-#>  $ server: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ "-----BEGIN RSA PRIVATE KEY-----\nMIIJKAIBAAKCAgEAnM4fRU63IE3EnjHYD28HaxEMwfsPj1hbFPLY88kUwS6yikJd\n31fRGOQnpMjw"| __truncated__
+#>  $ server: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ "-----BEGIN RSA PRIVATE KEY-----\nMIIJJwIBAAKCAgEAjt5sNS09hjIbA7SepY8Yv+TCkvNdFDXlwVGC0AQnxWnRr/9k\nHHZTSnt85rbG"| __truncated__
 #>  $ client: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ ""
 
 ser <- tls_config(server = cert$server)
@@ -304,11 +291,9 @@ close(s)
 
 ### Request Reply Protocol
 
-`nanonext` implements remote procedure calls (RPC) using NNG's req/rep protocol to provide a basis for distributed computing.
+`nanonext` implements remote procedure calls (RPC) using NNG's req/rep protocol for distributed computing. Use this for computationally-expensive calculations or I/O-bound operations in separate server processes.
 
-Can be used to perform computationally-expensive calculations or I/O-bound operations such as writing large amounts of data to disk in a separate 'server' process running concurrently.
-
-[S] Server process: `reply()` will wait for a message and apply a function, in this case `rnorm()`, before sending back the result. This is started in a background 'mirai' process.
+**[S] Server process:** `reply()` waits for a message, applies a function, and sends back the result. Started in a background 'mirai' process.
 
 
 ``` r
@@ -321,7 +306,7 @@ m <- mirai::mirai({
 
 ```
 
-[C] Client process: `request()` performs an async send and receive request and returns immediately with a `recvAio` object.
+**[C] Client process:** `request()` performs async send/receive, returning immediately with a `recvAio` object.
 
 
 ``` r
@@ -330,28 +315,24 @@ req <- socket("req", dial = "tcp://127.0.0.1:6556")
 aio <- request(context(req), data = 1e8, recv_mode = "double")
 
 ```
-At this point, the client can run additional code concurrent with the server processing the request.
+The client can now run additional code while the server processes the request.
 
 
 ``` r
 # do more...
 ```
 
-When the result of the server calculation is required, the `recvAio` may be called using `call_aio()`.
-
-The return value from the server request is then retrieved and stored in the Aio as `$data`.
+When the result is needed, call the recvAio using `call_aio()` to retrieve the value at `$data`.
 
 
 ``` r
 call_aio(aio)$data |> str()
-#>  num [1:100000000] -1.03 0.19 -0.219 0.473 -0.775 ...
+#>  num [1:100000000] -1.0996 -0.068 -1.2462 -0.5909 -0.0194 ...
 ```
 
-As `call_aio()` is blocking and will wait for completion, an alternative is to query `aio$data` directly. This will return an 'unresolved' logical NA value if the calculation is yet to complete.
+Since `call_aio()` blocks, alternatively query `aio$data` directly, which returns 'unresolved' (logical NA) if incomplete.
 
-In this example the calculation is returned, but other operations may reside entirely on the server side, for example writing data to disk.
-
-In such a case, calling or querying the value confirms that the operation has completed, and provides the return value of the function, which may typically be NULL or an exit code.
+For server-side operations (e.g., writing to disk), calling or querying the value confirms completion and provides the function's return value (typically NULL or an exit code).
 
 The [`mirai`](https://doi.org/10.5281/zenodo.7912722) package (<https://mirai.r-lib.org/>) uses `nanonext` as the back-end to provide asynchronous execution of arbitrary R code using the RPC model.
 
@@ -359,7 +340,7 @@ The [`mirai`](https://doi.org/10.5281/zenodo.7912722) package (<https://mirai.r-
 
 ### Publisher Subscriber Protocol
 
-`nanonext` fully implements NNG's pub/sub protocol as per the below example. A subscriber can subscribe to one or multiple topics broadcast by a publisher.
+`nanonext` implements NNG's pub/sub protocol. Subscribers can subscribe to one or multiple topics broadcast by a publisher.
 
 
 ``` r
@@ -426,9 +407,7 @@ close(sub)
 
 ### Surveyor Respondent Protocol
 
-This type of pattern is useful for applications such as service discovery.
-
-A surveyor sends a survey, which is broadcast to all peer respondents. Respondents are then able to reply, but are not obliged to. The survey itself is a timed event, and responses received after the timeout are discarded.
+Useful for service discovery and similar applications. A surveyor broadcasts a survey to all respondents, who may reply within a timeout period. Late responses are discarded.
 
 
 ``` r
@@ -471,19 +450,17 @@ close(res2)
 
 ```
 
-Above, `msleep()` is an uninterruptible sleep function (utilising the NNG library), taking a time in milliseconds.
+`msleep()` is an uninterruptible sleep function (using NNG) that takes a time in milliseconds.
 
-It can be seen that the final value resolves into a timeout, which is an integer 5 classed as 'errorValue'. All integer error codes are classed as 'errorValue' to be easily distinguishable from integer message values.
+The final value resolves to a timeout error (integer 5 classed as 'errorValue'). All error codes are classed as 'errorValue' for easy distinction from integer message values.
 
 [&laquo; Back to ToC](#table-of-contents)
 
 ### ncurl: Async HTTP Client
 
-`ncurl()` is a minimalist http(s) client.
+`ncurl()` is a minimalist http(s) client. `ncurl_aio()` performs async requests, returning immediately with an 'ncurlAio'.
 
-`ncurl_aio()` is the async edition, performing requests asynchronously, returning immediately with an 'ncurlAio'.
-
-For normal use, it takes just the URL. It can follow redirects.
+Basic usage requires only a URL and can follow redirects.
 
 
 ``` r
@@ -495,10 +472,10 @@ ncurl("https://postman-echo.com/get")
 #> NULL
 #> 
 #> $data
-#> [1] "{\n  \"args\": {},\n  \"headers\": {\n    \"host\": \"postman-echo.com\",\n    \"x-request-start\": \"t1757325117.423\",\n    \"connection\": \"close\",\n    \"x-forwarded-proto\": \"https\",\n    \"x-forwarded-port\": \"443\",\n    \"x-amzn-trace-id\": \"Root=1-68bea73d-359dc37d61c0beec06554f90\"\n  },\n  \"url\": \"https://postman-echo.com/get\"\n}"
+#> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"
 ```
 
-For advanced use, supports additional HTTP methods such as POST or PUT.
+Advanced usage supports additional HTTP methods (POST, PUT, etc.).
 
 
 ``` r
@@ -512,19 +489,19 @@ res
 
 call_aio(res)$headers
 #> $date
-#> [1] "Mon, 08 Sep 2025 09:51:57 GMT"
+#> [1] "Tue, 02 Dec 2025 11:11:53 GMT"
 
 res$data
-#> [1] "{\n  \"args\": {},\n  \"data\": {\n    \"key\": \"value\"\n  },\n  \"files\": {},\n  \"form\": {},\n  \"headers\": {\n    \"host\": \"postman-echo.com\",\n    \"x-request-start\": \"t1757325117.974\",\n    \"connection\": \"close\",\n    \"content-length\": \"16\",\n    \"x-forwarded-proto\": \"https\",\n    \"x-forwarded-port\": \"443\",\n    \"x-amzn-trace-id\": \"Root=1-68bea73d-295741f97817358c06050d6b\",\n    \"content-type\": \"application/json\",\n    \"authorization\": \"Bearer APIKEY\"\n  },\n  \"json\": {\n    \"key\": \"value\"\n  },\n  \"url\": \"https://postman-echo.com/post\"\n}"
+#> [1] "{\"args\":{},\"data\":{\"key\":\"value\"},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\",\"content-type\":\"application/json\",\"authorization\":\"Bearer APIKEY\",\"content-length\":\"16\"},\"json\":{\"key\":\"value\"},\"url\":\"https://postman-echo.com/post\"}"
 ```
 
-In this respect, it may be used as a performant and lightweight method for making REST API requests.
+Provides a performant, lightweight method for REST API requests.
 
 ##### ncurl Promises
 
-`ncurl_aio()` may also be used anywhere that accepts a ‘promise’ from the promises package, including with Shiny ExtendedTask.
+`ncurl_aio()` works anywhere that accepts a 'promise' from the promises package, including Shiny ExtendedTask.
 
-The promise is resolved with a list of 'status', 'headers' and 'data', or rejected with a translation of the error if an NNG error was returned e.g. for '15 | Address invalid'.
+Promises resolve with a list of 'status', 'headers', and 'data', or reject with an error message (e.g., '15 | Address invalid').
 
 
 ``` r
@@ -536,9 +513,9 @@ is.promise(p)
 ```
 ##### ncurl Session
 
-`ncurl_session()` creates a re-usable open connection and presents a much faster and more efficient solution for repeated polling of an API endpoint. `transact()` is then used to request data multiple times as required. This method allows a polling frequency that exceeds a server's new connection limits, where this is permitted.
+`ncurl_session()` creates a reusable open connection for efficient repeated polling of an API endpoint. Use `transact()` to request data multiple times. This enables polling frequencies that exceed server connection limits (where permitted).
 
-By specifying `convert = FALSE`, the received binary data is made available as a raw vector. This may be fed into 'json' parsers which can operate directly on such data etc.
+Specify `convert = FALSE` to receive binary data as a raw vector for direct use with JSON parsers.
 
 
 ``` r
@@ -555,34 +532,30 @@ transact(sess)
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Mon, 08 Sep 2025 09:51:58 GMT"
+#> [1] "Tue, 02 Dec 2025 11:11:53 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
 #> 
 #> 
 #> $data
-#>   [1] 7b 0a 20 20 22 61 72 67 73 22 3a 20 7b 7d 2c 0a 20 20 22 68 65 61 64 65 72 73 22 3a 20 7b 0a 20 20 20
-#>  [35] 20 22 68 6f 73 74 22 3a 20 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 0a 20 20 20 20 22
-#>  [69] 78 2d 72 65 71 75 65 73 74 2d 73 74 61 72 74 22 3a 20 22 74 31 37 35 37 33 32 35 31 31 38 2e 34 33 36
-#> [103] 22 2c 0a 20 20 20 20 22 63 6f 6e 6e 65 63 74 69 6f 6e 22 3a 20 22 63 6c 6f 73 65 22 2c 0a 20 20 20 20
-#> [137] 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 72 6f 74 6f 22 3a 20 22 68 74 74 70 73 22 2c 0a 20 20 20 20
-#> [171] 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 6f 72 74 22 3a 20 22 34 34 33 22 2c 0a 20 20 20 20 22 78 2d
-#> [205] 61 6d 7a 6e 2d 74 72 61 63 65 2d 69 64 22 3a 20 22 52 6f 6f 74 3d 31 2d 36 38 62 65 61 37 33 65 2d 32
-#> [239] 32 61 63 65 66 61 38 32 63 64 33 63 38 62 64 37 66 30 65 30 65 36 39 22 2c 0a 20 20 20 20 22 63 6f 6e
-#> [273] 74 65 6e 74 2d 74 79 70 65 22 3a 20 22 61 70 70 6c 69 63 61 74 69 6f 6e 2f 6a 73 6f 6e 22 2c 0a 20 20
-#> [307] 20 20 22 61 75 74 68 6f 72 69 7a 61 74 69 6f 6e 22 3a 20 22 42 65 61 72 65 72 20 41 50 49 4b 45 59 22
-#> [341] 0a 20 20 7d 2c 0a 20 20 22 75 72 6c 22 3a 20 22 68 74 74 70 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63
-#> [375] 68 6f 2e 63 6f 6d 2f 67 65 74 22 0a 7d
+#>   [1] 7b 22 61 72 67 73 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b 22 68 6f 73 74 22 3a
+#>  [30] 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 61 75 74 68 6f 72 69 7a 61
+#>  [59] 74 69 6f 6e 22 3a 22 42 65 61 72 65 72 20 41 50 49 4b 45 59 22 2c 22 61 63 63 65 70 74
+#>  [88] 2d 65 6e 63 6f 64 69 6e 67 22 3a 22 67 7a 69 70 2c 20 62 72 22 2c 22 78 2d 66 6f 72 77
+#> [117] 61 72 64 65 64 2d 70 72 6f 74 6f 22 3a 22 68 74 74 70 73 22 2c 22 63 6f 6e 74 65 6e 74
+#> [146] 2d 74 79 70 65 22 3a 22 61 70 70 6c 69 63 61 74 69 6f 6e 2f 6a 73 6f 6e 22 7d 2c 22 75
+#> [175] 72 6c 22 3a 22 68 74 74 70 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d
+#> [204] 2f 67 65 74 22 7d
 ```
 
 [&laquo; Back to ToC](#table-of-contents)
 
 ### stream: Websocket Client
 
-`stream()` exposes NNG's low-level byte stream interface for communicating with raw sockets. This may be used for connecting to arbitrary non-NNG endpoints.
+`stream()` exposes NNG's low-level byte stream interface for communicating with raw sockets, including arbitrary non-NNG endpoints.
 
-The stream interface can be used to communicate with (secure) websocket servers. The argument `textframes = TRUE` can be specified where the websocket server uses text rather than binary frames.
+Use `textframes = TRUE` for websocket servers that use text frames instead of binary frames.
 
 
 ``` r
@@ -630,11 +603,9 @@ close(s)
 
 ### Options, Serialization and Statistics
 
-Use `opt()` and `'opt<-'()` to get and set options on a Socket, Context, Stream, Listener or Dialer.
+Use `opt()` and `'opt<-'()` to get and set options on Sockets, Contexts, Streams, Listeners, or Dialers. See function documentation for available options.
 
-See the function documentation page for a list of common options.
-
-Once a dialer or listener has started, it is not generally possible to change its configuration. In this case, the dialer or listener should be created specifying 'autostart = FALSE'.
+To configure dialers or listeners after creation, specify `autostart = FALSE` (configuration cannot be changed after starting).
 
 
 ``` r
@@ -644,7 +615,7 @@ s <- socket(listen = "inproc://options", autostart = FALSE)
 opt(s$listener[[1]], "recv-size-max")
 #> [1] 0
 
-# enfore maximum message size to protect against denial-of-service type attacks
+# enforce maximum message size to protect against denial-of-service attacks
 opt(s$listener[[1]], "recv-size-max") <- 8192L
 
 opt(s$listener[[1]], "recv-size-max")
@@ -654,7 +625,7 @@ start(s$listener[[1]])
 
 ```
 
-There is the special write-only option 'serial' for Sockets, which sets a serialization configuration returned by `serial_config()`. This registers custom functions to handle serialization and unserialization of reference objects, plugging into the 'refhook' system of native R serialization. This allows the transparent send and receive of such objects using mode 'serial' without the need for a separate 'marshalling' step. Once set, configurations apply to the Socket and all Contexts created from the Socket.
+The special write-only option 'serial' sets a serialization configuration via `serial_config()`. This registers custom functions for serializing/unserializing reference objects using R's 'refhook' system, enabling transparent send/receive with mode 'serial'. Configurations apply to the Socket and all Contexts created from it.
 
 
 ``` r
@@ -664,11 +635,7 @@ opt(s, "serial") <- serial
 close(s)
 ```
 
-Similarly `stat()` has been implemented as the interface to NNG's statistics framework.
-
-This can be used on a Socket, Listener or Dialer to query useful statistics such as the total number of connection attempts, the current number of connections etc.
-
-See the function documentation page for available statistics.
+Use `stat()` to access NNG's statistics framework. Query Sockets, Listeners, or Dialers for statistics such as connection attempts and current connections. See function documentation for available statistics.
 
 
 ``` r
@@ -680,7 +647,7 @@ stat(s, "pipes")
 
 s1 <- socket(dial = "inproc://stat")
 
-# one now that the dialer has conneceted
+# one now that the dialer has connected
 stat(s, "pipes")
 #> [1] 1
 
