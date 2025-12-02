@@ -1,5 +1,7 @@
 # nanonext (development version)
 
+* Building from source no longer requires `xz`.
+
 # nanonext 1.7.2
 
 #### Updates
