@@ -13,8 +13,9 @@ static SEXP nano_eval_prot (void *call) {
 }
 
 static void nano_cleanup(void *data, Rboolean jump) {
-  if (jump)
-    free(data);
+  if (jump) {
+    nng_msg_free((nng_msg *) data);
+  }
 }
 
 static void nano_eval_safe (void *call) {
@@ -23,27 +24,11 @@ static void nano_eval_safe (void *call) {
 
 static void nano_write_bytes(R_outpstream_t stream, void *src, int len) {
 
-  nano_buf *buf = (nano_buf *) stream->data;
-
-  size_t req = buf->cur + (size_t) len;
-  if (req > buf->len) {
-    if (req > R_XLEN_T_MAX) {
-      if (buf->len) free(buf->buf);
-      Rf_error("serialization exceeds max length of raw vector");
-    }
-    do {
-      buf->len += buf->len > NANONEXT_SERIAL_THR ? NANONEXT_SERIAL_THR : buf->len;
-    } while (buf->len < req);
-    unsigned char *nbuf = realloc(buf->buf, buf->len);
-    if (nbuf == NULL) {
-      free(buf->buf);
-      Rf_error("memory allocation failed");
-    }
-    buf->buf = nbuf;
+  nng_msg *msg = (nng_msg *) stream->data;
+  if (nng_msg_append(msg, src, (size_t) len)) {
+    nng_msg_free(msg);
+    Rf_error("serialization failed");
   }
-
-  memcpy(buf->buf + buf->cur, src, len);
-  buf->cur += len;
 
 }
 
@@ -111,10 +96,10 @@ static SEXP nano_serialize_hook(SEXP x, SEXP hook_func) {
 
   SEXP out, call;
   PROTECT(call = Rf_lcons(NANO_VECTOR(hook_func)[i], Rf_cons(x, R_NilValue)));
-  out = R_UnwindProtect(nano_eval_prot, call, nano_cleanup, nano_bundle.buf, NULL);
+  out = R_UnwindProtect(nano_eval_prot, call, nano_cleanup, nano_bundle.msg, NULL);
   UNPROTECT(1);
   if (TYPEOF(out) != RAWSXP) {
-    free(nano_bundle.buf);
+    nng_msg_free(nano_bundle.msg);
     Rf_error("Serialization function for `%s` did not return a raw vector", NANO_STR_N(klass, i));
   }
 
@@ -259,28 +244,28 @@ SEXP nano_raw_char(const unsigned char *buf, const size_t sz) {
 
 }
 
-void nano_serialize(nano_buf *buf, SEXP object, SEXP hook, int header) {
+void nano_serialize(nng_msg *msg, SEXP object, SEXP hook, int header) {
 
-  NANO_ALLOC(buf, NANONEXT_INIT_BUFSIZE);
   struct R_outpstream_st output_stream;
 
   if (header || special_marker) {
-    buf->buf[0] = 0x7;
-    buf->buf[3] = (uint8_t) special_marker;
-    if (header)
-      memcpy(buf->buf + 4, &header, sizeof(int));
-    buf->cur += 8;
+    unsigned char magic[4] = {0x7, 0x0, 0x0, (uint8_t) special_marker};
+    if (nng_msg_append(msg, magic, sizeof(magic)) ||
+        nng_msg_append(msg, &header, sizeof(int))) {
+      nng_msg_free(msg);
+      Rf_error("serialization failed");
+    }
   }
 
   if (hook != R_NilValue) {
     nano_bundle.klass = NANO_VECTOR(hook)[0];
     nano_bundle.outpstream = &output_stream;
-    nano_bundle.buf = buf->buf;
+    nano_bundle.msg = msg;
   }
 
   R_InitOutPStream(
     &output_stream,
-    (R_pstream_data_t) buf,
+    (R_pstream_data_t) msg,
     R_pstream_binary_format,
     NANONEXT_SERIAL_VER,
     NULL,
@@ -429,10 +414,62 @@ SEXP nano_decode(unsigned char *buf, const size_t sz, const uint8_t mod, SEXP ho
 
 }
 
-void nano_encode(nano_buf *enc, const SEXP object) {
+void nano_encode(nng_msg *msg, const SEXP object) {
 
   switch (TYPEOF(object)) {
-  case STRSXP: ;
+  case STRSXP: {
+    R_xlen_t xlen = XLENGTH(object);
+    if (xlen == 1) {
+      const char *s = NANO_STRING(object);
+      size_t slen = strlen(s) + 1;
+      if (nng_msg_append(msg, s, slen))
+        goto fail;
+    } else {
+      for (R_xlen_t i = 0; i < xlen; i++) {
+        const char *s = NANO_STR_N(object, i);
+        size_t slen = strlen(s) + 1;
+        if (nng_msg_append(msg, s, slen))
+          goto fail;
+      }
+    }
+    break;
+  }
+  case REALSXP:
+    if (nng_msg_append(msg, DATAPTR_RO(object), XLENGTH(object) * sizeof(double)))
+      goto fail;
+    break;
+  case INTSXP:
+  case LGLSXP:
+    if (nng_msg_append(msg, DATAPTR_RO(object), XLENGTH(object) * sizeof(int)))
+      goto fail;
+    break;
+  case CPLXSXP:
+    if (nng_msg_append(msg, DATAPTR_RO(object), XLENGTH(object) * 2 * sizeof(double)))
+      goto fail;
+    break;
+  case RAWSXP:
+    if (nng_msg_append(msg, DATAPTR_RO(object), XLENGTH(object)))
+      goto fail;
+    break;
+  case NILSXP:
+    break;
+  default:
+    nng_msg_free(msg);
+    Rf_error("`data` must be an atomic vector type or NULL to send in mode 'raw'");
+  }
+
+  return;
+
+  fail:
+  nng_msg_free(msg);
+  Rf_error("encode failed");
+
+}
+
+void nano_encode_buf(nano_buf *enc, const SEXP object) {
+
+  switch (TYPEOF(object)) {
+  case STRSXP: {
     const char *s;
     R_xlen_t xlen = XLENGTH(object);
     if (xlen == 1) {
@@ -452,6 +489,7 @@ void nano_encode(nano_buf *enc, const SEXP object) {
       enc->cur += slen;
     }
     break;
+  }
   case REALSXP:
     NANO_INIT(enc, (unsigned char *) DATAPTR_RO(object), XLENGTH(object) * sizeof(double));
     break;
