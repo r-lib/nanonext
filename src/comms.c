@@ -335,54 +335,41 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
 
   const int flags = block == R_NilValue ? NNG_DURATION_DEFAULT : TYPEOF(block) == LGLSXP ? 0 : nano_integer(block);
   const int raw = nano_encode_mode(mode);
-  nano_buf buf;
   int sock, xc;
 
   if ((sock = !NANO_PTR_CHECK(con, nano_SocketSymbol)) || !NANO_PTR_CHECK(con, nano_ContextSymbol)) {
 
     const int pipeid = sock ? nano_integer(pipe) : 0;
-    if (raw) {
-      nano_encode(&buf, data);
-    } else {
-      nano_serialize(&buf, data, NANO_PROT(con), 0);
-    }
     nng_msg *msgp = NULL;
+
+    if ((xc = nng_msg_alloc(&msgp, 0)))
+      goto fail;
+
+    if (raw) {
+      nano_encode(msgp, data);
+    } else {
+      nano_serialize(msgp, data, NANO_PROT(con), 0);
+    }
+
+    if (pipeid) {
+      nng_pipe p;
+      p.id = (uint32_t) pipeid;
+      nng_msg_set_pipe(msgp, p);
+    }
 
     if (flags <= 0) {
 
-      if ((xc = nng_msg_alloc(&msgp, 0)))
-        goto fail;
-
-      if (pipeid) {
-        nng_pipe p;
-        p.id = (uint32_t) pipeid;
-        nng_msg_set_pipe(msgp, p);
-      }
-
-      if ((xc = nng_msg_append(msgp, buf.buf, buf.cur)) ||
-          (xc = sock ? nng_sendmsg(*(nng_socket *) NANO_PTR(con), msgp, flags ? NNG_FLAG_NONBLOCK : (NANO_INTEGER(block) != 1) * NNG_FLAG_NONBLOCK) :
+      if ((xc = sock ? nng_sendmsg(*(nng_socket *) NANO_PTR(con), msgp, flags ? NNG_FLAG_NONBLOCK : (NANO_INTEGER(block) != 1) * NNG_FLAG_NONBLOCK) :
                        nng_ctx_sendmsg(*(nng_ctx *) NANO_PTR(con), msgp, flags ? NNG_FLAG_NONBLOCK : (NANO_INTEGER(block) != 1) * NNG_FLAG_NONBLOCK))) {
         nng_msg_free(msgp);
         goto fail;
       }
 
-      NANO_FREE(buf);
-
     } else {
 
       nng_aio *aiop = NULL;
 
-      if ((xc = nng_msg_alloc(&msgp, 0)))
-        goto fail;
-
-      if (pipeid) {
-        nng_pipe p;
-        p.id = (uint32_t) pipeid;
-        nng_msg_set_pipe(msgp, p);
-      }
-
-      if ((xc = nng_msg_append(msgp, buf.buf, buf.cur)) ||
-          (xc = nng_aio_alloc(&aiop, NULL, NULL))) {
+      if ((xc = nng_aio_alloc(&aiop, NULL, NULL))) {
         nng_msg_free(msgp);
         goto fail;
       }
@@ -391,7 +378,6 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
       nng_aio_set_timeout(aiop, flags);
       sock ? nng_send_aio(*(nng_socket *) NANO_PTR(con), aiop) :
              nng_ctx_send(*(nng_ctx *) NANO_PTR(con), aiop);
-      NANO_FREE(buf);
       nng_aio_wait(aiop);
       if ((xc = nng_aio_result(aiop)))
         nng_msg_free(nng_aio_get_msg(aiop));
@@ -401,7 +387,8 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
 
   } else if (!NANO_PTR_CHECK(con, nano_StreamSymbol)) {
 
-    nano_encode(&buf, data);
+    nano_buf buf;
+    nano_encode_buf(&buf, data);
 
     nano_stream *nst = (nano_stream *) NANO_PTR(con);
     nng_stream *sp = nst->stream;
@@ -411,11 +398,14 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
       .iov_len = buf.cur - nst->textframes
     };
 
-    if ((xc = nng_aio_alloc(&aiop, NULL, NULL)))
+    if ((xc = nng_aio_alloc(&aiop, NULL, NULL))) {
+      NANO_FREE(buf);
       goto fail;
+    }
 
     if ((xc = nng_aio_set_iov(aiop, 1u, &iov))) {
       nng_aio_free(aiop);
+      NANO_FREE(buf);
       goto fail;
     }
 
@@ -436,7 +426,6 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
   return nano_success;
 
   fail:
-  NANO_FREE(buf);
   return mk_error(xc);
 
 }

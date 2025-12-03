@@ -102,10 +102,18 @@ static void rnng_messenger_thread(void *args) {
                     tms->tm_year + 1900, tms->tm_mon + 1, tms->tm_mday,
                     tms->tm_hour, tms->tm_min, tms->tm_sec);
         nng_msg_free(msgp);
-        nano_buf enc;
-        nano_encode(&enc, key);
-        xc = nng_send(*sock, enc.buf, enc.cur, NNG_FLAG_NONBLOCK);
+        nng_msg *msg = NULL;
+        if ((xc = nng_msg_alloc(&msg, 0))) {
+          nano_printf(1,
+                      "| messenger session ended: %d-%02d-%02d %02d:%02d:%02d\n",
+                      tms->tm_year + 1900, tms->tm_mon + 1, tms->tm_mday,
+                      tms->tm_hour, tms->tm_min, tms->tm_sec);
+          break;
+        }
+        nano_encode(msg, key);
+        xc = nng_sendmsg(*sock, msg, NNG_FLAG_NONBLOCK);
         if (xc) {
+          nng_msg_free(msg);
           nano_printf(1,
                       "| messenger session ended: %d-%02d-%02d %02d:%02d:%02d\n",
                       tms->tm_year + 1900, tms->tm_mon + 1, tms->tm_mday,
