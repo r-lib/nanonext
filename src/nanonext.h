@@ -230,7 +230,7 @@ typedef struct nano_serial_bundle_s {
   R_outpstream_t outpstream;
   R_inpstream_t inpstream;
   SEXP klass;
-  nng_msg *msg;
+  unsigned char *buf;
 } nano_serial_bundle;
 
 typedef enum nano_list_op {
@@ -320,11 +320,10 @@ void haio_invoke_cb(void *);
 SEXP mk_error(const int);
 SEXP mk_error_data(const int);
 SEXP nano_raw_char(const unsigned char *, const size_t);
-void nano_serialize(nng_msg *, const SEXP, SEXP, int);
+void nano_serialize(nano_buf *, const SEXP, SEXP, int);
 SEXP nano_unserialize(unsigned char *, const size_t, SEXP);
 SEXP nano_decode(unsigned char *, const size_t, const uint8_t, SEXP);
-void nano_encode(nng_msg *, const SEXP);
-void nano_encode_buf(nano_buf *, const SEXP);
+void nano_encode(nano_buf *, const SEXP);
 int nano_encode_mode(const SEXP);
 int nano_matcharg(const SEXP);
 SEXP nano_aio_result(SEXP);

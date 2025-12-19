@@ -625,27 +625,26 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
   const int raw = nano_encode_mode(mode);
   SEXP aio, env, fun;
   nano_aio *saio = NULL;
+  nano_buf buf;
   int sock, xc;
 
   if ((sock = !NANO_PTR_CHECK(con, nano_SocketSymbol)) || !NANO_PTR_CHECK(con, nano_ContextSymbol)) {
 
     const int pipeid = sock ? nano_integer(pipe) : 0;
+    if (raw) {
+      nano_encode(&buf, data);
+    } else {
+      nano_serialize(&buf, data, NANO_PROT(con), 0);
+    }
     nng_msg *msg = NULL;
 
     saio = calloc(1, sizeof(nano_aio));
     NANO_ENSURE_ALLOC(saio);
     saio->type = SENDAIO;
 
-    if ((xc = nng_msg_alloc(&msg, 0)))
-      goto fail;
-
-    if (raw) {
-      nano_encode(msg, data);
-    } else {
-      nano_serialize(msg, data, NANO_PROT(con), 0);
-    }
-
-    if ((xc = nng_aio_alloc(&saio->aio, saio_complete, saio))) {
+    if ((xc = nng_msg_alloc(&msg, 0)) ||
+        (xc = nng_msg_append(msg, buf.buf, buf.cur)) ||
+        (xc = nng_aio_alloc(&saio->aio, saio_complete, saio))) {
       nng_msg_free(msg);
       goto fail;
     }
@@ -660,14 +659,14 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     nng_aio_set_timeout(saio->aio, dur);
     sock ? nng_send_aio(*(nng_socket *) NANO_PTR(con), saio->aio) :
            nng_ctx_send(*(nng_ctx *) NANO_PTR(con), saio->aio);
+    NANO_FREE(buf);
 
     PROTECT(aio = R_MakeExternalPtr(saio, nano_AioSymbol, R_NilValue));
     R_RegisterCFinalizerEx(aio, saio_finalizer, TRUE);
 
   } else if (!NANO_PTR_CHECK(con, nano_StreamSymbol)) {
 
-    nano_buf buf;
-    nano_encode_buf(&buf, data);
+    nano_encode(&buf, data);
 
     nano_stream *nst = (nano_stream *) NANO_PTR(con);
     nng_stream *sp = nst->stream;
@@ -684,10 +683,8 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     };
 
     if ((xc = nng_aio_alloc(&saio->aio, isaio_complete, saio)) ||
-        (xc = nng_aio_set_iov(saio->aio, 1u, &iov))) {
-          NANO_FREE(buf);
-          goto fail;
-        }
+        (xc = nng_aio_set_iov(saio->aio, 1u, &iov)))
+      goto fail;
 
     nng_aio_set_timeout(saio->aio, dur);
     nng_stream_send(sp, saio->aio);
@@ -714,6 +711,7 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
   nng_aio_free(saio->aio);
   free(saio->data);
   failmem:
+  NANO_FREE(buf);
   free(saio);
   return mk_error_data(-xc);
 

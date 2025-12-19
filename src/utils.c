@@ -329,13 +329,13 @@ SEXP rnng_subscribe(SEXP object, SEXP value, SEXP sub) {
   if (!NANO_PTR_CHECK(object, nano_SocketSymbol)) {
 
     nng_socket *sock = (nng_socket *) NANO_PTR(object);
-    nano_encode_buf(&buf, value);
+    nano_encode(&buf, value);
     xc = nng_socket_set(*sock, op, buf.buf, buf.cur - (TYPEOF(value) == STRSXP));
 
   } else if (!NANO_PTR_CHECK(object, nano_ContextSymbol)) {
 
     nng_ctx *ctx = (nng_ctx *) NANO_PTR(object);
-    nano_encode_buf(&buf, value);
+    nano_encode(&buf, value);
     xc = nng_ctx_set(*ctx, op, buf.buf, buf.cur - (TYPEOF(value) == STRSXP));
 
   } else {
