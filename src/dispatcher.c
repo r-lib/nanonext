@@ -339,7 +339,6 @@ static int dispatch_process_monitor(nano_dispatcher *d) {
 
 static void dispatch_handle_connect(nano_dispatcher *d, int pipe) {
 
-  dispatch_insert_daemon(d, pipe);
   d->connections++;
 
   SEXP init_data = PROTECT(Rf_allocVector(VECSXP, 2));
@@ -352,7 +351,8 @@ static void dispatch_handle_connect(nano_dispatcher *d, int pipe) {
   nano_serialize(&buf, init_data, d->serial, 0);
   UNPROTECT(2);
 
-  dispatch_send_to_daemon(d, pipe, buf.buf, buf.cur);
+  if (dispatch_send_to_daemon(d, pipe, buf.buf, buf.cur) == 0)
+    dispatch_insert_daemon(d, pipe);
   NANO_FREE(buf);
 
 }
