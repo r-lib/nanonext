@@ -415,11 +415,6 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
     int msgid = dispatch_read_header(buf, len);
     int is_sync = dispatch_read_marker(buf, len);
 
-    if (!is_sync && d->syncing) {
-      d->syncing = 0;
-      d->sync_generation++;
-    }
-
     nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
     if (dd != NULL && dispatch_send_msg_to_daemon(d, dd->pipe, msg) == 0) {
       msg = NULL;
@@ -428,6 +423,9 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
       if (is_sync) {
         dd->sync_gen = d->sync_generation;
         d->syncing = 1;
+      } else if (d->syncing) {
+        d->syncing = 0;
+        d->sync_generation++;
       }
     } else {
       dispatch_enqueue(d, d->host_ctx, msg, msgid);
@@ -534,11 +532,6 @@ static void dispatch_dispatch_tasks(nano_dispatcher *d) {
 
     int is_sync = dispatch_read_msg_marker(t->msg);
 
-    if (!is_sync && d->syncing) {
-      d->syncing = 0;
-      d->sync_generation++;
-    }
-
     nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
     if (dd == NULL)
       break;
@@ -553,6 +546,9 @@ static void dispatch_dispatch_tasks(nano_dispatcher *d) {
     if (is_sync) {
       dd->sync_gen = d->sync_generation;
       d->syncing = 1;
+    } else if (d->syncing) {
+      d->syncing = 0;
+      d->sync_generation++;
     }
 
     dispatch_dequeue(d);
