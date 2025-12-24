@@ -172,7 +172,7 @@ SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
   Rf_setAttrib(dialer, nano_StateSymbol, Rf_mkString(start ? "started" : "not started"));
   Rf_setAttrib(dialer, nano_SocketSymbol, Rf_ScalarInteger(nng_socket_id(*sock)));
 
-  attr = Rf_getAttrib(socket, nano_DialerSymbol);
+  PROTECT(attr = Rf_getAttrib(socket, nano_DialerSymbol));
   R_xlen_t xlen = Rf_xlength(attr);
   PROTECT(newattr = Rf_allocVector(VECSXP, xlen + 1));
   for (R_xlen_t i = 0; i < xlen; i++) {
@@ -181,7 +181,7 @@ SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
   SET_VECTOR_ELT(newattr, xlen, dialer);
   Rf_setAttrib(socket, nano_DialerSymbol, newattr);
 
-  UNPROTECT(2);
+  UNPROTECT(3);
   return nano_success;
 
   fail:
@@ -250,7 +250,7 @@ SEXP rnng_listen(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
   Rf_setAttrib(listener, nano_StateSymbol, Rf_mkString(start ? "started" : "not started"));
   Rf_setAttrib(listener, nano_SocketSymbol, Rf_ScalarInteger(nng_socket_id(*sock)));
 
-  attr = Rf_getAttrib(socket, nano_ListenerSymbol);
+  PROTECT(attr = Rf_getAttrib(socket, nano_ListenerSymbol));
   R_xlen_t xlen = Rf_xlength(attr);
   PROTECT(newattr = Rf_allocVector(VECSXP, xlen + 1));
   for (R_xlen_t i = 0; i < xlen; i++) {
@@ -259,7 +259,7 @@ SEXP rnng_listen(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
   SET_VECTOR_ELT(newattr, xlen, listener);
   Rf_setAttrib(socket, nano_ListenerSymbol, newattr);
 
-  UNPROTECT(2);
+  UNPROTECT(3);
   return nano_success;
 
   fail:
