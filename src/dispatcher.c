@@ -109,7 +109,10 @@ static void dispatch_insert_daemon(nano_dispatcher *d, int pipe) {
     dispatch_resize_table(d, d->outq_size * 2);
 
   nano_dispatch_daemon *dd = calloc(1, sizeof(nano_dispatch_daemon));
-  if (dd == NULL) return;
+  if (dd == NULL) {
+    REprintf("dispatcher: allocation failed for pipe %d\n", pipe);
+    return;
+  }
 
   dd->pipe = pipe;
   dd->msgid = 0;

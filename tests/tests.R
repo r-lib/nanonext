@@ -652,6 +652,14 @@ test_null(write_stdout(""))
 test_false(identical(get0(".Random.seed"), {.advance(); .Random.seed}))
 test_type("integer", .Call(nanonext:::rnng_traverse_precious))
 
+test_error(.dispatcher("invalid", NULL, NULL, NULL, NULL, NULL, NULL), "valid Socket")
+test_class("nanoSocket", dsock <- socket("rep"))
+test_error(.dispatcher(dsock, "invalid", NULL, NULL, NULL, NULL, NULL), "valid Socket")
+test_class("nanoSocket", dpsock <- socket("poly"))
+test_error(.dispatcher(dsock, dpsock, "invalid", NULL, NULL, NULL, NULL), "valid Monitor")
+test_zero(close(dpsock))
+test_zero(close(dsock))
+
 if (!interactive() && Sys.getenv("NOT_CRAN") == "true") {
   test_class("conditionVariable", cv <- cv())
   f <- file("stdin", open = "r")

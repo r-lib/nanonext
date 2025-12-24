@@ -46,7 +46,14 @@ void nano_list_do(nano_list_op listop, nano_aio *saio) {
     nng_mtx_lock(free_mtx);
     if (saio->mode == 0x1) {
       nano_node *new_node = malloc(sizeof(nano_node));
-      if (new_node == NULL) break;
+      if (new_node == NULL) {
+        nng_aio_free(saio->aio);
+        if (saio->data != NULL)
+          free(saio->data);
+        free(saio);
+        nng_mtx_unlock(free_mtx);
+        break;
+      }
       new_node->data = saio;
       new_node->next = free_list;
       free_list = new_node;
