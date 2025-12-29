@@ -813,23 +813,24 @@ if (NOT_CRAN) {
 }
 
 if (NOT_CRAN) {
-  url_stream <- "tcp://127.0.0.1:25555"
-  stream_code <- sprintf('
+  stream_code <- '
     library(nanonext)
-    s <- stream(listen = "%s")
+    s <- stream(listen = "tcp://127.0.0.1:25555")
     msg <- recv(s, mode = "character", block = 5000)
     send(s, paste0("reply:", msg), block = 5000)
     msg2 <- recv(s, mode = "character", block = 5000)
     send(s, paste0("async:", msg2), block = 5000)
-    Sys.sleep(1)
+    Sys.sleep(0.1)
     close(s)
-  ', url_stream)
+    s <- stream(listen = "ws://127.0.0.1:25555/api")
+    close(s)
+  '
   script <- tempfile(fileext = ".R")
   writeLines(stream_code, script)
   Rscript <- file.path(R.home("bin"), if (.Platform$OS.type == "windows") "Rscript.exe" else "Rscript")
   system2(Rscript, script, wait = FALSE, stdout = FALSE, stderr = FALSE)
   Sys.sleep(0.5)
-  test_class("nanoStream", s <- stream(dial = url_stream))
+  test_class("nanoStream", s <- stream(dial = "tcp://127.0.0.1:25555"))
   test_true(is_nano(s))
   test_zero(send(s, "test", block = 2000))
   test_equal(recv(s, mode = "character", block = 2000), "reply:test")
@@ -837,8 +838,11 @@ if (NOT_CRAN) {
   test_zero(call_aio(sa)$result)
   test_class("recvAio", ra <- recv_aio(s, mode = "character", timeout = 2000))
   test_equal(call_aio(ra)$data, "async:async_test")
+  Sys.sleep(0.1)
   test_zero(close(s))
-  Sys.sleep(0.5)
+  Sys.sleep(0.2)
+  test_class("nanoStream", s <- stream(dial = "ws://127.0.0.1:25555/api"))
+  test_zero(close(s))
   unlink(script)
 }
 
