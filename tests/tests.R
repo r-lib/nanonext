@@ -660,8 +660,13 @@ test_error(.dispatcher(dsock, dpsock, "invalid", NULL, NULL, NULL, NULL), "valid
 test_zero(close(dpsock))
 test_zero(close(dsock))
 if (Sys.getenv("NOT_CRAN") == "true") {
-  url_rep <- sprintf("ipc://%s", tempfile())
-  url_poly <- sprintf("ipc://%s", tempfile())
+  if (.Platform$OS.type == "windows") {
+    url_rep <- sprintf("ipc://nanonext-rep-%d", Sys.getpid())
+    url_poly <- sprintf("ipc://nanonext-poly-%d", Sys.getpid())
+  } else {
+    url_rep <- sprintf("ipc://%s", tempfile())
+    url_poly <- sprintf("ipc://%s", tempfile())
+  }
   dispatcher_code <- sprintf('
     library(nanonext)
     cv <- cv()
