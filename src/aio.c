@@ -60,7 +60,7 @@ void nano_list_do(nano_list_op listop, nano_aio *saio) {
     nng_mtx_free(free_mtx);
     free_mtx = NULL;
     break;
-  case FREE:
+  case FREE: // must be entered under lock
     while (free_list != NULL) {
       nano_aio *current = free_list;
       free_list = (nano_aio *) current->next;
