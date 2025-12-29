@@ -13,9 +13,8 @@ static SEXP nano_eval_prot (void *call) {
 }
 
 static void nano_cleanup(void *data, Rboolean jump) {
-  (void) data;
   if (jump)
-    free(((nano_buf *) nano_bundle.outpstream->data)->buf);
+    free(((nano_buf *) data)->buf);
 }
 
 static void nano_eval_safe (void *call) {
@@ -112,7 +111,7 @@ static SEXP nano_serialize_hook(SEXP x, SEXP hook_func) {
 
   SEXP out, call;
   PROTECT(call = Rf_lcons(NANO_VECTOR(hook_func)[i], Rf_cons(x, R_NilValue)));
-  out = R_UnwindProtect(nano_eval_prot, call, nano_cleanup, NULL, NULL);
+  out = R_UnwindProtect(nano_eval_prot, call, nano_cleanup, stream->data, NULL);
   UNPROTECT(1);
   if (TYPEOF(out) != RAWSXP) {
     free(((nano_buf *) stream->data)->buf);
