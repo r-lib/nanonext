@@ -1,4 +1,4 @@
-# minitest - a minimal testing framework v0.0.4 --------------------------------
+# minitest - a minimal testing framework v0.0.5 --------------------------------
 test_library <- function(package) library(package = package, character.only = TRUE)
 test_true <- function(x) invisible(isTRUE(x) || {print(x); stop("the above was returned instead of TRUE")})
 test_false <- function(x) invisible(isFALSE(x) || {print(x); stop("the above was returned instead of FALSE")})
@@ -11,6 +11,7 @@ test_equal <- function(a, b) invisible(a == b || {print(a); print(b); stop("the 
 test_identical <- function(a, b) invisible(identical(a, b) || {print(a); print(b); stop("the above expressions were not identical")})
 test_print <- function(x) invisible(is.character(capture.output(print(x))) || stop("print output of expression cannot be captured as a character value"))
 test_error <- function(x, containing = "") invisible(inherits(x <- tryCatch(x, error = identity), "error") && grepl(containing, x[["message"]], fixed = TRUE) || stop("Expected error message containing: ", containing, "\nActual error message: ", x[["message"]]))
+NOT_CRAN <- Sys.getenv("NOT_CRAN") == "true"
 # ------------------------------------------------------------------------------
 
 test_library("nanonext")
@@ -659,7 +660,7 @@ test_class("nanoSocket", dpsock <- socket("poly"))
 test_error(.dispatcher(dsock, dpsock, "invalid", NULL, NULL, NULL, NULL), "valid Monitor")
 test_zero(close(dpsock))
 test_zero(close(dsock))
-if (Sys.getenv("NOT_CRAN") == "true") {
+if (NOT_CRAN) {
   if (.Platform$OS.type == "windows") {
     url_rep <- sprintf("ipc://nanonext-rep-%d", Sys.getpid())
     url_poly <- sprintf("ipc://nanonext-poly-%d", Sys.getpid())
@@ -811,7 +812,37 @@ if (Sys.getenv("NOT_CRAN") == "true") {
   unlink(script)
 }
 
-if (!interactive() && Sys.getenv("NOT_CRAN") == "true") {
+if (NOT_CRAN) {
+  url_stream <- "tcp://127.0.0.1:25555"
+  stream_code <- sprintf('
+    library(nanonext)
+    s <- stream(listen = "%s")
+    msg <- recv(s, mode = "character", block = 5000)
+    send(s, paste0("reply:", msg), block = 5000)
+    msg2 <- recv(s, mode = "character", block = 5000)
+    send(s, paste0("async:", msg2), block = 5000)
+    Sys.sleep(1)
+    close(s)
+  ', url_stream)
+  script <- tempfile(fileext = ".R")
+  writeLines(stream_code, script)
+  Rscript <- file.path(R.home("bin"), if (.Platform$OS.type == "windows") "Rscript.exe" else "Rscript")
+  system2(Rscript, script, wait = FALSE, stdout = FALSE, stderr = FALSE)
+  Sys.sleep(0.5)
+  test_class("nanoStream", s <- stream(dial = url_stream))
+  test_true(is_nano(s))
+  test_zero(send(s, "test", block = 2000))
+  test_equal(recv(s, mode = "character", block = 2000), "reply:test")
+  test_class("sendAio", sa <- send_aio(s, "async_test", timeout = 2000))
+  test_zero(call_aio(sa)$result)
+  test_class("recvAio", ra <- recv_aio(s, mode = "character", timeout = 2000))
+  test_equal(call_aio(ra)$data, "async:async_test")
+  test_zero(close(s))
+  Sys.sleep(0.5)
+  unlink(script)
+}
+
+if (!interactive() && NOT_CRAN) {
   test_class("conditionVariable", cv <- cv())
   f <- file("stdin", open = "r")
   test_true(is_nano(reader <- read_stdin()))
