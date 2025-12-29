@@ -13,8 +13,9 @@ static SEXP nano_eval_prot (void *call) {
 }
 
 static void nano_cleanup(void *data, Rboolean jump) {
+  (void) data;
   if (jump)
-    free(data);
+    free(((nano_buf *) nano_bundle.outpstream->data)->buf);
 }
 
 static void nano_eval_safe (void *call) {
@@ -111,10 +112,10 @@ static SEXP nano_serialize_hook(SEXP x, SEXP hook_func) {
 
   SEXP out, call;
   PROTECT(call = Rf_lcons(NANO_VECTOR(hook_func)[i], Rf_cons(x, R_NilValue)));
-  out = R_UnwindProtect(nano_eval_prot, call, nano_cleanup, nano_bundle.buf, NULL);
+  out = R_UnwindProtect(nano_eval_prot, call, nano_cleanup, NULL, NULL);
   UNPROTECT(1);
   if (TYPEOF(out) != RAWSXP) {
-    free(nano_bundle.buf);
+    free(((nano_buf *) stream->data)->buf);
     Rf_error("Serialization function for `%s` did not return a raw vector", NANO_STR_N(klass, i));
   }
 
@@ -275,7 +276,6 @@ void nano_serialize(nano_buf *buf, SEXP object, SEXP hook, int header) {
   if (hook != R_NilValue) {
     nano_bundle.klass = NANO_VECTOR(hook)[0];
     nano_bundle.outpstream = &output_stream;
-    nano_bundle.buf = buf->buf;
   }
 
   R_InitOutPStream(
