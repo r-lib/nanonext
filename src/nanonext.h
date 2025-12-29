@@ -240,11 +240,6 @@ typedef enum nano_list_op {
   SHUTDOWN
 } nano_list_op;
 
-typedef struct nano_node_s {
-  void *data;
-  struct nano_node_s *next;
-} nano_node;
-
 extern void (*eln2)(void (*)(void *), void *, double, int);
 
 extern SEXP nano_AioSymbol;
