@@ -389,12 +389,7 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
       // Status query - send raw integer array
       int executing = dispatch_count_executing(d);
       int completed = d->count - d->inq_count - executing;
-      int result[5];
-      result[0] = d->outq_count;
-      result[1] = d->connections;
-      result[2] = d->inq_count;
-      result[3] = executing;
-      result[4] = completed;
+      int result[5] = {d->outq_count, d->connections, d->inq_count, executing, completed};
       dispatch_send_reply(d->host_ctx, (unsigned char *) result, sizeof(result));
     } else {
       // Cancel query - send raw integer (0 = FALSE, 1 = TRUE)
