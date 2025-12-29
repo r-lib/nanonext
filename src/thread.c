@@ -599,7 +599,7 @@ SEXP rnng_read_stdin(SEXP interactive) {
   nng_listener *lp = NULL;
   sock = malloc(sizeof(nng_socket));
   NANO_ENSURE_ALLOC(sock);
-  lp = calloc(1, sizeof(nng_listener));
+  lp = malloc(sizeof(nng_listener));
   NANO_ENSURE_ALLOC(lp);
 
   if ((xc = nng_pull0_open(sock)) ||

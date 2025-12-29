@@ -527,7 +527,7 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
     nng_stream **sp = (nng_stream **) NANO_PTR(con);
     nng_aio *aiop = NULL;
 
-    buf = calloc(xlen, sizeof(unsigned char));
+    buf = malloc(xlen);
     NANO_ENSURE_ALLOC(buf);
     nng_iov iov = {
       .iov_buf = buf,
