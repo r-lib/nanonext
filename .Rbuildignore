@@ -11,6 +11,7 @@
 ^codecov\.yml$
 ^compile_commands\.json$
 ^\.cache$
+^[\.]?air\.toml$
 ^cran-comments\.md$
 ^\.claude$
 ^CLAUDE.md$
