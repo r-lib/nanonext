@@ -265,6 +265,7 @@ void nano_serialize(nano_buf *buf, SEXP object, SEXP hook, int header) {
   struct R_outpstream_st output_stream;
 
   if (header || special_marker) {
+    memset(buf->buf, 0, 8);
     buf->buf[0] = 0x7;
     buf->buf[3] = (uint8_t) special_marker;
     if (header)
