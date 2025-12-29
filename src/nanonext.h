@@ -230,7 +230,6 @@ typedef struct nano_serial_bundle_s {
   R_outpstream_t outpstream;
   R_inpstream_t inpstream;
   SEXP klass;
-  unsigned char *buf;
 } nano_serial_bundle;
 
 typedef enum nano_list_op {

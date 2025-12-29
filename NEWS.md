@@ -1,5 +1,6 @@
 # nanonext (development version)
 
+* Fixes a potential crash when a serialization hook errors (#225).
 * Building from source no longer requires `xz`.
 
 # nanonext 1.7.2
