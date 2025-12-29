@@ -1,10 +1,10 @@
 // nanonext - dispatcher implementation -----------------------------------------
 
 #include "nanonext.h"
-#include <stdlib.h>
-#include <string.h>
 
-// Data Structures -------------------------------------------------------------
+// data structures -------------------------------------------------------------
+
+#define DISPATCH_INITIAL_SIZE 16
 
 typedef struct nano_dispatch_task_s {
   nng_ctx ctx;
@@ -20,8 +20,6 @@ typedef struct nano_dispatch_daemon_s {
   int sync_gen;
   struct nano_dispatch_daemon_s *next;
 } nano_dispatch_daemon;
-
-#define DISPATCH_INITIAL_SIZE 16
 
 typedef struct nano_dispatcher_s {
   nng_socket *rep_sock;
@@ -52,7 +50,7 @@ typedef struct nano_dispatcher_s {
   int pipe_events_size;
 } nano_dispatcher;
 
-// Forward Declarations --------------------------------------------------------
+// forward declarations --------------------------------------------------------
 
 static void dispatch_shutdown(nano_dispatcher *d);
 static void dispatch_handle_connect(nano_dispatcher *d, int pipe);
@@ -62,7 +60,7 @@ static int dispatch_count_executing(nano_dispatcher *d);
 static int dispatch_cancel_inq(nano_dispatcher *d, int id);
 static nano_dispatch_daemon *dispatch_find_idle_daemon(nano_dispatcher *d);
 
-// Hash Table Operations -------------------------------------------------------
+// hash table operations -------------------------------------------------------
 
 static inline int dispatch_hash(int pipe, int size) {
 
@@ -143,7 +141,7 @@ static void dispatch_remove_daemon(nano_dispatcher *d, int pipe) {
 
 }
 
-// Queue Operations ------------------------------------------------------------
+// queue operations ------------------------------------------------------------
 
 static void dispatch_enqueue(nano_dispatcher *d, nng_ctx ctx,
                              nng_msg *msg, int msgid) {
@@ -190,7 +188,7 @@ static void dispatch_free_task(nano_dispatch_task *t) {
 
 }
 
-// Send Operations -------------------------------------------------------------
+// send operations -------------------------------------------------------------
 
 static int dispatch_send_to_daemon(nano_dispatcher *d, int pipe,
                                    unsigned char *data, size_t len) {
@@ -262,7 +260,7 @@ static void daemon_recv_cb(void *arg) {
 
 }
 
-// Message Utilities -----------------------------------------------------------
+// message utilities -----------------------------------------------------------
 
 static inline int dispatch_read_header(unsigned char *buf, size_t len) {
 
@@ -279,13 +277,7 @@ static inline int dispatch_read_marker(unsigned char *buf, size_t len) {
 
 }
 
-static inline int dispatch_read_msg_marker(nng_msg *msg) {
-
-  return dispatch_read_marker(nng_msg_body(msg), nng_msg_len(msg));
-
-}
-
-// Monitor Processing ----------------------------------------------------------
+// monitor processing ----------------------------------------------------------
 
 static int dispatch_ensure_pipe_events(nano_dispatcher *d, int needed) {
 
@@ -338,7 +330,7 @@ static int dispatch_process_monitor(nano_dispatcher *d) {
 
 }
 
-// Event Handlers --------------------------------------------------------------
+// event handlers --------------------------------------------------------------
 
 static void dispatch_handle_connect(nano_dispatcher *d, int pipe) {
 
@@ -453,9 +445,7 @@ static void dispatch_handle_daemon_recv(nano_dispatcher *d) {
 
   nano_dispatch_daemon *dd = dispatch_find_daemon(d, pipe_id);
   if (dd != NULL && dd->msgid != 0) {
-    unsigned char *buf = nng_msg_body(msg);
-    size_t len = nng_msg_len(msg);
-    int is_marker = dispatch_read_marker(buf, len);
+    int is_marker = dispatch_read_marker(nng_msg_body(msg), nng_msg_len(msg));
 
     if (dispatch_send_msg_reply(dd->ctx, msg) == 0)
       msg = NULL;
@@ -469,14 +459,13 @@ static void dispatch_handle_daemon_recv(nano_dispatcher *d) {
     }
   }
 
-  if (msg)
-    nng_msg_free(msg);
+  nng_msg_free(msg);
 
   nng_recv_aio(*d->poly_sock, d->daemon_aio);
 
 }
 
-// Helper Functions ------------------------------------------------------------
+// helper functions ------------------------------------------------------------
 
 static int dispatch_count_executing(nano_dispatcher *d) {
 
@@ -521,14 +510,14 @@ static nano_dispatch_daemon *dispatch_find_idle_daemon(nano_dispatcher *d) {
 
 }
 
-// Task Dispatcher -------------------------------------------------------------
+// task dispatcher -------------------------------------------------------------
 
 static void dispatch_dispatch_tasks(nano_dispatcher *d) {
 
   while (d->inq_head) {
     nano_dispatch_task *t = d->inq_head;
 
-    int is_sync = dispatch_read_msg_marker(t->msg);
+    int is_sync = dispatch_read_marker(nng_msg_body(t->msg), nng_msg_len(t->msg));
 
     nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
     if (dd == NULL)
@@ -554,10 +543,9 @@ static void dispatch_dispatch_tasks(nano_dispatcher *d) {
 
 }
 
-// Main Event Loop -------------------------------------------------------------
+// main event loop -------------------------------------------------------------
 
-static void dispatch_wait_cv(nano_dispatcher *d,
-                             int *host_ready, int *daemon_ready) {
+static void dispatch_wait_cv(nano_dispatcher *d, int *host_ready, int *daemon_ready) {
 
   nng_mtx *mtx = d->cv->mtx;
   nng_cv *cv = d->cv->cv;
@@ -605,7 +593,7 @@ static int dispatch_loop(nano_dispatcher *d) {
 
 }
 
-// Shutdown --------------------------------------------------------------------
+// shutdown --------------------------------------------------------------------
 
 static void dispatch_shutdown(nano_dispatcher *d) {
 
@@ -650,18 +638,14 @@ static void dispatch_shutdown(nano_dispatcher *d) {
     free(d->outq_table);
   }
 
-  if (d->host_aio)
-    nng_aio_free(d->host_aio);
-  if (d->daemon_aio)
-    nng_aio_free(d->daemon_aio);
-
+  nng_aio_free(d->host_aio);
+  nng_aio_free(d->daemon_aio);
   free(d->pipe_events);
-
   free(d);
 
 }
 
-// Public Entry Point ----------------------------------------------------------
+// public entry point ----------------------------------------------------------
 
 SEXP rnng_dispatcher_run(SEXP rep, SEXP poly, SEXP mon, SEXP reset,
                          SEXP serial, SEXP envir, SEXP next_stream_fun) {
@@ -691,20 +675,17 @@ SEXP rnng_dispatcher_run(SEXP rep, SEXP poly, SEXP mon, SEXP reset,
   d->outq_table = calloc(d->outq_size, sizeof(nano_dispatch_daemon *));
   if (d->outq_table == NULL) { xc = 2; goto fail; }
 
-  if ((xc = nng_aio_alloc(&d->host_aio, host_recv_cb, d)))
-    goto fail;
-  if ((xc = nng_aio_alloc(&d->daemon_aio, daemon_recv_cb, d)))
+  if ((xc = nng_aio_alloc(&d->host_aio, host_recv_cb, d)) ||
+      (xc = nng_aio_alloc(&d->daemon_aio, daemon_recv_cb, d)) ||
+      (xc = nng_ctx_open(&d->host_ctx, *d->rep_sock)))
     goto fail;
 
-  if ((xc = nng_ctx_open(&d->host_ctx, *d->rep_sock)))
-    goto fail;
   nng_ctx_recv(d->host_ctx, d->host_aio);
-
   nng_recv_aio(*d->poly_sock, d->daemon_aio);
 
   xc = dispatch_loop(d);
-
   dispatch_shutdown(d);
+
   return Rf_ScalarInteger(xc);
 
   fail:
