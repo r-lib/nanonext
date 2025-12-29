@@ -4,7 +4,7 @@
 
 - Fixes a potential crash when a serialization hook errors
   ([\#225](https://github.com/r-lib/nanonext/issues/225)).
-- Performance improvements for async sends.
+- Performance improvements for serialization and async sends.
 - Building from source no longer requires `xz`.
 
 ## nanonext 1.7.2
