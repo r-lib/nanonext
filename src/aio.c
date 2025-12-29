@@ -669,7 +669,7 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     saio = calloc(1, sizeof(nano_aio));
     NANO_ENSURE_ALLOC(saio);
     saio->type = IOV_SENDAIO;
-    saio->data = calloc(buf.cur, sizeof(unsigned char));
+    saio->data = malloc(buf.cur);
     NANO_ENSURE_ALLOC(saio->data);
     memcpy(saio->data, buf.buf, buf.cur);
     nng_iov iov = {
@@ -752,7 +752,7 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
     raio->next = ncv;
     raio->type = signal ? IOV_RECVAIOS : IOV_RECVAIO;
     raio->mode = mod;
-    raio->data = calloc(xlen, sizeof(unsigned char));
+    raio->data = malloc(xlen);
     NANO_ENSURE_ALLOC(raio->data);
     nng_iov iov = {
       .iov_buf = raio->data,
