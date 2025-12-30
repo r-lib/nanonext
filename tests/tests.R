@@ -814,6 +814,8 @@ if (NOT_CRAN) {
 
 if (NOT_CRAN) {
   cert <- write_cert(cn = "127.0.0.1")
+  certfile <- tempfile()
+  cat(cert$server, file = certfile)
   stream_code <- sprintf('
     library(nanonext)
     s <- stream(listen = "tcp://127.0.0.1:25555")
@@ -825,10 +827,10 @@ if (NOT_CRAN) {
     close(s)
     s <- stream(listen = "ws://127.0.0.1:25555/api", textframes = TRUE)
     close(s)
-    tls <- tls_config(server = %s)
+    tls <- tls_config(server = "%s")
     s <- stream(listen = "wss://127.0.0.1:25555/secure", tls = tls, textframes = TRUE)
     close(s)
-  ', deparse1(cert$server))
+  ', certfile)
   script <- tempfile(fileext = ".R")
   writeLines(stream_code, script)
   Rscript <- file.path(R.home("bin"), if (.Platform$OS.type == "windows") "Rscript.exe" else "Rscript")
@@ -852,6 +854,7 @@ if (NOT_CRAN) {
   test_class("nanoStream", s <- stream(dial = "wss://127.0.0.1:25555/secure", tls = tls, textframes = TRUE))
   test_zero(close(s))
   unlink(script)
+  unlink(certfile)
 }
 
 if (!interactive() && NOT_CRAN) {
