@@ -816,6 +816,7 @@ if (NOT_CRAN) {
   cert <- write_cert(cn = "127.0.0.1")
   certfile <- tempfile()
   cat(cert$server, file = certfile, sep = "\n")
+  certfile <- gsub("\\", "/", certfile, fixed = TRUE)
   stream_code <- sprintf('
     library(nanonext)
     s <- stream(listen = "tcp://127.0.0.1:25555")
