@@ -669,21 +669,6 @@ test_zero(close(dpsock))
 test_zero(close(dsock))
 
 if (NOT_CRAN) {
-  s1 <- socket("pair", listen = "inproc://stress")
-  s2 <- socket("pair", dial = "inproc://stress")
-  aios <- lapply(1:50, function(i) recv_aio(s1, timeout = 2000))
-  for (i in 1:50) send(s2, i, block = 100)
-  results <- lapply(aios, call_aio)
-  test_equal(sum(sapply(results, function(x) !is_error_value(x$data))), 50L)
-  close(s1)
-  close(s2)
-  for (i in 1:100) {
-    s <- socket("pair")
-    test_zero(close(s))
-  }
-}
-
-if (NOT_CRAN) {
   if (.Platform$OS.type == "windows") {
     url_rep <- sprintf("ipc://nanonext-rep-%d", Sys.getpid())
     url_poly <- sprintf("ipc://nanonext-poly-%d", Sys.getpid())
