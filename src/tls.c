@@ -69,12 +69,12 @@ SEXP rnng_random(SEXP n, SEXP convert) {
   case INTSXP:
   case LGLSXP:
     sz = NANO_INTEGER(n);
-    if (sz >= 0 && sz <= 1024) break;
+    if (sz > 0 && sz <= 1024) break;
   case REALSXP:
     sz = Rf_asInteger(n);
-    if (sz >= 0 && sz <= 1024) break;
+    if (sz > 0 && sz <= 1024) break;
   default:
-    Rf_error("`n` must be an integer value between 0 and 1024");
+    Rf_error("`n` must be an integer value between 1 and 1024");
   }
 
   SEXP out;
