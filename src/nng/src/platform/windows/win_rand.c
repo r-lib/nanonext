@@ -22,13 +22,8 @@ nni_random(void)
 {
 	unsigned val;
 
-	// rand_s is claimed by Microsoft to generate cryptographically
-	// secure numbers.  It also is claimed that this will only fail
-	// for EINVAL if val is NULL (not the case here).  Other error
-	// conditions might be possible, but we have no way to tell.
-	// For now we just ignore that possibility.
 	rand_s(&val);
 	return ((uint32_t)val);
 }
 
-#endif // NNG_PLATFORM_WINDOWS
+#endif

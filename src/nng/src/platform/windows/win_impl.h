@@ -15,7 +15,6 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-// These headers must be included first.
 #include <windows.h>
 #include <winsock2.h>
 
@@ -124,4 +123,4 @@ extern int nni_win_nn2sockaddr(SOCKADDR_STORAGE *, const nni_sockaddr *);
 
 #define NNG_PLATFORM_DIR_SEP "\\"
 
-#endif // PLATFORM_WIN_IMPL_H
+#endif

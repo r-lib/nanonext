@@ -29,7 +29,7 @@ struct nni_tcp_conn {
 };
 
 struct nni_tcp_dialer {
-	nni_list                connq; // pending connections
+	nni_list                connq;
 	bool                    closed;
 	bool                    nodelay;
 	bool                    keepalive;
@@ -45,4 +45,4 @@ extern void nni_posix_tcp_init(nni_tcp_conn *, nni_posix_pfd *);
 extern void nni_posix_tcp_start(nni_tcp_conn *, int, int);
 extern void nni_posix_tcp_dialer_rele(nni_tcp_dialer *);
 
-#endif // PLATFORM_POSIX_TCP_H
+#endif

@@ -33,4 +33,4 @@ nni_win_tcp_sysfini(void)
 	WSACleanup();
 }
 
-#endif // NNG_PLATFORM_WINDOWS
+#endif

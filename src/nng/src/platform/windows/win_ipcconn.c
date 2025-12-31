@@ -61,18 +61,11 @@ ipc_recv_start(ipc_conn *c)
 	    idx++;
 	  }
 	  NNI_ASSERT(idx < naiov);
-	  // Now start a transfer.  We assume that only one send can be
-	  // outstanding on a pipe at a time.  This is important to avoid
-	  // scrambling the data anyway.  Note that Windows named pipes
-	  // do not appear to support scatter/gather, so we have to
-	  // process each element in turn.
 	  buf = aiov[idx].iov_buf;
 	  len = (DWORD) aiov[idx].iov_len;
 	  NNI_ASSERT(buf != NULL);
 	  NNI_ASSERT(len != 0);
 
-	  // We limit ourselves to writing 16MB at a time.  Named Pipes
-	  // on Windows have limits of between 31 and 64MB.
 	  if (len > 0x1000000) {
 	    len = 0x1000000;
 	  }
@@ -80,7 +73,6 @@ ipc_recv_start(ipc_conn *c)
 	  c->recving = true;
 	  if ((!ReadFile(c->f, buf, len, NULL, &c->recv_io.olpd)) &&
        ((rv = GetLastError()) != ERROR_IO_PENDING)) {
-	    // Synchronous failure.
 	    c->recving = false;
 	    nni_aio_list_remove(aio);
 	    nni_aio_finish_error(aio, nni_win_error(rv));
@@ -104,7 +96,6 @@ ipc_recv_cb(nni_win_io *io, int rv, size_t num)
 		c->recv_rv = 0;
 	}
 	if ((rv == 0) && (num == 0)) {
-		// A zero byte receive is a remote close from the peer.
 		rv = NNG_ECONNSHUT;
 	}
 	c->recving = false;
@@ -182,18 +173,11 @@ ipc_send_start(ipc_conn *c)
 	    idx++;
 	  }
 	  NNI_ASSERT(idx < naiov);
-	  // Now start a transfer.  We assume that only one send can be
-	  // outstanding on a pipe at a time.  This is important to avoid
-	  // scrambling the data anyway.  Note that Windows named pipes
-	  // do not appear to support scatter/gather, so we have to
-	  // process each element in turn.
 	  buf = aiov[idx].iov_buf;
 	  len = (DWORD) aiov[idx].iov_len;
 	  NNI_ASSERT(buf != NULL);
 	  NNI_ASSERT(len != 0);
 
-	  // We limit ourselves to writing 16MB at a time.  Named Pipes
-	  // on Windows have limits of between 31 and 64MB.
 	  if (len > 0x1000000) {
 	    len = 0x1000000;
 	  }
@@ -201,7 +185,6 @@ ipc_send_start(ipc_conn *c)
 	  c->sending = true;
 	  if ((!WriteFile(c->f, buf, len, NULL, &c->send_io.olpd)) &&
        ((rv = GetLastError()) != ERROR_IO_PENDING)) {
-	    // Synchronous failure.
 	    c->sending = false;
 	    nni_aio_list_remove(aio);
 	    nni_aio_finish_error(aio, nni_win_error(rv));
@@ -296,10 +279,6 @@ ipc_close(void *arg)
 		}
 	}
 	now = nni_clock();
-	// wait up to a maximum of 10 seconds before assuming something is
-	// badly amiss. from what we can tell, this doesn't happen, and we do
-	// see the timer expire properly, but this safeguard can prevent a
-	// hang.
 	while ((c->recving || c->sending) &&
         ((nni_clock() - now) < (NNI_SECOND * 10))) {
 	  nni_mtx_unlock(&c->mtx);
@@ -380,7 +359,7 @@ static const nni_option ipc_conn_options[] = {
 	    .o_get  = ipc_conn_get_peer_pid,
 	},
 	{
-	    .o_name = NULL, // terminator
+	    .o_name = NULL,
 	},
 };
 

@@ -14,11 +14,6 @@
 
 #include <stdio.h>
 
-// Windows IO Completion Port support.  We basically create a single
-// IO completion port, then start threads on it.  Handles are added
-// to the port on an as needed basis.  We use a single IO completion
-// port for pretty much everything.
-
 static int      win_io_nthr = 0;
 static HANDLE   win_io_h    = NULL;
 static nni_thr *win_io_thrs;
@@ -40,7 +35,6 @@ win_io_handler(void *arg)
 		    win_io_h, &cnt, &key, &olpd, INFINITE);
 
 		if (olpd == NULL) {
-			// Completion port closed...
 			NNI_ASSERT(ok == FALSE);
 			break;
 		}
@@ -143,4 +137,4 @@ nni_win_io_sysfini(void)
 	NNI_FREE_STRUCTS(win_io_thrs, win_io_nthr);
 }
 
-#endif // NNG_PLATFORM_WINDOWS
+#endif

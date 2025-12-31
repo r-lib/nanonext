@@ -17,8 +17,6 @@
 extern "C" {
 #endif
 
-// TLS transport.  This is used for communication via TLS v1.2 over TCP/IP.
-
 #ifndef NNG_ELIDE_DEPRECATED
 NNG_DECL int nng_tls_register(void);
 #endif
@@ -27,4 +25,4 @@ NNG_DECL int nng_tls_register(void);
 }
 #endif
 
-#endif // NNG_TRANSPORT_TLS_TLS_H
+#endif

@@ -47,7 +47,6 @@ nni_plat_strerror(int errnum)
 	return (strerror(errnum));
 }
 
-// Win32 has its own error codes, but these ones it shares with POSIX.
 static struct {
 	int sys_err;
 	int nng_err;
@@ -64,7 +63,7 @@ static struct {
 	{ ENAMETOOLONG,	NNG_EINVAL },
 	{ EPERM,	NNG_EPERM },
 	{ EPIPE,	NNG_ECLOSED },
-	{ 0,		0 } // must be last
+	{ 0,		0 }
 	// clang-format on
 };
 
@@ -81,15 +80,9 @@ nni_plat_errno(int errnum)
 			return (nni_plat_errnos[i].nng_err);
 		}
 	}
-	// Other system errno.
 	return (NNG_ESYSERR + errnum);
 }
 
-// Windows has infinite numbers of error codes it seems.  We only bother
-// with the ones that are relevant to us (we think).  Note that there is
-// no overlap between errnos and GetLastError values.  Note also that
-// the WinSock errors are basically in the same number space as other
-// errors, and WSAGetLastError() is an alias for GetLastError().
 static struct {
 	int win_err;
 	int nng_err;
@@ -152,13 +145,10 @@ static struct {
 	{ WSATRY_AGAIN,		    NNG_EAGAIN	     },
 	{ WSANO_DATA,		    NNG_EADDRINVAL   },
 
-	// Must be Last!!
 	{			 0,		   0 },
 	// clang-format on
 };
 
-// This converts a Windows API error (from GetLastError()) to an
-// nng standard error code.
 int
 nni_win_error(int errnum)
 {
@@ -172,8 +162,7 @@ nni_win_error(int errnum)
 			return (nni_win_errnos[i].nng_err);
 		}
 	}
-	// Other system errno.
 	return (NNG_ESYSERR + errnum);
 }
 
-#endif // NNG_PLATFORM_WINDOWS
+#endif

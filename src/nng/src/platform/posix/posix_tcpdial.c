@@ -23,7 +23,6 @@
 
 #include "posix_tcp.h"
 
-// Dialer stuff.
 int
 nni_tcp_dialer_init(nni_tcp_dialer **dp)
 {
@@ -137,8 +136,6 @@ tcp_dialer_cb(nni_posix_pfd *pfd, unsigned ev, void *arg)
 			rv = errno;
 		}
 		if (rv == EINPROGRESS) {
-			// Connection still in progress, come back
-			// later.
 			nni_mtx_unlock(&d->mtx);
 			return;
 		} else if (rv != 0) {
@@ -166,8 +163,6 @@ tcp_dialer_cb(nni_posix_pfd *pfd, unsigned ev, void *arg)
 	nni_aio_finish(aio, 0, 0);
 }
 
-// We don't give local address binding support.  Outbound dialers always
-// get an ephemeral port.
 void
 nni_tcp_dial(nni_tcp_dialer *d, const nni_sockaddr *sa, nni_aio *aio)
 {
@@ -203,11 +198,8 @@ nni_tcp_dial(nni_tcp_dialer *d, const nni_sockaddr *sa, nni_aio *aio)
 		return;
 	}
 
-	// This arranges for the fd to be in non-blocking mode, and adds the
-	// poll fd to the list.
 	if ((rv = nni_posix_pfd_init(&pfd, fd)) != 0) {
 		(void) close(fd);
-		// the error label unlocks this
 		nni_mtx_lock(&d->mtx);
 		goto error;
 	}
@@ -234,7 +226,6 @@ nni_tcp_dial(nni_tcp_dialer *d, const nni_sockaddr *sa, nni_aio *aio)
 			rv = nni_plat_errno(errno);
 			goto error;
 		}
-		// Asynchronous connect.
 		if ((rv = nni_posix_pfd_arm(pfd, NNI_POLL_OUT)) != 0) {
 			goto error;
 		}
@@ -244,8 +235,6 @@ nni_tcp_dial(nni_tcp_dialer *d, const nni_sockaddr *sa, nni_aio *aio)
 		nni_mtx_unlock(&d->mtx);
 		return;
 	}
-	// Immediate connect, cool!  This probably only happens
-	// on loop back, and probably not on every platform.
 	nni_aio_set_prov_data(aio, NULL);
 	nd = d->nodelay ? 1 : 0;
 	ka = d->keepalive ? 1 : 0;
@@ -347,8 +336,6 @@ tcp_dialer_set_locaddr(void *arg, const void *buf, size_t sz, nni_type t)
 	if ((len = nni_posix_nn2sockaddr(&ss, &sa)) == 0) {
 		return (NNG_EADDRINVAL);
 	}
-	// Ensure we are either IPv4 or IPv6, and port is not set.  (We
-	// do not allow binding to a specific port.)
 	switch (ss.ss_family) {
 	case AF_INET:
 		sin = (void *) &ss;

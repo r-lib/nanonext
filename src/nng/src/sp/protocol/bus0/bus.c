@@ -15,11 +15,6 @@
 #include "nng/protocol/bus0/bus.h"
 #include <stdio.h>
 
-// Bus protocol.  The BUS protocol, each peer sends a message to its peers.
-// However, bus protocols do not "forward" (absent a device).  So in order
-// for each participant to receive the message, each sender must be connected
-// to every other node in the network (full mesh).
-
 #ifndef NNI_PROTO_BUS_V0
 #define NNI_PROTO_BUS_V0 NNI_PROTO(7, 0)
 #endif
@@ -35,7 +30,6 @@ static void bus0_pipe_recv(bus0_pipe *);
 static void bus0_pipe_send_cb(void *);
 static void bus0_pipe_recv_cb(void *);
 
-// bus0_sock is our per-socket protocol private structure.
 struct bus0_sock {
 	nni_list     pipes;
 	nni_mtx      mtx;
@@ -47,7 +41,6 @@ struct bus0_sock {
 	bool         raw;
 };
 
-// bus0_pipe is our per-pipe protocol private structure.
 struct bus0_pipe {
 	nni_pipe     *pipe;
 	bus0_sock    *bus;
@@ -194,7 +187,6 @@ bus0_pipe_send_cb(void *arg)
 	nni_msg   *msg;
 
 	if (nni_aio_result(&p->aio_send) != 0) {
-		// closed?
 		nni_msg_free(nni_aio_get_msg(&p->aio_send));
 		nni_aio_set_msg(&p->aio_send, NULL);
 		nni_pipe_close(p->pipe);
@@ -240,7 +232,6 @@ bus0_pipe_recv_cb(void *arg)
 	} else if (nni_lmq_put(&s->recv_msgs, msg) == 0) {
 		nni_pollable_raise(&s->can_recv);
 	} else {
-		// dropped message due to no room
 		nni_msg_free(msg);
 	}
 	nni_mtx_unlock(&s->mtx);
@@ -275,14 +266,10 @@ bus0_sock_send(void *arg, nni_aio *aio)
 	nni_aio_set_msg(aio, NULL);
 
 	if (s->raw) {
-		// In raw mode, we look for the message header, to see if it
-		// is being resent from another pipe (e.g. via a device).
-		// We don't want to send it back to the originator.
 		if (nni_msg_header_len(msg) >= sizeof(uint32_t)) {
 			sender = nni_msg_header_trim_u32(msg);
 		}
 	} else {
-		// In cooked mode just strip the header.
 		nni_msg_header_clear(msg);
 	}
 
@@ -293,7 +280,6 @@ bus0_sock_send(void *arg, nni_aio *aio)
 			continue;
 		}
 
-		// if the pipe isn't busy, then send this message direct.
 		if (!pipe->busy) {
 			pipe->busy = true;
 			nni_msg_clone(msg);
@@ -366,7 +352,6 @@ bus0_sock_get_send_fd(void *arg, void *buf, size_t *szp, nni_type t)
 	int        fd;
 	int        rv;
 	nni_mtx_lock(&sock->mtx);
-	// BUS sockets are *always* writable (best effort)
 	nni_pollable_raise(&sock->can_send);
 	rv = nni_pollable_getfd(&sock->can_send, &fd);
 	nni_mtx_unlock(&sock->mtx);
@@ -448,11 +433,6 @@ bus0_sock_set_send_buf_len(void *arg, const void *buf, size_t sz, nni_type t)
 	nni_mtx_lock(&s->mtx);
 	s->send_buf = val;
 	NNI_LIST_FOREACH (&s->pipes, p) {
-		// If we fail part way through (should only be ENOMEM), we
-		// stop short.  The others would likely fail for ENOMEM as
-		// well anyway.  There is a weird effect here where the
-		// buffers may have been set for *some* of the pipes, but
-		// we have no way to correct partial failure.
 		if ((rv = nni_lmq_resize(&p->send_queue, (size_t) val)) != 0) {
 			break;
 		}
@@ -489,7 +469,6 @@ static nni_option bus0_sock_options[] = {
 	    .o_get  = bus0_sock_get_send_buf_len,
 	    .o_set  = bus0_sock_set_send_buf_len,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},

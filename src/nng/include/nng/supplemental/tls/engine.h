@@ -84,4 +84,4 @@ NNG_DECL int nng_tls_engine_send(void *, const uint8_t *, size_t *);
 
 NNG_DECL int nng_tls_engine_recv(void *, uint8_t *, size_t *);
 
-#endif // NNG_SUPPLEMENTAL_TLS_ENGINE_H
+#endif

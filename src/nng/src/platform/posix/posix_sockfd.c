@@ -85,15 +85,10 @@ sfd_dowrite(nni_sfd_conn *c)
 			}
 		}
 
-		// If we didn't send all the data, the caller will
-		// resubmit.  As a corollary, callers should probably
-		// only have one message on the write queue at a time.
 		nni_aio_bump_count(aio, n);
 		nni_aio_list_remove(aio);
 		nni_aio_finish(aio, 0, nni_aio_count(aio));
 
-		// Go back to start of loop to see if there is another
-		// aio ready for us to process.
 	}
 }
 
@@ -144,8 +139,6 @@ sfd_doread(nni_sfd_conn *c)
 		}
 
 		if (n == 0) {
-			// Zero indicates a closed descriptor.
-			// This implicitly completes this (all!) aio.
 			nni_aio_list_remove(aio);
 			nni_aio_finish_error(aio, NNG_ECONNSHUT);
 			continue;
@@ -153,12 +146,9 @@ sfd_doread(nni_sfd_conn *c)
 
 		nni_aio_bump_count(aio, n);
 
-		// We completed the entire operation on this aio.
 		nni_aio_list_remove(aio);
 		nni_aio_finish(aio, 0, nni_aio_count(aio));
 
-		// Go back to start of loop to see if there is another
-		// aio ready for us to process.
 	}
 }
 
@@ -200,8 +190,6 @@ sfd_close(void *arg)
 	nni_mtx_unlock(&c->mtx);
 }
 
-// sfd_fini may block briefly waiting for the pollq thread.
-// To get that out of our context, we simply reap this.
 static void
 sfd_fini(void *arg)
 {
@@ -288,9 +276,6 @@ sfd_send(void *arg, nni_aio *aio)
 
 	if (nni_list_first(&c->writeq) == aio) {
 		sfd_dowrite(c);
-		// If we are still the first thing on the list, that
-		// means we didn't finish the job, so arm the poller to
-		// complete us.
 		if (nni_list_first(&c->writeq) == aio) {
 			nni_posix_pfd_arm(c->pfd, POLLOUT);
 		}
@@ -316,15 +301,8 @@ sfd_recv(void *arg, nni_aio *aio)
 	}
 	nni_aio_list_append(&c->readq, aio);
 
-	// If we are only job on the list, go ahead and try to do an
-	// immediate transfer. This allows for faster completions in
-	// many cases.  We also need not arm a list if it was already
-	// armed.
 	if (nni_list_first(&c->readq) == aio) {
 		sfd_doread(c);
-		// If we are still the first thing on the list, that
-		// means we didn't finish the job, so arm the poller to
-		// complete us.
 		if (nni_list_first(&c->readq) == aio) {
 			nni_posix_pfd_arm(c->pfd, POLLIN);
 		}
@@ -384,7 +362,6 @@ sfd_get_peer_zoneid(void *arg, void *buf, size_t *szp, nni_type t)
 		return (rv);
 	}
 	if (id == (uint64_t) -1) {
-		// NB: -1 is not a legal zone id (illumos/Solaris)
 		return (NNG_ENOTSUP);
 	}
 	return (nni_copyout_u64(id, buf, szp, t));
@@ -403,7 +380,6 @@ sfd_get_peer_pid(void *arg, void *buf, size_t *szp, nni_type t)
 		return (rv);
 	}
 	if (id == (uint64_t) -1) {
-		// NB: -1 is not a legal process id
 		return (NNG_ENOTSUP);
 	}
 	return (nni_copyout_u64(id, buf, szp, t));

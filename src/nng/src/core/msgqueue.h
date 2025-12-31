@@ -34,4 +34,4 @@ extern int nni_msgq_cap(nni_msgq *mq);
 extern int nni_msgq_get_recvable(nni_msgq *mq, nni_pollable **);
 extern int nni_msgq_get_sendable(nni_msgq *mq, nni_pollable **);
 
-#endif // CORE_MSQUEUE_H
+#endif

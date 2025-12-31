@@ -272,4 +272,4 @@ NNG_DECL void nng_http_client_transact(
 }
 #endif
 
-#endif // NNG_H
+#endif

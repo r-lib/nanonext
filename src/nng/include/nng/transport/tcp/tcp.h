@@ -17,8 +17,6 @@
 extern "C" {
 #endif
 
-// TCP transport.  This is used for communication over TCP/IP.
-
 #ifndef NNG_ELIDE_DEPRECATED
 NNG_DECL int nng_tcp_register(void);
 #endif
@@ -27,4 +25,4 @@ NNG_DECL int nng_tcp_register(void);
 }
 #endif
 
-#endif // NNG_TRANSPORT_TCP_TCP_H
+#endif

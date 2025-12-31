@@ -23,4 +23,4 @@ typedef struct nni_ws_dialer   nni_ws_dialer;
 extern int nni_ws_listener_alloc(nng_stream_listener **, const nni_url *);
 extern int nni_ws_dialer_alloc(nng_stream_dialer **, const nni_url *);
 
-#endif // NNG_SUPPLEMENTAL_WEBSOCKET_WEBSOCKET_H
+#endif

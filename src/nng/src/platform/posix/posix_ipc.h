@@ -18,7 +18,7 @@
 #ifdef NNG_PLATFORM_POSIX
 #include "platform/posix/posix_aio.h"
 
-#include <sys/types.h> // For mode_t
+#include <sys/types.h>
 
 struct nni_ipc_conn {
 	nng_stream      stream;
@@ -35,7 +35,7 @@ struct nni_ipc_conn {
 
 struct nni_ipc_dialer {
 	nng_stream_dialer sd;
-	nni_list          connq; // pending connections
+	nni_list          connq;
 	bool              closed;
 	nni_mtx           mtx;
 	nng_sockaddr      sa;
@@ -49,6 +49,6 @@ extern void nni_posix_ipc_init(nni_ipc_conn *, nni_posix_pfd *);
 extern void nni_posix_ipc_start(nni_ipc_conn *);
 extern void nni_posix_ipc_dialer_rele(nni_ipc_dialer *);
 
-#endif // NNG_PLATFORM_POSIX
+#endif
 
-#endif // PLATFORM_POSIX_IPC_H
+#endif

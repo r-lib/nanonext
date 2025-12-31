@@ -15,15 +15,9 @@
 
 #include <nng/transport/ipc/ipc.h>
 
-// IPC transport.   Platform specific IPC operations must be
-// supplied as well.  Normally the IPC is UNIX domain sockets or
-// Windows named pipes.  Other platforms could use other mechanisms,
-// but all implementations on the platform must use the same mechanism.
-
 typedef struct ipc_pipe ipc_pipe;
 typedef struct ipc_ep   ipc_ep;
 
-// ipc_pipe is one end of an IPC connection.
 struct ipc_pipe {
 	nng_stream *    conn;
 	uint16_t        peer;
@@ -65,9 +59,9 @@ struct ipc_ep {
 	nni_aio *            user_aio;
 	nni_aio *            conn_aio;
 	nni_aio *            time_aio;
-	nni_list             busy_pipes; // busy pipes -- ones passed to socket
-	nni_list             wait_pipes; // pipes waiting to match to socket
-	nni_list             nego_pipes; // pipes busy negotiating
+	nni_list             busy_pipes;
+	nni_list             wait_pipes;
+	nni_list             nego_pipes;
 	nni_reap_node        reap;
 #ifdef NNG_ENABLE_STATS
 	nni_stat_item st_rcv_max;
@@ -222,7 +216,6 @@ ipc_pipe_nego_cb(void *arg)
 		goto error;
 	}
 
-	// We start transmitting before we receive.
 	if (p->got_tx_head < p->want_tx_head) {
 		p->got_tx_head += nni_aio_count(aio);
 	} else if (p->got_rx_head < p->want_rx_head) {
@@ -233,7 +226,6 @@ ipc_pipe_nego_cb(void *arg)
 		iov.iov_len = p->want_tx_head - p->got_tx_head;
 		iov.iov_buf = &p->tx_head[p->got_tx_head];
 		nni_aio_set_iov(aio, 1, &iov);
-		// send it down...
 		nng_stream_send(p->conn, aio);
 		nni_mtx_unlock(&p->ep->mtx);
 		return;
@@ -247,8 +239,6 @@ ipc_pipe_nego_cb(void *arg)
 		nni_mtx_unlock(&p->ep->mtx);
 		return;
 	}
-	// We have both sent and received the headers.  Let's check the
-	// receiver.
 	if ((p->rx_head[0] != 0) || (p->rx_head[1] != 'S') ||
 	    (p->rx_head[2] != 'P') || (p->rx_head[3] != 0) ||
 	    (p->rx_head[6] != 0) || (p->rx_head[7] != 0)) {
@@ -258,8 +248,6 @@ ipc_pipe_nego_cb(void *arg)
 
 	NNI_GET16(&p->rx_head[4], p->peer);
 
-	// We are ready now.  We put this in the wait list, and
-	// then try to run the matcher.
 	nni_list_remove(&ep->nego_pipes, p);
 	nni_list_append(&ep->wait_pipes, p);
 
@@ -268,17 +256,11 @@ ipc_pipe_nego_cb(void *arg)
 	return;
 
 error:
-	// If the connection is closed, we need to pass back a different
-	// error code.  This is necessary to avoid a problem where the
-	// closed status is confused with the accept file descriptor
-	// being closed.
 	if (rv == NNG_ECLOSED) {
 		rv = NNG_ECONNSHUT;
 	}
 	nni_list_remove(&ep->nego_pipes, p);
 	nng_stream_close(p->conn);
-	// If we are waiting to negotiate on a client side, then a failure
-	// here has to be passed to the user app.
 	if ((user_aio = ep->user_aio) != NULL) {
 		ep->user_aio = NULL;
 		nni_aio_finish_error(user_aio, rv);
@@ -300,11 +282,6 @@ ipc_pipe_send_cb(void *arg)
 	nni_mtx_lock(&p->mtx);
 	if ((rv = nni_aio_result(tx_aio)) != 0) {
 		nni_pipe_bump_error(p->pipe, rv);
-		// Intentionally we do not queue up another transfer.
-		// There's an excellent chance that the pipe is no longer
-		// usable, with a partial transfer.
-		// The protocol should see this error, and close the
-		// pipe itself, we hope.
 
 		while ((aio = nni_list_first(&p->send_q)) != NULL) {
 			nni_aio_list_remove(aio);
@@ -349,56 +326,38 @@ ipc_pipe_recv_cb(void *arg)
 	nni_mtx_lock(&p->mtx);
 
 	if ((rv = nni_aio_result(rx_aio)) != 0) {
-		// Error on receive.  This has to cause an error back
-		// to the user.  Also, if we had an allocated rx_msg, lets
-		// toss it.
 		goto error;
 	}
 
 	n = nni_aio_count(rx_aio);
 	nni_aio_iov_advance(rx_aio, n);
 	if (nni_aio_iov_count(rx_aio) != 0) {
-		// Was this a partial read?  If so then resubmit for the rest.
 		nng_stream_recv(p->conn, rx_aio);
 		nni_mtx_unlock(&p->mtx);
 		return;
 	}
 
-	// If we don't have a message yet, we were reading the message
-	// header, which is just the length.  This tells us the size of the
-	// message to allocate and how much more to expect.
 	if (p->rx_msg == NULL) {
 		uint64_t len;
 
-		// Check to make sure we got msg type 1.
 		if (p->rx_head[0] != 1) {
 			rv = NNG_EPROTO;
 			goto error;
 		}
 
-		// We should have gotten a message header.
 		NNI_GET64(p->rx_head + 1, len);
 
-		// Make sure the message payload is not too big.  If it is
-		// the caller will shut down the pipe.
 		if ((len > p->rcv_max) && (p->rcv_max > 0)) {
 			rv = NNG_EMSGSIZE;
 			goto error;
 		}
 
-		// Note that all IO on this pipe is blocked behind this
-		// allocation.  We could possibly look at using a separate
-		// lock for the read side in the future, so that we allow
-		// transmits to proceed normally.  In practice this is
-		// unlikely to be much of an issue though.
 		if ((rv = nni_msg_alloc(&p->rx_msg, (size_t) len)) != 0) {
 			goto error;
 		}
 
 		if (len != 0) {
 			nni_iov iov;
-			// Submit the rest of the data for a read -- we want to
-			// read the entire message now.
 			iov.iov_buf = nni_msg_body(p->rx_msg);
 			iov.iov_len = (size_t) len;
 
@@ -408,9 +367,6 @@ ipc_pipe_recv_cb(void *arg)
 			return;
 		}
 	}
-
-	// Otherwise, we got a message read completely.  Let the user know the
-	// good news.
 
 	aio = nni_list_first(&p->recv_q);
 	nni_aio_list_remove(aio);
@@ -433,8 +389,6 @@ error:
 	msg       = p->rx_msg;
 	p->rx_msg = NULL;
 	nni_pipe_bump_error(p->pipe, rv);
-	// Intentionally, we do not queue up another receive.
-	// The protocol should notice this error and close the pipe.
 	nni_mtx_unlock(&p->mtx);
 
 	nni_msg_free(msg);
@@ -450,9 +404,6 @@ ipc_pipe_send_cancel(nni_aio *aio, void *arg, int rv)
 		nni_mtx_unlock(&p->mtx);
 		return;
 	}
-	// If this is being sent, then cancel the pending transfer.
-	// The callback on the tx_aio will cause the user aio to
-	// be canceled too.
 	if (nni_list_first(&p->send_q) == aio) {
 		nni_aio_abort(&p->tx_aio, rv);
 		nni_mtx_unlock(&p->mtx);
@@ -484,11 +435,10 @@ ipc_pipe_send_start(ipc_pipe *p)
 		return;
 	}
 
-	// This runs to send the message.
 	msg = nni_aio_get_msg(aio);
 	len = nni_msg_len(msg) + nni_msg_header_len(msg);
 
-	p->tx_head[0] = 1; // message type, 1.
+	p->tx_head[0] = 1;
 	NNI_PUT64(p->tx_head + 1, len);
 
 	nio            = 0;
@@ -516,8 +466,6 @@ ipc_pipe_send(void *arg, nni_aio *aio)
 	int       rv;
 
 	if (nni_aio_begin(aio) != 0) {
-		// No way to give the message back to the protocol, so
-		// we just discard it silently to prevent it from leaking.
 		nni_msg_free(nni_aio_get_msg(aio));
 		nni_aio_set_msg(aio, NULL);
 		return;
@@ -545,9 +493,6 @@ ipc_pipe_recv_cancel(nni_aio *aio, void *arg, int rv)
 		nni_mtx_unlock(&p->mtx);
 		return;
 	}
-	// If receive in progress, then cancel the pending transfer.
-	// The callback on the rx_aio will cause the user aio to
-	// be canceled too.
 	if (nni_list_first(&p->recv_q) == aio) {
 		nni_aio_abort(&p->rx_aio, rv);
 		nni_mtx_unlock(&p->mtx);
@@ -576,7 +521,6 @@ ipc_pipe_recv_start(ipc_pipe *p)
 		return;
 	}
 
-	// Schedule a read of the IPC header.
 	iov.iov_buf = p->rx_head;
 	iov.iov_len = sizeof(p->rx_head);
 	nni_aio_set_iov(&p->rx_aio, 1, &iov);
@@ -647,7 +591,7 @@ ipc_pipe_start(ipc_pipe *p, nng_stream *conn, ipc_ep *ep)
 	nni_aio_set_iov(&p->neg_aio, 1, &iov);
 	nni_list_append(&ep->nego_pipes, p);
 
-	nni_aio_set_timeout(&p->neg_aio, 10000); // 10 sec timeout to negotiate
+	nni_aio_set_timeout(&p->neg_aio, 10000);
 	nng_stream_send(p->conn, &p->neg_aio);
 }
 
@@ -746,8 +690,6 @@ ipc_ep_accept_cb(void *arg)
 	return;
 
 error:
-	// When an error here occurs, let's send a notice up to the consumer.
-	// That way it can be reported properly.
 	if ((aio = ep->user_aio) != NULL) {
 		ep->user_aio = NULL;
 		nni_aio_finish_error(aio, rv);
@@ -801,8 +743,6 @@ ipc_ep_dial_cb(void *arg)
 	return;
 
 error:
-	// Error connecting.  We need to pass this straight back
-	// to the user.
 	nni_mtx_lock(&ep->mtx);
 	if ((aio = ep->user_aio) != NULL) {
 		ep->user_aio = NULL;
@@ -1034,7 +974,6 @@ static const nni_option ipc_ep_options[] = {
 	    .o_get  = ipc_ep_get_recv_max_sz,
 	    .o_set  = ipc_ep_set_recv_max_sz,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},
@@ -1144,7 +1083,6 @@ static nni_sp_tran ipc_tran_abstract = {
 	.tran_fini     = ipc_tran_fini,
 };
 #endif
-
 
 #ifndef NNG_ELIDE_DEPRECATED
 int

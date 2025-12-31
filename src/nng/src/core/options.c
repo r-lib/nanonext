@@ -55,7 +55,6 @@ nni_copyin_bool(bool *bp, const void *v, size_t sz, nni_type t)
 		if (sz != sizeof(bool)) {
 			return (NNG_EINVAL);
 		}
-		// NB: C99 does not require that sizeof (bool) == 1.
 		if (bp != NULL) {
 			memcpy(bp, v, sz);
 		}
@@ -164,14 +163,14 @@ nni_copyin_str(char *s, const void *v, size_t sz, size_t maxsz, nni_type t)
 	case NNI_TYPE_OPAQUE:
 		z = v == NULL ? 0 : nni_strnlen(v, sz);
 		if (z >= sz) {
-			return (NNG_EINVAL); // missing terminator
+			return (NNG_EINVAL);
 		}
 		break;
 	default:
 		return (NNG_EBADTYPE);
 	}
 	if (z >= maxsz) {
-		return (NNG_EINVAL); // too long
+		return (NNG_EINVAL);
 	}
 	if (s != NULL) {
 		memcpy(s, v, z);
@@ -232,11 +231,9 @@ nni_copyout(const void *src, size_t srcsz, void *dst, size_t *dstszp)
 {
 	int    rv     = 0;
 	size_t copysz = *dstszp;
-	// Assumption is that this is type NNI_TYPE_OPAQUE.
 	if (copysz > srcsz) {
 		copysz = srcsz;
 	} else if (srcsz > copysz) {
-		// destination too small.
 		rv = NNG_EINVAL;
 	}
 	*dstszp = srcsz;

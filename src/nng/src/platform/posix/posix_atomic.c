@@ -8,8 +8,6 @@
 // found online at https://opensource.org/licenses/MIT.
 //
 
-// POSIX atomics.
-
 #include "core/nng_impl.h"
 
 #ifdef NNG_PLATFORM_POSIX
@@ -175,7 +173,6 @@ nni_atomic_dec64_nv(nni_atomic_u64 *v)
 {
 	uint64_t ov;
 
-	// C11 atomics give the old rather than new value.
 	ov = (uint64_t) atomic_fetch_sub(&v->v, 1);
 	return (ov - 1);
 }
@@ -183,15 +180,13 @@ nni_atomic_dec64_nv(nni_atomic_u64 *v)
 bool
 nni_atomic_cas64(nni_atomic_u64 *v, uint64_t comp, uint64_t new)
 {
-	// It's possible that uint_fast64_t is not the same type underneath
-	// as uint64_t.  (Would be unusual!)
 	uint_fast64_t cv = (uint_fast64_t) comp;
 	uint_fast64_t nv = (uint_fast64_t) new;
 	return (atomic_compare_exchange_strong(&v->v, &cv, nv));
 }
 
 #elif NNI_GCC_VERSION >= 40700 || \
-    defined(__clang__) // we have "new" GCC __atomic builtins
+    defined(__clang__)
 bool
 nni_atomic_flag_test_and_set(nni_atomic_flag *f)
 {
@@ -612,4 +607,4 @@ nni_atomic_cas(nni_atomic_int *v, int comp, int new)
 
 #endif
 
-#endif // NNG_PLATFORM_POSIX
+#endif

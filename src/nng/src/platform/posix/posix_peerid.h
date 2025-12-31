@@ -16,4 +16,4 @@
 int nni_posix_peerid(
     int fd, uint64_t *euid, uint64_t *egid, uint64_t *prid, uint64_t *znid);
 
-#endif // PLATFORM_POSIX_PEERID_H
+#endif

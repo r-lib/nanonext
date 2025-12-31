@@ -14,11 +14,6 @@
 
 #include <stdio.h>
 
-// This file contains functions related to pipe objects.
-//
-// Operations on pipes (to the transport) are generally blocking operations,
-// performed in the context of the protocol.
-
 static nni_id_map pipes =
     NNI_ID_MAP_INITIALIZER(1, 0x7fffffff, NNI_ID_FLAG_RANDOM);
 static nni_mtx pipes_lk = NNI_MTX_INITIALIZER;
@@ -40,13 +35,10 @@ pipe_destroy(void *arg)
 
 	nni_pipe_run_cb(p, NNG_PIPE_EV_REM_POST);
 
-	// Make sure any unlocked holders are done with this.
-	// This happens during initialization for example.
 	nni_mtx_lock(&pipes_lk);
 	if (p->p_id != 0) {
 		nni_id_remove(&pipes, p->p_id);
 	}
-	// This wait guarantees that all callers are done with us.
 	while (p->p_ref != 0) {
 		nni_cv_wait(&p->p_cv);
 	}
@@ -79,10 +71,6 @@ nni_pipe_find(nni_pipe **pp, uint32_t id)
 {
 	nni_pipe *p;
 
-	// We don't care if the pipe is "closed".  End users only have
-	// access to the pipe in order to obtain properties (which may
-	// be retried during the post-close notification callback) or to
-	// close the pipe.
 	nni_mtx_lock(&pipes_lk);
 	if ((p = nni_id_get(&pipes, id)) != NULL) {
 		p->p_ref++;
@@ -103,7 +91,6 @@ nni_pipe_rele(nni_pipe *p)
 	nni_mtx_unlock(&pipes_lk);
 }
 
-// nni_pipe_id returns the 32-bit pipe id, which can be used in backtraces.
 uint32_t
 nni_pipe_id(nni_pipe *p)
 {
@@ -122,21 +109,17 @@ nni_pipe_send(nni_pipe *p, nni_aio *aio)
 	p->p_tran_ops.p_send(p->p_tran_data, aio);
 }
 
-// nni_pipe_close closes the underlying connection.  It is expected that
-// subsequent attempts to receive or send (including any waiting receive) will
-// simply return NNG_ECLOSED.
 void
 nni_pipe_close(nni_pipe *p)
 {
 	if (nni_atomic_swap_bool(&p->p_closed, true)) {
-		return; // We already did a close.
+		return;
 	}
 
 	if (p->p_proto_data != NULL) {
 		p->p_proto_ops.pipe_close(p->p_proto_data);
 	}
 
-	// Close the underlying transport.
 	if (p->p_tran_data != NULL) {
 		p->p_tran_ops.p_close(p->p_tran_data);
 	}
@@ -223,7 +206,7 @@ pipe_stats_init(nni_pipe *p)
 	nni_stat_set_id(&p->st_id, (int) p->p_id);
 	nni_stat_set_id(&p->st_sock_id, (int) nni_sock_id(p->p_sock));
 }
-#endif // NNG_ENABLE_STATS
+#endif
 
 static int
 pipe_create(nni_pipe **pp, nni_sock *sock, nni_sp_tran *tran, void *tran_data)
@@ -237,7 +220,6 @@ pipe_create(nni_pipe **pp, nni_sock *sock, nni_sp_tran *tran, void *tran_data)
 	sz = NNI_ALIGN_UP(sizeof(*p)) + pops->pipe_size;
 
 	if ((p = nni_zalloc(sz)) == NULL) {
-		// In this case we just toss the pipe...
 		tran->tran_pipe->p_fini(tran_data);
 		return (NNG_ENOMEM);
 	}
@@ -336,8 +318,6 @@ nni_pipe_getopt(
 		return (rv);
 	}
 
-	// Maybe the endpoint knows? The guarantees on pipes ensure that the
-	// pipe will not outlive its creating endpoint.
 	if (p->p_dialer != NULL) {
 		return (nni_dialer_getopt(p->p_dialer, name, val, szp, t));
 	}

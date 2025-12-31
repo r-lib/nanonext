@@ -40,7 +40,7 @@ nni_id_map_init(nni_id_map *m, uint64_t lo, uint64_t hi, bool randomize)
 	m->id_cap      = 0;
 	m->id_dyn_val  = 0;
 	m->id_max_load = 0;
-	m->id_min_load = 0; // never shrink below this
+	m->id_min_load = 0;
 	m->id_min_val  = lo;
 	m->id_max_val  = hi;
 	if (randomize) {
@@ -61,9 +61,6 @@ nni_id_map_fini(nni_id_map *m)
 	}
 }
 
-// Inspired by Python dict implementation.  This probe will visit every
-// cell.  We always hash consecutively assigned IDs.  This requires that
-// the capacity is always a power of two.
 #define ID_NEXT(m, j) ((((j) *5) + 1) & (m->id_cap - 1))
 #define ID_INDEX(m, j) ((j) & (m->id_cap - 1))
 
@@ -79,7 +76,6 @@ id_find(nni_id_map *m, uint64_t id)
 	index = ID_INDEX(m, id);
 	start = index;
 	for (;;) {
-		// The value of ihe_key is only valid if ihe_val is not NULL.
 		if ((m->id_entries[index].key == id) &&
 		    (m->id_entries[index].val != NULL)) {
 			return (index);
@@ -167,12 +163,9 @@ id_resize(nni_id_map *m)
 	int           rv;
 
 	if ((m->id_load < m->id_max_load) && (m->id_load >= m->id_min_load)) {
-		// No resize needed.
 		return (0);
 	}
 
-	// if it is a statically declared map, register it so that we
-	// will free it at finalization time
 	if ((rv = id_map_register(m)) != 0) {
 		return (rv);
 	}
@@ -183,7 +176,6 @@ id_resize(nni_id_map *m)
 		new_cap *= 2;
 	}
 	if (new_cap == old_cap) {
-		// Same size.
 		return (0);
 	}
 
@@ -210,14 +202,8 @@ id_resize(nni_id_map *m)
 		}
 		index = old_entries[i].key & (new_cap - 1);
 		for (;;) {
-			// Increment the load unconditionally.  It counts
-			// once for every item stored, plus once for each
-			// hashing operation we use to store the item (i.e.
-			// one for the item, plus once for each rehash.)
 			m->id_load++;
 			if (new_entries[index].val == NULL) {
-				// As we are hitting this entry for the first
-				// time, it won't have any skips.
 				NNI_ASSERT(new_entries[index].skips == 0);
 				new_entries[index].val = old_entries[i].val;
 				new_entries[index].key = old_entries[i].key;
@@ -243,21 +229,16 @@ nni_id_remove(nni_id_map *m, uint64_t id)
 		return (NNG_ENOENT);
 	}
 
-	// Now we have found the index where the object exists.  We are going
-	// to restart the search, until the index matches, to decrement the
-	// skips counter.
 	probe = ID_INDEX(m, id);
 
 	for (;;) {
 		nni_id_entry *entry;
 
-		// The load was increased once each hashing operation we used
-		// to place the item.  Decrement it accordingly.
 		m->id_load--;
 		entry = &m->id_entries[probe];
 		if (probe == index) {
 			entry->val = NULL;
-			entry->key = 0; // invalid key
+			entry->key = 0;
 			break;
 		}
 		NNI_ASSERT(entry->skips > 0);
@@ -267,7 +248,6 @@ nni_id_remove(nni_id_map *m, uint64_t id)
 
 	m->id_count--;
 
-	// Shrink -- but it's ok if we can't.
 	(void) id_resize(m);
 
 	return (0);
@@ -279,12 +259,10 @@ nni_id_set(nni_id_map *m, uint64_t id, void *val)
 	size_t        index;
 	nni_id_entry *ent;
 
-	// Try to resize -- if we don't need to, this will be a no-op.
 	if (id_resize(m) != 0) {
 		return (NNG_ENOMEM);
 	}
 
-	// If it already exists, just overwrite the old value.
 	if ((index = id_find(m, id)) != (size_t) -1) {
 		ent      = &m->id_entries[index];
 		ent->val = val;
@@ -295,10 +273,6 @@ nni_id_set(nni_id_map *m, uint64_t id, void *val)
 	for (;;) {
 		ent = &m->id_entries[index];
 
-		// Increment the load count.  We do this each time time we
-		// rehash.  This may over-count items that collide on the
-		// same rehashing, but this should just cause a table to
-		// grow sooner, which is probably a good thing.
 		m->id_load++;
 		if (ent->val == NULL) {
 			m->id_count++;
@@ -306,9 +280,6 @@ nni_id_set(nni_id_map *m, uint64_t id, void *val)
 			ent->val = val;
 			return (0);
 		}
-		// Record the skip count.  This being non-zero informs
-		// that a rehash will be necessary.  Without this we
-		// would need to scan the entire hash for the match.
 		ent->skips++;
 		index = ID_NEXT(m, index);
 	}
@@ -322,14 +293,11 @@ nni_id_alloc(nni_id_map *m, uint64_t *idp, void *val)
 
 	NNI_ASSERT(val != NULL);
 
-	// range is inclusive, so > to get +1 effect.
 	if (m->id_count > (m->id_max_val - m->id_min_val)) {
-		// Really more like ENOSPC.. the table is filled to max.
 		return (NNG_ENOMEM);
 	}
 	if (m->id_dyn_val == 0) {
 		if (m->id_flags & NNI_ID_FLAG_RANDOM) {
-			// NB: The range is inclusive.
 			m->id_dyn_val = nni_random() %
 			        (m->id_max_val - m->id_min_val + 1) +
 			    m->id_min_val;

@@ -19,4 +19,4 @@ extern int nni_sfd_listener_alloc(nng_stream_listener **, const nng_url *);
 
 extern void nni_sfd_close_fd(int fd);
 
-#endif // CORE_FDC_H
+#endif

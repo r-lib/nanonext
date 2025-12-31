@@ -13,20 +13,15 @@
 #include "core/nng_impl.h"
 #include "nng/protocol/reqrep0/req.h"
 
-// Request protocol.  The REQ protocol is the "request" side of a
-// request-reply pair.  This is useful for building RPC clients, for example.
-
 typedef struct xreq0_pipe xreq0_pipe;
 typedef struct xreq0_sock xreq0_sock;
 
-// An xreq0_sock is our per-socket protocol private structure.
 struct xreq0_sock {
 	nni_msgq *     uwq;
 	nni_msgq *     urq;
 	nni_atomic_int ttl;
 };
 
-// A req0_pipe is our per-pipe protocol private structure.
 struct xreq0_pipe {
 	nni_pipe *  pipe;
 	xreq0_sock *req;
@@ -134,12 +129,6 @@ xreq0_pipe_close(void *arg)
 	nni_aio_close(&p->aio_send);
 }
 
-// For raw mode we can just let the pipes "contend" via get queue to get a
-// message from the upper write queue.  The msg queue implementation
-// actually provides ordering, so load will be spread automatically.
-// (NB: We may have to revise this in the future if we want to provide some
-// kind of priority.)
-
 static void
 xreq0_getq_cb(void *arg)
 {
@@ -168,7 +157,6 @@ xreq0_send_cb(void *arg)
 		return;
 	}
 
-	// Sent a message so we just need to look for another one.
 	nni_msgq_aio_get(p->req->uwq, &p->aio_getq);
 }
 
@@ -210,7 +198,6 @@ xreq0_recv_cb(void *arg)
 		uint8_t *body;
 
 		if (nni_msg_len(msg) < 4) {
-			// Peer gave us garbage, so kick it.
 			nni_msg_free(msg);
 			nni_pipe_close(p->pipe);
 			return;
@@ -219,11 +206,7 @@ xreq0_recv_cb(void *arg)
 		end  = ((body[0] & 0x80u) != 0);
 
 		if (nng_msg_header_append(msg, body, sizeof (uint32_t)) != 0) {
-			// TODO: bump a no-memory stat
 			nni_msg_free(msg);
-			// Closing the pipe may release some memory.
-			// It at least gives an indication to the peer
-			// that we've lost the message.
 			nni_pipe_close(p->pipe);
 			return;
 		}
@@ -283,7 +266,6 @@ static nni_option xreq0_sock_options[] = {
 	    .o_get  = xreq0_sock_get_max_ttl,
 	    .o_set  = xreq0_sock_set_max_ttl,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},
@@ -307,7 +289,7 @@ static nni_proto xreq0_proto = {
 	.proto_flags    = NNI_PROTO_FLAG_SNDRCV | NNI_PROTO_FLAG_RAW,
 	.proto_sock_ops = &xreq0_sock_ops,
 	.proto_pipe_ops = &xreq0_pipe_ops,
-	.proto_ctx_ops  = NULL, // raw mode does not support contexts
+	.proto_ctx_ops  = NULL,
 };
 
 int

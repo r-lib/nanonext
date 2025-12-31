@@ -10,10 +10,6 @@
 #include "core/nng_impl.h"
 
 #ifdef NNG_HAVE_SOCKETPAIR
-// This provides an implementation of socketpair(), which is supposed
-// to be present on XPG6 and newer.  This trivial implementation
-// only supports SOCK_STREAM over AF_UNIX.  Which is sufficient for
-// most purposes.  The fds array should point to an int[2].
 #include <errno.h>
 #include <sys/socket.h>
 

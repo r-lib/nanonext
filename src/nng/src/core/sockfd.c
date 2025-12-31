@@ -15,9 +15,6 @@
 #include "core/nng_impl.h"
 #include "core/sockfd.h"
 
-// We will accept up to this many FDs to be queued up for
-// accept, before we start rejecting with NNG_ENOSPC.  Once
-// accept is performed, then another slot is available.
 #define NNG_SFD_LISTEN_QUEUE 16
 
 int
@@ -25,13 +22,12 @@ nni_sfd_dialer_alloc(nng_stream_dialer **dp, const nng_url *url)
 {
 	NNI_ARG_UNUSED(dp);
 	NNI_ARG_UNUSED(url);
-	// No dialer support for this.
 	return (NNG_ENOTSUP);
 }
 
 typedef struct {
 	nng_stream_listener ops;
-	int                 listen_cnt; // how many FDs are waiting
+	int                 listen_cnt;
 	int                 listen_q[NNG_SFD_LISTEN_QUEUE];
 	bool                closed;
 	nni_list            accept_q;
@@ -67,7 +63,6 @@ static int
 sfd_listener_listen(void *arg)
 {
 	NNI_ARG_UNUSED(arg);
-	// nothing really for us to do
 	return (0);
 }
 
@@ -157,7 +152,6 @@ sfd_listener_set_fd(void *arg, const void *buf, size_t sz, nni_type t)
 
 	l->listen_q[l->listen_cnt++] = fd;
 
-	// if someone was waiting in accept, give it to them now
 	if ((aio = nni_list_first(&l->accept_q)) != NULL) {
 		nni_aio_list_remove(aio);
 		sfd_start_conn(l, aio);

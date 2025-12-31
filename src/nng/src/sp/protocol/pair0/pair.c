@@ -13,10 +13,6 @@
 #include "core/nng_impl.h"
 #include "nng/protocol/pair0/pair.h"
 
-// Pair protocol.  The PAIR protocol is a simple 1:1 messaging pattern.
-// While a peer is connected to the server, all other peer connection
-// attempts are discarded.
-
 #ifndef NNI_PROTO_PAIR_V0
 #define NNI_PROTO_PAIR_V0 NNI_PROTO(1, 0)
 #endif
@@ -30,7 +26,6 @@ static void pair0_pipe_fini(void *);
 static void pair0_send_sched(pair0_sock *);
 static void pair0_pipe_send(pair0_pipe *, nni_msg *);
 
-// pair0_sock is our per-socket protocol private structure.
 struct pair0_sock {
 	pair0_pipe  *p;
 	nni_mtx      mtx;
@@ -40,14 +35,10 @@ struct pair0_sock {
 	nni_list     raq;
 	nni_pollable readable;
 	nni_pollable writable;
-	bool         rd_ready; // pipe ready for read
-	bool         wr_ready; // pipe ready for write
+	bool         rd_ready;
+	bool         wr_ready;
 };
 
-// A pair0_pipe is our per-pipe protocol private structure.  We keep
-// one of these even though in theory we'd only have a single underlying
-// pipe.  The separate data structure is more like other protocols that do
-// manage multiple pipes.
 struct pair0_pipe {
 	nni_pipe   *pipe;
 	pair0_sock *pair;
@@ -156,14 +147,13 @@ pair0_pipe_start(void *arg)
 	pair0_sock *s = p->pair;
 
 	if (nni_pipe_peer(p->pipe) != NNI_PROTO_PAIR_V0) {
-		// Peer protocol mismatch.
 		return (NNG_EPROTO);
 	}
 
 	nni_mtx_lock(&s->mtx);
 	if (s->p != NULL) {
 		nni_mtx_unlock(&s->mtx);
-		return (NNG_EBUSY); // Already have a peer, denied.
+		return (NNG_EBUSY);
 	}
 	s->p        = p;
 	s->rd_ready = false;
@@ -171,7 +161,6 @@ pair0_pipe_start(void *arg)
 
 	pair0_send_sched(s);
 
-	// And the pipe read of course.
 	nni_pipe_recv(p->pipe, &p->aio_recv);
 
 	return (0);
@@ -200,13 +189,10 @@ pair0_pipe_recv_cb(void *arg)
 	}
 
 	msg = nni_aio_get_msg(&p->aio_recv);
-	// Store the pipe ID.
 	nni_msg_set_pipe(msg, nni_pipe_id(p->pipe));
 
 	nni_mtx_lock(&s->mtx);
 
-	// if anyone is blocking, then the lmq will be empty, and
-	// we should deliver it there.
 	if ((a = nni_list_first(&s->raq)) != NULL) {
 		nni_aio_list_remove(a);
 		nni_aio_set_msg(a, msg);
@@ -216,7 +202,6 @@ pair0_pipe_recv_cb(void *arg)
 		return;
 	}
 
-	// maybe we have room in the rmq?
 	if (!nni_lmq_full(&s->rmq)) {
 		nni_lmq_put(&s->rmq, msg);
 		nni_aio_set_msg(&p->aio_recv, NULL);
@@ -245,7 +230,6 @@ pair0_send_sched(pair0_sock *s)
 
 	s->wr_ready = true;
 
-	// if message waiting in buffered queue, then we prefer that.
 	if (nni_lmq_get(&s->wmq, &m) == 0) {
 		pair0_pipe_send(p, m);
 
@@ -257,8 +241,6 @@ pair0_send_sched(pair0_sock *s)
 		}
 
 	} else if ((a = nni_list_first(&s->waq)) != NULL) {
-		// Looks like we had the unbuffered case, but
-		// someone was waiting.
 		nni_aio_list_remove(a);
 
 		m = nni_aio_get_msg(a);
@@ -266,7 +248,6 @@ pair0_send_sched(pair0_sock *s)
 		pair0_pipe_send(p, m);
 	}
 
-	// if we were blocked before, but not now, update.
 	if ((!nni_lmq_full(&s->wmq)) || s->wr_ready) {
 		nni_pollable_raise(&s->writable);
 	}
@@ -323,7 +304,6 @@ static void
 pair0_pipe_send(pair0_pipe *p, nni_msg *m)
 {
 	pair0_sock *s = p->pair;
-	// assumption: we have unique access to the message at this point.
 	NNI_ASSERT(!nni_msg_shared(m));
 
 	nni_aio_set_msg(&p->aio_send, m);
@@ -359,9 +339,7 @@ pair0_sock_send(void *arg, nni_aio *aio)
 		return;
 	}
 
-	// Can we maybe queue it.
 	if (nni_lmq_put(&s->wmq, m) == 0) {
-		// Yay, we can.  So we're done.
 		nni_aio_set_msg(aio, NULL);
 		nni_aio_finish(aio, 0, len);
 		if (nni_lmq_full(&s->wmq)) {
@@ -395,8 +373,6 @@ pair0_sock_recv(void *arg, nni_aio *aio)
 	nni_mtx_lock(&s->mtx);
 	p = s->p;
 
-	// Buffered read.  If there is a message waiting for us, pick
-	// it up.  We might need to post another read request as well.
 	if (nni_lmq_get(&s->rmq, &m) == 0) {
 		nni_aio_set_msg(aio, m);
 		nni_aio_finish(aio, 0, nni_msg_len(m));
@@ -414,7 +390,6 @@ pair0_sock_recv(void *arg, nni_aio *aio)
 		return;
 	}
 
-	// Unbuffered -- but waiting.
 	if (s->rd_ready) {
 		s->rd_ready = false;
 		m           = nni_aio_get_msg(&p->aio_recv);
@@ -447,7 +422,6 @@ pair0_set_send_buf_len(void *arg, const void *buf, size_t sz, nni_type t)
 	}
 	nni_mtx_lock(&s->mtx);
 	rv = nni_lmq_resize(&s->wmq, (size_t) val);
-	// Changing the size of the queue can affect our readiness.
 	if (!nni_lmq_full(&s->wmq)) {
 		nni_pollable_raise(&s->writable);
 	} else if (!s->wr_ready) {
@@ -482,7 +456,6 @@ pair0_set_recv_buf_len(void *arg, const void *buf, size_t sz, nni_type t)
 	}
 	nni_mtx_lock(&s->mtx);
 	rv = nni_lmq_resize(&s->rmq, (size_t) val);
-	// Changing the size of the queue can affect our readiness.
 	if (!nni_lmq_empty(&s->rmq)) {
 		nni_pollable_raise(&s->readable);
 	} else if (!s->rd_ready) {
@@ -550,7 +523,6 @@ static nni_option pair0_sock_options[] = {
 	    .o_get  = pair0_get_recv_buf_len,
 	    .o_set  = pair0_set_recv_buf_len,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},
@@ -576,7 +548,6 @@ static nni_proto_sock_ops pair0_sock_ops = {
 	.sock_options = pair0_sock_options,
 };
 
-// Legacy protocol (v0)
 static nni_proto pair0_proto = {
 	.proto_version  = NNI_PROTOCOL_VERSION,
 	.proto_self     = { NNI_PROTO_PAIR_V0, "pair" },

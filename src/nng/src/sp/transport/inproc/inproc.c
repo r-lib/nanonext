@@ -13,10 +13,6 @@
 
 #include "core/nng_impl.h"
 
-// Inproc transport.  This just transports messages from one
-// peer to another.  The inproc transport is only valid within the same
-// process.
-
 typedef struct inproc_pair  inproc_pair;
 typedef struct inproc_pipe  inproc_pipe;
 typedef struct inproc_ep    inproc_ep;
@@ -27,7 +23,6 @@ typedef struct {
 	nni_list servers;
 } inproc_global;
 
-// inproc_pipe represents one half of a connection.
 struct inproc_pipe {
 	const char   *addr;
 	inproc_pair  *pair;
@@ -44,8 +39,6 @@ struct inproc_queue {
 	bool     closed;
 };
 
-// inproc_pair represents a pair of pipes.  Because we control both
-// sides of the pipes, we can allocate and free this in one structure.
 struct inproc_pair {
 	nni_atomic_int ref;
 	inproc_queue   queues[2];
@@ -63,8 +56,6 @@ struct inproc_ep {
 	nni_mtx       mtx;
 };
 
-// nni_inproc is our global state - this contains the list of active endpoints
-// which we use for coordinating rendezvous.
 static inproc_global nni_inproc = {
 	.servers = NNI_LIST_INITIALIZER(nni_inproc.servers, inproc_ep, node),
 	.mx      = NNI_MTX_INITIALIZER,
@@ -80,8 +71,6 @@ inproc_fini(void)
 {
 }
 
-// inproc_pair destroy is called when both pipe-ends of the pipe
-// have been destroyed.
 static void
 inproc_pair_destroy(inproc_pair *pair)
 {
@@ -121,7 +110,6 @@ inproc_pipe_fini(void *arg)
 	inproc_pair *pair;
 
 	if ((pair = pipe->pair) != NULL) {
-		// If we are the last peer, then toss the pair structure.
 		if (nni_atomic_dec_nv(&pair->ref) == 0) {
 			inproc_pair_destroy(pair);
 		}
@@ -161,19 +149,11 @@ inproc_queue_run(inproc_queue *queue)
 		msg = nni_aio_get_msg(wr);
 		NNI_ASSERT(msg != NULL);
 
-		// At this point, we pass success back to the caller.  If
-		// we drop the message for any reason, its accounted on the
-		// receiver side.
 		nni_aio_list_remove(wr);
 		nni_aio_set_msg(wr, NULL);
 		nni_aio_finish(
 		    wr, 0, nni_msg_len(msg) + nni_msg_header_len(msg));
 
-		// TODO: We could check the max receive size here.
-
-		// Now the receive side.  We need to ensure that we have
-		// an exclusive copy of the message, and pull the header
-		// up into the body to match protocol expectations.
 		if ((pu = nni_msg_pull_up(msg)) == NULL) {
 			nni_msg_free(msg);
 			continue;
@@ -207,8 +187,6 @@ inproc_pipe_send(void *arg, nni_aio *aio)
 	int           rv;
 
 	if (nni_aio_begin(aio) != 0) {
-		// No way to give the message back to the protocol, so
-		// we just discard it silently to prevent it from leaking.
 		nni_msg_free(nni_aio_get_msg(aio));
 		nni_aio_set_msg(aio, NULL);
 		return;
@@ -299,7 +277,7 @@ inproc_dialer_init(void **epp, nni_url *url, nni_dialer *ndialer)
 	NNI_LIST_INIT(&ep->clients, inproc_ep, node);
 	nni_aio_list_init(&ep->aios);
 
-	ep->addr = url->u_rawurl; // we match on the full URL.
+	ep->addr = url->u_rawurl;
 
 	*epp = ep;
 	return (0);
@@ -322,7 +300,7 @@ inproc_listener_init(void **epp, nni_url *url, nni_listener *nlistener)
 	NNI_LIST_INIT(&ep->clients, inproc_ep, node);
 	nni_aio_list_init(&ep->aios);
 
-	ep->addr = url->u_rawurl; // we match on the full URL.
+	ep->addr = url->u_rawurl;
 
 	*epp = ep;
 	return (0);
@@ -365,7 +343,6 @@ inproc_ep_close(void *arg)
 	if (nni_list_active(&nni_inproc.servers, ep)) {
 		nni_list_remove(&nni_inproc.servers, ep);
 	}
-	// Notify any waiting clients that we are closed.
 	while ((client = nni_list_first(&ep->clients)) != NULL) {
 		while ((aio = nni_list_first(&client->aios)) != NULL) {
 			inproc_conn_finish(aio, NNG_ECONNREFUSED, ep, NULL);
@@ -396,7 +373,6 @@ inproc_accept_clients(inproc_ep *srv)
 			int          rv;
 
 			if ((saio = nni_list_first(&srv->aios)) == NULL) {
-				// No outstanding accept() calls.
 				break;
 			}
 
@@ -445,8 +421,6 @@ inproc_accept_clients(inproc_ep *srv)
 		}
 
 		if (nni_list_first(&cli->aios) == NULL) {
-			// No more outstanding client connects.
-			// Normally there should only be one.
 			if (nni_list_active(&srv->clients, cli)) {
 				nni_list_remove(&srv->clients, cli);
 			}
@@ -481,7 +455,6 @@ inproc_ep_connect(void *arg, nni_aio *aio)
 
 	nni_mtx_lock(&nni_inproc.mx);
 
-	// Find a server.
 	NNI_LIST_FOREACH (&nni_inproc.servers, server) {
 		if (strcmp(server->addr, ep->addr) == 0) {
 			break;
@@ -493,9 +466,6 @@ inproc_ep_connect(void *arg, nni_aio *aio)
 		return;
 	}
 
-	// We don't have to worry about the case where a zero timeout
-	// on connect was specified, as there is no option to specify
-	// that in the upper API.
 	if ((rv = nni_aio_schedule(aio, inproc_ep_cancel, ep)) != 0) {
 		nni_mtx_unlock(&nni_inproc.mx);
 		nni_aio_finish_error(aio, rv);
@@ -540,16 +510,12 @@ inproc_ep_accept(void *arg, nni_aio *aio)
 
 	nni_mtx_lock(&nni_inproc.mx);
 
-	// We need not worry about the case where a non-blocking
-	// accept was tried -- there is no API to do such a thing.
 	if ((rv = nni_aio_schedule(aio, inproc_ep_cancel, ep)) != 0) {
 		nni_mtx_unlock(&nni_inproc.mx);
 		nni_aio_finish_error(aio, rv);
 		return;
 	}
 
-	// We are already on the master list of servers, thanks to bind.
-	// Insert us into pending server aios, and then run accept list.
 	nni_aio_list_append(&ep->aios, aio);
 	inproc_accept_clients(ep);
 	nni_mtx_unlock(&nni_inproc.mx);
@@ -600,7 +566,6 @@ static const nni_option inproc_pipe_options[] = {
 	    .o_name = NNG_OPT_REMADDR,
 	    .o_get  = inproc_pipe_get_addr,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},
@@ -637,7 +602,6 @@ static const nni_option inproc_ep_options[] = {
 	    .o_name = NNG_OPT_REMADDR,
 	    .o_get  = inproc_ep_get_addr,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},
@@ -675,8 +639,6 @@ static nni_sp_listener_ops inproc_listener_ops = {
 	.l_setopt = inproc_ep_setopt,
 };
 
-// This is the inproc transport linkage, and should be the only global
-// symbol in this entire file.
 struct nni_sp_tran nni_inproc_tran = {
 	.tran_scheme   = "inproc",
 	.tran_dialer   = &inproc_dialer_ops,

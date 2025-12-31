@@ -9,14 +9,6 @@
 
 #include "nng_impl.h"
 
-// Light-weight message queue. These are derived from our heavy-weight
-// message queues, but are less "featured", but more useful for
-// performance sensitive contexts.  Locking must be done by the caller.
-
-
-// Note that initialization of a queue is guaranteed to succeed.
-// However, if the requested capacity is larger than 2, and memory
-// cannot be allocated, then the capacity will only be 2.
 void
 nni_lmq_init(nni_lmq *lmq, size_t cap)
 {
@@ -28,7 +20,7 @@ nni_lmq_init(nni_lmq *lmq, size_t cap)
 	lmq->lmq_msgs = NULL;
 	lmq->lmq_msgs = lmq->lmq_buf;
 	lmq->lmq_cap = 2;
-	lmq->lmq_mask = 0x1; // only index 0 and 1
+	lmq->lmq_mask = 0x1;
 	if (cap > 2) {
 		(void) nni_lmq_resize(lmq, cap);
 	} else {
@@ -43,7 +35,7 @@ nni_lmq_fini(nni_lmq *lmq)
 		return;
 	}
 
-	/* Free any orphaned messages. */
+	
 	while (lmq->lmq_len > 0) {
 		nng_msg *msg = lmq->lmq_msgs[lmq->lmq_get++];
 		lmq->lmq_get &= lmq->lmq_mask;
@@ -138,7 +130,6 @@ nni_lmq_resize(nni_lmq *lmq, size_t cap)
 		new_q[len++] = msg;
 	}
 
-	// Flush anything left over.
 	nni_lmq_flush(lmq);
 
 	if (lmq->lmq_alloc > 0) {

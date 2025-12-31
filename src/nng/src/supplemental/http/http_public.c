@@ -13,9 +13,6 @@
 #include "nng/supplemental/http/http.h"
 #include "nng/supplemental/tls/tls.h"
 
-// Symbols in this file are "public" versions of the HTTP API.
-// These are suitable for exposure to applications.
-
 int
 nng_http_req_alloc(nng_http_req **reqp, const nng_url *url)
 {
@@ -392,7 +389,6 @@ void
 nng_http_conn_close(nng_http_conn *conn)
 {
 #ifdef NNG_SUPP_HTTP
-	// API version of this closes *and* frees the structure.
 	nni_http_conn_fini(conn);
 #else
 	NNI_ARG_UNUSED(conn);

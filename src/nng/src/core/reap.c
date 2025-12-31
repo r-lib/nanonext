@@ -14,7 +14,6 @@
 
 #include <stdbool.h>
 
-// New stuff.
 static nni_reap_list *reap_list = NULL;
 static nni_thr        reap_thr;
 static bool           reap_exit = false;
@@ -48,8 +47,6 @@ reap_worker(void *unused)
 			func           = list->rl_func;
 			list->rl_nodes = NULL;
 
-			// We process our list of nodes while not holding
-			// the lock.
 			nni_mtx_unlock(&reap_mtx);
 			while (node != NULL) {
 				void *ptr;
@@ -105,8 +102,6 @@ nni_reap_sys_init(void)
 {
 	int rv;
 
-	// If this fails, we don't fail init, instead we will try to
-	// start up at reap time.
 	if ((rv = nni_thr_init(&reap_thr, reap_worker, NULL)) != 0) {
 		return (rv);
 	}
@@ -123,6 +118,4 @@ nni_reap_sys_fini(void)
 	nni_mtx_unlock(&reap_mtx);
 	nni_thr_fini(&reap_thr);
 
-	// NB: The subsystem linkages remain in place.  We don't need
-	// to reinitialize them across future initializations.
 }

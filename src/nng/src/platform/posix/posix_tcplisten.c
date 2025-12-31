@@ -120,14 +120,11 @@ tcp_listener_doaccept(nni_tcp_listener *l)
 					nni_aio_finish_error(aio, rv);
 					continue;
 				}
-				// Come back later...
 				return;
 			case ECONNABORTED:
 			case ECONNRESET:
-				// Eat them, they aren't interesting.
 				continue;
 			default:
-				// Error this one, but keep moving to the next.
 				rv = nni_plat_errno(errno);
 				NNI_ASSERT(rv != 0);
 				nni_aio_list_remove(aio);
@@ -175,7 +172,6 @@ tcp_listener_cb(nni_posix_pfd *pfd, unsigned events, void *arg)
 		return;
 	}
 
-	// Anything else will turn up in accept.
 	tcp_listener_doaccept(l);
 	nni_mtx_unlock(&l->mtx);
 }
@@ -185,8 +181,6 @@ tcp_listener_cancel(nni_aio *aio, void *arg, int rv)
 {
 	nni_tcp_listener *l = arg;
 
-	// This is dead easy, because we'll ignore the completion if there
-	// isn't anything to do the accept on!
 	NNI_ASSERT(rv != 0);
 	nni_mtx_lock(&l->mtx);
 	if (nni_aio_list_active(aio)) {
@@ -231,14 +225,9 @@ nni_tcp_listener_listen(nni_tcp_listener *l, const nni_sockaddr *sa)
 		return (rv);
 	}
 
-// On the Windows Subsystem for Linux, SO_REUSEADDR behaves like Windows
-// SO_REUSEADDR, which is almost completely different (and wrong!) from
-// traditional SO_REUSEADDR.
 #if defined(SO_REUSEADDR) && !defined(NNG_PLATFORM_WSL)
 	{
 		int on = 1;
-		// If for some reason this doesn't work, it's probably ok.
-		// Second bind will fail.
 		(void) setsockopt(
 		    fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 	}
@@ -251,8 +240,6 @@ nni_tcp_listener_listen(nni_tcp_listener *l, const nni_sockaddr *sa)
 		return (rv);
 	}
 
-	// Listen -- 128 depth is probably sufficient.  If it isn't, other
-	// bad things are going to happen.
 	if (listen(fd, 128) != 0) {
 		rv = nni_plat_errno(errno);
 		nni_mtx_unlock(&l->mtx);
@@ -291,10 +278,6 @@ nni_tcp_listener_accept(nni_tcp_listener *l, nni_aio *aio)
 {
 	int rv;
 
-	// Accept is simpler than the connect case.  With accept we just
-	// need to wait for the socket to be readable to indicate an incoming
-	// connection is ready for us.  There isn't anything else for us to
-	// do really, as that will have been done in listen.
 	if (nni_aio_begin(aio) != 0) {
 		return;
 	}

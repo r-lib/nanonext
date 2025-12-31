@@ -91,4 +91,4 @@ extern void         nni_sp_tran_sys_init(void);
 extern void         nni_sp_tran_sys_fini(void);
 extern void         nni_sp_tran_register(nni_sp_tran *);
 
-#endif // PROTOCOL_SP_TRANSPORT_H
+#endif

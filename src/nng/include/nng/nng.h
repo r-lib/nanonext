@@ -25,15 +25,15 @@ extern "C" {
 #define NNG_DECL __declspec(dllexport)
 #else
 #define NNG_DECL __declspec(dllimport)
-#endif // NNG_SHARED_LIB
+#endif
 #else
 #if defined(NNG_SHARED_LIB) && defined(NNG_HIDDEN_VISIBILITY)
 #define NNG_DECL __attribute__((visibility("default")))
 #else
 #define NNG_DECL extern
 #endif
-#endif // _WIN32 && !NNG_STATIC_LIB
-#endif // NNG_DECL
+#endif
+#endif
 
 #ifndef NNG_DEPRECATED
 #if defined(__GNUC__) || defined(__clang__)
@@ -46,7 +46,6 @@ extern "C" {
 #define NNG_MAJOR_VERSION 1
 #define NNG_MINOR_VERSION 11
 #define NNG_PATCH_VERSION 0
-// if non-empty (i.e. "pre"), this is a pre-release
 #define NNG_RELEASE_SUFFIX ""
 
 #define NNG_MAXADDRLEN (128)
@@ -73,7 +72,7 @@ typedef struct nng_socket_s {
 	uint32_t id;
 } nng_socket;
 
-typedef int32_t nng_duration; // in milliseconds
+typedef int32_t nng_duration;
 
 typedef uint64_t nng_time;
 
@@ -120,8 +119,8 @@ struct nng_sockaddr_zt {
 
 struct nng_sockaddr_abstract {
 	uint16_t sa_family;
-	uint16_t sa_len;       // will be 0 - 107 max.
-	uint8_t  sa_name[107]; // 108 linux/windows, without leading NUL
+	uint16_t sa_len;
+	uint8_t  sa_name[107];
 };
 
 struct nng_sockaddr_storage {
@@ -155,7 +154,7 @@ enum nng_sockaddr_family {
 	NNG_AF_IPC      = 2,
 	NNG_AF_INET     = 3,
 	NNG_AF_INET6    = 4,
-	NNG_AF_ZT       = 5, // ZeroTier
+	NNG_AF_ZT       = 5,
 	NNG_AF_ABSTRACT = 6
 };
 
@@ -202,10 +201,10 @@ NNG_DECL int nng_socket_peer_name(nng_socket id, const char **);
 NNG_DECL int nng_socket_raw(nng_socket, bool *);
 
 typedef enum {
-	NNG_PIPE_EV_ADD_PRE,  // Called just before pipe added to socket
-	NNG_PIPE_EV_ADD_POST, // Called just after pipe added to socket
-	NNG_PIPE_EV_REM_POST, // Called just after pipe removed from socket
-	NNG_PIPE_EV_NUM,      // Used internally, must be last.
+	NNG_PIPE_EV_ADD_PRE,
+	NNG_PIPE_EV_ADD_POST,
+	NNG_PIPE_EV_REM_POST,
+	NNG_PIPE_EV_NUM,
 } nng_pipe_ev;
 
 typedef void (*nng_pipe_cb)(nng_pipe, nng_pipe_ev, void *);
@@ -440,8 +439,8 @@ NNG_DECL nng_socket   nng_pipe_socket(nng_pipe);
 NNG_DECL nng_dialer   nng_pipe_dialer(nng_pipe);
 NNG_DECL nng_listener nng_pipe_listener(nng_pipe);
 
-#define NNG_FLAG_ALLOC 1u    // Recv to allocate receive buffer
-#define NNG_FLAG_NONBLOCK 2u // Non-blocking operations
+#define NNG_FLAG_ALLOC 1u
+#define NNG_FLAG_NONBLOCK 2u
 
 #define NNG_OPT_SOCKNAME "socket-name"
 #define NNG_OPT_RAW "raw"
@@ -546,22 +545,22 @@ NNG_DECL nng_stat *nng_stat_find_dialer(nng_stat *, nng_dialer);
 NNG_DECL nng_stat *nng_stat_find_listener(nng_stat *, nng_listener);
 
 enum nng_stat_type_enum {
-	NNG_STAT_SCOPE   = 0, // Stat is for scoping, and carries no value
-	NNG_STAT_LEVEL   = 1, // Numeric "absolute" value, diffs meaningless
-	NNG_STAT_COUNTER = 2, // Incrementing value (diffs are meaningful)
-	NNG_STAT_STRING  = 3, // Value is a string
-	NNG_STAT_BOOLEAN = 4, // Value is a boolean
-	NNG_STAT_ID      = 5, // Value is a numeric ID
+	NNG_STAT_SCOPE   = 0,
+	NNG_STAT_LEVEL   = 1,
+	NNG_STAT_COUNTER = 2,
+	NNG_STAT_STRING  = 3,
+	NNG_STAT_BOOLEAN = 4,
+	NNG_STAT_ID      = 5,
 };
 
 NNG_DECL int nng_stat_unit(nng_stat *);
 
 enum nng_unit_enum {
-	NNG_UNIT_NONE     = 0, // No special units
-	NNG_UNIT_BYTES    = 1, // Bytes, e.g. bytes sent, etc.
-	NNG_UNIT_MESSAGES = 2, // Messages, one per message
-	NNG_UNIT_MILLIS   = 3, // Milliseconds
-	NNG_UNIT_EVENTS   = 4  // Some other type of event
+	NNG_UNIT_NONE     = 0,
+	NNG_UNIT_BYTES    = 1,
+	NNG_UNIT_MESSAGES = 2,
+	NNG_UNIT_MILLIS   = 3,
+	NNG_UNIT_EVENTS   = 4
 };
 
 NNG_DECL uint64_t nng_stat_value(nng_stat *);
@@ -616,16 +615,16 @@ enum nng_errno_enum {
 };
 
 typedef struct nng_url {
-	char *u_rawurl;   // never NULL
-	char *u_scheme;   // never NULL
-	char *u_userinfo; // will be NULL if not specified
-	char *u_host;     // including colon and port
-	char *u_hostname; // name only, will be "" if not specified
-	char *u_port;     // port, will be "" if not specified
-	char *u_path;     // path, will be "" if not specified
-	char *u_query;    // without '?', will be NULL if not specified
-	char *u_fragment; // without '#', will be NULL if not specified
-	char *u_requri;   // includes query and fragment, "" if not specified
+	char *u_rawurl;
+	char *u_scheme;
+	char *u_userinfo;
+	char *u_host;
+	char *u_hostname;
+	char *u_port;
+	char *u_path;
+	char *u_query;
+	char *u_fragment;
+	char *u_requri;
 } nng_url;
 
 NNG_DECL int nng_url_parse(nng_url **, const char *);
@@ -766,4 +765,4 @@ enum {
 }
 #endif
 
-#endif // NNG_NNG_H
+#endif

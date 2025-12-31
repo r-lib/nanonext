@@ -37,14 +37,11 @@
 #include "core/thread.h"
 #include "core/url.h"
 
-// transport needs to come after url
 #include "sp/transport.h"
-
-// These have to come after the others - particularly transport.h
 
 #include "core/dialer.h"
 #include "core/listener.h"
 #include "core/pipe.h"
 #include "core/socket.h"
 
-#endif // CORE_NNG_IMPL_H
+#endif

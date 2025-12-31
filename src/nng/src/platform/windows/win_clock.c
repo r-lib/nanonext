@@ -15,7 +15,6 @@
 nni_time
 nni_clock(void)
 {
-	// We are limited by the system clock, but that is ok.
 	return (GetTickCount64());
 }
 
@@ -26,16 +25,10 @@ nni_msleep(nni_duration dur)
 
 	exp = (uint64_t) GetTickCount64() + dur;
 
-	// Sleep() would be our preferred API, if it didn't have a nasty
-	// feature where it rounds *down*.  We always want to sleep *at
-	// least* the requested amount of time, and never ever less.
-	// If we wind up sleeping less, then we will sleep(1) in the hope
-	// of waiting until the next clock tick.
-
 	Sleep((DWORD) dur);
 	while ((uint64_t) GetTickCount64() < exp) {
 		Sleep(1);
 	}
 }
 
-#endif // NNG_PLATFORM_WINDOWS
+#endif

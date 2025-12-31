@@ -14,14 +14,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mbedtls/version.h" // Must be first in order to pick up version
+#include "mbedtls/version.h"
 
 #include "mbedtls/error.h"
 #ifdef MBEDTLS_PSA_CRYPTO_C
 #include "psa/crypto.h"
 #endif
 
-// mbedTLS renamed this header for 2.4.0.
 #if MBEDTLS_VERSION_MAJOR > 2 || MBEDTLS_VERSION_MINOR >= 4
 #include "mbedtls/net_sockets.h"
 #else
@@ -33,7 +32,6 @@
 #include "core/nng_impl.h"
 #include <nng/supplemental/tls/engine.h>
 
-// pair holds a private key and the associated certificate.
 typedef struct {
 	mbedtls_x509_crt   crt;
 	mbedtls_pk_context key;
@@ -41,13 +39,12 @@ typedef struct {
 } pair;
 
 #ifdef NNG_TLS_USE_CTR_DRBG
-// Use a global RNG if we're going to override the builtin.
 static mbedtls_ctr_drbg_context rng_ctx;
 static nni_mtx                  rng_lock;
 #endif
 
 struct nng_tls_engine_conn {
-	void               *tls; // parent conn
+	void               *tls;
 	mbedtls_ssl_context ctx;
 };
 
@@ -102,7 +99,6 @@ tls_random(void *arg, unsigned char *buf, size_t sz)
 #endif
 }
 
-// tls_mk_err converts an mbed error to an NNG error.
 static struct {
 	int tls;
 	int nng;
@@ -123,14 +119,12 @@ static struct {
 	{ MBEDTLS_ERR_SSL_ALLOC_FAILED, NNG_ENOMEM },
 	{ MBEDTLS_ERR_SSL_TIMEOUT, NNG_ETIMEDOUT },
 	{ MBEDTLS_ERR_SSL_CONN_EOF, NNG_ECLOSED },
-// MbedTLS 3.0 error codes
 #ifdef MBEDTLS_ERR_SSL_HANDSHAKE_FAILURE
 	{ MBEDTLS_ERR_SSL_HANDSHAKE_FAILURE, NNG_EPEERAUTH },
 #endif
 #ifdef MBEDTLS_ERR_SSL_BAD_CERTIFICATE
 	{ MBEDTLS_ERR_SSL_BAD_CERTIFICATE, NNG_EPEERAUTH },
 #endif
-	// terminator
 	{ 0, 0 },
 };
 
@@ -209,11 +203,6 @@ conn_init(nng_tls_engine_conn *ec, void *tls, nng_tls_engine_config *cfg)
 static void
 conn_close(nng_tls_engine_conn *ec)
 {
-	// This may succeed, or it may fail.  Either way we
-	// don't care. Implementations that depend on
-	// close-notify to mean anything are broken by design,
-	// just like RFC.  Note that we do *NOT* close the TCP
-	// connection at this point.
 	(void) mbedtls_ssl_close_notify(&ec->ctx);
 }
 
@@ -261,11 +250,8 @@ conn_handshake(nng_tls_engine_conn *ec)
 	switch (rv) {
 	case MBEDTLS_ERR_SSL_WANT_WRITE:
 	case MBEDTLS_ERR_SSL_WANT_READ:
-		// We have underlying I/O to complete first.  We will
-		// be called again by a callback later.
 		return (NNG_EAGAIN);
 	case 0:
-		// The handshake is done, yay!
 		return (0);
 
 	default:
@@ -319,7 +305,6 @@ conn_peer_alt_names(nng_tls_engine_conn *ec)
 
 	const mbedtls_asn1_sequence *seq = &crt->subject_alt_names;
 
-	// get count
 	int count = 0;
 	do {
 		if (seq->buf.len > 0)
@@ -331,7 +316,6 @@ conn_peer_alt_names(nng_tls_engine_conn *ec)
 
 	seq = &crt->subject_alt_names;
 
-	// copy strings
 	char **rv = malloc((count + 1) * sizeof(char *));
 	int    i  = 0;
 	do {
@@ -402,9 +386,6 @@ config_init(nng_tls_engine_config *cfg, enum nng_tls_mode mode)
 
 	mbedtls_ssl_conf_authmode(&cfg->cfg_ctx, auth_mode);
 
-	// Default: we *require* TLS v1.2 or newer, which is also known as
-	// SSL v3.3. As of this writing, Mbed TLS still does not support
-	// version 1.3, and we would want to test it before enabling it here.
 	cfg->min_ver = MBEDTLS_SSL_MINOR_VERSION_3;
 #ifdef MBEDTLS_SSL_PROTO_TLS1_3
 	cfg->max_ver = MBEDTLS_SSL_MINOR_VERSION_4;
@@ -469,7 +450,6 @@ config_ca_chain(nng_tls_engine_config *cfg, const char *certs, const char *crl)
 	const uint8_t *pem;
 	int            rv;
 
-	// Certs and CRL are in PEM data, with terminating NUL byte.
 	pem = (const uint8_t *) certs;
 	len = strlen(certs) + 1;
 	if ((rv = mbedtls_x509_crt_parse(&cfg->ca_certs, pem, len)) != 0) {
@@ -529,7 +509,6 @@ config_own_cert(nng_tls_engine_config *cfg, const char *cert, const char *key,
 		goto err;
 	}
 
-	// Save this structure so we can free it with the context.
 	nni_list_append(&cfg->pairs, p);
 	return (0);
 
@@ -590,7 +569,7 @@ config_version(nng_tls_engine_config *cfg, nng_tls_version min_ver,
 	  v2 = MBEDTLS_SSL_MINOR_VERSION_3;
 	  break;
 #endif
-	case NNG_TLS_1_3: // We lack support for 1.3, so treat as 1.2.
+	case NNG_TLS_1_3:
 #ifdef MBEDTLS_SSL_PROTO_TLS1_3
 	  v2 = MBEDTLS_SSL_MINOR_VERSION_4;
 #else
@@ -598,9 +577,6 @@ config_version(nng_tls_engine_config *cfg, nng_tls_version min_ver,
 #endif
 		break;
 	default:
-		// Note that this means that if we ever TLS 1.4 or 2.0,
-		// then this will break.  That's sufficiently far out
-		// to justify not worrying about it.
 		return (NNG_ENOTSUP);
 	}
 
@@ -670,9 +646,6 @@ nng_tls_engine_init_mbed(void)
 	  return (rv);
 	}
 #endif
-	// Uncomment the following to have noisy debug from mbedTLS.
-	// This may be useful when trying to debug failures.
-	//	mbedtls_debug_set_threshold(9);
 
 	rv = nng_tls_engine_register(&tls_engine_mbed);
 

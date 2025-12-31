@@ -51,7 +51,6 @@ http_dial_cb(void *arg)
 	rv = nni_aio_result(c->aio);
 
 	if ((aio = nni_list_first(&c->aios)) == NULL) {
-		// User abandoned request, and no residuals left.
 		nni_mtx_unlock(&c->mtx);
 		if (rv == 0) {
 			stream = nni_aio_get_output(c->aio, 0);
@@ -77,7 +76,6 @@ http_dial_cb(void *arg)
 	nni_mtx_unlock(&c->mtx);
 
 	if (rv != 0) {
-		// the conn_init function will have already discard stream.
 		nni_aio_finish_error(aio, rv);
 		return;
 	}
@@ -106,12 +104,10 @@ nni_http_client_init(nni_http_client **cp, const nni_url *url)
 	if ((scheme = nni_http_stream_scheme(url->u_scheme)) == NULL) {
 		return (NNG_EADDRINVAL);
 	}
-	// Rewrite URLs to either TLS or TCP.
 	memcpy(&my_url, url, sizeof(my_url));
 	my_url.u_scheme = (char *) scheme;
 
 	if (strlen(url->u_hostname) == 0) {
-		// We require a valid hostname.
 		return (NNG_EADDRINVAL);
 	}
 
@@ -152,7 +148,6 @@ int
 nni_http_client_set(nni_http_client *c, const char *name, const void *buf,
     size_t sz, nni_type t)
 {
-	// We have no local options, but we just pass them straight through.
 	return (nni_stream_dialer_set(c->dialer, name, buf, sz, t));
 }
 
@@ -205,8 +200,8 @@ typedef enum http_txn_state {
 } http_txn_state;
 
 typedef struct http_txn {
-	nni_aio *        aio;  // lower level aio
-	nni_list         aios; // upper level aio(s) -- maximum one
+	nni_aio *        aio;
+	nni_list         aios;
 	nni_http_client *client;
 	nni_http_conn *  conn;
 	nni_http_req *   req;
@@ -220,7 +215,6 @@ http_txn_fini(void *arg)
 {
 	http_txn *txn = arg;
 	if (txn->client != NULL) {
-		// We only close the connection if we created it.
 		if (txn->conn != NULL) {
 			nni_http_conn_fini(txn->conn);
 			txn->conn = NULL;
@@ -277,7 +271,6 @@ http_txn_cb(void *arg)
 
 	case HTTP_RECVING:
 
-		// Detect chunked encoding.  You poor bastard.
 		if (((str = nni_http_res_get_header(
 		          txn->res, "Transfer-Encoding")) != NULL) &&
 		    (strstr(str, "chunked") != NULL)) {
@@ -298,8 +291,6 @@ http_txn_cb(void *arg)
 		          txn->res, "Content-Length")) == NULL) ||
 		    ((len = (uint64_t) strtoull(str, &end, 10)) == 0) ||
 		    (end == NULL) || (*end != '\0')) {
-			// If no content-length, or HEAD (which per RFC
-			// never transfers data), then we are done.
 			http_txn_finish_aios(txn, 0);
 			nni_mtx_unlock(&http_txn_lk);
 			http_txn_fini(txn);
@@ -318,15 +309,12 @@ http_txn_cb(void *arg)
 		return;
 
 	case HTTP_RECVING_BODY:
-		// All done!
 		http_txn_finish_aios(txn, 0);
 		nni_mtx_unlock(&http_txn_lk);
 		http_txn_fini(txn);
 		return;
 
 	case HTTP_RECVING_CHUNKS:
-		// All done, but now we need to coalesce the chunks, for
-		// yet *another* copy.  Chunked transfers are such crap.
 		sz = nni_http_chunks_size(txn->chunks);
 		if ((rv = nni_http_res_alloc_data(txn->res, sz)) != 0) {
 			goto error;
@@ -362,11 +350,6 @@ http_txn_cancel(nni_aio *aio, void *arg, int rv)
 	nni_mtx_unlock(&http_txn_lk);
 }
 
-// nni_http_transact_conn sends a request to an HTTP server, and reads the
-// response.  It also attempts to read any associated data.  Note that
-// at present it can only read data that comes in normally, as support
-// for Chunked Transfer Encoding is missing.  Note that cancelling the aio
-// is generally fatal to the connection.
 void
 nni_http_transact_conn(
     nni_http_conn *conn, nni_http_req *req, nni_http_res *res, nni_aio *aio)
@@ -406,10 +389,6 @@ nni_http_transact_conn(
 	nni_mtx_unlock(&http_txn_lk);
 }
 
-// nni_http_transact_simple does a single transaction, creating a connection
-// just for the purpose, and closing it when done.  (No connection caching.)
-// The reason we require a client to be created first is to deal with TLS
-// settings.  A single global client (per server) may be used.
 void
 nni_http_transact(nni_http_client *client, nni_http_req *req,
     nni_http_res *res, nni_aio *aio)

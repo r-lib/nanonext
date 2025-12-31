@@ -20,9 +20,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-// UDP support.
-
-// If we can suppress SIGPIPE on send, please do so.
 #ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0
 #endif
@@ -58,7 +55,6 @@ nni_posix_udp_dorecv(nni_plat_udp *udp)
 {
 	nni_aio * aio;
 	nni_list *q = &udp->udp_recvq;
-	// While we're able to recv, do so.
 	while ((aio = nni_list_first(q)) != NULL) {
 		struct iovec            iov[4];
 		unsigned                niov;
@@ -82,15 +78,10 @@ nni_posix_udp_dorecv(nni_plat_udp *udp)
 
 		if ((cnt = (int) recvmsg(udp->udp_fd, &hdr, 0)) < 0) {
 			if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
-				// No data available at socket.  Leave
-				// the AIO at the head of the queue.
 				return;
 			}
 			rv = nni_plat_errno(errno);
 		} else if ((sa = nni_aio_get_input(aio, 0)) != NULL) {
-			// We need to store the address information.
-			// It is incumbent on the AIO submitter to supply
-			// storage for the address.
 			nni_posix_sockaddr2nn(
 			    sa, (void *) &ss, hdr.msg_namelen);
 		}
@@ -105,7 +96,6 @@ nni_posix_udp_dosend(nni_plat_udp *udp)
 	nni_aio * aio;
 	nni_list *q = &udp->udp_sendq;
 
-	// While we're able to send, do so.
 	while ((aio = nni_list_first(q)) != NULL) {
 		struct sockaddr_storage ss;
 
@@ -140,7 +130,6 @@ nni_posix_udp_dosend(nni_plat_udp *udp)
 				if (cnt < 0) {
 					if ((errno == EAGAIN) ||
 					    (errno == EWOULDBLOCK)) {
-						// Cannot send now, leave.
 						return;
 					}
 					rv = nni_plat_errno(errno);
@@ -153,7 +142,6 @@ nni_posix_udp_dosend(nni_plat_udp *udp)
 	}
 }
 
-// This function is called by the poller on activity on the FD.
 static void
 nni_posix_udp_cb(nni_posix_pfd *pfd, unsigned events, void *arg)
 {
@@ -201,7 +189,6 @@ nni_plat_udp_open(nni_plat_udp **upp, nni_sockaddr *bindaddr)
 		return (NNG_EADDRINVAL);
 	}
 
-	// UDP opens can actually run synchronously.
 	if ((udp = NNI_ALLOC_STRUCT(udp)) == NULL) {
 		return (NNG_ENOMEM);
 	}
@@ -323,4 +310,4 @@ nni_plat_udp_sockname(nni_plat_udp *udp, nni_sockaddr *sa)
 	return (nni_posix_sockaddr2nn(sa, &ss, sz));
 }
 
-#endif // NNG_PLATFORM_POSIX
+#endif

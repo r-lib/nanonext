@@ -7,8 +7,6 @@
 // found online at https://opensource.org/licenses/MIT.
 //
 
-// arc4random is the preferred source of cryptographic random numbers
-// on any platform where it is found.
 #include <stdlib.h>
 
 #include "core/nng_impl.h"

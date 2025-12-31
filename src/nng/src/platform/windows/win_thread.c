@@ -8,8 +8,6 @@
 // found online at https://opensource.org/licenses/MIT.
 //
 
-// Windows threads.
-
 #include "core/nng_impl.h"
 
 #ifdef NNG_PLATFORM_WINDOWS
@@ -19,7 +17,6 @@ static HMODULE hKernel32;
 
 static pfnSetThreadDescription set_thread_desc;
 
-// mingw does not define InterlockedAddNoFence64, use the mingw equivalent
 #if defined(__MINGW32__) || defined(__MINGW64__)
 #define InterlockedAddNoFence(a, b) __atomic_add_fetch(a, b, __ATOMIC_RELAXED)
 #define InterlockedAddNoFence64(a, b) \
@@ -206,7 +203,6 @@ nni_atomic_add64(nni_atomic_u64 *v, uint64_t bump)
 void
 nni_atomic_sub64(nni_atomic_u64 *v, uint64_t bump)
 {
-	// Windows lacks a sub, so we add the negative.
 	InterlockedAddNoFence64(&v->v, (0ll - (LONGLONG) bump));
 }
 
@@ -294,7 +290,6 @@ nni_atomic_add(nni_atomic_int *v, int bump)
 void
 nni_atomic_sub(nni_atomic_int *v, int bump)
 {
-	// Windows lacks a sub, so we add the negative.
 	InterlockedAddNoFence(&v->v, (LONG) -bump);
 }
 
@@ -364,12 +359,10 @@ nni_plat_thr_init(nni_plat_thr *thr, void (*fn)(void *), void *arg)
 	thr->func = fn;
 	thr->arg  = arg;
 
-	// We could probably even go down to 8k... but crypto for some
-	// protocols might get bigger than this.  1MB is waaay too big.
 	thr->handle = (HANDLE) _beginthreadex(NULL, 16384, nni_plat_thr_main,
 	    thr, STACK_SIZE_PARAM_IS_A_RESERVATION, NULL);
 	if (thr->handle == NULL) {
-		return (NNG_ENOMEM); // Best guess...
+		return (NNG_ENOMEM);
 	}
 	return (0);
 }
@@ -434,13 +427,12 @@ nni_plat_init(int (*helper)(void))
 	static SRWLOCK lock = SRWLOCK_INIT;
 
 	if (plat_inited) {
-		return (0); // fast path
+		return (0);
 	}
 
 	AcquireSRWLockExclusive(&lock);
 
 	if (!plat_inited) {
-		// Let's look up the function to set thread descriptions.
 		hKernel32 = LoadLibrary(TEXT("kernel32.dll"));
 		if (hKernel32 != NULL) {
 			set_thread_desc =

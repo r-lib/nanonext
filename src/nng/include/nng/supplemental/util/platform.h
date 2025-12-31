@@ -62,4 +62,4 @@ NNG_DECL int nng_socket_pair(int [2]);
 }
 #endif
 
-#endif // NNG_SUPPLEMENTAL_UTIL_PLATFORM_H
+#endif

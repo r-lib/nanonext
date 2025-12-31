@@ -202,24 +202,24 @@ extern int nni_plat_file_get(const char *, void **, size_t *);
 extern int nni_plat_file_delete(const char *);
 
 enum nni_plat_file_type_val {
-	NNI_PLAT_FILE_TYPE_FILE,  // normal file
-	NNI_PLAT_FILE_TYPE_DIR,   // normal directory
-	NNI_PLAT_FILE_TYPE_OTHER, // something else (pipe, device node, etc.)
+	NNI_PLAT_FILE_TYPE_FILE,
+	NNI_PLAT_FILE_TYPE_DIR,
+	NNI_PLAT_FILE_TYPE_OTHER,
 };
 extern int nni_plat_file_type(const char *, int *);
 
 enum nni_plat_file_walk_result {
 	NNI_PLAT_FILE_WALK_CONTINUE,
-	NNI_PLAT_FILE_WALK_STOP,        // stop walking (all done)
-	NNI_PLAT_FILE_WALK_PRUNE_SIB,   // skip siblings and their children
-	NNI_PLAT_FILE_WALK_PRUNE_CHILD, // skip children
+	NNI_PLAT_FILE_WALK_STOP,
+	NNI_PLAT_FILE_WALK_PRUNE_SIB,
+	NNI_PLAT_FILE_WALK_PRUNE_CHILD,
 };
 
 enum nni_plat_file_walk_flags {
-	NNI_PLAT_FILE_WALK_DEPTH_FIRST   = 0, // get children first
-	NNI_PLAT_FILE_WALK_BREADTH_FIRST = 1, // get siblings first (later)
-	NNI_PLAT_FILE_WALK_SHALLOW = 2, // do not descend into subdirectories
-	NNI_PLAT_FILE_WALK_FILES_ONLY = 4, // directory names are not reported
+	NNI_PLAT_FILE_WALK_DEPTH_FIRST   = 0,
+	NNI_PLAT_FILE_WALK_BREADTH_FIRST = 1,
+	NNI_PLAT_FILE_WALK_SHALLOW = 2,
+	NNI_PLAT_FILE_WALK_FILES_ONLY = 4,
 };
 
 typedef int (*nni_plat_file_walker)(const char *, void *);
@@ -256,4 +256,4 @@ extern const char *nni_plat_file_basename(const char *);
 #error "unknown platform"
 #endif
 
-#endif // CORE_PLATFORM_H
+#endif

@@ -32,6 +32,6 @@ extern void nni_posix_pfd_set_cb(nni_posix_pfd *, nni_posix_pfd_cb, void *);
 #define NNI_POLL_ERR ((unsigned) POLLERR)
 #define NNI_POLL_INVAL ((unsigned) POLLNVAL)
 
-#endif // NNG_PLATFORM_POSIX
+#endif
 
-#endif // PLATFORM_POSIX_POLLQ_H
+#endif

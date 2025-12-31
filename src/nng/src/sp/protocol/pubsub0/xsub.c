@@ -13,10 +13,6 @@
 #include "core/nng_impl.h"
 #include "nng/protocol/pubsub0/sub.h"
 
-// Subscriber protocol.  The SUB protocol receives messages sent to
-// it from publishers, and filters out those it is not interested in,
-// only passing up ones that match known subscriptions.
-
 #ifndef NNI_PROTO_SUB_V0
 #define NNI_PROTO_SUB_V0 NNI_PROTO(2, 1)
 #endif
@@ -31,13 +27,11 @@ typedef struct xsub0_sock xsub0_sock;
 static void xsub0_recv_cb(void *);
 static void xsub0_pipe_fini(void *);
 
-// xsub0_sock is our per-socket protocol private structure.
 struct xsub0_sock {
 	nni_msgq *urq;
 	nni_mtx   lk;
 };
 
-// sub0_pipe is our per-pipe protocol private structure.
 struct xsub0_pipe {
 	nni_pipe *  pipe;
 	xsub0_sock *sub;
@@ -105,7 +99,6 @@ xsub0_pipe_start(void *arg)
 	xsub0_pipe *p = arg;
 
 	if (nni_pipe_peer(p->pipe) != NNI_PROTO_PUB_V0) {
-		// Peer protocol mismatch.
 		return (NNG_EPROTO);
 	}
 
@@ -139,12 +132,6 @@ xsub0_recv_cb(void *arg)
 	nni_msg_set_pipe(msg, nni_pipe_id(p->pipe));
 
 	if (nni_msgq_tryput(urq, msg) != 0) {
-		// This only happens for two reasons.  For flow control,
-		// in which case we just want to discard the message and
-		// carry on, and for a close of the socket (which is very
-		// hard to achieve, since we close the pipes.)  In either
-		// case the easiest thing to do is just free the message
-		// and try again.
 		nni_msg_free(msg);
 	}
 	nni_pipe_recv(p->pipe, &p->aio_recv);
@@ -165,8 +152,6 @@ xsub0_sock_recv(void *arg, nni_aio *aio)
 	nni_msgq_aio_get(s->urq, aio);
 }
 
-// This is the global protocol structure -- our linkage to the core.
-// This should be the only global non-static symbol in this file.
 static nni_proto_pipe_ops xsub0_pipe_ops = {
 	.pipe_size  = sizeof(xsub0_pipe),
 	.pipe_init  = xsub0_pipe_init,
@@ -177,7 +162,6 @@ static nni_proto_pipe_ops xsub0_pipe_ops = {
 };
 
 static nni_option xsub0_sock_options[] = {
-	// terminate list
 	{
 	    .o_name = NULL,
 	},

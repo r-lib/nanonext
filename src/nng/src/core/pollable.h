@@ -27,4 +27,4 @@ struct nni_pollable {
 extern void nni_pollable_init(nni_pollable *);
 extern void nni_pollable_fini(nni_pollable *);
 
-#endif // CORE_POLLABLE_H
+#endif

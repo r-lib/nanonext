@@ -15,8 +15,6 @@
 #include <stdio.h>
 #include <string.h>
 
-// Functionality related to listeners.
-
 static void listener_accept_start(nni_listener *);
 static void listener_accept_cb(void *);
 static void listener_timer_cb(void *);
@@ -33,7 +31,6 @@ nni_listener_id(nni_listener *l)
 void
 nni_listener_destroy(nni_listener *l)
 {
-	// NB: both these will have already been stopped.
 	nni_aio_fini(&l->l_acc_aio);
 	nni_aio_fini(&l->l_tmo_aio);
 
@@ -160,7 +157,7 @@ listener_stats_init(nni_listener *l)
 	nni_stat_set_string(&l->st_url, l->l_url->u_rawurl);
 	nni_stat_register(&l->st_root);
 }
-#endif // NNG_ENABLE_STATS
+#endif
 
 void
 nni_listener_bump_error(nni_listener *l, int err)
@@ -197,11 +194,6 @@ nni_listener_bump_error(nni_listener *l, int err)
 #endif
 }
 
-// nni_listener_create creates a listener on the socket.
-// The caller should have a hold on the socket, and on success
-// the listener inherits the callers hold.  (If the caller wants
-// an additional hold, it should get an extra hold before calling this
-// function.)
 int
 nni_listener_create(nni_listener **lp, nni_sock *s, const char *url_str)
 {
@@ -231,9 +223,6 @@ nni_listener_create(nni_listener **lp, nni_sock *s, const char *url_str)
 	l->l_tran    = tran;
 	nni_atomic_flag_reset(&l->l_started);
 
-	// Make a copy of the endpoint operations.  This allows us to
-	// modify them (to override NULLs for example), and avoids an extra
-	// dereference on hot paths.
 	l->l_ops = *tran->tran_listener;
 
 	NNI_LIST_NODE_INIT(&l->l_node);
@@ -331,7 +320,7 @@ nni_listener_close(nni_listener *l)
 	nni_listener_shutdown(l);
 
 	nni_sock_remove_listener(l);
-	nni_listener_rele(l); // This will reap if reference count is zero.
+	nni_listener_rele(l);
 }
 
 static void
@@ -359,23 +348,18 @@ listener_accept_cb(void *arg)
 		nni_listener_add_pipe(l, nni_aio_get_output(aio, 0));
 		listener_accept_start(l);
 		break;
-	case NNG_ECONNABORTED: // remote condition, no cool down
-	case NNG_ECONNRESET:   // remote condition, no cool down
-	case NNG_ETIMEDOUT:    // No need to sleep, we timed out already.
-	case NNG_EPEERAUTH:    // peer validation failure
+	case NNG_ECONNABORTED:
+	case NNG_ECONNRESET:
+	case NNG_ETIMEDOUT:
+	case NNG_EPEERAUTH:
 		nni_listener_bump_error(l, rv);
 		listener_accept_start(l);
 		break;
-	case NNG_ECLOSED:   // no further action
-	case NNG_ECANCELED: // no further action
+	case NNG_ECLOSED:
+	case NNG_ECANCELED:
 		nni_listener_bump_error(l, rv);
 		break;
 	default:
-		// We don't really know why we failed, but we back off
-		// here. This is because errors here are probably due
-		// to system failures (resource exhaustion) and we hope
-		// by not thrashing we give the system a chance to
-		// recover.  100 ms is enough to cool down.
 		nni_listener_bump_error(l, rv);
 		nni_sleep_aio(100, &l->l_tmo_aio);
 		break;
@@ -385,7 +369,6 @@ listener_accept_cb(void *arg)
 static void
 listener_accept_start(nni_listener *l)
 {
-	// Call with the listener lock held.
 	l->l_ops.l_accept(l->l_data, &l->l_acc_aio);
 }
 
@@ -478,9 +461,6 @@ nni_listener_getopt(
 		return (o->o_get(l->l_data, val, szp, t));
 	}
 
-	// We provide a fallback on the URL, but let the implementation
-	// override.  This allows the URL to be created with wildcards,
-	// that are resolved later.
 	if (strcmp(name, NNG_OPT_URL) == 0) {
 		return (nni_copyout_str(l->l_url->u_rawurl, val, szp, t));
 	}

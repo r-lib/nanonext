@@ -8,8 +8,6 @@
 // found online at https://opensource.org/licenses/MIT.
 //
 
-// POSIX threads.
-
 #include "core/nng_impl.h"
 
 #ifdef NNG_PLATFORM_POSIX
@@ -44,29 +42,9 @@ pthread_attr_t      nni_thrattr;
 void
 nni_plat_mtx_init(nni_plat_mtx *mtx)
 {
-	// On most platforms, pthread_mutex_init cannot ever fail, when
-	// given NULL attributes.  Linux and Solaris fall into this category.
-	// BSD platforms (including OpenBSD, FreeBSD, and macOS) seem to
-	// attempt to allocate memory during mutex initialization.
-
-	// An earlier design worked around failures here by using a global
-	// fallback lock, but this was potentially racy, complex, and led
-	// to some circumstances where we were simply unable to provide
-	// adequate debug.
-
-	// If you find you're spending time in this function, consider
-	// adding more memory, reducing consumption, or moving to an
-	// operating system that doesn't need to do heap allocations
-	// to create mutexes.
-
-	// The symptom will be an apparently stuck application spinning
-	// every 10 ms trying to allocate this lock.
 
 	while ((pthread_mutex_init(&mtx->mtx, &nni_mxattr) != 0) &&
 	    (pthread_mutex_init(&mtx->mtx, NULL) != 0)) {
-		// We must have memory exhaustion -- ENOMEM, or
-		// in some cases EAGAIN.  Wait a bit before we try to
-		// give things a chance to settle down.
 		nni_msleep(10);
 	}
 }
@@ -156,9 +134,6 @@ void
 nni_rwlock_init(nni_rwlock *rwl)
 {
 	while (pthread_rwlock_init(&rwl->rwl, NULL) != 0) {
-		// We must have memory exhaustion -- ENOMEM, or
-		// in some cases EAGAIN.  Wait a bit before we try to
-		// give things a chance to settle down.
 		nni_msleep(10);
 	}
 }
@@ -202,8 +177,6 @@ nni_rwlock_unlock(nni_rwlock *rwl)
 void
 nni_plat_cv_init(nni_plat_cv *cv, nni_plat_mtx *mtx)
 {
-	// See the comments in nni_plat_mtx_init.  Almost everywhere this
-	// simply does not/cannot fail.
 
 	while (pthread_cond_init(&cv->cv, &nni_cvattr) != 0) {
 		nni_msleep(10);
@@ -234,7 +207,6 @@ nni_plat_cv_until(nni_plat_cv *cv, nni_time until)
 {
 	struct timespec ts;
 
-	// Our caller has already guaranteed a sane value for until.
 	ts.tv_sec  = until / 1000;
 	ts.tv_nsec = (until % 1000) * 1000000;
 
@@ -258,7 +230,6 @@ nni_plat_thr_main(void *arg)
 	nni_plat_thr *thr = arg;
 	sigset_t      set;
 
-	// Suppress (block) SIGPIPE for this thread.
 	sigemptyset(&set);
 	sigaddset(&set, SIGPIPE);
 	(void) pthread_sigmask(SIG_BLOCK, &set, NULL);
@@ -275,11 +246,8 @@ nni_plat_thr_init(nni_plat_thr *thr, void (*fn)(void *), void *arg)
 	thr->func = fn;
 	thr->arg  = arg;
 
-	// POSIX wants functions to return a void *, but we don't care.
 	rv = pthread_create(&thr->tid, &nni_thrattr, nni_plat_thr_main, thr);
 	if (rv != 0) {
-		// nni_printf("pthread_create: %s",
-		// strerror(rv));
 		return (NNG_ENOMEM);
 	}
 	return (0);
@@ -306,7 +274,6 @@ nni_plat_thr_set_name(nni_plat_thr *thr, const char *name)
 {
 #if defined(NNG_HAVE_PTHREAD_SETNAME_NP)
 #if defined(__APPLE__)
-	// Darwin is weird, it can only set the name of pthread_self.
 	if ((thr == NULL) || (pthread_self() == thr->tid)) {
 		pthread_setname_np(name);
 	}
@@ -347,11 +314,11 @@ nni_plat_init(int (*helper)(void))
 		nni_panic("nng is not fork-reentrant safe");
 	}
 	if (nni_plat_inited) {
-		return (0); // fast path
+		return (0);
 	}
 
 	pthread_mutex_lock(&nni_plat_init_lock);
-	if (nni_plat_inited) { // check again under the lock to be sure
+	if (nni_plat_inited) {
 		pthread_mutex_unlock(&nni_plat_init_lock);
 		return (0);
 	}
@@ -359,8 +326,6 @@ nni_plat_init(int (*helper)(void))
 	if ((pthread_mutexattr_init(&nni_mxattr) != 0) ||
 	    (pthread_condattr_init(&nni_cvattr) != 0) ||
 	    (pthread_attr_init(&nni_thrattr) != 0)) {
-		// Technically this is leaking, but it should never
-		// occur, so really not worried about it.
 		pthread_mutex_unlock(&nni_plat_init_lock);
 		return (NNG_ENOMEM);
 	}
@@ -389,7 +354,6 @@ nni_plat_init(int (*helper)(void))
 	}
 #endif
 
-	// if this one fails we don't care.
 	(void) pthread_mutexattr_settype(
 	    &nni_mxattr, PTHREAD_MUTEX_ERRORCHECK);
 
@@ -444,9 +408,6 @@ nni_plat_fini(void)
 int
 nni_plat_ncpu(void)
 {
-	// POSIX specifies sysconf exists, but not the value
-	// _SC_NPROCESSORS_ONLN.  Nonetheless, everybody implements it.
-	// If you don't we'll assume you only have a single logical CPU.
 #ifdef _SC_NPROCESSORS_ONLN
 	return ((int) sysconf(_SC_NPROCESSORS_ONLN));
 #else
@@ -454,4 +415,4 @@ nni_plat_ncpu(void)
 #endif
 }
 
-#endif // NNG_PLATFORM_POSIX
+#endif

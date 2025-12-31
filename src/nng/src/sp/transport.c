@@ -32,7 +32,6 @@ nni_sp_tran_register(nni_sp_tran *tran)
 nni_sp_tran *
 nni_sp_tran_find(nni_url *url)
 {
-	// address is of the form "<scheme>://blah..."
 	nni_sp_tran *t;
 
 	nni_rwlock_rdlock(&sp_tran_lk);
@@ -45,9 +44,6 @@ nni_sp_tran_find(nni_url *url)
 	nni_rwlock_unlock(&sp_tran_lk);
 	return (NULL);
 }
-
-// nni_sp_tran_sys_init initializes the entire transport subsystem, including
-// each individual transport.
 
 #ifdef NNG_TRANSPORT_INPROC
 extern void nni_sp_inproc_register(void);
@@ -97,8 +93,6 @@ nni_sp_tran_sys_init(void)
 #endif
 }
 
-// nni_sp_tran_sys_fini finalizes the entire transport system, including all
-// transports.
 void
 nni_sp_tran_sys_fini(void)
 {

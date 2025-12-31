@@ -26,9 +26,9 @@ typedef enum nng_tls_mode {
 } nng_tls_mode;
 
 typedef enum nng_tls_auth_mode {
-	NNG_TLS_AUTH_MODE_NONE     = 0, // No verification is performed
-	NNG_TLS_AUTH_MODE_OPTIONAL = 1, // Verify cert if presented
-	NNG_TLS_AUTH_MODE_REQUIRED = 2, // Verify cert, close if invalid
+	NNG_TLS_AUTH_MODE_NONE     = 0,
+	NNG_TLS_AUTH_MODE_OPTIONAL = 1,
+	NNG_TLS_AUTH_MODE_REQUIRED = 2,
 } nng_tls_auth_mode;
 
 typedef enum nng_tls_version {
@@ -76,4 +76,4 @@ NNG_DECL bool nng_tls_engine_fips_mode(void);
 }
 #endif
 
-#endif // NNG_SUPPLEMENTAL_TLS_TLS_H
+#endif

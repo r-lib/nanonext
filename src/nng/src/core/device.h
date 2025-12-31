@@ -12,4 +12,4 @@
 
 extern void nni_device(nni_aio *aio, nni_sock *, nni_sock *);
 
-#endif // CORE_DEVICE_H
+#endif

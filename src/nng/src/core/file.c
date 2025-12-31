@@ -70,8 +70,6 @@ plat_walker(const char *name, void *arg)
 	case NNI_FILE_WALK_PRUNE_SIB:
 		return (NNI_PLAT_FILE_WALK_PRUNE_SIB);
 	}
-	// We treat any other value as a stop condition.  The program
-	// is returning something invalid.
 	return (NNI_PLAT_FILE_WALK_STOP);
 }
 

@@ -12,10 +12,10 @@
 #define NNG_SUPPLEMENTAL_SHA1_SHA1_H
 
 typedef struct {
-	uint32_t digest[5]; // resulting digest
-	uint64_t len;       // length in bits
-	uint8_t  blk[64];   // message block
-	int      idx;       // index of next byte in block
+	uint32_t digest[5];
+	uint64_t len;
+	uint8_t  blk[64];
+	int      idx;
 } nni_sha1_ctx;
 
 extern void nni_sha1_init(nni_sha1_ctx *);
@@ -23,4 +23,4 @@ extern void nni_sha1_update(nni_sha1_ctx *, const void *, size_t);
 extern void nni_sha1_final(nni_sha1_ctx *, uint8_t[20]);
 extern void nni_sha1(const void *, size_t, uint8_t[20]);
 
-#endif // NNG_SUPPLEMENTAL_SHA1_SHA1_H
+#endif

@@ -152,7 +152,6 @@ extern int nni_http_server_res_error(nni_http_server *, nni_http_res *);
 
 extern int nni_http_hijack(nni_http_conn *);
 
-
 extern int nni_http_handler_init(
     nni_http_handler **, const char *, void (*)(nni_aio *));
 
@@ -212,4 +211,4 @@ extern void nni_http_transact(
 
 extern const char *nni_http_stream_scheme(const char *);
 
-#endif // NNG_SUPPLEMENTAL_HTTP_HTTP_API_H
+#endif

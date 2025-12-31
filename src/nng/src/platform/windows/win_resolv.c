@@ -16,12 +16,6 @@
 
 #ifdef NNG_PLATFORM_WINDOWS
 
-// Modern Windows has an asynchronous resolver, but there are problems
-// with it, where looking up names in DNS can poison results for other
-// uses, because the asynchronous resolver *only* considers DNS -- ignoring
-// host file, WINS, or other naming services.  As a result, we just build
-// our own limited asynchronous resolver with threads.
-
 static nni_mtx  resolv_mtx  = NNI_MTX_INITIALIZER;
 static nni_cv   resolv_cv   = NNI_CV_INITIALIZER(&resolv_mtx);
 static bool     resolv_fini = false;
@@ -59,14 +53,10 @@ resolv_cancel(nni_aio *aio, void *arg, int rv)
 	}
 	nni_aio_set_prov_data(aio, NULL);
 	if (nni_aio_list_active(aio)) {
-		// We have not been picked up by a resolver thread yet,
-		// so we can just discard everything.
 		nni_aio_list_remove(aio);
 		nni_mtx_unlock(&resolv_mtx);
 		resolv_free_item(item);
 	} else {
-		// Resolver still working, so just unlink our AIO to
-		// discard our interest in the results.
 		item->aio = NULL;
 		item->sa  = NULL;
 		nni_mtx_unlock(&resolv_mtx);
@@ -119,17 +109,13 @@ resolv_task(resolv_item *item)
 	hints.ai_family   = item->family;
 	hints.ai_socktype = SOCK_STREAM;
 
-	// Check to see if this is a numeric port number, and if it is
-	// make sure that it's in the valid range (because Windows may
-	// incorrectly simple do a conversion and mask off upper bits.
 	if (item->serv != NULL) {
 		long  port;
 		char *end;
 		port = strtol(item->serv, &end, 10);
-		if (*end == '\0') { // we fully converted it as a number...
+		if (*end == '\0') {
 			hints.ai_flags |= AI_NUMERICSERV;
 
-			// Not a valid port number.  Fail.
 			if ((port < 0) || (port > 0xffff)) {
 				rv = NNG_EADDRINVAL;
 				goto done;
@@ -142,9 +128,6 @@ resolv_task(resolv_item *item)
 		rv = resolv_errno(rv);
 		goto done;
 	}
-
-	// We only take the first matching address.  Presumably
-	// DNS load balancing is done by the resolver/server.
 
 	rv = NNG_EADDRINVAL;
 	for (probe = results; probe != NULL; probe = probe->ai_next) {
@@ -282,12 +265,10 @@ resolv_worker(void *notused)
 		item = nni_aio_get_prov_data(aio);
 		nni_aio_list_remove(aio);
 
-		// Now attempt to do the work.  This runs synchronously.
 		nni_mtx_unlock(&resolv_mtx);
 		rv = resolv_task(item);
 		nni_mtx_lock(&resolv_mtx);
 
-		// Check to make sure we were not canceled.
 		if ((aio = item->aio) != NULL) {
 			nni_aio_set_prov_data(aio, NULL);
 			item->aio = NULL;
@@ -354,7 +335,6 @@ parse_ip(const char *addr, nng_sockaddr *sa, bool want_port)
 	}
 
 	if (wrapped) {
-		// Never got the closing bracket.
 		rv = NNG_EADDRINVAL;
 		goto done;
 	}
@@ -417,7 +397,6 @@ nni_win_resolv_sysinit(void)
 	if (resolv_num_thr < 1) {
 		resolv_num_thr = 1;
 	}
-	// no limit on the maximum for now
 	nni_init_set_effective(NNG_INIT_NUM_RESOLVER_THREADS, resolv_num_thr);
 	resolv_thrs = NNI_ALLOC_STRUCTS(resolv_thrs, resolv_num_thr);
 	if (resolv_thrs == NULL) {
@@ -451,4 +430,4 @@ nni_win_resolv_sysfini(void)
 	NNI_FREE_STRUCTS(resolv_thrs, resolv_num_thr);
 }
 
-#endif // NNG_PLATFORM_WINDOWS
+#endif

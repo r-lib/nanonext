@@ -15,7 +15,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h> /* for strerror() */
+#include <string.h> 
 #include <sys/event.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -25,33 +25,30 @@
 
 typedef struct nni_posix_pollq nni_posix_pollq;
 
-// nni_posix_pollq is a work structure that manages state for the kqueue-based
-// pollq implementation
 struct nni_posix_pollq {
 	nni_mtx  mtx;
-	int      wake_wfd; // write side of wake pipe
-	int      wake_rfd; // read side of wake pipe
-	bool     closed;   // request for worker to exit
-	int      kq;       // kqueue handle
-	nni_thr  thr;      // worker thread
-	nni_list reapq;    // items to reap
+	int      wake_wfd;
+	int      wake_rfd;
+	bool     closed;
+	int      kq;
+	nni_thr  thr;
+	nni_list reapq;
 };
 
 struct nni_posix_pfd {
-	nni_list_node    node; // linkage into the reap list
-	nni_posix_pollq *pq;   // associated pollq
-	int              fd;   // file descriptor to poll
-	void *           arg;  // user data
-	nni_posix_pfd_cb cb;   // user callback on event
+	nni_list_node    node;
+	nni_posix_pollq *pq;
+	int              fd;
+	void *           arg;
+	nni_posix_pfd_cb cb;
 	bool             closed;
 	unsigned         events;
-	nni_cv           cv; // signaled when poller has unregistered
+	nni_cv           cv;
 	nni_mtx          mtx;
 };
 
 #define NNI_MAX_KQUEUE_EVENTS 64
 
-// single global instance for now
 static nni_posix_pollq nni_posix_global_pollq;
 
 int
@@ -62,13 +59,9 @@ nni_posix_pfd_init(nni_posix_pfd **pfdp, int fd)
 	struct kevent    ev[2];
 	unsigned         flags = EV_ADD | EV_DISABLE | EV_CLEAR;
 
-	// Set this is as soon as possible (narrow the close-exec race as
-	// much as we can; better options are system calls that suppress
-	// this behavior from descriptor creation.)
 	(void) fcntl(fd, F_SETFD, FD_CLOEXEC);
 	(void) fcntl(fd, F_SETFL, O_NONBLOCK);
 #ifdef SO_NOSIGPIPE
-	// Darwin lacks MSG_NOSIGNAL, but has a socket option.
 	int one = 1;
 	(void) setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one));
 #endif
@@ -91,11 +84,9 @@ nni_posix_pfd_init(nni_posix_pfd **pfdp, int fd)
 
 	NNI_LIST_NODE_INIT(&pf->node);
 	*pfdp = pf;
-	// Create entries in the kevent queue, without enabling them.
 	EV_SET(&ev[0], (uintptr_t) fd, EVFILT_READ, flags, 0, 0, pf);
 	EV_SET(&ev[1], (uintptr_t) fd, EVFILT_WRITE, flags, 0, 0, pf);
 
-	// We update the kqueue list, without polling for events.
 	if (kevent(pq->kq, ev, 2, NULL, 0, NULL) != 0) {
 		int rv;
 		rv = nni_plat_errno(errno);
@@ -120,7 +111,6 @@ nni_posix_pfd_close(nni_posix_pfd *pf)
 		EV_SET(&ev[0], pf->fd, EVFILT_READ, EV_DELETE, 0, 0, pf);
 		EV_SET(&ev[1], pf->fd, EVFILT_WRITE, EV_DELETE, 0, 0, pf);
 		(void) shutdown(pf->fd, SHUT_RDWR);
-		// This should never fail -- no allocations, just deletion.
 		(void) kevent(pq->kq, ev, 2, NULL, 0, NULL);
 	}
 	nni_mtx_unlock(&pq->mtx);
@@ -135,15 +125,10 @@ nni_posix_pfd_fini(nni_posix_pfd *pf)
 
 	nni_posix_pfd_close(pf);
 
-	// All consumers take care to move finalization to the reap thread,
-	// unless they are synchronous on user threads.
 	NNI_ASSERT(!nni_thr_is_self(&pq->thr));
 
 	nni_mtx_lock(&pq->mtx);
 
-	// If we're running on the callback, then don't bother to kick
-	// the pollq again.  This is necessary because we cannot modify
-	// the poller while it is polling.
 	if ((!nni_thr_is_self(&pq->thr)) && (!pq->closed)) {
 		nni_list_append(&pq->reapq, pf);
 		nni_plat_pipe_raise(pq->wake_wfd);
@@ -168,7 +153,7 @@ nni_posix_pfd_fd(nni_posix_pfd *pf)
 void
 nni_posix_pfd_set_cb(nni_posix_pfd *pf, nni_posix_pfd_cb cb, void *arg)
 {
-	NNI_ASSERT(cb != NULL); // must not be null when established.
+	NNI_ASSERT(cb != NULL);
 	nni_mtx_lock(&pf->mtx);
 	pf->cb  = cb;
 	pf->arg = arg;
@@ -193,7 +178,6 @@ nni_posix_pfd_arm(nni_posix_pfd *pf, unsigned events)
 	nni_mtx_unlock(&pf->mtx);
 
 	if (events == 0) {
-		// No events, and kqueue is oneshot, so nothing to do.
 		return (0);
 	}
 
@@ -319,8 +303,6 @@ nni_posix_pollq_create(nni_posix_pollq *pq)
 		return (rv);
 	}
 
-	// Register the wake pipe.  We use this to synchronize closing
-	// file descriptors.
 	EV_SET(&ev, (uintptr_t) pq->wake_rfd, EVFILT_READ, EV_ADD | EV_CLEAR,
 	    0, 0, NULL);
 
@@ -346,4 +328,4 @@ nni_posix_pollq_sysfini(void)
 	nni_posix_pollq_destroy(&nni_posix_global_pollq);
 }
 
-#endif // NNG_HAVE_KQUEUE
+#endif

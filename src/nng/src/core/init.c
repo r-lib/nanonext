@@ -40,7 +40,6 @@ nni_init_helper(void)
 		return (rv);
 	}
 
-	// following never fail
 	nni_sp_tran_sys_init();
 
 	nni_inited = true;
@@ -54,7 +53,6 @@ nni_init(void)
 	return (nni_plat_init(nni_init_helper));
 }
 
-// accessing the list of parameters
 typedef struct nni_init_param {
 	nni_list_node      node;
 	nng_init_parameter param;
@@ -71,9 +69,6 @@ void
 nni_init_set_param(nng_init_parameter p, uint64_t value)
 {
 	if (nni_inited) {
-		// this is paranoia -- if some library code started already
-		// then we cannot safely change parameters, and modifying the
-		// list is not thread safe.
 		return;
 	}
 	nni_init_param *item;
@@ -138,7 +133,6 @@ nni_init_get_effective(nng_init_parameter p)
 }
 #endif
 
-
 static void
 nni_init_params_fini(void)
 {
@@ -153,7 +147,6 @@ void
 nni_fini(void)
 {
 	if (!nni_inited) {
-		// make sure we discard parameters even if we didn't startup
 		nni_init_params_fini();
 		return;
 	}
@@ -162,7 +155,7 @@ nni_fini(void)
 	nni_reap_drain();
 	nni_aio_sys_fini();
 	nni_taskq_sys_fini();
-	nni_reap_sys_fini(); // must be before timer and aio (expire)
+	nni_reap_sys_fini();
 	nni_id_map_sys_fini();
 	nni_init_params_fini();
 

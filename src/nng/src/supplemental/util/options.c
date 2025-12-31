@@ -16,7 +16,6 @@
 
 #include "core/nng_impl.h"
 
-// Call with optidx set to 1 to start parsing.
 int
 nng_opts_parse(int argc, char *const *argv, const nng_optspec *opts, int *val,
     char **optarg, int *optidx)
@@ -77,7 +76,6 @@ nng_opts_parse(int argc, char *const *argv, const nng_optspec *opts, int *val,
 		opt = &opts[x];
 
 		if (strlen(opts[x].o_name) == l) {
-			// Perfect match.
 			matches = 1;
 			break;
 		}
@@ -85,20 +83,16 @@ nng_opts_parse(int argc, char *const *argv, const nng_optspec *opts, int *val,
 
 	switch (matches) {
 	case 1:
-		// Exact match
 		break;
 	case 0:
-		// No such option
 		return (NNG_EINVAL);
 		break;
 	default:
-		// Ambiguous (not match)
 		return (NNG_EAMBIGUOUS);
 		break;
 	}
 
 	if (!opt->o_arg) {
-		// No option clustering for short options yet.
 		if (arg[l] != '\0') {
 			return (NNG_EINVAL);
 		}

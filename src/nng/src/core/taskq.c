@@ -154,8 +154,6 @@ nni_task_dispatch(nni_task *task)
 {
 	nni_taskq *tq = task->task_tq;
 
-	// If there is no callback to perform, then do nothing!
-	// The user will be none the wiser.
 	if (task->task_cb == NULL) {
 		nni_task_exec(task);
 		return;
@@ -170,7 +168,7 @@ nni_task_dispatch(nni_task *task)
 
 	nni_mtx_lock(&tq->tq_mtx);
 	nni_list_append(&tq->tq_tasks, task);
-	nni_cv_wake1(&tq->tq_sched_cv); // waking just one waiter is adequate
+	nni_cv_wake1(&tq->tq_sched_cv);
 	nni_mtx_unlock(&tq->tq_mtx);
 }
 
@@ -186,7 +184,6 @@ nni_task_prep(nni_task *task)
 void
 nni_task_abort(nni_task *task)
 {
-	// This is called when unscheduling the task.
 	nni_mtx_lock(&task->task_mtx);
 	if (task->task_prep) {
 		task->task_prep = false;

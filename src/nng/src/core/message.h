@@ -47,4 +47,4 @@ extern bool     nni_msg_shared(nni_msg *);
 
 extern nni_msg *nni_msg_pull_up(nni_msg *);
 
-#endif // CORE_SOCKET_H
+#endif

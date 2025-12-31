@@ -64,7 +64,6 @@ nni_posix_nn2sockaddr(void *sa, const nni_sockaddr *na)
 		spath  = (void *) sa;
 		nspath = &na->s_ipc;
 		memset(spath, 0, sizeof(*spath));
-		// Make sure that the path fits!
 		sz = sizeof(spath->sun_path);
 		if (nni_strlcpy(spath->sun_path, nspath->sa_path, sz) >= sz) {
 			return (0);
@@ -80,13 +79,10 @@ nni_posix_nn2sockaddr(void *sa, const nni_sockaddr *na)
 		}
 		memset(spath, 0, sizeof(*spath));
 		spath->sun_family  = PF_UNIX;
-		spath->sun_path[0] = '\0'; // abstract starts with nul
+		spath->sun_path[0] = '\0';
 
-		// We support auto-bind with an empty string.  There is
-		// a subtle caveat here, which is that we cannot bind to
-		// the *empty* name.
 		if (nsabs->sa_len == 0) {
-			return (sizeof(sa_family_t)); // auto bind
+			return (sizeof(sa_family_t));
 		} else {
 			memcpy(&spath->sun_path[1], nsabs->sa_name,
 			    nsabs->sa_len);
@@ -133,17 +129,12 @@ nni_posix_sockaddr2nn(nni_sockaddr *na, const void *sa, size_t sz)
 		memcpy(nsin6->sa_addr, sin6->sin6_addr.s6_addr, 16);
 		break;
 	case AF_UNIX:
-		// AF_UNIX can be NNG_AF_IPC, or NNG_AF_ABSTRACT.
 		spath = (void *) sa;
 		if ((sz < sizeof(sa_family_t)) || (sz > sizeof(*spath))) {
 			return (-1);
 		}
-		// Now we need to look more closely.
 		sz -= sizeof(sa_family_t);
 		if (sz == 0) {
-			// Unnamed socket.  These will be treated using
-			// auto-bind if we actually listen to them, and
-			// it is impossible to connect them.
 			nsabs            = &na->s_abstract;
 			nsabs->sa_family = NNG_AF_ABSTRACT;
 			nsabs->sa_len    = 0;
@@ -160,12 +151,9 @@ nni_posix_sockaddr2nn(nni_sockaddr *na, const void *sa, size_t sz)
 		}
 		break;
 	default:
-		// We should never see this - the OS should always be
-		// specific about giving us either AF_INET or AF_INET6.
-		// Other address families are not handled here.
 		return (-1);
 	}
 	return (0);
 }
 
-#endif // NNG_PLATFORM_POSIX
+#endif

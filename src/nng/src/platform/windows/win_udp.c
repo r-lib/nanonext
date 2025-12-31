@@ -8,7 +8,6 @@
 // found online at https://opensource.org/licenses/MIT.
 //
 
-// Silence complaints about inet_addr()
 #define _WINSOCK_DEPRECATED_NO_WARNINGS 1
 
 #include "core/nng_impl.h"
@@ -33,8 +32,6 @@ struct nni_plat_udp {
 static void udp_recv_cb(nni_win_io *, int, size_t);
 static void udp_recv_start(nni_plat_udp *);
 
-// nni_plat_udp_open initializes a UDP socket, binding to the local
-// address specified specified.
 int
 nni_plat_udp_open(nni_plat_udp **udpp, nni_sockaddr *sa)
 {
@@ -61,7 +58,6 @@ nni_plat_udp_open(nni_plat_udp **udpp, nni_sockaddr *sa)
 		nni_plat_udp_close(u);
 		return (rv);
 	}
-	// Don't inherit the handle (CLOEXEC really).
 	SetHandleInformation((HANDLE) u->s, HANDLE_FLAG_INHERIT, 0);
 	no = 0;
 	(void) setsockopt(
@@ -74,7 +70,6 @@ nni_plat_udp_open(nni_plat_udp **udpp, nni_sockaddr *sa)
 		return (rv);
 	}
 
-	// Bind the local address
 	if (bind(u->s, (struct sockaddr *) &ss, sslen) == SOCKET_ERROR) {
 		rv = nni_win_error(GetLastError());
 		nni_plat_udp_close(u);
@@ -85,7 +80,6 @@ nni_plat_udp_open(nni_plat_udp **udpp, nni_sockaddr *sa)
 	return (rv);
 }
 
-// nni_plat_udp_close closes the underlying UDP socket.
 void
 nni_plat_udp_close(nni_plat_udp *u)
 {
@@ -108,8 +102,6 @@ nni_plat_udp_close(nni_plat_udp *u)
 	NNI_FREE_STRUCT(u);
 }
 
-// nni_plat_udp_send sends the data in the aio to the the
-// destination specified in the nni_aio.  The iovs are the UDP payload.
 void
 nni_plat_udp_send(nni_plat_udp *u, nni_aio *aio)
 {
@@ -134,10 +126,6 @@ nni_plat_udp_send(nni_plat_udp *u, nni_aio *aio)
 	nni_aio_get_iov(aio, &naiov, &aiov);
 	iov = _malloca(sizeof(*iov) * naiov);
 
-	// NB: UDP send runs "quickly" on Windows, without any need for
-	// a blocking or asynchronous operation. If the message can't be
-	// sent immediately (or queued for it), then it is dropped.
-
 	nni_mtx_lock(&u->lk);
 	if ((u->s == INVALID_SOCKET) || u->closed) {
 		nni_mtx_unlock(&u->lk);
@@ -146,14 +134,11 @@ nni_plat_udp_send(nni_plat_udp *u, nni_aio *aio)
 		return;
 	}
 
-	// Put the AIOs in Windows form.
 	for (unsigned i = 0; i < naiov; i++) {
 		iov[i].buf = aiov[i].iov_buf;
 		iov[i].len = (ULONG) aiov[i].iov_len;
 	}
 
-	// We can use a "non-overlapping" send; there is little point in
-	// handling UDP send completions asynchronously.
 	rv = WSASendTo(u->s, iov, (DWORD) naiov, &nsent, 0,
 	    (struct sockaddr *) &to, tolen, NULL, NULL);
 
@@ -195,7 +180,6 @@ udp_recv_cb(nni_win_io *io, int rv, size_t num)
 
 	nni_mtx_lock(&u->lk);
 	if ((aio = nni_list_first(&u->rxq)) == NULL) {
-		// Should indicate that it was closed.
 		nni_mtx_unlock(&u->lk);
 		return;
 	}
@@ -204,7 +188,6 @@ udp_recv_cb(nni_win_io *io, int rv, size_t num)
 		u->cancel_rv = 0;
 	}
 
-	// convert address from Windows form...
 	if ((sa = nni_aio_get_input(aio, 0)) != NULL) {
 		if (nni_win_sockaddr2nn(sa, &u->rxsa) != 0) {
 			rv  = NNG_EADDRINVAL;
@@ -246,19 +229,13 @@ again:
 	u->rxsalen = sizeof(SOCKADDR_STORAGE);
 	nni_aio_get_iov(aio, &naiov, &aiov);
 
-	// This is a stack allocation- it should always succeed - or
-	// throw an exception if there is not sufficient stack space.
-	// (Turns out it can allocate from the heap, but same semantics.)
 	iov = _malloca(sizeof(*iov) * naiov);
 
-	// Put the AIOs in Windows form.
 	for (unsigned i = 0; i < naiov; i++) {
 		iov[i].buf = aiov[i].iov_buf;
 		iov[i].len = (ULONG) aiov[i].iov_len;
 	}
 
-	// Note that the IOVs for the event were prepared on entry
-	// already. The actual aio's iov array we don't touch.
 	flags = 0;
 
 	rv = WSARecvFrom(u->s, iov, (DWORD) naiov, NULL, &flags,
@@ -268,15 +245,11 @@ again:
 
 	if ((rv == SOCKET_ERROR) &&
 	    ((rv = GetLastError()) != ERROR_IO_PENDING)) {
-		// Synchronous failure.
 		nni_aio_finish_error(aio, nni_win_error(rv));
 		goto again;
 	}
 }
 
-// nni_plat_udp_pipe_recv recvs a message, storing it in the iovs
-// from the UDP payload.  If the UDP payload will not fit, then
-// NNG_EMSGSIZE results.
 void
 nni_plat_udp_recv(nni_plat_udp *u, nni_aio *aio)
 {
@@ -333,4 +306,4 @@ nni_win_udp_sysfini(void)
 	WSACleanup();
 }
 
-#endif // NNG_PLATFORM_WINDOWS
+#endif

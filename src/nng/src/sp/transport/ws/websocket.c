@@ -24,7 +24,7 @@ typedef struct ws_listener ws_listener;
 typedef struct ws_pipe     ws_pipe;
 
 struct ws_dialer {
-	uint16_t           peer; // remote protocol
+	uint16_t           peer;
 	nni_list           aios;
 	nni_mtx            mtx;
 	nni_aio           *connaio;
@@ -33,7 +33,7 @@ struct ws_dialer {
 };
 
 struct ws_listener {
-	uint16_t             peer; // remote protocol
+	uint16_t             peer;
 	nni_list             aios;
 	nni_mtx              mtx;
 	nni_aio             *accaio;
@@ -158,8 +158,6 @@ wstran_pipe_send(void *arg, nni_aio *aio)
 	int      rv;
 
 	if (nni_aio_begin(aio) != 0) {
-		// No way to give the message back to the protocol, so
-		// we just discard it silently to prevent it from leaking.
 		nni_msg_free(nni_aio_get_msg(aio));
 		nni_aio_set_msg(aio, NULL);
 		return;
@@ -232,7 +230,6 @@ wstran_pipe_alloc(ws_pipe **pipep, void *ws)
 	}
 	nni_mtx_init(&p->mtx);
 
-	// Initialize AIOs.
 	if (((rv = nni_aio_alloc(&p->txaio, wstran_pipe_send_cb, p)) != 0) ||
 	    ((rv = nni_aio_alloc(&p->rxaio, wstran_pipe_recv_cb, p)) != 0)) {
 		wstran_pipe_fini(p);
@@ -283,9 +280,6 @@ wstran_listener_accept(void *arg, nni_aio *aio)
 	ws_listener *l = arg;
 	int          rv;
 
-	// We already bound, so we just need to look for an available
-	// pipe (created by the handler), and match it.
-	// Otherwise we stick the AIO in the accept list.
 	if (nni_aio_begin(aio) != 0) {
 		return;
 	}
@@ -339,7 +333,6 @@ wstran_dialer_connect(void *arg, nni_aio *aio)
 }
 
 static const nni_option ws_pipe_options[] = {
-	// terminate list
 	{
 	    .o_name = NULL,
 	}
@@ -408,7 +401,6 @@ wstran_connect_cb(void *arg)
 		ws = nni_aio_get_output(caio, 0);
 	}
 	if ((uaio = nni_list_first(&d->aios)) == NULL) {
-		// The client stopped caring about this!
 		nng_stream_free(ws);
 		nni_mtx_unlock(&d->mtx);
 		return;
@@ -466,7 +458,6 @@ wstran_accept_cb(void *arg)
 		nng_stream *ws = nni_aio_get_output(aaio, 0);
 		if (uaio != NULL) {
 			ws_pipe *p;
-			// Make a pipe
 			nni_aio_list_remove(uaio);
 			if ((rv = wstran_pipe_alloc(&p, ws)) != 0) {
 				nng_stream_close(ws);
@@ -563,7 +554,6 @@ wstran_fini(void)
 }
 
 static const nni_option wstran_ep_opts[] = {
-	// terminate list
 	{
 	    .o_name = NULL,
 	},
@@ -730,4 +720,4 @@ nni_sp_wss_register(void)
 	nni_sp_tran_register(&wss6_tran);
 }
 
-#endif // NNG_TRANSPORT_WSS
+#endif

@@ -37,4 +37,4 @@ NNG_DECL int nng_surveyor0_open_raw(nng_socket *);
 }
 #endif
 
-#endif // NNG_PROTOCOL_SURVEY0_SURVEY_H
+#endif

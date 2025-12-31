@@ -13,9 +13,6 @@
 
 #include "core/nng_impl.h"
 
-// Linked list implementation.  We implement a doubly linked list.
-// Using pointer arithmetic, we can operate as a list of "anything".
-
 #define NODE(list, item) \
 	(nni_list_node *) (void *)(((char *) item) + list->ll_offset)
 #define ITEM(list, node) (void *) (((char *) node) - list->ll_offset)
@@ -152,8 +149,6 @@ nni_list_active(nni_list *list, void *item)
 int
 nni_list_empty(nni_list *list)
 {
-	// The first check ensures that we treat an uninitialized list
-	// as empty.  This use useful for statically initialized lists.
 	return ((list->ll_head.ln_next == NULL) ||
 	    (list->ll_head.ln_next == &list->ll_head));
 }

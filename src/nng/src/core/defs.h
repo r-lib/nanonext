@@ -52,8 +52,8 @@ typedef struct nni_plat_cv  nni_cv;
 typedef struct nni_thr      nni_thr;
 typedef void (*nni_thr_func)(void *);
 
-typedef uint64_t nni_time;     // Abs. time (ms).
-typedef int32_t  nni_duration; // Rel. time (ms).
+typedef uint64_t nni_time;
+typedef int32_t  nni_duration;
 
 typedef void (*nni_cb)(void *);
 
@@ -151,4 +151,4 @@ typedef nni_type nni_opt_type;
 	(__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 #endif
 
-#endif // CORE_DEFS_H
+#endif

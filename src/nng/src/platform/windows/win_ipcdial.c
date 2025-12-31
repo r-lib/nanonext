@@ -18,18 +18,13 @@
 
 typedef struct ipc_dialer {
 	nng_stream_dialer sd;
-	bool              closed; // dialers are locked by the worker lock
+	bool              closed;
 	nni_list          aios;
-	nni_list_node     node; // node on worker list
+	nni_list_node     node;
 	char             *path;
 	nni_sockaddr      sa;
 } ipc_dialer;
 
-// Windows IPC is a bit different on the client side.  There is no
-// support for asynchronous connection, but we can fake it with a
-// single thread that runs to establish the connection.  That thread
-// will run keep looping, sleeping for 10 ms between attempts.  It
-// performs non-blocking attempts to connect.
 typedef struct ipc_dial_work {
 	nni_list waiters;
 	nni_list workers;
@@ -76,11 +71,6 @@ ipc_dial_thr(void *arg)
 			if (f == INVALID_HANDLE_VALUE) {
 				switch ((rv = GetLastError())) {
 				case ERROR_PIPE_BUSY:
-					// Still in progress.  This
-					// shouldn't happen unless the
-					// other side aborts the
-					// connection.
-					// back at the head of the list
 					nni_list_remove(&w->workers, d);
 					nni_list_prepend(&w->waiters, d);
 					continue;
@@ -112,10 +102,8 @@ ipc_dial_thr(void *arg)
 		}
 
 		if (nni_list_empty(&w->waiters)) {
-			// Wait until an endpoint is added.
 			nni_cv_wait(&w->cv);
 		} else {
-			// Wait 10 ms, unless woken earlier.
 			nni_cv_until(&w->cv, nni_clock() + 10);
 		}
 	}
@@ -283,7 +271,7 @@ nni_win_ipc_sysfini(void)
 {
 	ipc_dial_work *worker = &ipc_connector;
 
-	nni_reap_drain(); // so that listeners get cleaned up.
+	nni_reap_drain();
 
 	nni_mtx_lock(&worker->mtx);
 	worker->exit = 1;

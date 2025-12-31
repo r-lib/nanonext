@@ -20,7 +20,7 @@ nni_proto_open(nng_socket *sip, const nni_proto *proto)
 
 	if ((rv = nni_sock_open(&sock, proto)) == 0) {
 		nng_socket s;
-		s.id = nni_sock_id(sock); // Keep socket held open.
+		s.id = nni_sock_id(sock);
 		*sip = s;
 	}
 	return (rv);

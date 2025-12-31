@@ -31,4 +31,4 @@ NNG_DECL int nng_pair0_open_raw(nng_socket *);
 }
 #endif
 
-#endif // NNG_PROTOCOL_PAIR0_PAIR_H
+#endif

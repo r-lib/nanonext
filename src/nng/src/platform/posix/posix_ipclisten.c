@@ -108,14 +108,11 @@ ipc_listener_doaccept(ipc_listener *l)
 					nni_aio_finish_error(aio, rv);
 					continue;
 				}
-				// Come back later...
 				return;
 			case ECONNABORTED:
 			case ECONNRESET:
-				// Eat them, they aren't interesting.
 				continue;
 			default:
-				// Error this one, but keep moving to the next.
 				rv = nni_plat_errno(errno);
 				NNI_ASSERT(rv != 0);
 				nni_aio_list_remove(aio);
@@ -160,7 +157,6 @@ ipc_listener_cb(nni_posix_pfd *pfd, unsigned events, void *arg)
 		return;
 	}
 
-	// Anything else will turn up in accept.
 	ipc_listener_doaccept(l);
 	nni_mtx_unlock(&l->mtx);
 }
@@ -170,8 +166,6 @@ ipc_listener_cancel(nni_aio *aio, void *arg, int rv)
 {
 	ipc_listener *l = arg;
 
-	// This is dead easy, because we'll ignore the completion if there
-	// isn't anything to do the accept on!
 	NNI_ASSERT(rv != 0);
 	nni_mtx_lock(&l->mtx);
 	if (nni_aio_list_active(aio)) {
@@ -203,11 +197,6 @@ ipc_remove_stale(const char *path)
 		return (nni_plat_errno(errno));
 	}
 
-	// There is an assumption here that connect() returns immediately
-	// (even when non-blocking) when a server is absent.  This seems
-	// to be true for the platforms we've tried.  If it doesn't work,
-	// then the cleanup will fail.  As this is supposed to be an
-	// exceptional case, don't worry.
 	(void) fcntl(fd, F_SETFL, O_NONBLOCK);
 	if (connect(fd, (void *) &sa, sizeof(sa)) < 0) {
 		if (errno == ECONNREFUSED) {
@@ -236,14 +225,12 @@ ipc_listener_set_perms(void *arg, const void *buf, size_t sz, nni_type t)
 		return (rv);
 	}
 	if (l->sa.s_family == NNG_AF_ABSTRACT) {
-		// We ignore permissions on abstract sockets.
-		// They succeed, but have no effect.
 		return (0);
 	}
 	if ((mode & S_IFMT) != 0) {
 		return (NNG_EINVAL);
 	}
-	mode |= S_IFSOCK; // set IFSOCK to ensure non-zero
+	mode |= S_IFSOCK;
 	nni_mtx_lock(&l->mtx);
 	if (l->started) {
 		nni_mtx_unlock(&l->mtx);
@@ -374,9 +361,6 @@ ipc_listener_listen(void *arg)
 	}
 
 #ifdef NNG_HAVE_ABSTRACT_SOCKETS
-	// If the original address was for a system assigned value,
-	// then figure out what we got.  This is analogous to TCP
-	// binding to port 0.
 	if ((l->sa.s_family == NNG_AF_ABSTRACT) &&
 	    (l->sa.s_abstract.sa_len == 0)) {
 		struct sockaddr_un *su = (void *) &ss;
@@ -386,7 +370,7 @@ ipc_listener_listen(void *arg)
 		    (len <= sizeof(l->sa.s_abstract.sa_name)) &&
 		    (su->sun_path[0] == '\0')) {
 			len -= (socklen_t) sizeof(sa_family_t);
-			len--; // don't count the leading NUL.
+			len--;
 			l->sa.s_abstract.sa_len = (uint16_t) len;
 			memcpy(
 			    l->sa.s_abstract.sa_name, &su->sun_path[1], len);
@@ -428,10 +412,6 @@ ipc_listener_accept(void *arg, nni_aio *aio)
 	ipc_listener *l = arg;
 	int           rv;
 
-	// Accept is simpler than the connect case.  With accept we just
-	// need to wait for the socket to be readable to indicate an incoming
-	// connection is ready for us.  There isn't anything else for us to
-	// do really, as that will have been done in listen.
 	if (nni_aio_begin(aio) != 0) {
 		return;
 	}
@@ -482,7 +462,6 @@ nni_ipc_listener_alloc(nng_stream_listener **lp, const nng_url *url)
 
 #ifdef NNG_HAVE_ABSTRACT_SOCKETS
 	} else if (strcmp(url->u_scheme, "abstract") == 0) {
-		// path is url encoded.
 		len = nni_url_decode(l->sa.s_abstract.sa_name, url->u_path,
 		    sizeof(l->sa.s_abstract.sa_name));
 		if (len == (size_t) -1) {

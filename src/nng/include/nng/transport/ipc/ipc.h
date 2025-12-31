@@ -17,9 +17,6 @@
 extern "C" {
 #endif
 
-// ipc transport.  This is used for inter-process communication on
-// the same host computer.
-
 #ifndef NNG_ELIDE_DEPRECATED
 NNG_DECL int nng_ipc_register(void);
 #endif
@@ -28,4 +25,4 @@ NNG_DECL int nng_ipc_register(void);
 }
 #endif
 
-#endif // NNG_TRANSPORT_IPC_IPC_H
+#endif

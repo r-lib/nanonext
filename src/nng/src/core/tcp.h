@@ -15,4 +15,4 @@
 extern int nni_tcp_dialer_alloc(nng_stream_dialer **, const nng_url *);
 extern int nni_tcp_listener_alloc(nng_stream_listener **, const nng_url *);
 
-#endif // CORE_TCP_H
+#endif

@@ -25,7 +25,6 @@
 
 typedef struct nni_ipc_dialer ipc_dialer;
 
-// Dialer stuff.
 static void
 ipc_dialer_close(void *arg)
 {
@@ -122,8 +121,6 @@ ipc_dialer_cb(nni_posix_pfd *pfd, unsigned ev, void *arg)
 			rv = errno;
 		}
 		if (rv == EINPROGRESS) {
-			// Connection still in progress, come back
-			// later.
 			nni_mtx_unlock(&d->mtx);
 			return;
 		} else if (rv != 0) {
@@ -148,8 +145,6 @@ ipc_dialer_cb(nni_posix_pfd *pfd, unsigned ev, void *arg)
 	nni_aio_finish(aio, 0, 0);
 }
 
-// We don't give local address binding support.  Outbound dialers always
-// get an ephemeral port.
 void
 ipc_dialer_dial(void *arg, nni_aio *aio)
 {
@@ -185,10 +180,7 @@ ipc_dialer_dial(void *arg, nni_aio *aio)
 		return;
 	}
 
-	// This arranges for the fd to be in non-blocking mode, and adds the
-	// poll fd to the list.
 	if ((rv = nni_posix_pfd_init(&pfd, fd)) != 0) {
-		// the error label unlocks this
 		nni_mtx_lock(&d->mtx);
 		goto error;
 	}
@@ -207,14 +199,12 @@ ipc_dialer_dial(void *arg, nni_aio *aio)
 	if (connect(fd, (void *) &ss, (socklen_t) len) != 0) {
 		if (errno != EINPROGRESS) {
 			if (errno == ENOENT) {
-				// No socket present means nobody listening.
 				rv = NNG_ECONNREFUSED;
 			} else {
 				rv = nni_plat_errno(errno);
 			}
 			goto error;
 		}
-		// Asynchronous connect.
 		if ((rv = nni_posix_pfd_arm(pfd, NNI_POLL_OUT)) != 0) {
 			goto error;
 		}
@@ -224,8 +214,6 @@ ipc_dialer_dial(void *arg, nni_aio *aio)
 		nni_mtx_unlock(&d->mtx);
 		return;
 	}
-	// Immediate connect, cool!  This probably only happens
-	// on loop back, and probably not on every platform.
 	nni_aio_set_prov_data(aio, NULL);
 	nni_mtx_unlock(&d->mtx);
 	nni_posix_ipc_start(c);
@@ -285,7 +273,6 @@ nni_ipc_dialer_alloc(nng_stream_dialer **dp, const nng_url *url)
 #ifdef NNG_HAVE_ABSTRACT_SOCKETS
 	} else if (strcmp(url->u_scheme, "abstract") == 0) {
 
-		// path is url encoded.
 		len = nni_url_decode(d->sa.s_abstract.sa_name, url->u_path,
 		    sizeof(d->sa.s_abstract.sa_name));
 		if (len == (size_t) -1) {

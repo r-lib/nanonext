@@ -28,4 +28,4 @@ extern int nni_listener_getopt(
 extern void nni_listener_add_stat(nni_listener *, nni_stat_item *);
 extern void nni_listener_bump_error(nni_listener *, int);
 
-#endif // CORE_LISTENER_H
+#endif

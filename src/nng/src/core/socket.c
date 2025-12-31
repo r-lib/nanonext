@@ -16,8 +16,6 @@
 #include <stdio.h>
 #include <string.h>
 
-// Socket implementation.
-
 struct nni_ctx {
 	nni_list_node     c_node;
 	nni_sock         *c_sock;
@@ -25,7 +23,7 @@ struct nni_ctx {
 	void             *c_data;
 	size_t            c_size;
 	bool              c_closed;
-	unsigned          c_ref; // protected by global lock
+	unsigned          c_ref;
 	uint32_t          c_id;
 	nng_duration      c_sndtimeo;
 	nng_duration      c_rcvtimeo;
@@ -52,12 +50,12 @@ struct nni_socket {
 
 	uint32_t s_id;
 	uint32_t s_flags;
-	unsigned s_ref;  // protected by global lock
-	void    *s_data; // Protocol private
+	unsigned s_ref;
+	void    *s_data;
 	size_t   s_size;
 
-	nni_msgq *s_uwq; // Upper write queue
-	nni_msgq *s_urq; // Upper read queue
+	nni_msgq *s_uwq;
+	nni_msgq *s_urq;
 
 	nni_proto_id s_self_id;
 	nni_proto_id s_peer_id;
@@ -66,39 +64,38 @@ struct nni_socket {
 	nni_proto_sock_ops s_sock_ops;
 	nni_proto_ctx_ops  s_ctx_ops;
 
-	// options
-	nni_duration s_sndtimeo;  // send timeout
-	nni_duration s_rcvtimeo;  // receive timeout
-	nni_duration s_reconn;    // reconnect time
-	nni_duration s_reconnmax; // max reconnect time
-	size_t       s_rcvmaxsz;  // max receive size
-	nni_list     s_options;   // opts not handled by sock/proto
-	char         s_name[64];  // socket name (legacy compat)
+	nni_duration s_sndtimeo;
+	nni_duration s_rcvtimeo;
+	nni_duration s_reconn;
+	nni_duration s_reconnmax;
+	size_t       s_rcvmaxsz;
+	nni_list     s_options;
+	char         s_name[64];
 
-	nni_list s_listeners; // active listeners
-	nni_list s_dialers;   // active dialers
-	nni_list s_pipes;     // active pipes
-	nni_list s_ctxs;      // active contexts (protected by global sock_lk)
+	nni_list s_listeners;
+	nni_list s_dialers;
+	nni_list s_pipes;
+	nni_list s_ctxs;
 
-	bool s_closing; // Socket is closing
-	bool s_closed;  // Socket closed, protected by global lock
+	bool s_closing;
+	bool s_closed;
 
 	nni_mtx          s_pipe_cbs_mtx;
 	nni_sock_pipe_cb s_pipe_cbs[NNG_PIPE_EV_NUM];
 
 #ifdef NNG_ENABLE_STATS
-	nni_stat_item st_root;      // socket scope
-	nni_stat_item st_id;        // socket id
-	nni_stat_item st_name;      // socket name
-	nni_stat_item st_protocol;  // socket protocol
-	nni_stat_item st_dialers;   // number of dialers
-	nni_stat_item st_listeners; // number of listeners
-	nni_stat_item st_pipes;     // number of pipes
-	nni_stat_item st_rx_bytes;  // number of bytes received
-	nni_stat_item st_tx_bytes;  // number of bytes received
-	nni_stat_item st_rx_msgs;   // number of msgs received
-	nni_stat_item st_tx_msgs;   // number of msgs sent
-	nni_stat_item st_rejects;   // pipes rejected
+	nni_stat_item st_root;
+	nni_stat_item st_id;
+	nni_stat_item st_name;
+	nni_stat_item st_protocol;
+	nni_stat_item st_dialers;
+	nni_stat_item st_listeners;
+	nni_stat_item st_pipes;
+	nni_stat_item st_rx_bytes;
+	nni_stat_item st_tx_bytes;
+	nni_stat_item st_rx_msgs;
+	nni_stat_item st_tx_msgs;
+	nni_stat_item st_rejects;
 #endif
 };
 
@@ -327,7 +324,6 @@ static const nni_option sock_options[] = {
 	    .o_name = NNG_OPT_PEERNAME,
 	    .o_get  = sock_get_peername,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},
@@ -351,8 +347,6 @@ nni_sock_id(nni_sock *s)
 	return (s->s_id);
 }
 
-// nni_sock_sendq and nni_sock_recvq are called by the protocol to obtain
-// the upper read and write queues.
 nni_msgq *
 nni_sock_sendq(nni_sock *s)
 {
@@ -494,9 +488,6 @@ sock_stats_init(nni_sock *s)
 		.si_atomic = true,
 	};
 
-	// To make collection cheap and atomic for the socket,
-	// we just use a single lock for the entire chain.
-
 	nni_stat_init(&s->st_root, &root_info);
 	sock_stat_init(s, &s->st_id, &id_info);
 	sock_stat_init(s, &s->st_name, &name_info);
@@ -525,7 +516,6 @@ sock_destroy(nni_sock *s)
 	nni_stat_unregister(&s->st_root);
 #endif
 
-	// The protocol needs to clean up its state.
 	if (s->s_data != NULL) {
 		s->s_sock_ops.sock_fini(s->s_data);
 	}
@@ -563,7 +553,7 @@ nni_sock_create(nni_sock **sp, const nni_proto *proto)
 	s->s_rcvtimeo  = -1;
 	s->s_reconn    = NNI_SECOND;
 	s->s_reconnmax = 0;
-	s->s_rcvmaxsz  = 0; // unlimited by default
+	s->s_rcvmaxsz  = 0;
 	s->s_id        = 0;
 	s->s_ref       = 0;
 	s->s_self_id   = proto->proto_self;
@@ -603,9 +593,6 @@ nni_sock_create(nni_sock **sp, const nni_proto *proto)
 	}
 	s->s_sock_ops.sock_init(s->s_data, s);
 
-	// These we *attempt* to set so that we are likely to have initial
-	// values loaded.  They should not fail, but if they do we don't
-	// worry about it.
 	(void) nni_sock_setopt(s, NNG_OPT_SENDTIMEO, &s->s_sndtimeo,
 	    sizeof(nni_duration), NNI_TYPE_DURATION);
 	(void) nni_sock_setopt(s, NNG_OPT_RECVTIMEO, &s->s_rcvtimeo,
@@ -635,7 +622,6 @@ nni_sock_open(nni_sock **sockp, const nni_proto *proto)
 	int       rv;
 
 	if (proto->proto_version != NNI_PROTOCOL_VERSION) {
-		// unsupported protocol version
 		return (NNG_ENOTSUP);
 	}
 
@@ -656,27 +642,19 @@ nni_sock_open(nni_sock **sockp, const nni_proto *proto)
 	}
 	nni_mtx_unlock(&sock_lk);
 
-	// Set the socket name.
 	(void) snprintf(s->s_name, sizeof(s->s_name), "%u", s->s_id);
 
 #ifdef NNG_ENABLE_STATS
-	// Set up basic stat values.  The socket id wasn't
-	// known at stat creation time, so we set it now.
 	nni_stat_set_id(&s->st_id, (int) s->s_id);
 	nni_stat_set_id(&s->st_root, (int) s->s_id);
 	nni_stat_set_string(&s->st_name, s->s_name);
 
-	// Add our stats chain.
 	nni_stat_register(&s->st_root);
 #endif
 
 	return (0);
 }
 
-// nni_sock_shutdown shuts down the socket; after this point no
-// further access to the socket will function, and any threads blocked
-// in entry points will be woken (and the functions they are blocked
-// in will return NNG_ECLOSED.)
 int
 nni_sock_shutdown(nni_sock *sock)
 {
@@ -691,7 +669,6 @@ nni_sock_shutdown(nni_sock *sock)
 		nni_mtx_unlock(&sock->s_mx);
 		return (NNG_ECLOSED);
 	}
-	// Mark us closing, so no more EPs or changes can occur.
 	sock->s_closing = true;
 
 	while ((l = nni_list_first(&sock->s_listeners)) != NULL) {
@@ -709,31 +686,20 @@ nni_sock_shutdown(nni_sock *sock)
 	}
 	nni_mtx_unlock(&sock->s_mx);
 
-	// Close the upper queues immediately.
 	nni_msgq_close(sock->s_urq);
 	nni_msgq_close(sock->s_uwq);
 
-	// We now mark any owned contexts as closing.
-	// XXX: Add context draining support here!
 	nni_mtx_lock(&sock_lk);
 	nctx = nni_list_first(&sock->s_ctxs);
 	while ((ctx = nctx) != NULL) {
 		nctx          = nni_list_next(&sock->s_ctxs, ctx);
 		ctx->c_closed = true;
 		if (ctx->c_ref == 0) {
-			// No open operations.  So close it.
 			nni_id_remove(&ctx_ids, ctx->c_id);
 			nni_list_remove(&sock->s_ctxs, ctx);
 			nni_ctx_destroy(ctx);
 		}
-		// If still has a reference count, then wait for last
-		// reference to close before nuking it.
 	}
-
-	// Generally, unless the protocol is blocked trying to perform
-	// writes (e.g. a slow reader on the other side), it should be
-	// trying to shut things down.  We wait to give it
-	// a chance to do so gracefully.
 
 	while (!nni_list_empty(&sock->s_ctxs)) {
 		nni_cv_wait(&sock->s_close_cv);
@@ -742,17 +708,10 @@ nni_sock_shutdown(nni_sock *sock)
 
 	nni_mtx_lock(&sock->s_mx);
 
-	// At this point, we've done everything we politely can to
-	// give the protocol a chance to flush its write side.  Now
-	// it is time to be a little more insistent.
-
-	// For each pipe, arrange for it to teardown hard.  We would
-	// expect there not to be any here.
 	NNI_LIST_FOREACH (&sock->s_pipes, pipe) {
 		nni_pipe_close(pipe);
 	}
 
-	// We have to wait for pipes to be removed.
 	while (!nni_list_empty(&sock->s_pipes)) {
 		nni_cv_wait(&sock->s_cv);
 	}
@@ -765,27 +724,16 @@ nni_sock_shutdown(nni_sock *sock)
 
 	nni_mtx_unlock(&sock->s_mx);
 
-	// At this point, there are no threads blocked inside of us
-	// that are referencing socket state.  User code should call
-	// nng_close to release the last resources.
 	return (0);
 }
 
-// nni_sock_close shuts down the socket, then releases any resources
-// associated with it.  It is a programmer error to reference the
-// socket after this function is called, as the pointer may reference
-// invalid memory or other objects.
 void
 nni_sock_close(nni_sock *s)
 {
-	// Shutdown everything if not already done.  This operation
-	// is idempotent.
 	nni_sock_shutdown(s);
 
 	nni_mtx_lock(&sock_lk);
 	if (s->s_closed) {
-		// Some other thread called close.  All we need to do
-		// is drop our reference count.
 		nni_mtx_unlock(&sock_lk);
 		nni_sock_rele(s);
 		return;
@@ -793,19 +741,13 @@ nni_sock_close(nni_sock *s)
 	s->s_closed = true;
 	nni_id_remove(&sock_ids, s->s_id);
 
-	// We might have been removed from the list already, e.g. by
-	// nni_sock_closeall.  This is idempotent.
 	nni_list_node_remove(&s->s_node);
 
-	// Wait for all other references to drop.  Note that we
-	// have a reference already (from our caller).
 	while ((s->s_ref > 1) || (!nni_list_empty(&s->s_ctxs))) {
 		nni_cv_wait(&s->s_close_cv);
 	}
 	nni_mtx_unlock(&sock_lk);
 
-	// Because we already shut everything down before, we should not
-	// have any child objects.
 	nni_mtx_lock(&s->s_mx);
 	NNI_ASSERT(nni_list_empty(&s->s_dialers));
 	NNI_ASSERT(nni_list_empty(&s->s_listeners));
@@ -826,8 +768,6 @@ nni_sock_closeall(void)
 			nni_mtx_unlock(&sock_lk);
 			return;
 		}
-		// Bump the reference count.  The close call below
-		// will drop it.
 		s->s_ref++;
 		nni_list_node_remove(&s->s_node);
 		nni_mtx_unlock(&sock_lk);
@@ -849,14 +789,12 @@ nni_sock_recv(nni_sock *sock, nni_aio *aio)
 	sock->s_sock_ops.sock_recv(sock->s_data, aio);
 }
 
-// nni_sock_proto_id returns the socket's 16-bit protocol number.
 uint16_t
 nni_sock_proto_id(nni_sock *sock)
 {
 	return (sock->s_self_id.p_id);
 }
 
-// nni_sock_peer_id returns the socket peer's 16-bit protocol number.
 uint16_t
 nni_sock_peer_id(nni_sock *sock)
 {
@@ -917,7 +855,6 @@ nni_sock_add_listener(nni_sock *s, nni_listener *l)
 	nni_sockopt *sopt;
 	int          rv;
 
-	// grab a hold on the listener for the socket
 	if ((rv = nni_listener_hold(l)) != 0) {
 		return (rv);
 	}
@@ -958,7 +895,6 @@ nni_sock_remove_listener(nni_listener *l)
 	nni_list_node_remove(&l->l_node);
 	nni_mtx_unlock(&s->s_mx);
 
-	// also drop the hold from the socket
 	nni_listener_rele(l);
 }
 
@@ -968,7 +904,6 @@ nni_sock_add_dialer(nni_sock *s, nni_dialer *d)
 	nni_sockopt *sopt;
 	int rv;
 
-	// grab a hold on the dialer for the socket
 	if ((rv = nni_dialer_hold(d)) != 0) {
 		return (rv);
 	}
@@ -1009,7 +944,6 @@ nni_sock_remove_dialer(nni_dialer *d)
 	nni_list_node_remove(&d->d_node);
 	nni_mtx_unlock(&s->s_mx);
 
-	// also drop the hold from the socket
 	nni_dialer_rele(d);
 }
 
@@ -1027,16 +961,12 @@ nni_sock_setopt(
 		return (NNG_ECLOSED);
 	}
 
-	// Protocol options.  The protocol can override options that
-	// the socket framework would otherwise supply, like buffer
-	// sizes.
 	rv = nni_setopt(s->s_sock_ops.sock_options, name, s->s_data, v, sz, t);
 	if (rv != NNG_ENOTSUP) {
 		nni_mtx_unlock(&s->s_mx);
 		return (rv);
 	}
 
-	// Some options do not go down to transports.  Handle them directly.
 	rv = nni_setopt(sock_options, name, s, v, sz, t);
 	if (rv != NNG_ENOTSUP) {
 		nni_mtx_unlock(&s->s_mx);
@@ -1044,9 +974,6 @@ nni_sock_setopt(
 	}
 	nni_mtx_unlock(&s->s_mx);
 
-	// Validation of generic and transport options.
-	// NOTE: Setting transport options via socket is deprecated.
-	// These options should be set on the endpoint to which they apply.
 	if ((strcmp(name, NNG_OPT_RECONNMINT) == 0) ||
 	    (strcmp(name, NNG_OPT_RECONNMAXT) == 0)) {
 		if ((rv = nni_copyin_ms(NULL, v, sz, t)) != 0) {
@@ -1060,7 +987,6 @@ nni_sock_setopt(
 		}
 
 #if !defined(NNG_ELIDE_DEPRECATED)
-		// TCP options, set via socket is deprecated.
 	} else if ((strcmp(name, NNG_OPT_TCP_KEEPALIVE) == 0) ||
 	    (strcmp(name, NNG_OPT_TCP_NODELAY)) == 0) {
 		if ((rv = nni_copyin_bool(NULL, v, sz, t)) != 0) {
@@ -1069,14 +995,11 @@ nni_sock_setopt(
 #endif
 
 #if defined(NNG_SUPP_TLS) && !defined(NNG_ELIDE_DEPRECATED)
-		// TLS options may not be supported if TLS is not
-		// compiled in.  Supporting all these is deprecated.
 	} else if (strcmp(name, NNG_OPT_TLS_CONFIG) == 0) {
 		nng_tls_config *tc;
 		if ((rv = nni_copyin_ptr((void **) &tc, v, sz, t)) != 0) {
 			return (rv);
 		}
-		// place a hold on this configuration object
 		nng_tls_config_hold(tc);
 
 	} else if ((strcmp(name, NNG_OPT_TLS_SERVER_NAME) == 0) ||
@@ -1089,7 +1012,6 @@ nni_sock_setopt(
 			return (NNG_EINVAL);
 		}
 	} else if ((strcmp(name, NNG_OPT_TLS_AUTH_MODE) == 0)) {
-		// 0, 1, or 2 (none, optional, required)
 		if ((rv = nni_copyin_int(NULL, v, sz, 0, 2, t)) != 0) {
 			return (rv);
 		}
@@ -1097,7 +1019,6 @@ nni_sock_setopt(
 
 #if defined(NNG_PLATFORM_POSIX) && !defined(NNG_ELIDE_DEPRECATED)
 	} else if (strcmp(name, NNG_OPT_IPC_PERMISSIONS) == 0) {
-		// UNIX mode bits are 0777, but allow set id and sticky bits
 		if ((rv = nni_copyin_int(NULL, v, sz, 0, 07777, t)) != 0) {
 			return (rv);
 		}
@@ -1111,7 +1032,6 @@ nni_sock_setopt(
 #endif
 	}
 
-	// Prepare a copy of the socket option.
 	if ((optv = NNI_ALLOC_STRUCT(optv)) == NULL) {
 		return (NNG_ENOMEM);
 	}
@@ -1137,7 +1057,6 @@ nni_sock_setopt(
 				break;
 			}
 
-			// The values are the same.  This is a no-op.
 			nni_mtx_unlock(&s->s_mx);
 			nni_free_opt(optv);
 			return (0);
@@ -1148,10 +1067,6 @@ nni_sock_setopt(
 	nni_dialer   *d;
 	nni_listener *l;
 
-	// Apply the options.  Failure to set any option on any
-	// transport (other than ENOTSUP) stops the operation
-	// altogether.  Its important that transport wide checks
-	// properly pre-validate.
 	NNI_LIST_FOREACH (&s->s_listeners, l) {
 		int x;
 		x = nni_listener_setopt(l, optv->name, optv->data, sz, t);
@@ -1177,15 +1092,11 @@ nni_sock_setopt(
 #endif
 
 	if (rv == 0) {
-		// Remove and toss the old value; we are using a new one.
 		if (oldv != NULL) {
 			nni_list_remove(&s->s_options, oldv);
 			nni_free_opt(oldv);
 		}
 
-		// Insert our new value.  This permits it to be
-		// compared against later, and for new endpoints to
-		// automatically receive these values,
 		nni_list_append(&s->s_options, optv);
 	} else {
 		nni_free_opt(optv);
@@ -1208,9 +1119,6 @@ nni_sock_getopt(
 		return (NNG_ECLOSED);
 	}
 
-	// Protocol specific options.  The protocol can override
-	// options like the send buffer or notification descriptors
-	// this way.
 	rv = nni_getopt(
 	    s->s_sock_ops.sock_options, name, s->s_data, val, szp, t);
 	if (rv != NNG_ENOTSUP) {
@@ -1218,7 +1126,6 @@ nni_sock_getopt(
 		return (rv);
 	}
 
-	// Socket generic options.
 	rv = nni_getopt(sock_options, name, s, val, szp, t);
 	if (rv != NNG_ENOTSUP) {
 		nni_mtx_unlock(&s->s_mx);
@@ -1286,12 +1193,6 @@ nni_ctx_find(nni_ctx **cp, uint32_t id, bool closing)
 	}
 	nni_mtx_lock(&sock_lk);
 	if ((ctx = nni_id_get(&ctx_ids, id)) != NULL) {
-		// We refuse a reference if either the socket is
-		// closed, or the context is closed.  (If the socket
-		// is closed, and we are only getting the reference so
-		// we can close it, then we still allow.  In the case
-		// the only valid operation will be to close the
-		// socket.)
 		if (ctx->c_closed || ((!closing) && ctx->c_sock->s_closed)) {
 			rv = NNG_ECLOSED;
 		} else {
@@ -1313,7 +1214,6 @@ nni_ctx_destroy(nni_ctx *ctx)
 		ctx->c_ops.ctx_fini(ctx->c_data);
 	}
 
-	// Let the socket go, our hold on it is done.
 	nni_free(ctx, ctx->c_size);
 }
 
@@ -1324,15 +1224,10 @@ nni_ctx_rele(nni_ctx *ctx)
 	nni_mtx_lock(&sock_lk);
 	ctx->c_ref--;
 	if ((ctx->c_ref > 0) || (!ctx->c_closed)) {
-		// Either still have an active reference, or not
-		// actually closing yet.
 		nni_mtx_unlock(&sock_lk);
 		return;
 	}
 
-	// Remove us from the hash, so we can't be found any more.
-	// This allows our ID to be reused later, although the system
-	// tries to avoid ID reuse.
 	nni_id_remove(&ctx_ids, ctx->c_id);
 	nni_list_remove(&sock->s_ctxs, ctx);
 	nni_cv_wake(&sock->s_close_cv);
@@ -1359,7 +1254,7 @@ nni_ctx_open(nni_ctx **ctxp, nni_sock *sock)
 	ctx->c_size     = sz;
 	ctx->c_data     = ctx + 1;
 	ctx->c_closed   = false;
-	ctx->c_ref      = 1; // Caller implicitly gets a reference.
+	ctx->c_ref      = 1;
 	ctx->c_sock     = sock;
 	ctx->c_ops      = sock->s_ctx_ops;
 	ctx->c_rcvtimeo = sock->s_rcvtimeo;
@@ -1382,9 +1277,6 @@ nni_ctx_open(nni_ctx **ctxp, nni_sock *sock)
 	nni_list_append(&sock->s_ctxs, ctx);
 	nni_mtx_unlock(&sock_lk);
 
-	// Paranoia, fixing a possible race in close.  Don't let us
-	// give back a context if the socket is being shutdown (it
-	// might not have reached the "closed" state yet.)
 	nni_mtx_lock(&sock->s_mx);
 	if (sock->s_closing) {
 		nni_mtx_unlock(&sock->s_mx);
@@ -1500,13 +1392,6 @@ dialer_timer_start_locked(nni_dialer *d)
 		}
 	}
 
-	// To minimize damage from storms, etc., we select a back-off
-	// value randomly, in the range of [0, back_off-1]; this is
-	// pretty similar to 802 style back-off, except that we have a
-	// nearly uniform time period instead of discrete slot times.
-	// This algorithm may lead to slight biases because we don't
-	// have a statistically perfect distribution with the modulo of
-	// the random number, but this really doesn't matter.
 	nni_sleep_aio(back_off ? (nng_duration) (nni_random() % back_off) : 0,
                &d->d_tmo_aio);
 }
@@ -1611,12 +1496,10 @@ dialer_reap(void *arg)
 	nni_mtx_lock(&s->s_mx);
 	if (!nni_list_empty(&d->d_pipes)) {
 		nni_pipe *p;
-		// This should already have been done, but be certain!
 		NNI_LIST_FOREACH (&d->d_pipes, p) {
 			nni_pipe_close(p);
 		}
 		nni_mtx_unlock(&s->s_mx);
-		// Go back to the end of reap list.
 		nni_dialer_reap(d);
 		return;
 	}
@@ -1721,12 +1604,10 @@ listener_reap(void *arg)
 	nni_mtx_lock(&s->s_mx);
 	if (!nni_list_empty(&l->l_pipes)) {
 		nni_pipe *p;
-		// This should already have been done, but be certain!
 		NNI_LIST_FOREACH (&l->l_pipes, p) {
 			nni_pipe_close(p);
 		}
 		nni_mtx_unlock(&s->s_mx);
-		// Go back to the end of reap list.
 		nni_reap(&listener_reap_list, l);
 		return;
 	}
@@ -1755,7 +1636,6 @@ nni_pipe_run_cb(nni_pipe *p, nng_pipe_ev ev)
 	nni_mtx_lock(&s->s_pipe_cbs_mtx);
 	if (!p->p_cbs) {
 		if (ev == NNG_PIPE_EV_ADD_PRE) {
-			// First event, after this we want all other events.
 			p->p_cbs = true;
 		} else {
 			nni_mtx_unlock(&s->s_pipe_cbs_mtx);
@@ -1797,7 +1677,7 @@ nni_pipe_remove(nni_pipe *p)
 	p->p_dialer   = NULL;
 	if ((d != NULL) && (d->d_pipe == p)) {
 		d->d_pipe = NULL;
-		dialer_timer_start_locked(d); // Kick the timer to redial.
+		dialer_timer_start_locked(d);
 	}
 	nni_cv_wake(&s->s_cv);
 	nni_mtx_unlock(&s->s_mx);

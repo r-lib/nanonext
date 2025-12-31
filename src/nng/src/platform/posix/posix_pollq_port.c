@@ -16,7 +16,7 @@
 #include <sched.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h> /* for strerror() */
+#include <string.h> 
 #include <unistd.h>
 
 #include "core/nng_impl.h"
@@ -25,12 +25,9 @@
 #define NNI_MAX_PORTEV 64
 typedef struct nni_posix_pollq nni_posix_pollq;
 
-// nni_posix_pollq is a work structure that manages state for the port-event
-// based pollq implementation.  We only really need to keep track of the
-// single thread, and the associated port itself.
 struct nni_posix_pollq {
-	int     port; // port id (from port_create)
-	nni_thr thr;  // worker thread
+	int     port;
+	nni_thr thr;
 };
 
 struct nni_posix_pfd {
@@ -45,7 +42,6 @@ struct nni_posix_pfd {
 	void *           data;
 };
 
-// single global instance for now
 static nni_posix_pollq nni_posix_global_pollq;
 
 int
@@ -93,9 +89,6 @@ nni_posix_pfd_close(nni_posix_pfd *pfd)
 	}
 	nni_mtx_unlock(&pfd->mtx);
 
-	// Send the wake event to the poller to synchronize with it.
-	// Note that port_send should only really fail if out of memory
-	// or we run into a resource limit.
 }
 
 void
@@ -112,7 +105,7 @@ nni_posix_pfd_fini(nni_posix_pfd *pfd)
 			pfd->closed = true;
 			break;
 		}
-		sched_yield(); // try again later...
+		sched_yield();
 	}
 
 	nni_mtx_lock(&pfd->mtx);
@@ -121,7 +114,6 @@ nni_posix_pfd_fini(nni_posix_pfd *pfd)
 	}
 	nni_mtx_unlock(&pfd->mtx);
 
-	// We're exclusive now.
 	(void) close(pfd->fd);
 	nni_cv_fini(&pfd->cv);
 	nni_mtx_fini(&pfd->mtx);
@@ -159,7 +151,7 @@ nni_posix_poll_thr(void *arg)
 		void *           arg;
 		unsigned         n;
 
-		n = 1; // wake us even on just one event
+		n = 1;
 		if (port_getn(pq->port, ev, NNI_MAX_PORTEV, &n, NULL) != 0) {
 			if (errno == EINTR) {
 				continue;
@@ -167,9 +159,6 @@ nni_posix_poll_thr(void *arg)
 			return;
 		}
 
-		// We run through the returned ports twice.  First we
-		// get the callbacks.  Then we do the reaps.  This way
-		// we ensure that we only reap *after* callbacks have run.
 		for (unsigned i = 0; i < n; i++) {
 			if (ev[i].portev_source != PORT_SOURCE_FD) {
 				continue;
@@ -192,13 +181,6 @@ nni_posix_poll_thr(void *arg)
 				continue;
 			}
 
-			// User event telling us to stop doing things.
-			// We signal back to use this as a coordination
-			// event between the pollq and the thread
-			// handler. NOTE: It is absolutely critical
-			// that there is only a single thread per
-			// pollq.  Otherwise we cannot be sure that we
-			// are blocked completely,
 			pfd = ev[i].portev_user;
 			nni_mtx_lock(&pfd->mtx);
 			pfd->closed = true;
@@ -237,7 +219,7 @@ nni_posix_pollq_create(nni_posix_pollq *pq)
 void
 nni_posix_pfd_set_cb(nni_posix_pfd *pfd, nni_posix_pfd_cb cb, void *arg)
 {
-	NNI_ASSERT(cb != NULL); // must not be null when established.
+	NNI_ASSERT(cb != NULL);
 
 	nni_mtx_lock(&pfd->mtx);
 	pfd->cb   = cb;
@@ -257,4 +239,4 @@ nni_posix_pollq_sysfini(void)
 	nni_posix_pollq_destroy(&nni_posix_global_pollq);
 }
 
-#endif // NNG_HAVE_PORT_CREATE
+#endif
