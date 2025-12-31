@@ -2,6 +2,9 @@
 
 ## nanonext (development version)
 
+- [`random()`](https://nanonext.r-lib.org/dev/reference/random.md) now
+  only accepts ‘n’ between 1 and 1024. Supplying 0 will error
+  ([\#238](https://github.com/r-lib/nanonext/issues/238)).
 - Fixes a potential crash when a serialization hook errors
   ([\#225](https://github.com/r-lib/nanonext/issues/225)).
 - Performance improvements for serialization, streaming, and async
