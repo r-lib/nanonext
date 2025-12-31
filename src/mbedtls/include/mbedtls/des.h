@@ -1,12 +1,3 @@
-/**
- * \file des.h
- *
- * \brief DES block cipher
- *
- * \warning   DES/3DES are considered weak ciphers and their use constitutes a
- *            security risk. We recommend considering stronger ciphers
- *            instead.
- */
 /*
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
@@ -45,9 +36,9 @@ typedef struct mbedtls_des3_context {
 }
 mbedtls_des3_context;
 
-#else  /* MBEDTLS_DES_ALT */
+#else
 #include "des_alt.h"
-#endif /* MBEDTLS_DES_ALT */
+#endif
 
 void mbedtls_des_init(mbedtls_des_context *ctx);
 
@@ -101,7 +92,7 @@ int mbedtls_des_crypt_cbc(mbedtls_des_context *ctx,
                           unsigned char iv[8],
                           const unsigned char *input,
                           unsigned char *output);
-#endif /* MBEDTLS_CIPHER_MODE_CBC */
+#endif
 
 MBEDTLS_CHECK_RETURN_TYPICAL
 int mbedtls_des3_crypt_ecb(mbedtls_des3_context *ctx,
@@ -117,10 +108,17 @@ int mbedtls_des3_crypt_cbc(mbedtls_des3_context *ctx,
                            unsigned char iv[8],
                            const unsigned char *input,
                            unsigned char *output);
-#endif /* MBEDTLS_CIPHER_MODE_CBC */
+#endif
 
 void mbedtls_des_setkey(uint32_t SK[32],
                         const unsigned char key[MBEDTLS_DES_KEY_SIZE]);
+
+#if defined(MBEDTLS_SELF_TEST)
+
+MBEDTLS_CHECK_RETURN_CRITICAL
+int mbedtls_des_self_test(int verbose);
+
+#endif
 
 #ifdef __cplusplus
 }

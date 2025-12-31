@@ -25,6 +25,7 @@
 #if defined(MBEDTLS_NO_64BIT_MULTIPLICATION)
 static uint64_t mul64(uint32_t a, uint32_t b)
 {
+
     const uint16_t al = (uint16_t) a;
     const uint16_t bl = (uint16_t) b;
     const uint16_t ah = a >> 16;
@@ -71,6 +72,7 @@ static void poly1305_process(mbedtls_poly1305_context *ctx,
     acc4 = ctx->acc[4];
 
     for (i = 0U; i < nblocks; i++) {
+
         d0   = MBEDTLS_GET_UINT32_LE(input, offset + 0);
         d1   = MBEDTLS_GET_UINT32_LE(input, offset + 4);
         d2   = MBEDTLS_GET_UINT32_LE(input, offset + 8);
@@ -202,6 +204,7 @@ void mbedtls_poly1305_free(mbedtls_poly1305_context *ctx)
 int mbedtls_poly1305_starts(mbedtls_poly1305_context *ctx,
                             const unsigned char key[32])
 {
+
     ctx->r[0] = MBEDTLS_GET_UINT32_LE(key, 0)  & 0x0FFFFFFFU;
     ctx->r[1] = MBEDTLS_GET_UINT32_LE(key, 4)  & 0x0FFFFFFCU;
     ctx->r[2] = MBEDTLS_GET_UINT32_LE(key, 8)  & 0x0FFFFFFCU;
@@ -237,6 +240,7 @@ int mbedtls_poly1305_update(mbedtls_poly1305_context *ctx,
         queue_free_len = (POLY1305_BLOCK_SIZE_BYTES - ctx->queue_len);
 
         if (ilen < queue_free_len) {
+
             memcpy(&ctx->queue[ctx->queue_len],
                    input,
                    ilen);
@@ -245,6 +249,7 @@ int mbedtls_poly1305_update(mbedtls_poly1305_context *ctx,
 
             remaining = 0U;
         } else {
+
             memcpy(&ctx->queue[ctx->queue_len],
                    input,
                    queue_free_len);
@@ -268,6 +273,7 @@ int mbedtls_poly1305_update(mbedtls_poly1305_context *ctx,
     }
 
     if (remaining > 0U) {
+
         ctx->queue_len = remaining;
         memcpy(ctx->queue, &input[offset], remaining);
     }
@@ -278,7 +284,9 @@ int mbedtls_poly1305_update(mbedtls_poly1305_context *ctx,
 int mbedtls_poly1305_finish(mbedtls_poly1305_context *ctx,
                             unsigned char mac[16])
 {
+
     if (ctx->queue_len > 0U) {
+
         ctx->queue[ctx->queue_len] = 1U;
         ctx->queue_len++;
 
@@ -322,6 +330,119 @@ cleanup:
     return ret;
 }
 
-#endif /* MBEDTLS_POLY1305_ALT */
+#endif
+
+#if defined(MBEDTLS_SELF_TEST)
+
+static const unsigned char test_keys[2][32] =
+{
+    {
+        0x85, 0xd6, 0xbe, 0x78, 0x57, 0x55, 0x6d, 0x33,
+        0x7f, 0x44, 0x52, 0xfe, 0x42, 0xd5, 0x06, 0xa8,
+        0x01, 0x03, 0x80, 0x8a, 0xfb, 0x0d, 0xb2, 0xfd,
+        0x4a, 0xbf, 0xf6, 0xaf, 0x41, 0x49, 0xf5, 0x1b
+    },
+    {
+        0x1c, 0x92, 0x40, 0xa5, 0xeb, 0x55, 0xd3, 0x8a,
+        0xf3, 0x33, 0x88, 0x86, 0x04, 0xf6, 0xb5, 0xf0,
+        0x47, 0x39, 0x17, 0xc1, 0x40, 0x2b, 0x80, 0x09,
+        0x9d, 0xca, 0x5c, 0xbc, 0x20, 0x70, 0x75, 0xc0
+    }
+};
+
+static const unsigned char test_data[2][127] =
+{
+    {
+        0x43, 0x72, 0x79, 0x70, 0x74, 0x6f, 0x67, 0x72,
+        0x61, 0x70, 0x68, 0x69, 0x63, 0x20, 0x46, 0x6f,
+        0x72, 0x75, 0x6d, 0x20, 0x52, 0x65, 0x73, 0x65,
+        0x61, 0x72, 0x63, 0x68, 0x20, 0x47, 0x72, 0x6f,
+        0x75, 0x70
+    },
+    {
+        0x27, 0x54, 0x77, 0x61, 0x73, 0x20, 0x62, 0x72,
+        0x69, 0x6c, 0x6c, 0x69, 0x67, 0x2c, 0x20, 0x61,
+        0x6e, 0x64, 0x20, 0x74, 0x68, 0x65, 0x20, 0x73,
+        0x6c, 0x69, 0x74, 0x68, 0x79, 0x20, 0x74, 0x6f,
+        0x76, 0x65, 0x73, 0x0a, 0x44, 0x69, 0x64, 0x20,
+        0x67, 0x79, 0x72, 0x65, 0x20, 0x61, 0x6e, 0x64,
+        0x20, 0x67, 0x69, 0x6d, 0x62, 0x6c, 0x65, 0x20,
+        0x69, 0x6e, 0x20, 0x74, 0x68, 0x65, 0x20, 0x77,
+        0x61, 0x62, 0x65, 0x3a, 0x0a, 0x41, 0x6c, 0x6c,
+        0x20, 0x6d, 0x69, 0x6d, 0x73, 0x79, 0x20, 0x77,
+        0x65, 0x72, 0x65, 0x20, 0x74, 0x68, 0x65, 0x20,
+        0x62, 0x6f, 0x72, 0x6f, 0x67, 0x6f, 0x76, 0x65,
+        0x73, 0x2c, 0x0a, 0x41, 0x6e, 0x64, 0x20, 0x74,
+        0x68, 0x65, 0x20, 0x6d, 0x6f, 0x6d, 0x65, 0x20,
+        0x72, 0x61, 0x74, 0x68, 0x73, 0x20, 0x6f, 0x75,
+        0x74, 0x67, 0x72, 0x61, 0x62, 0x65, 0x2e
+    }
+};
+
+static const size_t test_data_len[2] =
+{
+    34U,
+    127U
+};
+
+static const unsigned char test_mac[2][16] =
+{
+    {
+        0xa8, 0x06, 0x1d, 0xc1, 0x30, 0x51, 0x36, 0xc6,
+        0xc2, 0x2b, 0x8b, 0xaf, 0x0c, 0x01, 0x27, 0xa9
+    },
+    {
+        0x45, 0x41, 0x66, 0x9a, 0x7e, 0xaa, 0xee, 0x61,
+        0xe7, 0x08, 0xdc, 0x7c, 0xbc, 0xc5, 0xeb, 0x62
+    }
+};
+
+#undef ASSERT
+
+#define ASSERT(cond, args)            \
+    do                                  \
+    {                                   \
+        if (!(cond))                \
+        {                               \
+            if (verbose != 0)          \
+            mbedtls_printf args;    \
+                                        \
+            return -1;               \
+        }                               \
+    }                                   \
+    while (0)
+
+int mbedtls_poly1305_self_test(int verbose)
+{
+    unsigned char mac[16];
+    unsigned i;
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+
+    for (i = 0U; i < 2U; i++) {
+        if (verbose != 0) {
+            mbedtls_printf("  Poly1305 test %u ", i);
+        }
+
+        ret = mbedtls_poly1305_mac(test_keys[i],
+                                   test_data[i],
+                                   test_data_len[i],
+                                   mac);
+        ASSERT(0 == ret, ("error code: %i\n", ret));
+
+        ASSERT(0 == memcmp(mac, test_mac[i], 16U), ("failed (mac)\n"));
+
+        if (verbose != 0) {
+            mbedtls_printf("passed\n");
+        }
+    }
+
+    if (verbose != 0) {
+        mbedtls_printf("\n");
+    }
+
+    return 0;
+}
+
+#endif
 
 #endif

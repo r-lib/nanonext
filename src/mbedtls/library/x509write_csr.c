@@ -4,11 +4,6 @@
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
-/*
- * References:
- * - CSRs: PKCS#10 v1.7 aka RFC 2986
- * - attributes: PKCS#9 v2.0 aka RFC 2985
- */
 
 #include "common.h"
 
@@ -25,7 +20,7 @@
 #include "psa/crypto.h"
 #include "psa_util_internal.h"
 #include "mbedtls/psa_util.h"
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
 
 #include <string.h>
 #include <stdlib.h>
@@ -66,6 +61,7 @@ void mbedtls_x509write_csr_set_key(mbedtls_x509write_csr *ctx, mbedtls_pk_contex
 int mbedtls_x509write_csr_set_subject_name(mbedtls_x509write_csr *ctx,
                                            const char *subject_name)
 {
+    mbedtls_asn1_free_named_data_list(&ctx->subject);
     return mbedtls_x509_string_to_names(&ctx->subject, subject_name);
 }
 
@@ -149,9 +145,8 @@ static int x509write_csr_der_internal(mbedtls_x509write_csr *ctx,
 #if defined(MBEDTLS_USE_PSA_CRYPTO)
     size_t hash_len;
     psa_algorithm_t hash_alg = mbedtls_md_psa_alg_from_type(ctx->md_alg);
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
 
-    /* Write the CSR backwards starting from the end of buf */
     c = buf + size;
 
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_x509_write_extensions(&c, buf,
@@ -193,15 +188,9 @@ static int x509write_csr_der_internal(mbedtls_x509write_csr *ctx,
     c -= pub_len;
     len += pub_len;
 
-    /*
-     *  Subject  ::=  Name
-     */
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_x509_write_names(&c, buf,
                                                        ctx->subject));
 
-    /*
-     *  Version  ::=  INTEGER  {  v1(0), v2(1), v3(2)  }
-     */
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_int(&c, buf, 0));
 
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(&c, buf, len));
@@ -210,10 +199,6 @@ static int x509write_csr_der_internal(mbedtls_x509write_csr *ctx,
                              &c, buf,
                              MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
 
-    /*
-     * Sign the written CSR data into the sig buffer
-     * Note: hash errors can happen only after an internal error
-     */
 #if defined(MBEDTLS_USE_PSA_CRYPTO)
     if (psa_hash_compute(hash_alg,
                          c,
@@ -223,7 +208,7 @@ static int x509write_csr_der_internal(mbedtls_x509write_csr *ctx,
                          &hash_len) != PSA_SUCCESS) {
         return MBEDTLS_ERR_PLATFORM_HW_ACCEL_FAILED;
     }
-#else /* MBEDTLS_USE_PSA_CRYPTO */
+#else
     ret = mbedtls_md(mbedtls_md_info_from_type(ctx->md_alg), c, len, hash);
     if (ret != 0) {
         return ret;
@@ -248,30 +233,16 @@ static int x509write_csr_der_internal(mbedtls_x509write_csr *ctx,
         return ret;
     }
 
-    /*
-     * Move the written CSR data to the start of buf to create space for
-     * writing the signature into buf.
-     */
     memmove(buf, c, len);
 
-    /*
-     * Write sig and its OID into buf backwards from the end of buf.
-     * Note: mbedtls_x509_write_sig will check for c2 - ( buf + len ) < sig_len
-     * and return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL if needed.
-     */
     c2 = buf + size;
     MBEDTLS_ASN1_CHK_ADD(sig_and_oid_len,
                          mbedtls_x509_write_sig(&c2, buf + len, sig_oid, sig_oid_len,
                                                 sig, sig_len, pk_alg));
 
-    /*
-     * Compact the space between the CSR data and signature by moving the
-     * CSR data to the start of the signature.
-     */
     c2 -= len;
     memmove(c2, buf, len);
 
-    /* ASN encode the total size and tag the CSR data with it. */
     len += sig_and_oid_len;
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(&c2, buf, len));
     MBEDTLS_ASN1_CHK_ADD(len,
@@ -279,7 +250,6 @@ static int x509write_csr_der_internal(mbedtls_x509write_csr *ctx,
                              &c2, buf,
                              MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
 
-    /* Zero the unused bytes at the start of buf */
     memset(buf, 0, (size_t) (c2 - buf));
 
     return (int) len;
@@ -330,6 +300,6 @@ int mbedtls_x509write_csr_pem(mbedtls_x509write_csr *ctx, unsigned char *buf, si
 
     return 0;
 }
-#endif /* MBEDTLS_PEM_WRITE_C */
+#endif
 
-#endif /* MBEDTLS_X509_CSR_WRITE_C */
+#endif

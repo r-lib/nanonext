@@ -21,14 +21,8 @@
 
 #include "mbedtls/platform.h"
 
-/*
- * Macro to automatically add the size of #define'd OIDs
- */
 #define ADD_LEN(s)      s, MBEDTLS_OID_SIZE(s)
 
-/*
- * Macro to generate mbedtls_oid_descriptor_t
- */
 #if !defined(MBEDTLS_X509_REMOVE_INFO)
 #define OID_DESCRIPTOR(s, name, description)  { ADD_LEN(s), name, description }
 #define NULL_OID_DESCRIPTOR                   { NULL, 0, NULL, NULL }
@@ -37,10 +31,6 @@
 #define NULL_OID_DESCRIPTOR                   { NULL, 0 }
 #endif
 
-/*
- * Macro to generate an internal function for oid_XXX_from_asn1() (used by
- * the other functions)
- */
 #define FN_OID_TYPED_FROM_ASN1(TYPE_T, NAME, LIST)                    \
     static const TYPE_T *oid_ ## NAME ## _from_asn1(                   \
         const mbedtls_asn1_buf *oid)     \
@@ -61,10 +51,7 @@
     }
 
 #if !defined(MBEDTLS_X509_REMOVE_INFO)
-/*
- * Macro to generate a function for retrieving a single attribute from the
- * descriptor of an mbedtls_oid_descriptor_t wrapper.
- */
+
 #define FN_OID_GET_DESCRIPTOR_ATTR1(FN_NAME, TYPE_T, TYPE_NAME, ATTR1_TYPE, ATTR1) \
     int FN_NAME(const mbedtls_asn1_buf *oid, ATTR1_TYPE * ATTR1)                  \
     {                                                                       \
@@ -73,12 +60,8 @@
         *ATTR1 = data->descriptor.ATTR1;                                    \
         return 0;                                                        \
     }
-#endif /* MBEDTLS_X509_REMOVE_INFO */
+#endif
 
-/*
- * Macro to generate a function for retrieving a single attribute from an
- * mbedtls_oid_descriptor_t wrapper.
- */
 #define FN_OID_GET_ATTR1(FN_NAME, TYPE_T, TYPE_NAME, ATTR1_TYPE, ATTR1) \
     int FN_NAME(const mbedtls_asn1_buf *oid, ATTR1_TYPE * ATTR1)                  \
     {                                                                       \
@@ -88,10 +71,6 @@
         return 0;                                                        \
     }
 
-/*
- * Macro to generate a function for retrieving two attributes from an
- * mbedtls_oid_descriptor_t wrapper.
- */
 #define FN_OID_GET_ATTR2(FN_NAME, TYPE_T, TYPE_NAME, ATTR1_TYPE, ATTR1,     \
                          ATTR2_TYPE, ATTR2)                                 \
     int FN_NAME(const mbedtls_asn1_buf *oid, ATTR1_TYPE * ATTR1,               \
@@ -104,10 +83,6 @@
         return 0;                                                            \
     }
 
-/*
- * Macro to generate a function for retrieving the OID based on a single
- * attribute from a mbedtls_oid_descriptor_t wrapper.
- */
 #define FN_OID_GET_OID_BY_ATTR1(FN_NAME, TYPE_T, LIST, ATTR1_TYPE, ATTR1)   \
     int FN_NAME(ATTR1_TYPE ATTR1, const char **oid, size_t *olen)             \
     {                                                                           \
@@ -123,10 +98,6 @@
         return MBEDTLS_ERR_OID_NOT_FOUND;                                    \
     }
 
-/*
- * Macro to generate a function for retrieving the OID based on two
- * attributes from a mbedtls_oid_descriptor_t wrapper.
- */
 #define FN_OID_GET_OID_BY_ATTR2(FN_NAME, TYPE_T, LIST, ATTR1_TYPE, ATTR1,   \
                                 ATTR2_TYPE, ATTR2)                          \
     int FN_NAME(ATTR1_TYPE ATTR1, ATTR2_TYPE ATTR2, const char **oid,         \
@@ -144,9 +115,6 @@
         return MBEDTLS_ERR_OID_NOT_FOUND;                                   \
     }
 
-/*
- * For X520 attribute types
- */
 typedef struct {
     mbedtls_oid_descriptor_t    descriptor;
     const char          *short_name;
@@ -262,9 +230,6 @@ FN_OID_GET_ATTR1(mbedtls_oid_get_attr_short_name,
                  const char *,
                  short_name)
 
-/*
- * For X509 extensions
- */
 typedef struct {
     mbedtls_oid_descriptor_t    descriptor;
     int                 ext_type;
@@ -365,11 +330,8 @@ FN_OID_GET_ATTR1(mbedtls_oid_get_certificate_policies,
                  certificate_policies,
                  const char *,
                  description)
-#endif /* MBEDTLS_X509_REMOVE_INFO */
+#endif
 
-/*
- * For SignatureAlgorithmIdentifier
- */
 typedef struct {
     mbedtls_oid_descriptor_t    descriptor;
     mbedtls_md_type_t           md_alg;
@@ -384,55 +346,55 @@ static const oid_sig_alg_t oid_sig_alg[] =
         OID_DESCRIPTOR(MBEDTLS_OID_PKCS1_MD5,        "md5WithRSAEncryption",     "RSA with MD5"),
         MBEDTLS_MD_MD5,      MBEDTLS_PK_RSA,
     },
-#endif /* MBEDTLS_MD_CAN_MD5 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA1)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_PKCS1_SHA1,       "sha-1WithRSAEncryption",   "RSA with SHA1"),
         MBEDTLS_MD_SHA1,     MBEDTLS_PK_RSA,
     },
-#endif /* MBEDTLS_MD_CAN_SHA1 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA224)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_PKCS1_SHA224,     "sha224WithRSAEncryption",
                        "RSA with SHA-224"),
         MBEDTLS_MD_SHA224,   MBEDTLS_PK_RSA,
     },
-#endif /* MBEDTLS_MD_CAN_SHA224 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA256)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_PKCS1_SHA256,     "sha256WithRSAEncryption",
                        "RSA with SHA-256"),
         MBEDTLS_MD_SHA256,   MBEDTLS_PK_RSA,
     },
-#endif /* MBEDTLS_MD_CAN_SHA256 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA384)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_PKCS1_SHA384,     "sha384WithRSAEncryption",
                        "RSA with SHA-384"),
         MBEDTLS_MD_SHA384,   MBEDTLS_PK_RSA,
     },
-#endif /* MBEDTLS_MD_CAN_SHA384 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA512)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_PKCS1_SHA512,     "sha512WithRSAEncryption",
                        "RSA with SHA-512"),
         MBEDTLS_MD_SHA512,   MBEDTLS_PK_RSA,
     },
-#endif /* MBEDTLS_MD_CAN_SHA512 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA1)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_RSA_SHA_OBS,      "sha-1WithRSAEncryption",   "RSA with SHA1"),
         MBEDTLS_MD_SHA1,     MBEDTLS_PK_RSA,
     },
-#endif /* MBEDTLS_MD_CAN_SHA1 */
-#endif /* MBEDTLS_RSA_C */
+#endif
+#endif
 #if defined(MBEDTLS_PK_CAN_ECDSA_SOME)
 #if defined(MBEDTLS_MD_CAN_SHA1)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_ECDSA_SHA1,       "ecdsa-with-SHA1",      "ECDSA with SHA1"),
         MBEDTLS_MD_SHA1,     MBEDTLS_PK_ECDSA,
     },
-#endif /* MBEDTLS_MD_CAN_SHA1 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA224)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_ECDSA_SHA224,     "ecdsa-with-SHA224",    "ECDSA with SHA224"),
@@ -444,26 +406,26 @@ static const oid_sig_alg_t oid_sig_alg[] =
         OID_DESCRIPTOR(MBEDTLS_OID_ECDSA_SHA256,     "ecdsa-with-SHA256",    "ECDSA with SHA256"),
         MBEDTLS_MD_SHA256,   MBEDTLS_PK_ECDSA,
     },
-#endif /* MBEDTLS_MD_CAN_SHA256 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA384)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_ECDSA_SHA384,     "ecdsa-with-SHA384",    "ECDSA with SHA384"),
         MBEDTLS_MD_SHA384,   MBEDTLS_PK_ECDSA,
     },
-#endif /* MBEDTLS_MD_CAN_SHA384 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA512)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_ECDSA_SHA512,     "ecdsa-with-SHA512",    "ECDSA with SHA512"),
         MBEDTLS_MD_SHA512,   MBEDTLS_PK_ECDSA,
     },
-#endif /* MBEDTLS_MD_CAN_SHA512 */
-#endif /* MBEDTLS_PK_CAN_ECDSA_SOME */
+#endif
+#endif
 #if defined(MBEDTLS_RSA_C)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_RSASSA_PSS,        "RSASSA-PSS",           "RSASSA-PSS"),
         MBEDTLS_MD_NONE,     MBEDTLS_PK_RSASSA_PSS,
     },
-#endif /* MBEDTLS_RSA_C */
+#endif
     {
         NULL_OID_DESCRIPTOR,
         MBEDTLS_MD_NONE, MBEDTLS_PK_NONE,
@@ -495,9 +457,6 @@ FN_OID_GET_OID_BY_ATTR2(mbedtls_oid_get_oid_by_sig_alg,
                         mbedtls_md_type_t,
                         md_alg)
 
-/*
- * For PublicKeyInfo (PKCS1, RFC 5480)
- */
 typedef struct {
     mbedtls_oid_descriptor_t    descriptor;
     mbedtls_pk_type_t           pk_alg;
@@ -532,9 +491,7 @@ FN_OID_GET_OID_BY_ATTR1(mbedtls_oid_get_oid_by_pk_alg,
                         pk_alg)
 
 #if defined(MBEDTLS_PK_HAVE_ECC_KEYS)
-/*
- * For elliptic curves that use namedCurve inside ECParams (RFC 5480)
- */
+
 typedef struct {
     mbedtls_oid_descriptor_t    descriptor;
     mbedtls_ecp_group_id        grp_id;
@@ -547,67 +504,67 @@ static const oid_ecp_grp_t oid_ecp_grp[] =
         OID_DESCRIPTOR(MBEDTLS_OID_EC_GRP_SECP192R1, "secp192r1",    "secp192r1"),
         MBEDTLS_ECP_DP_SECP192R1,
     },
-#endif /* MBEDTLS_ECP_HAVE_SECP192R1 */
+#endif
 #if defined(MBEDTLS_ECP_HAVE_SECP224R1)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_EC_GRP_SECP224R1, "secp224r1",    "secp224r1"),
         MBEDTLS_ECP_DP_SECP224R1,
     },
-#endif /* MBEDTLS_ECP_HAVE_SECP224R1 */
+#endif
 #if defined(MBEDTLS_ECP_HAVE_SECP256R1)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_EC_GRP_SECP256R1, "secp256r1",    "secp256r1"),
         MBEDTLS_ECP_DP_SECP256R1,
     },
-#endif /* MBEDTLS_ECP_HAVE_SECP256R1 */
+#endif
 #if defined(MBEDTLS_ECP_HAVE_SECP384R1)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_EC_GRP_SECP384R1, "secp384r1",    "secp384r1"),
         MBEDTLS_ECP_DP_SECP384R1,
     },
-#endif /* MBEDTLS_ECP_HAVE_SECP384R1 */
+#endif
 #if defined(MBEDTLS_ECP_HAVE_SECP521R1)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_EC_GRP_SECP521R1, "secp521r1",    "secp521r1"),
         MBEDTLS_ECP_DP_SECP521R1,
     },
-#endif /* MBEDTLS_ECP_HAVE_SECP521R1 */
+#endif
 #if defined(MBEDTLS_ECP_HAVE_SECP192K1)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_EC_GRP_SECP192K1, "secp192k1",    "secp192k1"),
         MBEDTLS_ECP_DP_SECP192K1,
     },
-#endif /* MBEDTLS_ECP_HAVE_SECP192K1 */
+#endif
 #if defined(MBEDTLS_ECP_HAVE_SECP224K1)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_EC_GRP_SECP224K1, "secp224k1",    "secp224k1"),
         MBEDTLS_ECP_DP_SECP224K1,
     },
-#endif /* MBEDTLS_ECP_HAVE_SECP224K1 */
+#endif
 #if defined(MBEDTLS_ECP_HAVE_SECP256K1)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_EC_GRP_SECP256K1, "secp256k1",    "secp256k1"),
         MBEDTLS_ECP_DP_SECP256K1,
     },
-#endif /* MBEDTLS_ECP_HAVE_SECP256K1 */
+#endif
 #if defined(MBEDTLS_ECP_HAVE_BP256R1)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_EC_GRP_BP256R1,   "brainpoolP256r1", "brainpool256r1"),
         MBEDTLS_ECP_DP_BP256R1,
     },
-#endif /* MBEDTLS_ECP_HAVE_BP256R1 */
+#endif
 #if defined(MBEDTLS_ECP_HAVE_BP384R1)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_EC_GRP_BP384R1,   "brainpoolP384r1", "brainpool384r1"),
         MBEDTLS_ECP_DP_BP384R1,
     },
-#endif /* MBEDTLS_ECP_HAVE_BP384R1 */
+#endif
 #if defined(MBEDTLS_ECP_HAVE_BP512R1)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_EC_GRP_BP512R1,   "brainpoolP512r1", "brainpool512r1"),
         MBEDTLS_ECP_DP_BP512R1,
     },
-#endif /* MBEDTLS_ECP_HAVE_BP512R1 */
+#endif
     {
         NULL_OID_DESCRIPTOR,
         MBEDTLS_ECP_DP_NONE,
@@ -622,10 +579,6 @@ FN_OID_GET_OID_BY_ATTR1(mbedtls_oid_get_oid_by_ec_grp,
                         mbedtls_ecp_group_id,
                         grp_id)
 
-/*
- * For Elliptic Curve algorithms that are directly
- * encoded in the AlgorithmIdentifier (RFC 8410)
- */
 typedef struct {
     mbedtls_oid_descriptor_t    descriptor;
     mbedtls_ecp_group_id        grp_id;
@@ -638,13 +591,13 @@ static const oid_ecp_grp_algid_t oid_ecp_grp_algid[] =
         OID_DESCRIPTOR(MBEDTLS_OID_X25519,               "X25519",       "X25519"),
         MBEDTLS_ECP_DP_CURVE25519,
     },
-#endif /* MBEDTLS_ECP_HAVE_CURVE25519 */
+#endif
 #if defined(MBEDTLS_ECP_HAVE_CURVE448)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_X448,                 "X448",         "X448"),
         MBEDTLS_ECP_DP_CURVE448,
     },
-#endif /* MBEDTLS_ECP_HAVE_CURVE448 */
+#endif
     {
         NULL_OID_DESCRIPTOR,
         MBEDTLS_ECP_DP_NONE,
@@ -662,12 +615,10 @@ FN_OID_GET_OID_BY_ATTR1(mbedtls_oid_get_oid_by_ec_grp_algid,
                         oid_ecp_grp_algid,
                         mbedtls_ecp_group_id,
                         grp_id)
-#endif /* MBEDTLS_PK_HAVE_ECC_KEYS */
+#endif
 
 #if defined(MBEDTLS_CIPHER_C)
-/*
- * For PKCS#5 PBES2 encryption algorithm
- */
+
 typedef struct {
     mbedtls_oid_descriptor_t    descriptor;
     mbedtls_cipher_type_t       cipher_alg;
@@ -707,11 +658,8 @@ FN_OID_GET_ATTR1(mbedtls_oid_get_cipher_alg,
                  cipher_alg,
                  mbedtls_cipher_type_t,
                  cipher_alg)
-#endif /* MBEDTLS_CIPHER_C */
+#endif
 
-/*
- * For digestAlgorithm
- */
 typedef struct {
     mbedtls_oid_descriptor_t    descriptor;
     mbedtls_md_type_t           md_alg;
@@ -799,9 +747,6 @@ FN_OID_GET_OID_BY_ATTR1(mbedtls_oid_get_oid_by_md,
                         mbedtls_md_type_t,
                         md_alg)
 
-/*
- * For HMAC digestAlgorithm
- */
 typedef struct {
     mbedtls_oid_descriptor_t    descriptor;
     mbedtls_md_type_t           md_hmac;
@@ -814,61 +759,61 @@ static const oid_md_hmac_t oid_md_hmac[] =
         OID_DESCRIPTOR(MBEDTLS_OID_HMAC_SHA1,      "hmacSHA1",      "HMAC-SHA-1"),
         MBEDTLS_MD_SHA1,
     },
-#endif /* MBEDTLS_MD_CAN_SHA1 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA224)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_HMAC_SHA224,    "hmacSHA224",    "HMAC-SHA-224"),
         MBEDTLS_MD_SHA224,
     },
-#endif /* MBEDTLS_MD_CAN_SHA224 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA256)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_HMAC_SHA256,    "hmacSHA256",    "HMAC-SHA-256"),
         MBEDTLS_MD_SHA256,
     },
-#endif /* MBEDTLS_MD_CAN_SHA256 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA384)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_HMAC_SHA384,    "hmacSHA384",    "HMAC-SHA-384"),
         MBEDTLS_MD_SHA384,
     },
-#endif /* MBEDTLS_MD_CAN_SHA384 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA512)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_HMAC_SHA512,    "hmacSHA512",    "HMAC-SHA-512"),
         MBEDTLS_MD_SHA512,
     },
-#endif /* MBEDTLS_MD_CAN_SHA512 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA3_224)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_HMAC_SHA3_224,    "hmacSHA3-224",    "HMAC-SHA3-224"),
         MBEDTLS_MD_SHA3_224,
     },
-#endif /* MBEDTLS_MD_CAN_SHA3_224 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA3_256)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_HMAC_SHA3_256,    "hmacSHA3-256",    "HMAC-SHA3-256"),
         MBEDTLS_MD_SHA3_256,
     },
-#endif /* MBEDTLS_MD_CAN_SHA3_256 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA3_384)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_HMAC_SHA3_384,    "hmacSHA3-384",    "HMAC-SHA3-384"),
         MBEDTLS_MD_SHA3_384,
     },
-#endif /* MBEDTLS_MD_CAN_SHA3_384 */
+#endif
 #if defined(MBEDTLS_MD_CAN_SHA3_512)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_HMAC_SHA3_512,    "hmacSHA3-512",    "HMAC-SHA3-512"),
         MBEDTLS_MD_SHA3_512,
     },
-#endif /* MBEDTLS_MD_CAN_SHA3_512 */
+#endif
 #if defined(MBEDTLS_MD_CAN_RIPEMD160)
     {
         OID_DESCRIPTOR(MBEDTLS_OID_HMAC_RIPEMD160,    "hmacRIPEMD160",    "HMAC-RIPEMD160"),
         MBEDTLS_MD_RIPEMD160,
     },
-#endif /* MBEDTLS_MD_CAN_RIPEMD160 */
+#endif
     {
         NULL_OID_DESCRIPTOR,
         MBEDTLS_MD_NONE,
@@ -879,9 +824,7 @@ FN_OID_TYPED_FROM_ASN1(oid_md_hmac_t, md_hmac, oid_md_hmac)
 FN_OID_GET_ATTR1(mbedtls_oid_get_md_hmac, oid_md_hmac_t, md_hmac, mbedtls_md_type_t, md_hmac)
 
 #if defined(MBEDTLS_PKCS12_C) && defined(MBEDTLS_CIPHER_C)
-/*
- * For PKCS#12 PBEs
- */
+
 typedef struct {
     mbedtls_oid_descriptor_t    descriptor;
     mbedtls_md_type_t           md_alg;
@@ -916,9 +859,8 @@ FN_OID_GET_ATTR2(mbedtls_oid_get_pkcs12_pbe_alg,
                  md_alg,
                  mbedtls_cipher_type_t,
                  cipher_alg)
-#endif /* MBEDTLS_PKCS12_C && MBEDTLS_CIPHER_C */
+#endif
 
-/* Return the x.y.z.... style numeric string for the given OID */
 int mbedtls_oid_get_numeric_string(char *buf, size_t size,
                                    const mbedtls_asn1_buf *oid)
 {
@@ -928,22 +870,22 @@ int mbedtls_oid_get_numeric_string(char *buf, size_t size,
     unsigned int value = 0;
 
     if (size > INT_MAX) {
-        /* Avoid overflow computing return value */
+
         return MBEDTLS_ERR_ASN1_INVALID_LENGTH;
     }
 
     if (oid->len <= 0) {
-        /* OID must not be empty */
+
         return MBEDTLS_ERR_ASN1_OUT_OF_DATA;
     }
 
     for (size_t i = 0; i < oid->len; i++) {
-        /* Prevent overflow in value. */
+
         if (value > (UINT_MAX >> 7)) {
             return MBEDTLS_ERR_ASN1_INVALID_DATA;
         }
         if ((value == 0) && ((oid->p[i]) == 0x80)) {
-            /* Overlong encoding is not allowed */
+
             return MBEDTLS_ERR_ASN1_INVALID_DATA;
         }
 
@@ -951,11 +893,11 @@ int mbedtls_oid_get_numeric_string(char *buf, size_t size,
         value |= oid->p[i] & 0x7F;
 
         if (!(oid->p[i] & 0x80)) {
-            /* Last byte */
+
             if (n == size) {
                 int component1;
                 unsigned int component2;
-                /* First subidentifier contains first two OID components */
+
                 if (value >= 80) {
                     component1 = '2';
                     component2 = value - 80;
@@ -980,7 +922,7 @@ int mbedtls_oid_get_numeric_string(char *buf, size_t size,
     }
 
     if (value != 0) {
-        /* Unterminated subidentifier */
+
         return MBEDTLS_ERR_ASN1_OUT_OF_DATA;
     }
 
@@ -1038,7 +980,6 @@ static int oid_subidentifier_encode_into(unsigned char **p,
     return 0;
 }
 
-/* Return the OID for the given x.y.z.... style numeric string  */
 int mbedtls_oid_from_numeric_string(mbedtls_asn1_buf *oid,
                                     const char *oid_str, size_t size)
 {
@@ -1050,24 +991,17 @@ int mbedtls_oid_from_numeric_string(mbedtls_asn1_buf *oid,
     size_t encoded_len;
     unsigned char *resized_mem;
 
-    /* Count the number of dots to get a worst-case allocation size. */
     size_t num_dots = 0;
     for (size_t i = 0; i < size; i++) {
         if (oid_str[i] == '.') {
             num_dots++;
         }
     }
-    /* Allocate maximum possible required memory:
-     * There are (num_dots + 1) integer components, but the first 2 share the
-     * same subidentifier, so we only need num_dots subidentifiers maximum. */
+
     if (num_dots == 0 || (num_dots > MBEDTLS_OID_MAX_COMPONENTS - 1)) {
         return MBEDTLS_ERR_ASN1_INVALID_DATA;
     }
-    /* Each byte can store 7 bits, calculate number of bytes for a
-     * subidentifier:
-     *
-     * bytes = ceil(subidentifer_size * 8 / 7)
-     */
+
     size_t bytes_per_subidentifier = (((sizeof(unsigned int) * 8) - 1) / 7)
                                      + 1;
     size_t max_possible_bytes = num_dots * bytes_per_subidentifier;
@@ -1083,7 +1017,7 @@ int mbedtls_oid_from_numeric_string(mbedtls_asn1_buf *oid,
         goto error;
     }
     if (component1 > 2) {
-        /* First component can't be > 2 */
+
         ret = MBEDTLS_ERR_ASN1_INVALID_DATA;
         goto error;
     }
@@ -1098,7 +1032,7 @@ int mbedtls_oid_from_numeric_string(mbedtls_asn1_buf *oid,
         goto error;
     }
     if ((component1 < 2) && (component2 > 39)) {
-        /* Root nodes 0 and 1 may have up to 40 children, numbered 0-39 */
+
         ret = MBEDTLS_ERR_ASN1_INVALID_DATA;
         goto error;
     }
@@ -1163,4 +1097,4 @@ error:
     return ret;
 }
 
-#endif /* MBEDTLS_OID_C */
+#endif

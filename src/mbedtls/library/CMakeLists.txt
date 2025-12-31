@@ -29,7 +29,6 @@ set(src_crypto
     cmac.c
     ctr_drbg.c
     des.c
-    dhm.c
     ecdh.c
     ecdsa.c
     ecp.c
@@ -41,9 +40,7 @@ set(src_crypto
     hkdf.c
     md.c
     md5.c
-    nist_kw.c
     oid.c
-    padlock.c
     pem.c
     pk.c
     pk_ecc.c
@@ -63,11 +60,9 @@ set(src_crypto
     threading.c
     timing.c
     version.c
-    version_features.c
 )
 
 set(src_x509
-    pkcs7.c
     x509.c
     x509_create.c
     x509_crl.c
@@ -84,15 +79,13 @@ set(src_tls
     ssl_ciphersuites.c
     ssl_client.c
     ssl_cookie.c
+    ssl_debug_helpers_generated.c
     ssl_msg.c
     ssl_ticket.c
     ssl_tls.c
     ssl_tls12_client.c
     ssl_tls12_server.c
 )
-
-link_to_source(error.c)
-link_to_source(version_features.c)
 
 if(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
@@ -182,21 +175,35 @@ if(USE_STATIC_MBEDTLS_LIBRARY)
     add_library(${mbedtls_static_target} STATIC ${src_tls})
     set_target_properties(${mbedtls_static_target} PROPERTIES OUTPUT_NAME mbedtls)
     target_link_libraries(${mbedtls_static_target} PUBLIC ${libs} ${mbedx509_static_target})
+
+    if(GEN_FILES)
+        add_dependencies(${mbedcrypto_static_target}
+            ${MBEDTLS_TARGET_PREFIX}mbedcrypto_generated_files_target)
+        add_dependencies(${mbedtls_static_target}
+            ${MBEDTLS_TARGET_PREFIX}mbedtls_generated_files_target)
+    endif()
 endif(USE_STATIC_MBEDTLS_LIBRARY)
 
 if(USE_SHARED_MBEDTLS_LIBRARY)
     set(CMAKE_LIBRARY_PATH ${CMAKE_CURRENT_BINARY_DIR})
     add_library(${mbedcrypto_target} SHARED ${src_crypto})
-    set_target_properties(${mbedcrypto_target} PROPERTIES VERSION 3.6.2 SOVERSION 16)
+    set_target_properties(${mbedcrypto_target} PROPERTIES VERSION 3.6.5 SOVERSION 16)
     target_link_libraries(${mbedcrypto_target} PUBLIC ${libs})
 
     add_library(${mbedx509_target} SHARED ${src_x509})
-    set_target_properties(${mbedx509_target} PROPERTIES VERSION 3.6.2 SOVERSION 7)
+    set_target_properties(${mbedx509_target} PROPERTIES VERSION 3.6.5 SOVERSION 7)
     target_link_libraries(${mbedx509_target} PUBLIC ${libs} ${mbedcrypto_target})
 
     add_library(${mbedtls_target} SHARED ${src_tls})
-    set_target_properties(${mbedtls_target} PROPERTIES VERSION 3.6.2 SOVERSION 21)
+    set_target_properties(${mbedtls_target} PROPERTIES VERSION 3.6.5 SOVERSION 21)
     target_link_libraries(${mbedtls_target} PUBLIC ${libs} ${mbedx509_target})
+
+    if(GEN_FILES)
+        add_dependencies(${mbedcrypto_target}
+            ${MBEDTLS_TARGET_PREFIX}mbedcrypto_generated_files_target)
+        add_dependencies(${mbedtls_target}
+            ${MBEDTLS_TARGET_PREFIX}mbedtls_generated_files_target)
+    endif()
 endif(USE_SHARED_MBEDTLS_LIBRARY)
 
 foreach(target IN LISTS target_libraries)

@@ -4,10 +4,6 @@
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
-/*
- * These session callbacks use a simple chained list
- * to store and retrieve the session information.
- */
 
 #include "common.h"
 
@@ -25,8 +21,7 @@
 
 #if defined(MBEDTLS_USE_PSA_CRYPTO)
 #include "mbedtls/psa_util.h"
-/* Define a local translating function to save code size by not using too many
- * arguments in each translating place. */
+
 static int local_err_translation(psa_status_t status)
 {
     return psa_status_to_mbedtls(status, psa_to_ssl_errors,
@@ -36,10 +31,6 @@ static int local_err_translation(psa_status_t status)
 #define PSA_TO_MBEDTLS_ERR(status) local_err_translation(status)
 #endif
 
-/*
- * If DTLS is in use, then at least one of SHA-256 or SHA-384 is
- * available. Try SHA-256 first as 384 wastes resources
- */
 #if defined(MBEDTLS_MD_CAN_SHA256)
 #define COOKIE_MD           MBEDTLS_MD_SHA256
 #define COOKIE_MD_OUTLEN    32
@@ -52,10 +43,6 @@ static int local_err_translation(psa_status_t status)
 #error "DTLS hello verify needs SHA-256 or SHA-384"
 #endif
 
-/*
- * Cookies are formed of a 4-bytes timestamp (or serial number) and
- * an HMAC of timestamp and client ID.
- */
 #define COOKIE_LEN      (4 + COOKIE_HMAC_LEN)
 
 void mbedtls_ssl_cookie_init(mbedtls_ssl_cookie_ctx *ctx)
@@ -64,7 +51,7 @@ void mbedtls_ssl_cookie_init(mbedtls_ssl_cookie_ctx *ctx)
     ctx->psa_hmac_key = MBEDTLS_SVC_KEY_ID_INIT;
 #else
     mbedtls_md_init(&ctx->hmac_ctx);
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
 #if !defined(MBEDTLS_HAVE_TIME)
     ctx->serial = 0;
 #endif
@@ -74,7 +61,7 @@ void mbedtls_ssl_cookie_init(mbedtls_ssl_cookie_ctx *ctx)
 #if defined(MBEDTLS_THREADING_C)
     mbedtls_mutex_init(&ctx->mutex);
 #endif
-#endif /* !MBEDTLS_USE_PSA_CRYPTO */
+#endif
 }
 
 void mbedtls_ssl_cookie_set_timeout(mbedtls_ssl_cookie_ctx *ctx, unsigned long delay)
@@ -96,7 +83,7 @@ void mbedtls_ssl_cookie_free(mbedtls_ssl_cookie_ctx *ctx)
 #if defined(MBEDTLS_THREADING_C)
     mbedtls_mutex_free(&ctx->mutex);
 #endif
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
 
     mbedtls_platform_zeroize(ctx, sizeof(mbedtls_ssl_cookie_ctx));
 }
@@ -150,15 +137,13 @@ int mbedtls_ssl_cookie_setup(mbedtls_ssl_cookie_ctx *ctx,
     }
 
     mbedtls_platform_zeroize(key, sizeof(key));
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
 
     return 0;
 }
 
 #if !defined(MBEDTLS_USE_PSA_CRYPTO)
-/*
- * Generate the HMAC part of a cookie
- */
+
 MBEDTLS_CHECK_RETURN_CRITICAL
 static int ssl_cookie_hmac(mbedtls_md_context_t *hmac_ctx,
                            const unsigned char time[4],
@@ -181,11 +166,8 @@ static int ssl_cookie_hmac(mbedtls_md_context_t *hmac_ctx,
 
     return 0;
 }
-#endif /* !MBEDTLS_USE_PSA_CRYPTO */
+#endif
 
-/*
- * Generate cookie for DTLS ClientHello verification
- */
 int mbedtls_ssl_cookie_write(void *p_ctx,
                              unsigned char **p, unsigned char *end,
                              const unsigned char *cli_id, size_t cli_id_len)
@@ -260,7 +242,7 @@ int mbedtls_ssl_cookie_write(void *p_ctx,
                                  MBEDTLS_ERR_THREADING_MUTEX_ERROR);
     }
 #endif
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
 
 #if defined(MBEDTLS_USE_PSA_CRYPTO)
 exit:
@@ -268,13 +250,10 @@ exit:
     if (status != PSA_SUCCESS) {
         ret = PSA_TO_MBEDTLS_ERR(status);
     }
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
     return ret;
 }
 
-/*
- * Check a cookie
- */
 int mbedtls_ssl_cookie_check(void *p_ctx,
                              const unsigned char *cookie, size_t cookie_len,
                              const unsigned char *cli_id, size_t cli_id_len)
@@ -355,7 +334,7 @@ int mbedtls_ssl_cookie_check(void *p_ctx,
         ret = -1;
         goto exit;
     }
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
 
 #if defined(MBEDTLS_HAVE_TIME)
     cur_time = (unsigned long) mbedtls_time(NULL);
@@ -378,7 +357,7 @@ exit:
     }
 #else
     mbedtls_platform_zeroize(ref_hmac, sizeof(ref_hmac));
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
     return ret;
 }
-#endif /* MBEDTLS_SSL_COOKIE_C */
+#endif

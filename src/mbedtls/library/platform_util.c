@@ -11,6 +11,7 @@
 #endif
 
 #if !defined(_GNU_SOURCE)
+
 #define _GNU_SOURCE
 #endif
 
@@ -59,6 +60,7 @@ void mbedtls_platform_zeroize(void *buf, size_t len)
 #if defined(MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO)
         explicit_bzero(buf, len);
 #if defined(HAVE_MEMORY_SANITIZER)
+
         __msan_unpoison(buf, len);
 #endif
 #elif defined(__STDC_LIB_EXT1__) && !defined(__IAR_SYSTEMS_ICC__)
@@ -70,19 +72,14 @@ void mbedtls_platform_zeroize(void *buf, size_t len)
 #endif
 
 #if defined(__GNUC__)
+
 #if defined(__clang__) || (__GNUC__ >= 10)
-#if defined(__clang__)
-#elif defined(MBEDTLS_COMPILER_IS_GCC)
-#endif
         asm volatile ("" : : "m" (*(char (*)[len]) buf) :);
-#if defined(__clang__)
-#elif defined(MBEDTLS_COMPILER_IS_GCC)
-#endif
 #endif
 #endif
     }
 }
-#endif /* MBEDTLS_PLATFORM_ZEROIZE_ALT */
+#endif
 
 void mbedtls_zeroize_and_free(void *buf, size_t len)
 {
@@ -99,8 +96,7 @@ void mbedtls_zeroize_and_free(void *buf, size_t len)
     defined(__unix) || defined(__unix__) || (defined(__APPLE__) && \
     defined(__MACH__)) || defined(__midipix__))
 #include <unistd.h>
-#endif /* !_WIN32 && (unix || __unix || __unix__ ||
-        * (__APPLE__ && __MACH__) || __midipix__) */
+#endif
 
 #if !((defined(_POSIX_VERSION) && _POSIX_VERSION >= 200809L) ||     \
     (defined(_POSIX_THREAD_SAFE_FUNCTIONS) &&                     \
@@ -111,9 +107,7 @@ void mbedtls_zeroize_and_free(void *buf, size_t len)
 #define PLATFORM_UTIL_USE_GMTIME
 #endif
 
-#endif /* !( ( defined(_POSIX_VERSION) && _POSIX_VERSION >= 200809L ) || \
-             ( defined(_POSIX_THREAD_SAFE_FUNCTIONS ) && \
-                _POSIX_THREAD_SAFE_FUNCTIONS >= 200112L ) ) */
+#endif
 
 struct tm *mbedtls_platform_gmtime_r(const mbedtls_time_t *tt,
                                      struct tm *tm_buf)
@@ -122,6 +116,7 @@ struct tm *mbedtls_platform_gmtime_r(const mbedtls_time_t *tt,
 #if defined(__STDC_LIB_EXT1__)
     return (gmtime_s(tt, tm_buf) == 0) ? NULL : tm_buf;
 #else
+
     return (gmtime_s(tm_buf, tt) == 0) ? tm_buf : NULL;
 #endif
 #elif !defined(PLATFORM_UTIL_USE_GMTIME)
@@ -133,7 +128,7 @@ struct tm *mbedtls_platform_gmtime_r(const mbedtls_time_t *tt,
     if (mbedtls_mutex_lock(&mbedtls_threading_gmtime_mutex) != 0) {
         return NULL;
     }
-#endif /* MBEDTLS_THREADING_C */
+#endif
 
     lt = gmtime(tt);
 
@@ -145,16 +140,16 @@ struct tm *mbedtls_platform_gmtime_r(const mbedtls_time_t *tt,
     if (mbedtls_mutex_unlock(&mbedtls_threading_gmtime_mutex) != 0) {
         return NULL;
     }
-#endif /* MBEDTLS_THREADING_C */
+#endif
 
     return (lt == NULL) ? NULL : tm_buf;
-#endif /* _WIN32 && !EFIX64 && !EFI32 */
+#endif
 }
-#endif /* MBEDTLS_HAVE_TIME_DATE && MBEDTLS_PLATFORM_GMTIME_R_ALT */
+#endif
 
 #if defined(MBEDTLS_TEST_HOOKS)
 void (*mbedtls_test_hook_test_fail)(const char *, int, const char *);
-#endif /* MBEDTLS_TEST_HOOKS */
+#endif
 
 #if defined(MBEDTLS_HAVE_TIME) && !defined(MBEDTLS_PLATFORM_MS_TIME_ALT)
 
@@ -164,7 +159,7 @@ void (*mbedtls_test_hook_test_fail)(const char *, int, const char *);
     (defined(__APPLE__) && defined(__MACH__)) || defined(__HAIKU__) || defined(__midipix__))
 #include <unistd.h>
 #endif \
-    /* !_WIN32 && (unix || __unix || __unix__ || (__APPLE__ && __MACH__) || __HAIKU__ || __midipix__) */
+
 #if (defined(_POSIX_VERSION) && _POSIX_VERSION >= 199309L) || defined(__HAIKU__)
 mbedtls_ms_time_t mbedtls_ms_time(void)
 {
@@ -201,4 +196,4 @@ mbedtls_ms_time_t mbedtls_ms_time(void)
 #else
 #error "No mbedtls_ms_time available"
 #endif
-#endif /* MBEDTLS_HAVE_TIME && !MBEDTLS_PLATFORM_MS_TIME_ALT */
+#endif

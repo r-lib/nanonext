@@ -2,6 +2,7 @@
 
 * Fixes a potential crash when a serialization hook errors (#225).
 * Performance improvements for serialization, streaming, and async sends.
+* Bundled 'libmbedtls' updated to latest 3.6.5 LTS branch release (#234).
 * Building from source no longer requires `xz`.
 
 # nanonext 1.7.2

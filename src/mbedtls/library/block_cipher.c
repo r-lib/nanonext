@@ -1,9 +1,3 @@
-/**
- * \file block_cipher.c
- *
- * \brief Lightweight abstraction layer for block ciphers with 128 bit blocks,
- * for use by the GCM and CCM modules.
- */
 /*
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
@@ -47,7 +41,7 @@ static int mbedtls_cipher_error_from_psa(psa_status_t status)
     return PSA_TO_MBEDTLS_ERR_LIST(status, psa_to_cipher_errors,
                                    psa_generic_status_to_mbedtls);
 }
-#endif /* MBEDTLS_BLOCK_CIPHER_SOME_PSA */
+#endif
 
 void mbedtls_block_cipher_free(mbedtls_block_cipher_context_t *ctx)
 {
@@ -145,7 +139,7 @@ int mbedtls_block_cipher_setkey(mbedtls_block_cipher_context_t *ctx,
 
         return 0;
     }
-#endif /* MBEDTLS_BLOCK_CIPHER_SOME_PSA */
+#endif
 
     switch (ctx->id) {
 #if defined(MBEDTLS_AES_C)
@@ -181,7 +175,7 @@ int mbedtls_block_cipher_encrypt(mbedtls_block_cipher_context_t *ctx,
         }
         return 0;
     }
-#endif /* MBEDTLS_BLOCK_CIPHER_SOME_PSA */
+#endif
 
     switch (ctx->id) {
 #if defined(MBEDTLS_AES_C)
@@ -204,4 +198,4 @@ int mbedtls_block_cipher_encrypt(mbedtls_block_cipher_context_t *ctx,
     }
 }
 
-#endif /* MBEDTLS_BLOCK_CIPHER_C */
+#endif

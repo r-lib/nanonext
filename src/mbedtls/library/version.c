@@ -29,4 +29,4 @@ void mbedtls_version_get_string_full(char *string)
            sizeof(MBEDTLS_VERSION_STRING_FULL));
 }
 
-#endif /* MBEDTLS_VERSION_C */
+#endif

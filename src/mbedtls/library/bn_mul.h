@@ -1,26 +1,8 @@
-/**
- * \file bn_mul.h
- *
- * \brief Multi-precision integer library
- */
 /*
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
-/*
- *      Multiply source vector [s] with b, add result
- *       to destination vector [d] and set carry c.
- *
- *      Currently supports:
- *
- *         . IA-32 (386+)         . AMD64 / EM64T
- *         . IA-32 (SSE2)         . Motorola 68000
- *         . PowerPC, 32-bit      . MicroBlaze
- *         . PowerPC, 64-bit      . TriCore
- *         . SPARC v8             . ARM v3+
- *         . Alpha                . MIPS32
- *         . C, longlong          . C, generic
- */
+
 #ifndef MBEDTLS_BN_MUL_H
 #define MBEDTLS_BN_MUL_H
 
@@ -28,11 +10,6 @@
 
 #include "mbedtls/bignum.h"
 
-
-/*
- * Conversion macros for embedded constants:
- * build lists of mbedtls_mpi_uint's from lists of unsigned char's grouped by 8, 4 or 2
- */
 #if defined(MBEDTLS_HAVE_INT32)
 
 #define MBEDTLS_BYTES_TO_T_UINT_4(a, b, c, d)               \
@@ -48,7 +25,7 @@
     MBEDTLS_BYTES_TO_T_UINT_4(a, b, c, d),                \
     MBEDTLS_BYTES_TO_T_UINT_4(e, f, g, h)
 
-#else /* 64-bits */
+#else
 
 #define MBEDTLS_BYTES_TO_T_UINT_8(a, b, c, d, e, f, g, h)   \
     ((mbedtls_mpi_uint) (a) <<  0) |                        \
@@ -66,37 +43,17 @@
 #define MBEDTLS_BYTES_TO_T_UINT_2(a, b)                   \
     MBEDTLS_BYTES_TO_T_UINT_8(a, b, 0, 0, 0, 0, 0, 0)
 
-#endif /* bits in mbedtls_mpi_uint */
+#endif
 
-/* *INDENT-OFF* */
 #if defined(MBEDTLS_HAVE_ASM)
 
-/* armcc5 --gnu defines __GNUC__ but doesn't support GNU's extended asm */
 #if defined(__GNUC__) && \
     ( !defined(__ARMCC_VERSION) || __ARMCC_VERSION >= 6000000 )
 
-/*
- * GCC < 5.0 treated the x86 ebx (which is used for the GOT) as a
- * fixed reserved register when building as PIC, leading to errors
- * like: bn_mul.h:46:13: error: PIC register clobbered by 'ebx' in 'asm'
- *
- * This is fixed by an improved register allocator in GCC 5+. From the
- * release notes:
- * Register allocation improvements: Reuse of the PIC hard register,
- * instead of using a fixed register, was implemented on x86/x86-64
- * targets. This improves generated PIC code performance as more hard
- * registers can be used.
- */
 #if defined(__GNUC__) && __GNUC__ < 5 && defined(__PIC__)
 #define MULADDC_CANNOT_USE_EBX
 #endif
 
-/*
- * Disable use of the i386 assembly code below if option -O0, to disable all
- * compiler optimisations, is passed, detected with __OPTIMIZE__
- * This is done as the number of registers used in the assembly code doesn't
- * work with the -O0 option.
- */
 #if defined(__i386__) && defined(__OPTIMIZE__) && !defined(MULADDC_CANNOT_USE_EBX)
 
 #define MULADDC_X1_INIT                     \
@@ -206,9 +163,9 @@
         : "eax", "ebx", "ecx", "edx", "esi", "edi"      \
     ); }                                                \
 
-#endif /* SSE2 */
+#endif
 
-#endif /* i386 */
+#endif
 
 #if defined(__amd64__) || defined (__x86_64__)
 
@@ -234,19 +191,10 @@
         : "rax", "rdx", "r8"                                         \
     );
 
-#endif /* AMD64 */
+#endif
 
-// The following assembly code assumes that a pointer will fit in a 64-bit register
-// (including ILP32 __aarch64__ ABIs such as on watchOS, hence the 2^32 - 1)
 #if defined(__aarch64__) && (UINTPTR_MAX == 0xfffffffful || UINTPTR_MAX == 0xfffffffffffffffful)
 
-/*
- * There are some issues around different compilers requiring different constraint
- * syntax for updating pointers from assembly code (see notes for
- * MBEDTLS_ASM_AARCH64_PTR_CONSTRAINT in common.h), especially on aarch64_32 (aka ILP32).
- *
- * For this reason we cast the pointers to/from uintptr_t here.
- */
 #define MULADDC_X1_INIT             \
     do { uintptr_t muladdc_d = (uintptr_t) d, muladdc_s = (uintptr_t) s; asm(
 
@@ -270,7 +218,7 @@
          : "x4", "x5", "x6", "x7", "cc"                                 \
     ); d = (mbedtls_mpi_uint *)muladdc_d; s = (mbedtls_mpi_uint *)muladdc_s; } while (0);
 
-#endif /* Aarch64 */
+#endif
 
 #if defined(__mc68020__) || defined(__mcpu32__)
 
@@ -347,7 +295,7 @@
 
 #define MULADDC_X8_STOP MULADDC_X1_STOP
 
-#endif /* MC68000 */
+#endif
 
 #if defined(__powerpc64__) || defined(__ppc64__)
 
@@ -385,8 +333,7 @@
         : "r3", "r4", "r5", "r6", "r7", "r8", "r9"  \
     );
 
-
-#else /* __MACH__ && __APPLE__ */
+#else
 
 #define MULADDC_X1_INIT                     \
     asm(                                    \
@@ -420,9 +367,9 @@
         : "r3", "r4", "r5", "r6", "r7", "r8", "r9"  \
     );
 
-#endif /* __MACH__ && __APPLE__ */
+#endif
 
-#elif defined(__powerpc__) || defined(__ppc__) /* end PPC64/begin PPC32  */
+#elif defined(__powerpc__) || defined(__ppc__)
 
 #if defined(__MACH__) && defined(__APPLE__)
 
@@ -458,7 +405,7 @@
         : "r3", "r4", "r5", "r6", "r7", "r8", "r9"  \
     );
 
-#else /* __MACH__ && __APPLE__ */
+#else
 
 #define MULADDC_X1_INIT                     \
     asm(                                    \
@@ -492,14 +439,10 @@
         : "r3", "r4", "r5", "r6", "r7", "r8", "r9"  \
     );
 
-#endif /* __MACH__ && __APPLE__ */
+#endif
 
-#endif /* PPC32 */
+#endif
 
-/*
- * The Sparc(64) assembly is reported to be broken.
- * Disable it for now, until we're able to fix it.
- */
 #if 0 && defined(__sparc__)
 #if defined(__sparc64__)
 
@@ -533,7 +476,7 @@
           "o5"                                  \
         );
 
-#else /* __sparc64__ */
+#else
 
 #define MULADDC_X1_INIT                                 \
     asm(                                                \
@@ -565,8 +508,8 @@
           "o5"                                  \
         );
 
-#endif /* __sparc64__ */
-#endif /* __sparc__ */
+#endif
+#endif
 
 #if defined(__microblaze__) || defined(microblaze)
 
@@ -626,7 +569,7 @@
           "r9", "r10", "r11", "r12", "r13"          \
     );
 
-#endif /* MicroBlaze */
+#endif
 
 #if defined(__tricore__)
 
@@ -656,40 +599,25 @@
         : "d0", "d1", "e2", "d4", "a2", "a3"    \
     );
 
-#endif /* TriCore */
+#endif
 
 #if defined(__arm__)
 
 #if defined(__thumb__) && !defined(__thumb2__)
 #if defined(MBEDTLS_COMPILER_IS_GCC)
-/*
- * Thumb 1 ISA. This code path has only been tested successfully on gcc;
- * it does not compile on clang or armclang.
- */
 
 #if !defined(__OPTIMIZE__) && defined(__GNUC__)
-/*
- * Note, gcc -O0 by default uses r7 for the frame pointer, so it complains about
- * our use of r7 below, unless -fomit-frame-pointer is passed.
- *
- * On the other hand, -fomit-frame-pointer is implied by any -Ox options with
- * x !=0, which we can detect using __OPTIMIZE__ (which is also defined by
- * clang and armcc5 under the same conditions).
- *
- * If gcc needs to use r7, we use r1 as a scratch register and have a few extra
- * instructions to preserve/restore it; otherwise, we can use r7 and avoid
- * the preserve/restore overhead.
- */
+
 #define MULADDC_SCRATCH              "RS .req r1         \n\t"
 #define MULADDC_PRESERVE_SCRATCH     "mov    r10, r1     \n\t"
 #define MULADDC_RESTORE_SCRATCH      "mov    r1, r10     \n\t"
 #define MULADDC_SCRATCH_CLOBBER      "r10"
-#else /* !defined(__OPTIMIZE__) && defined(__GNUC__) */
+#else
 #define MULADDC_SCRATCH              "RS .req r7         \n\t"
 #define MULADDC_PRESERVE_SCRATCH     ""
 #define MULADDC_RESTORE_SCRATCH      ""
 #define MULADDC_SCRATCH_CLOBBER      "r7"
-#endif /* !defined(__OPTIMIZE__) && defined(__GNUC__) */
+#endif
 
 #define MULADDC_X1_INIT                                 \
     asm(                                                \
@@ -703,7 +631,6 @@
             "lsl    r4, r3, #16                 \n\t"   \
             "lsr    r4, r4, #16                 \n\t"   \
             "mov    r8, r4                      \n\t"   \
-
 
 #define MULADDC_X1_CORE                                 \
             MULADDC_PRESERVE_SCRATCH                    \
@@ -747,13 +674,10 @@
          : "r0", "r1", "r2", "r3", "r4", "r5",  \
            "r6", MULADDC_SCRATCH_CLOBBER, "r8", "r9", "cc" \
          );
-#endif /* !defined(__ARMCC_VERSION) && !defined(__clang__) */
+#endif
 
 #elif (__ARM_ARCH >= 6) && \
     defined (__ARM_FEATURE_DSP) && (__ARM_FEATURE_DSP == 1)
-/* Armv6-M (or later) with DSP Instruction Set Extensions.
- * Requires support for either Thumb 2 or Arm ISA.
- */
 
 #define MULADDC_X1_INIT                            \
     {                                              \
@@ -784,16 +708,6 @@
         mbedtls_mpi_uint tmp_a1, tmp_b1;             \
         asm volatile (
 
-            /* - Make sure loop is 4-byte aligned to avoid stalls
-             *   upon repeated non-word aligned instructions in
-             *   some microarchitectures.
-             * - Don't use ldm with post-increment or back-to-back
-             *   loads with post-increment and same address register
-             *   to avoid stalls on some microarchitectures.
-             * - Bunch loads and stores to reduce latency on some
-             *   microarchitectures. E.g., on Cortex-M4, the first
-             *   in a series of load/store operations has latency
-             *   2 cycles, while subsequent loads/stores are single-cycle. */
 #define MULADDC_X2_CORE                                           \
            ".p2align  2                                   \n\t"   \
             "ldr      %[a0], [%[in]],  #+8                \n\t"   \
@@ -818,7 +732,7 @@
         );                                                   \
     }
 
-#else /* Thumb 2 or Arm ISA, without DSP extensions */
+#else
 
 #define MULADDC_X1_INIT                                 \
     asm(                                                \
@@ -846,9 +760,9 @@
            "r6", "cc"                     \
          );
 
-#endif /* ISA codepath selection */
+#endif
 
-#endif /* defined(__arm__) */
+#endif
 
 #if defined(__alpha__)
 
@@ -882,7 +796,7 @@
         : "m" (s), "m" (d), "m" (c), "m" (b)        \
         : "$1", "$2", "$3", "$4", "$5", "$6", "$7"  \
     );
-#endif /* Alpha */
+#endif
 
 #if defined(__mips__) && !defined(__mips64)
 
@@ -918,8 +832,8 @@
         : "$9", "$10", "$11", "$12", "$13", "$14", "$15", "lo", "hi" \
     );
 
-#endif /* MIPS */
-#endif /* GNUC */
+#endif
+#endif
 
 #if (defined(_MSC_VER) && defined(_M_IX86)) || defined(__WATCOMC__)
 
@@ -1019,10 +933,10 @@
     __asm   mov     d, edi                      \
     __asm   mov     s, esi
 
-#endif /* SSE2 */
-#endif /* MSVC */
+#endif
+#endif
 
-#endif /* MBEDTLS_HAVE_ASM */
+#endif
 
 #if !defined(MULADDC_X1_CORE)
 #if defined(MBEDTLS_HAVE_UDBL)
@@ -1043,7 +957,7 @@
 #define MULADDC_X1_STOP                 \
 }
 
-#else /* MBEDTLS_HAVE_UDBL */
+#else
 
 #define MULADDC_X1_INIT                 \
 {                                       \
@@ -1069,26 +983,25 @@
 #define MULADDC_X1_STOP                 \
 }
 
-#endif /* C (longlong) */
-#endif /* C (generic)  */
+#endif
+#endif
 
 #if !defined(MULADDC_X2_CORE)
 #define MULADDC_X2_INIT MULADDC_X1_INIT
 #define MULADDC_X2_STOP MULADDC_X1_STOP
 #define MULADDC_X2_CORE MULADDC_X1_CORE MULADDC_X1_CORE
-#endif /* MULADDC_X2_CORE */
+#endif
 
 #if !defined(MULADDC_X4_CORE)
 #define MULADDC_X4_INIT MULADDC_X2_INIT
 #define MULADDC_X4_STOP MULADDC_X2_STOP
 #define MULADDC_X4_CORE MULADDC_X2_CORE MULADDC_X2_CORE
-#endif /* MULADDC_X4_CORE */
+#endif
 
 #if !defined(MULADDC_X8_CORE)
 #define MULADDC_X8_INIT MULADDC_X4_INIT
 #define MULADDC_X8_STOP MULADDC_X4_STOP
 #define MULADDC_X8_CORE MULADDC_X4_CORE MULADDC_X4_CORE
-#endif /* MULADDC_X8_CORE */
+#endif
 
-/* *INDENT-ON* */
-#endif /* bn_mul.h */
+#endif

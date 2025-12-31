@@ -13,10 +13,6 @@
 #include "mbedtls/platform_util.h"
 #include "mbedtls/error.h"
 
-/* The compile time configuration of memory allocation via the macros
- * MBEDTLS_PLATFORM_{FREE/CALLOC}_MACRO takes precedence over the runtime
- * configuration via mbedtls_platform_set_calloc_free(). So, omit everything
- * related to the latter if MBEDTLS_PLATFORM_{FREE/CALLOC}_MACRO are defined. */
 #if defined(MBEDTLS_PLATFORM_MEMORY) &&                 \
     !(defined(MBEDTLS_PLATFORM_CALLOC_MACRO) &&        \
     defined(MBEDTLS_PLATFORM_FREE_MACRO))
@@ -30,7 +26,7 @@ static void *platform_calloc_uninit(size_t n, size_t size)
 }
 
 #define MBEDTLS_PLATFORM_STD_CALLOC   platform_calloc_uninit
-#endif /* !MBEDTLS_PLATFORM_STD_CALLOC */
+#endif
 
 #if !defined(MBEDTLS_PLATFORM_STD_FREE)
 static void platform_free_uninit(void *ptr)
@@ -39,7 +35,7 @@ static void platform_free_uninit(void *ptr)
 }
 
 #define MBEDTLS_PLATFORM_STD_FREE     platform_free_uninit
-#endif /* !MBEDTLS_PLATFORM_STD_FREE */
+#endif
 
 static void * (*mbedtls_calloc_func)(size_t, size_t) = MBEDTLS_PLATFORM_STD_CALLOC;
 static void (*mbedtls_free_func)(void *) = MBEDTLS_PLATFORM_STD_FREE;
@@ -61,9 +57,7 @@ int mbedtls_platform_set_calloc_free(void *(*calloc_func)(size_t, size_t),
     mbedtls_free_func = free_func;
     return 0;
 }
-#endif /* MBEDTLS_PLATFORM_MEMORY &&
-          !( defined(MBEDTLS_PLATFORM_CALLOC_MACRO) &&
-             defined(MBEDTLS_PLATFORM_FREE_MACRO) ) */
+#endif
 
 #if defined(MBEDTLS_PLATFORM_HAS_NON_CONFORMING_SNPRINTF)
 #include <stdarg.h>
@@ -82,9 +76,7 @@ int mbedtls_platform_win32_snprintf(char *s, size_t n, const char *fmt, ...)
 
 #if defined(MBEDTLS_PLATFORM_SNPRINTF_ALT)
 #if !defined(MBEDTLS_PLATFORM_STD_SNPRINTF)
-/*
- * Make dummy function to prevent NULL pointer dereferences
- */
+
 static int platform_snprintf_uninit(char *s, size_t n,
                                     const char *format, ...)
 {
@@ -95,7 +87,7 @@ static int platform_snprintf_uninit(char *s, size_t n,
 }
 
 #define MBEDTLS_PLATFORM_STD_SNPRINTF    platform_snprintf_uninit
-#endif /* !MBEDTLS_PLATFORM_STD_SNPRINTF */
+#endif
 
 int (*mbedtls_snprintf)(char *s, size_t n,
                         const char *format,
@@ -108,7 +100,7 @@ int mbedtls_platform_set_snprintf(int (*snprintf_func)(char *s, size_t n,
     mbedtls_snprintf = snprintf_func;
     return 0;
 }
-#endif /* MBEDTLS_PLATFORM_SNPRINTF_ALT */
+#endif
 
 #if defined(MBEDTLS_PLATFORM_HAS_NON_CONFORMING_VSNPRINTF)
 #include <stdarg.h>
@@ -116,7 +108,6 @@ int mbedtls_platform_win32_vsnprintf(char *s, size_t n, const char *fmt, va_list
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
 
-    /* Avoid calling the invalid parameter handler by checking ourselves */
     if (s == NULL || n == 0 || fmt == NULL) {
         return -1;
     }
@@ -137,9 +128,7 @@ int mbedtls_platform_win32_vsnprintf(char *s, size_t n, const char *fmt, va_list
 
 #if defined(MBEDTLS_PLATFORM_VSNPRINTF_ALT)
 #if !defined(MBEDTLS_PLATFORM_STD_VSNPRINTF)
-/*
- * Make dummy function to prevent NULL pointer dereferences
- */
+
 static int platform_vsnprintf_uninit(char *s, size_t n,
                                      const char *format, va_list arg)
 {
@@ -151,7 +140,7 @@ static int platform_vsnprintf_uninit(char *s, size_t n,
 }
 
 #define MBEDTLS_PLATFORM_STD_VSNPRINTF    platform_vsnprintf_uninit
-#endif /* !MBEDTLS_PLATFORM_STD_VSNPRINTF */
+#endif
 
 int (*mbedtls_vsnprintf)(char *s, size_t n,
                          const char *format,
@@ -164,13 +153,11 @@ int mbedtls_platform_set_vsnprintf(int (*vsnprintf_func)(char *s, size_t n,
     mbedtls_vsnprintf = vsnprintf_func;
     return 0;
 }
-#endif /* MBEDTLS_PLATFORM_VSNPRINTF_ALT */
+#endif
 
 #if defined(MBEDTLS_PLATFORM_PRINTF_ALT)
 #if !defined(MBEDTLS_PLATFORM_STD_PRINTF)
-/*
- * Make dummy function to prevent NULL pointer dereferences
- */
+
 static int platform_printf_uninit(const char *format, ...)
 {
     ((void) format);
@@ -178,7 +165,7 @@ static int platform_printf_uninit(const char *format, ...)
 }
 
 #define MBEDTLS_PLATFORM_STD_PRINTF    platform_printf_uninit
-#endif /* !MBEDTLS_PLATFORM_STD_PRINTF */
+#endif
 
 int (*mbedtls_printf)(const char *, ...) = MBEDTLS_PLATFORM_STD_PRINTF;
 
@@ -187,13 +174,11 @@ int mbedtls_platform_set_printf(int (*printf_func)(const char *, ...))
     mbedtls_printf = printf_func;
     return 0;
 }
-#endif /* MBEDTLS_PLATFORM_PRINTF_ALT */
+#endif
 
 #if defined(MBEDTLS_PLATFORM_FPRINTF_ALT)
 #if !defined(MBEDTLS_PLATFORM_STD_FPRINTF)
-/*
- * Make dummy function to prevent NULL pointer dereferences
- */
+
 static int platform_fprintf_uninit(FILE *stream, const char *format, ...)
 {
     ((void) stream);
@@ -202,7 +187,7 @@ static int platform_fprintf_uninit(FILE *stream, const char *format, ...)
 }
 
 #define MBEDTLS_PLATFORM_STD_FPRINTF   platform_fprintf_uninit
-#endif /* !MBEDTLS_PLATFORM_STD_FPRINTF */
+#endif
 
 int (*mbedtls_fprintf)(FILE *, const char *, ...) =
     MBEDTLS_PLATFORM_STD_FPRINTF;
@@ -212,13 +197,11 @@ int mbedtls_platform_set_fprintf(int (*fprintf_func)(FILE *, const char *, ...))
     mbedtls_fprintf = fprintf_func;
     return 0;
 }
-#endif /* MBEDTLS_PLATFORM_FPRINTF_ALT */
+#endif
 
 #if defined(MBEDTLS_PLATFORM_SETBUF_ALT)
 #if !defined(MBEDTLS_PLATFORM_STD_SETBUF)
-/*
- * Make dummy function to prevent NULL pointer dereferences
- */
+
 static void platform_setbuf_uninit(FILE *stream, char *buf)
 {
     ((void) stream);
@@ -226,7 +209,7 @@ static void platform_setbuf_uninit(FILE *stream, char *buf)
 }
 
 #define MBEDTLS_PLATFORM_STD_SETBUF   platform_setbuf_uninit
-#endif /* !MBEDTLS_PLATFORM_STD_SETBUF */
+#endif
 void (*mbedtls_setbuf)(FILE *stream, char *buf) = MBEDTLS_PLATFORM_STD_SETBUF;
 
 int mbedtls_platform_set_setbuf(void (*setbuf_func)(FILE *stream, char *buf))
@@ -234,20 +217,18 @@ int mbedtls_platform_set_setbuf(void (*setbuf_func)(FILE *stream, char *buf))
     mbedtls_setbuf = setbuf_func;
     return 0;
 }
-#endif /* MBEDTLS_PLATFORM_SETBUF_ALT */
+#endif
 
 #if defined(MBEDTLS_PLATFORM_EXIT_ALT)
 #if !defined(MBEDTLS_PLATFORM_STD_EXIT)
-/*
- * Make dummy function to prevent NULL pointer dereferences
- */
+
 static void platform_exit_uninit(int status)
 {
     ((void) status);
 }
 
 #define MBEDTLS_PLATFORM_STD_EXIT   platform_exit_uninit
-#endif /* !MBEDTLS_PLATFORM_STD_EXIT */
+#endif
 
 void (*mbedtls_exit)(int status) = MBEDTLS_PLATFORM_STD_EXIT;
 
@@ -256,15 +237,13 @@ int mbedtls_platform_set_exit(void (*exit_func)(int status))
     mbedtls_exit = exit_func;
     return 0;
 }
-#endif /* MBEDTLS_PLATFORM_EXIT_ALT */
+#endif
 
 #if defined(MBEDTLS_HAVE_TIME)
 
 #if defined(MBEDTLS_PLATFORM_TIME_ALT)
 #if !defined(MBEDTLS_PLATFORM_STD_TIME)
-/*
- * Make dummy function to prevent NULL pointer dereferences
- */
+
 static mbedtls_time_t platform_time_uninit(mbedtls_time_t *timer)
 {
     ((void) timer);
@@ -272,7 +251,7 @@ static mbedtls_time_t platform_time_uninit(mbedtls_time_t *timer)
 }
 
 #define MBEDTLS_PLATFORM_STD_TIME   platform_time_uninit
-#endif /* !MBEDTLS_PLATFORM_STD_TIME */
+#endif
 
 mbedtls_time_t (*mbedtls_time)(mbedtls_time_t *timer) = MBEDTLS_PLATFORM_STD_TIME;
 
@@ -281,15 +260,13 @@ int mbedtls_platform_set_time(mbedtls_time_t (*time_func)(mbedtls_time_t *timer)
     mbedtls_time = time_func;
     return 0;
 }
-#endif /* MBEDTLS_PLATFORM_TIME_ALT */
+#endif
 
-#endif /* MBEDTLS_HAVE_TIME */
+#endif
 
 #if defined(MBEDTLS_ENTROPY_NV_SEED)
 #if !defined(MBEDTLS_PLATFORM_NO_STD_FUNCTIONS) && defined(MBEDTLS_FS_IO)
-/* Default implementations for the platform independent seed functions use
- * standard libc file functions to read from and write to a pre-defined filename
- */
+
 int mbedtls_platform_std_nv_seed_read(unsigned char *buf, size_t buf_len)
 {
     FILE *file;
@@ -299,7 +276,6 @@ int mbedtls_platform_std_nv_seed_read(unsigned char *buf, size_t buf_len)
         return -1;
     }
 
-    /* Ensure no stdio buffering of secrets, as such buffers cannot be wiped. */
     mbedtls_setbuf(file, NULL);
 
     if ((n = fread(buf, 1, buf_len, file)) != buf_len) {
@@ -321,7 +297,6 @@ int mbedtls_platform_std_nv_seed_write(unsigned char *buf, size_t buf_len)
         return -1;
     }
 
-    /* Ensure no stdio buffering of secrets, as such buffers cannot be wiped. */
     mbedtls_setbuf(file, NULL);
 
     if ((n = fwrite(buf, 1, buf_len, file)) != buf_len) {
@@ -332,13 +307,11 @@ int mbedtls_platform_std_nv_seed_write(unsigned char *buf, size_t buf_len)
     fclose(file);
     return (int) n;
 }
-#endif /* MBEDTLS_PLATFORM_NO_STD_FUNCTIONS */
+#endif
 
 #if defined(MBEDTLS_PLATFORM_NV_SEED_ALT)
 #if !defined(MBEDTLS_PLATFORM_STD_NV_SEED_READ)
-/*
- * Make dummy function to prevent NULL pointer dereferences
- */
+
 static int platform_nv_seed_read_uninit(unsigned char *buf, size_t buf_len)
 {
     ((void) buf);
@@ -347,12 +320,10 @@ static int platform_nv_seed_read_uninit(unsigned char *buf, size_t buf_len)
 }
 
 #define MBEDTLS_PLATFORM_STD_NV_SEED_READ   platform_nv_seed_read_uninit
-#endif /* !MBEDTLS_PLATFORM_STD_NV_SEED_READ */
+#endif
 
 #if !defined(MBEDTLS_PLATFORM_STD_NV_SEED_WRITE)
-/*
- * Make dummy function to prevent NULL pointer dereferences
- */
+
 static int platform_nv_seed_write_uninit(unsigned char *buf, size_t buf_len)
 {
     ((void) buf);
@@ -361,7 +332,7 @@ static int platform_nv_seed_write_uninit(unsigned char *buf, size_t buf_len)
 }
 
 #define MBEDTLS_PLATFORM_STD_NV_SEED_WRITE   platform_nv_seed_write_uninit
-#endif /* !MBEDTLS_PLATFORM_STD_NV_SEED_WRITE */
+#endif
 
 int (*mbedtls_nv_seed_read)(unsigned char *buf, size_t buf_len) =
     MBEDTLS_PLATFORM_STD_NV_SEED_READ;
@@ -376,13 +347,11 @@ int mbedtls_platform_set_nv_seed(
     mbedtls_nv_seed_write = nv_seed_write_func;
     return 0;
 }
-#endif /* MBEDTLS_PLATFORM_NV_SEED_ALT */
-#endif /* MBEDTLS_ENTROPY_NV_SEED */
+#endif
+#endif
 
 #if !defined(MBEDTLS_PLATFORM_SETUP_TEARDOWN_ALT)
-/*
- * Placeholder platform setup that does nothing by default
- */
+
 int mbedtls_platform_setup(mbedtls_platform_context *ctx)
 {
     (void) ctx;
@@ -390,13 +359,10 @@ int mbedtls_platform_setup(mbedtls_platform_context *ctx)
     return 0;
 }
 
-/*
- * Placeholder platform teardown that does nothing by default
- */
 void mbedtls_platform_teardown(mbedtls_platform_context *ctx)
 {
     (void) ctx;
 }
-#endif /* MBEDTLS_PLATFORM_SETUP_TEARDOWN_ALT */
+#endif
 
-#endif /* MBEDTLS_PLATFORM_C */
+#endif

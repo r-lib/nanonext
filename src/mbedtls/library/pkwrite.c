@@ -42,8 +42,6 @@
 #endif
 #include "mbedtls/platform.h"
 
-/* Helpers for properly sizing buffers aimed at holding public keys or
- * key-pairs based on build symbols. */
 #if defined(MBEDTLS_PK_USE_PSA_EC_DATA)
 #define PK_MAX_EC_PUBLIC_KEY_SIZE       PSA_EXPORT_PUBLIC_KEY_MAX_SIZE
 #define PK_MAX_EC_KEY_PAIR_SIZE         MBEDTLS_PSA_MAX_EC_KEY_PAIR_LENGTH
@@ -55,9 +53,6 @@
 #define PK_MAX_EC_KEY_PAIR_SIZE         MBEDTLS_ECP_MAX_BYTES
 #endif
 
-/******************************************************************************
- * Internal functions for RSA keys.
- ******************************************************************************/
 #if defined(MBEDTLS_RSA_C)
 static int pk_write_rsa_der(unsigned char **p, unsigned char *buf,
                             const mbedtls_pk_context *pk)
@@ -70,7 +65,7 @@ static int pk_write_rsa_der(unsigned char **p, unsigned char *buf,
         if (psa_export_key(pk->priv_id, tmp, sizeof(tmp), &tmp_len) != PSA_SUCCESS) {
             return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
         }
-        /* Ensure there's enough space in the provided buffer before copying data into it. */
+
         if (tmp_len > (size_t) (*p - buf)) {
             mbedtls_platform_zeroize(tmp, sizeof(tmp));
             return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
@@ -81,14 +76,11 @@ static int pk_write_rsa_der(unsigned char **p, unsigned char *buf,
 
         return (int) tmp_len;
     }
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
     return mbedtls_rsa_write_key(mbedtls_pk_rsa(*pk), buf, p);
 }
-#endif /* MBEDTLS_RSA_C */
+#endif
 
-/******************************************************************************
- * Internal functions for EC keys.
- ******************************************************************************/
 #if defined(MBEDTLS_PK_HAVE_ECC_KEYS)
 #if defined(MBEDTLS_PK_USE_PSA_EC_DATA)
 static int pk_write_ec_pubkey(unsigned char **p, unsigned char *start,
@@ -115,7 +107,7 @@ static int pk_write_ec_pubkey(unsigned char **p, unsigned char *start,
 
     return (int) len;
 }
-#else /* MBEDTLS_PK_USE_PSA_EC_DATA */
+#else
 static int pk_write_ec_pubkey(unsigned char **p, unsigned char *start,
                               const mbedtls_pk_context *pk)
 {
@@ -129,7 +121,7 @@ static int pk_write_ec_pubkey(unsigned char **p, unsigned char *start,
         if (psa_export_public_key(pk->priv_id, buf, sizeof(buf), &len) != PSA_SUCCESS) {
             return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
         }
-        /* Ensure there's enough space in the provided buffer before copying data into it. */
+
         if (len > (size_t) (*p - start)) {
             return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
         }
@@ -137,7 +129,7 @@ static int pk_write_ec_pubkey(unsigned char **p, unsigned char *start,
         memcpy(*p, buf, len);
         return (int) len;
     } else
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
     {
         if ((ret = mbedtls_ecp_point_write_binary(&ec->grp, &ec->Q,
                                                   MBEDTLS_ECP_PF_UNCOMPRESSED,
@@ -155,11 +147,8 @@ static int pk_write_ec_pubkey(unsigned char **p, unsigned char *start,
 
     return (int) len;
 }
-#endif /* MBEDTLS_PK_USE_PSA_EC_DATA */
+#endif
 
-/*
- * privateKey  OCTET STRING -- always of length ceil(log2(n)/8)
- */
 #if defined(MBEDTLS_PK_USE_PSA_EC_DATA)
 static int pk_write_ec_private(unsigned char **p, unsigned char *start,
                                const mbedtls_pk_context *pk)
@@ -188,7 +177,7 @@ exit:
     mbedtls_platform_zeroize(tmp, sizeof(tmp));
     return ret;
 }
-#else /* MBEDTLS_PK_USE_PSA_EC_DATA */
+#else
 static int pk_write_ec_private(unsigned char **p, unsigned char *start,
                                const mbedtls_pk_context *pk)
 {
@@ -205,7 +194,7 @@ static int pk_write_ec_private(unsigned char **p, unsigned char *start,
             return ret;
         }
     } else
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
     {
         mbedtls_ecp_keypair *ec = mbedtls_pk_ec_rw(*pk);
         byte_length = (ec->grp.pbits + 7) / 8;
@@ -220,13 +209,8 @@ exit:
     mbedtls_platform_zeroize(tmp, sizeof(tmp));
     return ret;
 }
-#endif /* MBEDTLS_PK_USE_PSA_EC_DATA */
+#endif
 
-/*
- * ECParameters ::= CHOICE {
- *   namedCurve         OBJECT IDENTIFIER
- * }
- */
 static int pk_write_ec_param(unsigned char **p, unsigned char *start,
                              mbedtls_ecp_group_id grp_id)
 {
@@ -245,21 +229,7 @@ static int pk_write_ec_param(unsigned char **p, unsigned char *start,
 }
 
 #if defined(MBEDTLS_PK_HAVE_RFC8410_CURVES)
-/*
- * RFC8410 section 7
- *
- * OneAsymmetricKey ::= SEQUENCE {
- *    version Version,
- *    privateKeyAlgorithm PrivateKeyAlgorithmIdentifier,
- *    privateKey PrivateKey,
- *    attributes [0] IMPLICIT Attributes OPTIONAL,
- *    ...,
- *    [[2: publicKey [1] IMPLICIT PublicKey OPTIONAL ]],
- *    ...
- * }
- * ...
- * CurvePrivateKey ::= OCTET STRING
- */
+
 static int pk_write_ec_rfc8410_der(unsigned char **p, unsigned char *buf,
                                    const mbedtls_pk_context *pk)
 {
@@ -269,20 +239,18 @@ static int pk_write_ec_rfc8410_der(unsigned char **p, unsigned char *buf,
     const char *oid;
     mbedtls_ecp_group_id grp_id;
 
-    /* privateKey */
     MBEDTLS_ASN1_CHK_ADD(len, pk_write_ec_private(p, buf, pk));
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, buf, len));
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, buf, MBEDTLS_ASN1_OCTET_STRING));
 
     grp_id = mbedtls_pk_get_ec_group_id(pk);
-    /* privateKeyAlgorithm */
+
     if ((ret = mbedtls_oid_get_oid_by_ec_grp_algid(grp_id, &oid, &oid_len)) != 0) {
         return ret;
     }
     MBEDTLS_ASN1_CHK_ADD(len,
                          mbedtls_asn1_write_algorithm_identifier_ext(p, buf, oid, oid_len, 0, 0));
 
-    /* version */
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_int(p, buf, 0));
 
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, buf, len));
@@ -291,18 +259,8 @@ static int pk_write_ec_rfc8410_der(unsigned char **p, unsigned char *buf,
 
     return (int) len;
 }
-#endif /* MBEDTLS_PK_HAVE_RFC8410_CURVES */
+#endif
 
-/*
- * RFC 5915, or SEC1 Appendix C.4
- *
- * ECPrivateKey ::= SEQUENCE {
- *      version        INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
- *      privateKey     OCTET STRING,
- *      parameters [0] ECParameters {{ NamedCurve }} OPTIONAL,
- *      publicKey  [1] BIT STRING OPTIONAL
- *    }
- */
 static int pk_write_ec_der(unsigned char **p, unsigned char *buf,
                            const mbedtls_pk_context *pk)
 {
@@ -311,7 +269,6 @@ static int pk_write_ec_der(unsigned char **p, unsigned char *buf,
     size_t pub_len = 0, par_len = 0;
     mbedtls_ecp_group_id grp_id;
 
-    /* publicKey */
     MBEDTLS_ASN1_CHK_ADD(pub_len, pk_write_ec_pubkey(p, buf, pk));
 
     if (*p - buf < 1) {
@@ -330,7 +287,6 @@ static int pk_write_ec_der(unsigned char **p, unsigned char *buf,
                                                          MBEDTLS_ASN1_CONSTRUCTED | 1));
     len += pub_len;
 
-    /* parameters */
     grp_id = mbedtls_pk_get_ec_group_id(pk);
     MBEDTLS_ASN1_CHK_ADD(par_len, pk_write_ec_param(p, buf, grp_id));
     MBEDTLS_ASN1_CHK_ADD(par_len, mbedtls_asn1_write_len(p, buf, par_len));
@@ -339,10 +295,8 @@ static int pk_write_ec_der(unsigned char **p, unsigned char *buf,
                                                          MBEDTLS_ASN1_CONSTRUCTED | 0));
     len += par_len;
 
-    /* privateKey */
     MBEDTLS_ASN1_CHK_ADD(len, pk_write_ec_private(p, buf, pk));
 
-    /* version */
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_int(p, buf, 1));
 
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, buf, len));
@@ -351,11 +305,8 @@ static int pk_write_ec_der(unsigned char **p, unsigned char *buf,
 
     return (int) len;
 }
-#endif /* MBEDTLS_PK_HAVE_ECC_KEYS */
+#endif
 
-/******************************************************************************
- * Internal functions for Opaque keys.
- ******************************************************************************/
 #if defined(MBEDTLS_USE_PSA_CRYPTO)
 static int pk_write_opaque_pubkey(unsigned char **p, unsigned char *start,
                                   const mbedtls_pk_context *pk)
@@ -378,14 +329,8 @@ static int pk_write_opaque_pubkey(unsigned char **p, unsigned char *start,
 
     return (int) len;
 }
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
 
-/******************************************************************************
- * Generic helpers
- ******************************************************************************/
-
-/* Extend the public mbedtls_pk_get_type() by getting key type also in case of
- * opaque keys. */
 static mbedtls_pk_type_t pk_get_type_ext(const mbedtls_pk_context *pk)
 {
     mbedtls_pk_type_t pk_type = mbedtls_pk_get_type(pk);
@@ -413,9 +358,6 @@ static mbedtls_pk_type_t pk_get_type_ext(const mbedtls_pk_context *pk)
     return pk_type;
 }
 
-/******************************************************************************
- * Public functions for writing private/public DER keys.
- ******************************************************************************/
 int mbedtls_pk_write_pubkey(unsigned char **p, unsigned char *start,
                             const mbedtls_pk_context *key)
 {
@@ -436,7 +378,7 @@ int mbedtls_pk_write_pubkey(unsigned char **p, unsigned char *start,
     if (mbedtls_pk_get_type(key) == MBEDTLS_PK_OPAQUE) {
         MBEDTLS_ASN1_CHK_ADD(len, pk_write_opaque_pubkey(p, start, key));
     } else
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
     return MBEDTLS_ERR_PK_FEATURE_UNAVAILABLE;
 
     return (int) len;
@@ -463,11 +405,6 @@ int mbedtls_pk_write_pubkey_der(const mbedtls_pk_context *key, unsigned char *bu
         return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
     }
 
-    /*
-     *  SubjectPublicKeyInfo  ::=  SEQUENCE  {
-     *       algorithm            AlgorithmIdentifier,
-     *       subjectPublicKey     BIT STRING }
-     */
     *--c = 0;
     len += 1;
 
@@ -489,9 +426,8 @@ int mbedtls_pk_write_pubkey_der(const mbedtls_pk_context *key, unsigned char *bu
             MBEDTLS_ASN1_CHK_ADD(par_len, pk_write_ec_param(&c, buf, ec_grp_id));
         }
     }
-#endif /* MBEDTLS_PK_HAVE_ECC_KEYS */
+#endif
 
-    /* At this point oid_len is not null only for EC Montgomery keys. */
     if (oid_len == 0) {
         ret = mbedtls_oid_get_oid_by_pk_alg(pk_type, &oid, &oid_len);
         if (ret != 0) {
@@ -523,23 +459,20 @@ int mbedtls_pk_write_key_der(const mbedtls_pk_context *key, unsigned char *buf, 
     if (pk_get_type_ext(key) == MBEDTLS_PK_RSA) {
         return pk_write_rsa_der(&c, buf, key);
     } else
-#endif /* MBEDTLS_RSA_C */
+#endif
 #if defined(MBEDTLS_PK_HAVE_ECC_KEYS)
     if (pk_get_type_ext(key) == MBEDTLS_PK_ECKEY) {
 #if defined(MBEDTLS_PK_HAVE_RFC8410_CURVES)
         if (mbedtls_pk_is_rfc8410(key)) {
             return pk_write_ec_rfc8410_der(&c, buf, key);
         }
-#endif /* MBEDTLS_PK_HAVE_RFC8410_CURVES */
+#endif
         return pk_write_ec_der(&c, buf, key);
     } else
-#endif /* MBEDTLS_PK_HAVE_ECC_KEYS */
+#endif
     return MBEDTLS_ERR_PK_FEATURE_UNAVAILABLE;
 }
 
-/******************************************************************************
- * Public functions for wrinting private/public PEM keys.
- ******************************************************************************/
 #if defined(MBEDTLS_PEM_WRITE_C)
 
 #define PUB_DER_MAX_BYTES                                                   \
@@ -607,7 +540,7 @@ int mbedtls_pk_write_key_pem(const mbedtls_pk_context *key, unsigned char *buf, 
             end = PEM_END_PRIVATE_KEY_EC "\n";
         }
     } else
-#endif /* MBEDTLS_PK_HAVE_ECC_KEYS */
+#endif
     {
         ret = MBEDTLS_ERR_PK_FEATURE_UNAVAILABLE;
         goto cleanup;
@@ -624,6 +557,6 @@ cleanup:
     mbedtls_zeroize_and_free(output_buf, PRV_DER_MAX_BYTES);
     return ret;
 }
-#endif /* MBEDTLS_PEM_WRITE_C */
+#endif
 
-#endif /* MBEDTLS_PK_WRITE_C */
+#endif
