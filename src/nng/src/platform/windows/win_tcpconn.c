@@ -26,7 +26,7 @@ tcp_recv_start(nni_tcp_conn *c)
 	unsigned i;
 	unsigned naiov;
 	nni_iov *aiov;
-	WSABUF   iov[8]; // we don't support more than this
+	WSABUF   iov[8];
 	DWORD    nrecv;
 
 	c->recv_rv = 0;
@@ -39,7 +39,6 @@ tcp_recv_start(nni_tcp_conn *c)
 	  }
 	  nni_aio_get_iov(aio, &naiov, &aiov);
 
-	  // Put the AIOs in Windows form.
 	  for (niov = 0, i = 0; i < naiov; i++) {
 	    if (aiov[i].iov_len != 0) {
 	      iov[niov].buf = aiov[i].iov_buf;
@@ -56,17 +55,14 @@ tcp_recv_start(nni_tcp_conn *c)
 
 	  if ((rv == SOCKET_ERROR) &&
        ((rv = GetLastError()) != ERROR_IO_PENDING)) {
-	    // Synchronous error.
 	    c->recving = false;
 	    nni_aio_list_remove(aio);
 	    nni_aio_finish_error(aio, nni_win_error(rv));
 	  } else {
-	    // Callback completes.
 	    return;
 	  }
 	}
 
-	// we received all pending requests
 	nni_cv_wake(&c->cv);
 }
 
@@ -84,7 +80,6 @@ tcp_recv_cb(nni_win_io *io, int rv, size_t num)
 		c->recv_rv = 0;
 	}
 	if ((rv == 0) && (num == 0)) {
-		// A zero byte receive is a remote close from the peer.
 		rv = NNG_ECONNSHUT;
 	}
 	c->recving = false;
@@ -158,7 +153,6 @@ tcp_send_start(nni_tcp_conn *c)
 	  }
 	  nni_aio_get_iov(aio, &naiov, &aiov);
 
-	  // Put the AIOs in Windows form.
 	  for (niov = 0, i = 0; i < naiov; i++) {
 	    if (aiov[i].iov_len != 0) {
 	      iov[niov].buf = aiov[i].iov_buf;
@@ -172,7 +166,6 @@ tcp_send_start(nni_tcp_conn *c)
 
 	  if ((rv == SOCKET_ERROR) &&
        ((rv = GetLastError()) != ERROR_IO_PENDING)) {
-	    // Synchronous failure.
 	    c->sending = false;
 	    nni_aio_list_remove(aio);
 	    nni_aio_finish_error(aio, nni_win_error(rv));
@@ -212,7 +205,7 @@ tcp_send_cb(nni_win_io *io, int rv, size_t num)
 	nni_mtx_lock(&c->mtx);
 	aio = nni_list_first(&c->send_aios);
 	NNI_ASSERT(aio != NULL);
-	nni_aio_list_remove(aio); // should always be at head
+	nni_aio_list_remove(aio);
 	c->sending = false;
 
 	if (c->send_rv != 0) {
@@ -266,10 +259,6 @@ tcp_close(void *arg)
 		}
 	}
 	now = nni_clock();
-	// wait up to a maximum of 10 seconds before assuming something is
-	// badly amiss. from what we can tell, this doesn't happen, and we do
-	// see the timer expire properly, but this safeguard can prevent a
-	// hang.
 	while ((c->recving || c->sending) &&
         ((nni_clock() - now) < (NNI_SECOND * 10))) {
 	  nni_mtx_unlock(&c->mtx);
@@ -435,7 +424,6 @@ nni_win_tcp_init(nni_tcp_conn **connp, SOCKET s)
 	BOOL          yes;
 	DWORD         no;
 
-	// Don't inherit the handle (CLOEXEC really).
 	SetHandleInformation((HANDLE) s, HANDLE_FLAG_INHERIT, 0);
 
 	if ((c = NNI_ALLOC_STRUCT(c)) == NULL) {

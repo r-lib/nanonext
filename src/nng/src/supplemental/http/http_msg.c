@@ -17,10 +17,6 @@
 #include "core/nng_impl.h"
 #include "http_api.h"
 
-// Note that as we parse headers, the rule is that if a header is already
-// present, then we can append it to the existing header, separated by
-// a comma.  From experience, for example, Firefox uses a Connection:
-// header with two values, "keepalive", and "upgrade".
 typedef struct http_header {
 	char *        name;
 	char *        value;
@@ -29,9 +25,9 @@ typedef struct http_header {
 
 typedef struct nni_http_entity {
 	char * data;
-	size_t size; // allocated/expected size
-	size_t len;  // current length
-	bool   own;  // if true, data is "ours", and should be freed
+	size_t size;
+	size_t len;
+	bool   own;
 } nni_http_entity;
 
 struct nng_http_req {
@@ -285,8 +281,6 @@ nni_http_res_get_header(nni_http_res *res, const char *key)
 	return (http_get_header(&res->hdrs, key));
 }
 
-// http_entity_set_data sets the entity, but does not update the
-// content-length header.
 static void
 http_entity_set_data(nni_http_entity *entity, const void *data, size_t size)
 {
@@ -410,9 +404,6 @@ nni_http_res_copy_data(nni_http_res *res, const void *data, size_t size)
 	return (0);
 }
 
-// nni_http_res_alloc_data allocates the data region, but does not update any
-// headers.  The intended use is for client implementations that want to
-// allocate a buffer to receive the entity into.
 int
 nni_http_res_alloc_data(nni_http_res *res, size_t size)
 {
@@ -437,12 +428,10 @@ http_parse_header(nni_list *hdrs, void *line)
 	char *val;
 	char *end;
 
-	// Find separation between key and value
 	if ((val = strchr(key, ':')) == NULL) {
 		return (NNG_EPROTO);
 	}
 
-	// Trim leading and trailing whitespace from header
 	*val = '\0';
 	val++;
 	while (*val == ' ' || *val == '\t') {
@@ -458,12 +447,6 @@ http_parse_header(nni_list *hdrs, void *line)
 	return (http_add_header(hdrs, key, val));
 }
 
-// http_sprintf_headers makes headers for an HTTP request or an HTTP response
-// object.  Each header is dumped from the list. If the buf is NULL,
-// or the sz is 0, then a dryrun is done, in order to allow the caller to
-// determine how much space is needed. Returns the size of the space needed,
-// not including the terminating NULL byte.  Truncation occurs if the size
-// returned is >= the requested size.
 static size_t
 http_sprintf_headers(char *buf, size_t sz, nni_list *list)
 {
@@ -499,7 +482,7 @@ http_asprintf(char **bufp, size_t *szp, nni_list *hdrs, const char *fmt, ...)
 	va_end(ap);
 
 	len += http_sprintf_headers(NULL, 0, hdrs);
-	len += 3; // \r\n\0
+	len += 3;
 
 	if (len <= *szp) {
 		buf = *bufp;
@@ -582,7 +565,7 @@ nni_http_req_get_buf(nni_http_req *req, void **data, size_t *szp)
 		return (rv);
 	}
 	*data = req->buf;
-	*szp  = req->bufsz - 1; // exclude terminating NUL
+	*szp  = req->bufsz - 1;
 	return (0);
 }
 
@@ -595,7 +578,7 @@ nni_http_res_get_buf(nni_http_res *res, void **data, size_t *szp)
 		return (rv);
 	}
 	*data = res->buf;
-	*szp  = res->bufsz - 1; // exclude terminating NUL
+	*szp  = res->bufsz - 1;
 	return (0);
 }
 
@@ -623,8 +606,6 @@ nni_http_req_alloc(nni_http_req **reqp, const nni_url *url)
 			return (NNG_ENOMEM);
 		}
 
-		// Add a Host: header since we know that from the URL. Also,
-		// only include the :port portion if it isn't the default port.
 		if (strcmp(nni_url_default_port(url->u_scheme), url->u_port) ==
 		    0) {
 			host = url->u_hostname;
@@ -741,9 +722,6 @@ http_scan_line(void *vbuf, size_t n, size_t *lenp)
 	for (len = 0; len < n; len++) {
 		char c = buf[len];
 		if (c == '\n') {
-			// Technically we should be receiving CRLF, but
-			// debugging is easier with just LF, so we behave
-			// following Postel's Law.
 			if (lc != '\r') {
 				buf[len] = '\0';
 			} else {
@@ -752,14 +730,11 @@ http_scan_line(void *vbuf, size_t n, size_t *lenp)
 			*lenp = len + 1;
 			return (0);
 		}
-		// If we have a control character (other than CR), or a CR
-		// followed by anything other than LF, then its an error.
 		if (((c < ' ') && (c != '\r')) || (lc == '\r')) {
 			return (NNG_EPROTO);
 		}
 		lc = c;
 	}
-	// Scanned the entire content, but did not find a line.
 	return (NNG_EAGAIN);
 }
 
@@ -829,12 +804,6 @@ http_res_parse_line(nni_http_res *res, uint8_t *line)
 	return (0);
 }
 
-// nni_http_req_parse parses a request (but not any attached entity data).
-// The amount of data consumed is returned in lenp.  Returns zero on
-// success, NNG_EPROTO on parse failure, NNG_EAGAIN if more data is
-// required, or NNG_ENOMEM on memory exhaustion.  Note that lenp may
-// be updated even in the face of errors (esp. NNG_EAGAIN, which is
-// not an error so much as a request for more data.)
 int
 nni_http_req_parse(nni_http_req *req, void *buf, size_t n, size_t *lenp)
 {
@@ -914,15 +883,12 @@ static struct {
 	uint16_t    code;
 	const char *mesg;
 } http_status[] = {
-	// 200, listed first because most likely
 	{ NNG_HTTP_STATUS_OK, "OK" },
 
-	// 100 series -- informational
 	{ NNG_HTTP_STATUS_CONTINUE, "Continue" },
 	{ NNG_HTTP_STATUS_SWITCHING, "Switching Protocols" },
 	{ NNG_HTTP_STATUS_PROCESSING, "Processing" },
 
-	// 200 series -- successful
 	{ NNG_HTTP_STATUS_CREATED, "Created" },
 	{ NNG_HTTP_STATUS_ACCEPTED, "Accepted" },
 	{ NNG_HTTP_STATUS_NOT_AUTHORITATIVE, "Not Authoritative" },
@@ -930,7 +896,6 @@ static struct {
 	{ NNG_HTTP_STATUS_RESET_CONTENT, "Reset Content" },
 	{ NNG_HTTP_STATUS_PARTIAL_CONTENT, "Partial Content" },
 
-	// 300 series -- redirection
 	{ NNG_HTTP_STATUS_MULTIPLE_CHOICES, "Multiple Choices" },
 	{ NNG_HTTP_STATUS_STATUS_MOVED_PERMANENTLY, "Moved Permanently" },
 	{ NNG_HTTP_STATUS_FOUND, "Found" },
@@ -939,7 +904,6 @@ static struct {
 	{ NNG_HTTP_STATUS_USE_PROXY, "Use Proxy" },
 	{ NNG_HTTP_STATUS_TEMPORARY_REDIRECT, "Temporary Redirect" },
 
-	// 400 series -- client errors
 	{ NNG_HTTP_STATUS_BAD_REQUEST, "Bad Request" },
 	{ NNG_HTTP_STATUS_UNAUTHORIZED, "Unauthorized" },
 	{ NNG_HTTP_STATUS_PAYMENT_REQUIRED, "Payment Required" },
@@ -969,7 +933,6 @@ static struct {
 	{ NNG_HTTP_STATUS_UNAVAIL_LEGAL_REASONS,
 	    "Unavailable For Legal Reasons" },
 
-	// 500 series -- server errors
 	{ NNG_HTTP_STATUS_INTERNAL_SERVER_ERROR, "Internal Server Error" },
 	{ NNG_HTTP_STATUS_NOT_IMPLEMENTED, "Not Implemented" },
 	{ NNG_HTTP_STATUS_BAD_REQUEST, "Bad Gateway" },
@@ -984,7 +947,6 @@ static struct {
 	{ NNG_HTTP_STATUS_NETWORK_AUTH_REQUIRED,
 	    "Network Authentication Required" },
 
-	// Terminator
 	{ 0, NULL },
 };
 

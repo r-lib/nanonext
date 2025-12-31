@@ -72,4 +72,4 @@ extern void nni_sock_bump_rx(nni_sock *s, uint64_t sz);
 
 extern void nni_sock_bump_tx(nni_sock *s, uint64_t sz);
 
-#endif // CORE_SOCKET_H
+#endif

@@ -45,22 +45,17 @@ ipc_accept_done(ipc_listener *l, int rv)
 	  rv = NNG_ECLOSED;
 	}
 	if (rv != 0) {
-		// Closed, so bail.
 		DisconnectNamedPipe(l->f);
 		nni_aio_finish_error(aio, NNG_ECLOSED);
 		return;
 	}
 
-	// Create a replacement pipe.
 	f = CreateNamedPipeA(l->path,
 	    PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
 	    PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT |
 	        PIPE_REJECT_REMOTE_CLIENTS,
 	    PIPE_UNLIMITED_INSTANCES, 4096, 4096, 0, &l->sec_attr);
 	if (f == INVALID_HANDLE_VALUE) {
-		// We couldn't create a replacement pipe, so we have to
-		// abort the client from our side, so that we can keep
-		// our server pipe available.
 		rv = nni_win_error(GetLastError());
 		DisconnectNamedPipe(l->f);
 		nni_aio_finish_error(aio, rv);
@@ -75,7 +70,6 @@ ipc_accept_done(ipc_listener *l, int rv)
 		nni_aio_finish_error(aio, rv);
 		return;
 	}
-	// Install the replacement pipe.
 	l->f = f;
 	nni_aio_set_output(aio, 0, c);
 	nni_aio_finish(aio, 0, 0);
@@ -96,12 +90,10 @@ ipc_accept_start(ipc_listener *l)
 	  } else if (ConnectNamedPipe(l->f, &l->io.olpd)) {
 	    rv = 0;
 	  } else if ((rv = GetLastError()) == ERROR_IO_PENDING) {
-	    // asynchronous completion pending
 	    return;
 	  } else if (rv == ERROR_PIPE_CONNECTED) {
 	    rv = 0;
 	  }
-	  // synchronous completion
 	  ipc_accept_done(l, rv);
 	}
 
@@ -117,7 +109,6 @@ ipc_accept_cb(nni_win_io *io, int rv, size_t cnt)
 
 	nni_mtx_lock(&l->mtx);
 	if (nni_list_empty(&l->aios)) {
-		// We canceled this somehow.  We no longer care.
 		DisconnectNamedPipe(l->f);
 		nni_mtx_unlock(&l->mtx);
 		return;

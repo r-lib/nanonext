@@ -18,10 +18,10 @@ extern "C" {
 #endif
 
 struct nng_optspec {
-	const char *o_name;  // Long style name (may be NULL for short only)
-	int         o_short; // Short option (no clustering!)
-	int         o_val;   // Value stored on a good parse (>0)
-	bool        o_arg;   // Option takes an argument if true
+	const char *o_name;
+	int         o_short;
+	int         o_val;
+	bool        o_arg;
 };
 
 typedef struct nng_optspec nng_optspec;
@@ -33,4 +33,4 @@ NNG_DECL int nng_opts_parse(int argc, char *const *argv,
 }
 #endif
 
-#endif // NNG_SUPPLEMENTAL_UTIL_OPTIONS_H
+#endif

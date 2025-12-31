@@ -11,15 +11,6 @@
 #include "nng/nng.h"
 #include "core/nng_impl.h"
 
-// This file provides the "public" API.  This is a thin wrapper around
-// internal API functions.  We use the public prefix instead of internal,
-// to indicate that these interfaces are intended for applications to use
-// directly.
-//
-// Anything not defined in this file, applications have no business using.
-// Pretty much every function calls the nni_platform_init to check against
-// fork related activity.
-
 #include <stdio.h>
 #include <string.h>
 
@@ -36,12 +27,9 @@ nng_close(nng_socket s)
 	int       rv;
 	nni_sock *sock;
 
-	// Close is special, because we still want to be able to get
-	// a hold on the socket even if shutdown was called.
 	if ((rv = nni_sock_find(&sock, s.id)) != 0) {
 		return (rv);
 	}
-	// No release -- close releases it.
 	nni_sock_close(sock);
 	return (0);
 }
@@ -82,8 +70,6 @@ nng_recv(nng_socket s, void *buf, size_t *szp, int flags)
 	nng_msg *msg;
 	int      rv;
 
-	// Note that while it would be nice to make this a zero copy operation,
-	// its not normally possible if a size was specified.
 	if ((rv = nng_recvmsg(s, &msg, flags & ~(NNG_FLAG_ALLOC))) != 0) {
 		return (rv);
 	}
@@ -92,11 +78,6 @@ nng_recv(nng_socket s, void *buf, size_t *szp, int flags)
 		    *szp > nng_msg_len(msg) ? nng_msg_len(msg) : *szp);
 		*szp = nng_msg_len(msg);
 	} else {
-		// We'd really like to avoid a separate data copy, but since
-		// we have allocated messages with headroom, we can't really
-		// make free() work on the base pointer.  We'd have to have
-		// some other API for this.  Folks that want zero copy had
-		// better use nng_recvmsg() instead.
 		void *nbuf;
 
 		if (nng_msg_len(msg) != 0) {
@@ -162,7 +143,6 @@ nng_send(nng_socket s, void *buf, size_t len, int flags)
 	}
 	memcpy(nng_msg_body(msg), buf, len);
 	if ((rv = nng_sendmsg(s, msg, flags)) != 0) {
-		// If nng_sendmsg() succeeded, then it took ownership.
 		nng_msg_free(msg);
 	} else {
 		if (flags & NNG_FLAG_ALLOC) {
@@ -201,8 +181,6 @@ nng_sendmsg(nng_socket s, nng_msg *msg, int flags)
 	rv = nni_aio_result(&aio);
 	nni_aio_fini(&aio);
 
-	// Possibly massage nonblocking attempt.  Note that nonblocking is
-	// still done asynchronously, and the calling thread loses context.
 	if ((rv == NNG_ETIMEDOUT) &&
 	    ((flags & NNG_FLAG_NONBLOCK) == NNG_FLAG_NONBLOCK)) {
 		rv = NNG_EAGAIN;
@@ -280,7 +258,6 @@ nng_ctx_close(nng_ctx c)
 	if ((rv = nni_ctx_find(&ctx, c.id, true)) != 0) {
 		return (rv);
 	}
-	// no release, close releases implicitly.
 	nni_ctx_close(ctx);
 	return (0);
 }
@@ -392,8 +369,6 @@ nng_ctx_sendmsg(nng_ctx cid, nng_msg *msg, int flags)
 	rv = nni_aio_result(&aio);
 	nni_aio_fini(&aio);
 
-	// Possibly massage nonblocking attempt.  Note that nonblocking is
-	// still done asynchronously, and the calling thread loses context.
 	if ((rv == NNG_ETIMEDOUT) &&
 	    ((flags & NNG_FLAG_NONBLOCK) == NNG_FLAG_NONBLOCK)) {
 		rv = NNG_EAGAIN;
@@ -1308,7 +1283,6 @@ static const struct {
 	// clang-format on
 };
 
-// Misc.
 const char *
 nng_strerror(int num)
 {
@@ -1463,7 +1437,6 @@ nng_pipe_id(nng_pipe p)
 	return (((int) p.id > 0) ? (int) p.id : -1);
 }
 
-// Message handling.
 int
 nng_msg_alloc(nng_msg **msgp, size_t size)
 {
@@ -2023,7 +1996,6 @@ nng_aio_get_output(nng_aio *aio, unsigned index)
 void
 nng_aio_finish(nng_aio *aio, int rv)
 {
-	// Preserve the count.
 	nni_aio_finish(aio, rv, nni_aio_count(aio));
 }
 

@@ -37,4 +37,4 @@ NNG_DECL int nng_pair1_open_poly(nng_socket *);
 }
 #endif
 
-#endif // NNG_PROTOCOL_PAIR1_PAIR_H
+#endif

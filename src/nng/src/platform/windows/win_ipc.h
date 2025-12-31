@@ -19,4 +19,4 @@
 
 extern int nni_win_ipc_init(nng_stream **, HANDLE, const nng_sockaddr *, bool);
 
-#endif // NNG_PLATFORM_WIN_WINIPC_H
+#endif

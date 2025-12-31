@@ -43,4 +43,4 @@ extern void nni_pipe_bump_rx(nni_pipe *, size_t);
 extern void nni_pipe_bump_tx(nni_pipe *, size_t);
 extern void nni_pipe_bump_error(nni_pipe *, int);
 
-#endif // CORE_PIPE_H
+#endif

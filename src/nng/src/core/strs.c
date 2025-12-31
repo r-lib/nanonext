@@ -16,15 +16,6 @@
 
 #include "core/nng_impl.h"
 
-// This file contains implementation of utility functions that are not
-// part of standard C99.  (C11 has added some things here, but we cannot
-// count on them.)
-
-// Note that we supply our own version of strdup and strfree unconditionally,
-// so that these can be freed with nni_free(strlen(s)+1) if desired.  (Likewise
-// a string buffer allocated with nni_alloc can be freed with nni_strfree
-// provided the length is correct.)
-
 char *
 nni_strdup(const char *src)
 {
@@ -150,8 +141,6 @@ nni_strncasecmp(const char *s1, const char *s2, size_t n)
 #endif
 }
 
-// As with strdup, we always use our own, so that our strings
-// can be freed with nni_strfree().
 int
 nni_asprintf(char **sp, const char *fmt, ...)
 {

@@ -7,9 +7,6 @@
 // found online at https://opensource.org/licenses/MIT.
 //
 
-// This provides an abstraction for byte streams, allowing polymorphic
-// use of them in rather flexible contexts.
-
 #include <string.h>
 
 #include "core/nng_impl.h"
@@ -287,8 +284,6 @@ nng_stream_listener_alloc(nng_stream_listener **lp, const char *uri)
 	nng_url_free(url);
 	return (rv);
 }
-
-// Public stream options.
 
 int
 nng_stream_get(nng_stream *s, const char *n, void *v, size_t *szp)

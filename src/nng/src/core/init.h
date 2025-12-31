@@ -23,4 +23,4 @@ uint64_t nni_init_get_param(nng_init_parameter parameter, uint64_t default_value
 
 void nni_init_set_effective(nng_init_parameter p, uint64_t value);
 
-#endif // CORE_INIT_H
+#endif

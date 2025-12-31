@@ -21,11 +21,11 @@ struct nni_reap_node {
 
 typedef struct nni_reap_list nni_reap_list;
 struct nni_reap_list {
-	nni_reap_list *rl_next;   // linkage in global reap list
-	nni_reap_node *rl_nodes;  // list of nodes to reap
-	size_t         rl_offset; // offset of reap_node within member.
-	nni_cb         rl_func;   // function called to reap the item
-	bool           rl_inited; // initialized means it is linked in the list
+	nni_reap_list *rl_next;
+	nni_reap_node *rl_nodes;
+	size_t         rl_offset;
+	nni_cb         rl_func;
+	bool           rl_inited;
 };
 
 extern void nni_reap(nni_reap_list *, void *);
@@ -35,4 +35,4 @@ extern void nni_reap_drain(void);
 extern int  nni_reap_sys_init(void);
 extern void nni_reap_sys_fini(void);
 
-#endif // CORE_REAP_H
+#endif

@@ -102,15 +102,15 @@ extern void nni_aio_sys_fini(void);
 typedef struct nni_aio_expire_q nni_aio_expire_q;
 
 struct nng_aio {
-	size_t       a_count;      // Bytes transferred (I/O only)
-	nni_time     a_expire;     // Absolute timeout
-	nni_duration a_timeout;    // Relative timeout
-	int          a_result;     // Result code (nng_errno)
-	bool         a_stop;       // Shutting down (no new operations)
-	bool         a_sleep;      // Sleeping with no action
-	bool         a_expire_ok;  // Expire from sleep is ok
-	bool         a_expiring;   // Expiration in progress
-	bool         a_use_expire; // Use expire instead of timeout
+	size_t       a_count;
+	nni_time     a_expire;
+	nni_duration a_timeout;
+	int          a_result;
+	bool         a_stop;
+	bool         a_sleep;
+	bool         a_expire_ok;
+	bool         a_expiring;
+	bool         a_use_expire;
 	nni_task     a_task;
 
 	nni_iov  a_iov[8];
@@ -124,10 +124,10 @@ struct nng_aio {
 	nni_aio_cancel_fn a_cancel_fn;
 	void             *a_cancel_arg;
 	void             *a_prov_data;
-	nni_list_node     a_prov_node; // Linkage on provider list.
+	nni_list_node     a_prov_node;
 	nni_aio_expire_q *a_expire_q;
-	nni_list_node     a_expire_node; // Expiration node
+	nni_list_node     a_expire_node;
 	nni_reap_node     a_reap_node;
 };
 
-#endif // CORE_AIO_H
+#endif

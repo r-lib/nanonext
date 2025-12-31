@@ -9,10 +9,7 @@
 
 #include "core/nng_impl.h"
 
-
 #ifdef NNG_HAVE_SOCKETPAIR_TODO
-// TODO: Windows lacks socketpair.  We can emulate it with an explcit
-// implementation based on AF_UNIX.
 
 #include <errno.h>
 #include <sys/socket.h>
@@ -35,8 +32,6 @@ nni_socket_pair(int fds[2])
 	NNI_ARG_UNUSED(fds);
 	return (NNG_ENOTSUP);
 }
-
-// This is also the fdc transport.
 
 typedef struct nni_sfd_conn nni_sfd_conn;
 

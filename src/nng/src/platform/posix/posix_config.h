@@ -37,4 +37,4 @@
 
 #define NNG_USE_POSIX_RESOLV_GAI 1
 
-#endif // NNG_PLATFORM_POSIX
+#endif

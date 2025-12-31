@@ -33,10 +33,10 @@ enum nni_file_walk_result {
 };
 
 enum nni_file_walk_flags {
-	NNI_FILE_WALK_DEPTH_FIRST   = 0, // get children first
-	NNI_FILE_WALK_BREADTH_FIRST = 1, // get siblings first (later)
-	NNI_FILE_WALK_SHALLOW       = 2, // do not descend into subdirectories
-	NNI_FILE_WALK_FILES_ONLY    = 4, // directory names are not reported
+	NNI_FILE_WALK_DEPTH_FIRST   = 0,
+	NNI_FILE_WALK_BREADTH_FIRST = 1,
+	NNI_FILE_WALK_SHALLOW       = 2,
+	NNI_FILE_WALK_FILES_ONLY    = 4,
 };
 
 typedef int (*nni_file_walker)(const char *, void *);
@@ -56,4 +56,4 @@ extern int nni_file_lock(const char *, nni_file_lockh **);
 
 extern void nni_file_unlock(nni_file_lockh *);
 
-#endif // CORE_FILE_H
+#endif

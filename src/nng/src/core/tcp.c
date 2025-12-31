@@ -21,12 +21,12 @@ typedef struct {
 	nng_stream_dialer ops;
 	char *            host;
 	char *            port;
-	int               af; // address family
+	int               af;
 	bool              closed;
 	nng_sockaddr      sa;
-	nni_tcp_dialer *  d;      // platform dialer implementation
-	nni_aio *         resaio; // resolver aio
-	nni_aio *         conaio; // platform connection aio
+	nni_tcp_dialer *  d;
+	nni_aio *         resaio;
+	nni_aio *         conaio;
 	nni_list          conaios;
 	nni_mtx           mtx;
 } tcp_dialer;
@@ -67,7 +67,6 @@ tcp_dial_res_cb(void *arg)
 
 	nni_mtx_lock(&d->mtx);
 	if (d->closed || ((aio = nni_list_first(&d->conaios)) == NULL)) {
-		// ignore this.
 		while ((aio = nni_list_first(&d->conaios)) != NULL) {
 			nni_list_remove(&d->conaios, aio);
 			nni_aio_finish_error(aio, NNG_ECLOSED);
@@ -80,7 +79,6 @@ tcp_dial_res_cb(void *arg)
 		nni_list_remove(&d->conaios, aio);
 		nni_aio_finish_error(aio, rv);
 
-		// try DNS again for next connection...
 		tcp_dial_start_next(d);
 
 	} else {
@@ -101,7 +99,6 @@ tcp_dial_con_cb(void *arg)
 	rv = nni_aio_result(d->conaio);
 	if ((d->closed) || ((aio = nni_list_first(&d->conaios)) == NULL)) {
 		if (rv == 0) {
-			// Make sure we discard the underlying connection.
 			nng_stream_free(nni_aio_get_output(d->conaio, 0));
 			nni_aio_set_output(d->conaio, 0, NULL);
 		}
@@ -251,7 +248,6 @@ nni_tcp_dialer_alloc(nng_stream_dialer **dp, const nng_url *url)
 	}
 
 	if ((strlen(p) == 0) || (strlen(url->u_hostname) == 0)) {
-		// Dialer needs both a destination hostname and port.
 		tcp_dialer_free(d);
 		return (NNG_EADDRINVAL);
 	}
@@ -419,7 +415,6 @@ nni_tcp_listener_alloc(nng_stream_listener **lp, const nng_url *url)
 
 	h = url->u_hostname;
 
-	// Wildcard special case, which means bind to INADDR_ANY.
 	if ((h != NULL) && ((strcmp(h, "*") == 0) || (strcmp(h, "") == 0))) {
 		h = NULL;
 	}

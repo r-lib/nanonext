@@ -22,12 +22,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// Some systems -- Android -- have BSD flock but not POSIX lockf.
 #if defined(NNG_HAVE_FLOCK) && !defined(NNG_HAVE_LOCKF)
 #include <sys/file.h>
 #endif
-
-// File support.
 
 static int
 nni_plat_make_parent_dirs(const char *path)
@@ -36,7 +33,6 @@ nni_plat_make_parent_dirs(const char *path)
 	char *p;
 	int   rv;
 
-	// creates everything up until the last component.
 	if ((dup = nni_strdup(path)) == NULL) {
 		return (NNG_ENOMEM);
 	}
@@ -53,7 +49,6 @@ nni_plat_make_parent_dirs(const char *path)
 			}
 		}
 
-		// collapse grouped "/" characters
 		while (*p == '/') {
 			p++;
 		}
@@ -62,19 +57,12 @@ nni_plat_make_parent_dirs(const char *path)
 	return (0);
 }
 
-// nni_plat_file_put writes the named file, with the provided data,
-// and the given size.  If the file already exists it is overwritten.
-// The permissions on the file should be limited to read and write
-// access by the entity running the application only.
 int
 nni_plat_file_put(const char *name, const void *data, size_t len)
 {
 	FILE *f;
 	int   rv = 0;
 
-	// It is possible that the name contains a directory path
-	// that does not exist.  In this case we try to create the
-	// entire tree.
 	if (strchr(name, '/') != NULL) {
 		if ((rv = nni_plat_make_parent_dirs(name)) != 0) {
 			return (rv);
@@ -92,9 +80,6 @@ nni_plat_file_put(const char *name, const void *data, size_t len)
 	return (rv);
 }
 
-// nni_plat_file_get reads the entire named file, allocating storage
-// to receive the data and returning the data and the size in the
-// reference arguments.
 int
 nni_plat_file_get(const char *name, void **datap, size_t *lenp)
 {
@@ -135,7 +120,6 @@ done:
 	return (rv);
 }
 
-// nni_plat_file_delete deletes the named file or directory.
 int
 nni_plat_file_delete(const char *name)
 {
@@ -193,9 +177,6 @@ nni_plat_file_walk_inner(const char *name, nni_plat_file_walker walkfn,
 			closedir(dir);
 			return (0);
 		}
-		// Skip "." and ".."  -- we would like to skip all
-		// directories, but that would require checking full
-		// paths.
 		if ((strcmp(ent->d_name, ".") == 0) ||
 		    (strcmp(ent->d_name, "..") == 0)) {
 			continue;
@@ -206,7 +187,7 @@ nni_plat_file_walk_inner(const char *name, nni_plat_file_walker walkfn,
 			return (rv);
 		}
 		if (stat(path, &sbuf) != 0) {
-			if (errno == ENOENT) { // deleted while walking
+			if (errno == ENOENT) {
 				continue;
 			}
 			rv = nni_plat_errno(errno);
@@ -282,10 +263,6 @@ nni_plat_file_lock(const char *path, nni_plat_flock *lk)
 #elif defined NNG_HAVE_FLOCK
 	rv = flock(fd, LOCK_EX | LOCK_NB);
 #else
-	// We don't have locking support.  This means you live dangerously.
-	// For example, ZeroTier cannot be sure that nothing else is using
-	// the same configuration file.  If you're here, its probably an
-	// embedded scenario, and we can live with it.
 	rv = 0;
 #endif
 	if (rv < 0) {
@@ -313,7 +290,6 @@ nni_plat_temp_dir(void)
 {
 	char *temp;
 
-	// POSIX says $TMPDIR is required.
 	if ((temp = getenv("TMPDIR")) != NULL) {
 		return (nni_strdup(temp));
 	}
@@ -331,4 +307,4 @@ nni_plat_join_dir(const char *prefix, const char *suffix)
 	return (NULL);
 }
 
-#endif // NNG_PLATFORM_POSIX
+#endif

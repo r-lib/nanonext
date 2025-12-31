@@ -16,36 +16,22 @@
 
 #include "http_api.h"
 
-// Chunked transfer encoding support.
-
-// Note that HTTP/1.1 chunked transfer encoding is horrible, and should
-// be avoided if at all possible.  It necessarily creates extra need for
-// data copies, creates a lot of extra back and forth complexity.  If you're
-// stuck in this code, we feel great sympathy for you.
-//
-// We feel strongly enough about this that we refuse to provide any
-// method to automatically generate chunked transfers.  If you think
-// you need to send chunked transfers (because you have no idea how
-// much data you will send, such as a streaming workload), consider a
-// different method such as WebSocket to send your data.  Unbounded
-// entity body data is just impolite.
-
 enum chunk_state {
-	CS_INIT,   // initial state
-	CS_LEN,    // length
-	CS_EXT,    // random extension text (we ignore)
-	CS_CR,     // carriage return after length (and extensions)
-	CS_DATA,   // actual data
-	CS_TRLR,   // trailer
-	CS_TRLRCR, // CRLF at end of trailer
+	CS_INIT,
+	CS_LEN,
+	CS_EXT,
+	CS_CR,
+	CS_DATA,
+	CS_TRLR,
+	CS_TRLRCR,
 	CS_DONE,
 };
 
 struct nng_http_chunks {
 	nni_list         cl_chunks;
 	size_t           cl_maxsz;
-	size_t           cl_size; // parsed size (so far)
-	size_t           cl_line; // bytes since last newline
+	size_t           cl_size;
+	size_t           cl_line;
 	enum chunk_state cl_state;
 };
 
@@ -53,7 +39,7 @@ struct nng_http_chunk {
 	nni_list_node c_node;
 	size_t        c_size;
 	size_t        c_alloc;
-	size_t        c_resid; // residual data to transfer
+	size_t        c_resid;
 	char *        c_data;
 };
 
@@ -173,15 +159,11 @@ chunk_ingest_newline(nni_http_chunks *cl, char c)
 	if ((chunk = NNI_ALLOC_STRUCT(chunk)) == NULL) {
 		return (NNG_ENOMEM);
 	}
-	// two extra bytes to accommodate trailing CRLF
 	if ((chunk->c_data = nni_alloc(cl->cl_size + 2)) == NULL) {
 		NNI_FREE_STRUCT(chunk);
 		return (NNG_ENOMEM);
 	}
 
-	// Data, so allocate a new chunk, stick it on the end of the list,
-	// and note that we have residual data needs.  The residual is
-	// to allow for the trailing CRLF to be consumed.
 	cl->cl_state   = CS_DATA;
 	chunk->c_size  = cl->cl_size;
 	chunk->c_alloc = cl->cl_size + 2;
@@ -231,7 +213,6 @@ chunk_ingest_char(nni_http_chunks *cl, char c)
 			break;
 		}
 		cl->cl_state = CS_LEN;
-		// fallthrough
 	case CS_LEN:
 		rv = chunk_ingest_len(cl, c);
 		break;
@@ -248,8 +229,6 @@ chunk_ingest_char(nni_http_chunks *cl, char c)
 		rv = chunk_ingest_trailercr(cl, c);
 		break;
 	default:
-		// NB: No support for CS_DATA here, as that is handled
-		// in the caller for reasons of efficiency.
 		rv = NNG_EPROTO;
 		break;
 	}
@@ -269,7 +248,7 @@ chunk_ingest_data(nni_http_chunks *cl, char *buf, size_t n, size_t *lenp)
 	NNI_ASSERT(chunk != NULL);
 	NNI_ASSERT(cl->cl_state == CS_DATA);
 	NNI_ASSERT(chunk->c_resid <= chunk->c_alloc);
-	NNI_ASSERT(chunk->c_alloc > 2); // not be zero, plus newlines
+	NNI_ASSERT(chunk->c_alloc > 2);
 
 	dest   = chunk->c_data;
 	offset = chunk->c_alloc - chunk->c_resid;
@@ -303,15 +282,11 @@ nni_http_chunks_parse(nni_http_chunks *cl, void *buf, size_t n, size_t *lenp)
 	size_t i   = 0;
 	char * src = buf;
 
-	// Format of this data is <hexdigits> [ ; <ascii> CRLF ]
-	// The <ascii> are chunk extensions, and we don't support any.
-
 	while ((cl->cl_state != CS_DONE) && (i < n)) {
 		int    rv;
 		size_t cnt;
 		switch (cl->cl_state) {
 		case CS_DONE:
-			// Completed parse!
 			break;
 
 		case CS_DATA:
@@ -323,8 +298,6 @@ nni_http_chunks_parse(nni_http_chunks *cl, void *buf, size_t n, size_t *lenp)
 			break;
 
 		default:
-			// All others character by character parse through
-			// the state machine grinder.
 			if ((rv = chunk_ingest_char(cl, src[i])) != 0) {
 				return (rv);
 			}

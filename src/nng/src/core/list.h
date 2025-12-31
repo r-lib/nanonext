@@ -56,4 +56,4 @@ extern void  nni_list_node_remove(nni_list_node *);
 #define NNI_LIST_FOREACH(l, it) \
 	for (it = nni_list_first(l); it != NULL; it = nni_list_next(l, it))
 
-#endif // CORE_LIST_H
+#endif

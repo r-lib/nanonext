@@ -58,7 +58,6 @@ static void
 device_cancel(nni_aio *aio, void *arg, int rv)
 {
 	device_data *d = arg;
-	// cancellation is the only path to shutting it down.
 
 	nni_mtx_lock(&device_mtx);
 	if (d->user == aio) {
@@ -114,7 +113,6 @@ device_cb(void *arg)
 		nni_sock_recv(p->src, &p->aio);
 		break;
 	case NNI_DEVICE_STATE_RECV:
-		// Leave the message where it is.
 		p->state = NNI_DEVICE_STATE_SEND;
 		nni_sock_send(p->dst, &p->aio);
 		break;
@@ -132,15 +130,12 @@ device_init(device_data **dp, nni_sock *s1, nni_sock *s2)
 	size_t       rsz;
 	device_data *d;
 
-	// Specifying either of these as null turns the device into
-	// a reflector.
 	if (s1 == NULL) {
 		s1 = s2;
 	}
 	if (s2 == NULL) {
 		s2 = s1;
 	}
-	// At least one of the sockets must be valid.
 	if ((s1 == NULL) || (s2 == NULL)) {
 		return (NNG_EINVAL);
 	}
@@ -164,9 +159,6 @@ device_init(device_data **dp, nni_sock *s1, nni_sock *s2)
 		return (NNG_EINVAL);
 	}
 
-	// Note we assume that since they are peers, we only need to look
-	// at the recv flags -- the other side is assumed to be able
-	// to send.
 	if ((nni_sock_flags(s1) & NNI_PROTO_FLAG_RCV) == 0) {
 		nni_sock *temp = s1;
 		s1             = s2;
@@ -175,10 +167,6 @@ device_init(device_data **dp, nni_sock *s1, nni_sock *s2)
 
 	NNI_ASSERT((nni_sock_flags(s1) & NNI_PROTO_FLAG_RCV) != 0);
 
-	// Only run one forwarder if the protocols are not bidirectional, or
-	// if the source and destination sockets are identical.  (The latter is
-	// not strictly necessary, but it saves resources and minimizes any
-	// extra reordering.)
 	if (((nni_sock_flags(s2) & NNI_PROTO_FLAG_RCV) == 0) || (s1 == s2)) {
 		num_paths = 1;
 	}

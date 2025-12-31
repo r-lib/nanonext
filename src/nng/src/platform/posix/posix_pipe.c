@@ -7,25 +7,16 @@
 // found online at https://opensource.org/licenses/MIT.
 //
 
-// POSIX pipes.
 #include "core/nng_impl.h"
 
 #ifdef NNG_PLATFORM_POSIX
 
 #include <errno.h>
 
-// This implementation of notification pipes works ~everywhere on POSIX,
-// as it only relies on pipe() and non-blocking I/O.
-
-// So as much as we would like to use eventfd, it turns out to be completely
-// busted on some systems (latest Ubuntu release for example).  So we go
-// back to the old but repliable pipe() system call.
 #undef NNG_USE_EVENTFD
 
 #ifdef NNG_USE_EVENTFD
 
-// Linux eventfd.  This is lighter weight than pipes, and has better semantics
-// to boot.  This is far better than say epoll().
 #include <fcntl.h>
 #include <sys/eventfd.h>
 #include <unistd.h>
@@ -74,7 +65,7 @@ nni_plat_pipe_close(int wfd, int rfd)
 	(void) close(wfd);
 }
 
-#else // NNG_USE_EVENTFD
+#else
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -112,8 +103,6 @@ nni_plat_pipe_clear(int rfd)
 	char buf[32];
 
 	for (;;) {
-		// Completely drain the pipe, but don't wait.  This coalesces
-		// events somewhat.
 		if (read(rfd, buf, sizeof(buf)) <= 0) {
 			return;
 		}
@@ -127,6 +116,6 @@ nni_plat_pipe_close(int wfd, int rfd)
 	(void) close(rfd);
 }
 
-#endif // NNG_USE_EVENTFD
+#endif
 
-#endif // NNG_PLATFORM_POSIX
+#endif

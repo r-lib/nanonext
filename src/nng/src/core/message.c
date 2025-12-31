@@ -12,22 +12,18 @@
 
 #include "core/nng_impl.h"
 
-// Message API.
-
-// Message chunk, internal to the message implementation.
 typedef struct {
-	size_t   ch_cap; // allocated size
-	size_t   ch_len; // length in use
-	uint8_t *ch_buf; // underlying buffer
-	uint8_t *ch_ptr; // pointer to actual data
+	size_t   ch_cap;
+	size_t   ch_len;
+	uint8_t *ch_buf;
+	uint8_t *ch_ptr;
 } nni_chunk;
 
-// Underlying message structure.
 struct nng_msg {
 	uint32_t       m_header_buf[(NNI_MAX_MAX_TTL + 1)];
 	size_t         m_header_len;
 	nni_chunk      m_body;
-	uint32_t       m_pipe; // set on receive
+	uint32_t       m_pipe;
 	nni_atomic_int m_refcnt;
 };
 
@@ -75,37 +71,16 @@ nni_msg_dump(const char *banner, const nni_msg *msg)
 
 	(void) snprintf(buf, sizeof(buf), "--- %s BEGIN ---", banner);
 	nni_println(buf);
-	// TODO: dump the header
 	nni_chunk_dump(&msg->m_body, "BODY");
 	nni_println("--- END ---");
 }
 #endif
 
-// nni_chunk_grow increases the underlying space for a chunk.  It ensures
-// that the desired amount of trailing space (including the length)
-// and headroom (excluding the length) are available.  It also copies
-// any extant referenced data.  Note that the capacity will increase,
-// but not the length.  To increase the length of the referenced data,
-// use either chunk_append or chunk_insert.
-//
-// Note that having some headroom is useful when data must be prepended
-// to a message - it avoids having to perform extra data copies, so we
-// encourage initial allocations to start with sufficient room.
 static int
 nni_chunk_grow(nni_chunk *ch, size_t newsz, size_t headwanted)
 {
 	uint8_t *newbuf;
 
-	// We assume that if the pointer is a valid pointer, and inside
-	// the backing store, then the entire data length fits.  In this
-	// case we perform a logical realloc, except we don't copy any
-	// unreferenced data.  We do preserve the headroom of the previous
-	// use, since that may be there for a reason.
-	//
-	// The test below also covers the case where the pointers are both
-	// NULL, or the capacity is zero.
-
-	// No shrinking (violets)
 	if (newsz < ch->ch_len) {
 		newsz = ch->ch_len;
 	}
@@ -114,15 +89,12 @@ nni_chunk_grow(nni_chunk *ch, size_t newsz, size_t headwanted)
 	    (ch->ch_ptr < (ch->ch_buf + ch->ch_cap))) {
 		size_t headroom = (size_t)(ch->ch_ptr - ch->ch_buf);
 		if (headwanted < headroom) {
-			headwanted = headroom; // Never shrink this.
+			headwanted = headroom;
 		}
 		if (((newsz + headwanted) <= ch->ch_cap) &&
 		    (headwanted <= headroom)) {
-			// We have enough space at the ends already.
 			return (0);
 		}
-		// Make sure we allocate at least as much tail room as we
-		// previously had.
 
 		if (newsz < (ch->ch_cap - headroom)) {
 			newsz = ch->ch_cap - headroom;
@@ -131,7 +103,6 @@ nni_chunk_grow(nni_chunk *ch, size_t newsz, size_t headwanted)
 		if ((newbuf = nni_zalloc(newsz + headwanted)) == NULL) {
 			return (NNG_ENOMEM);
 		}
-		// Copy all the data, but not header or trailer.
 		if (ch->ch_len > 0) {
 			memcpy(newbuf + headwanted, ch->ch_ptr, ch->ch_len);
 		}
@@ -142,9 +113,6 @@ nni_chunk_grow(nni_chunk *ch, size_t newsz, size_t headwanted)
 		return (0);
 	}
 
-	// We either don't have a data pointer yet, or it doesn't reference
-	// the backing store.  In this case, we just check against the
-	// allocated capacity and grow, or don't grow.
 	if ((newsz + headwanted) >= ch->ch_cap) {
 		if ((newbuf = nni_zalloc(newsz + headwanted)) == NULL) {
 			return (NNG_ENOMEM);
@@ -170,14 +138,12 @@ nni_chunk_free(nni_chunk *ch)
 	ch->ch_cap = 0;
 }
 
-// nni_chunk_clear just resets the length to zero.
 static void
 nni_chunk_clear(nni_chunk *ch)
 {
 	ch->ch_len = 0;
 }
 
-// nni_chunk_chop truncates bytes from the end of the chunk.
 static int
 nni_chunk_chop(nni_chunk *ch, size_t len)
 {
@@ -188,7 +154,6 @@ nni_chunk_chop(nni_chunk *ch, size_t len)
 	return (0);
 }
 
-// nni_chunk_trim removes bytes from the beginning of the chunk.
 static int
 nni_chunk_trim(nni_chunk *ch, size_t len)
 {
@@ -196,16 +161,12 @@ nni_chunk_trim(nni_chunk *ch, size_t len)
 		return (NNG_EINVAL);
 	}
 	ch->ch_len -= len;
-	// Don't advance the pointer if we are just removing the whole content
 	if (ch->ch_len != 0) {
 		ch->ch_ptr += len;
 	}
 	return (0);
 }
 
-// nni_chunk_dup allocates storage for a new chunk, and copies
-// the contents of the source to the destination.  The new chunk will
-// have the same size, headroom, and capacity as the original.
 static int
 nni_chunk_dup(nni_chunk *dst, const nni_chunk *src)
 {
@@ -221,9 +182,6 @@ nni_chunk_dup(nni_chunk *dst, const nni_chunk *src)
 	return (0);
 }
 
-// nni_chunk_append appends the data to the chunk, growing as necessary.
-// If the data pointer is NULL, then the chunk data region is allocated,
-// but uninitialized.
 static int
 nni_chunk_append(nni_chunk *ch, const void *data, size_t len)
 {
@@ -245,18 +203,12 @@ nni_chunk_append(nni_chunk *ch, const void *data, size_t len)
 	return (0);
 }
 
-// nni_chunk_room determines the extra space we have left in the chunk.
-// This is useful to determine whether we will need to reallocate and
-// copy in order to save space.
 static size_t
 nni_chunk_room(nni_chunk *ch)
 {
 	return (ch->ch_cap - ch->ch_len);
 }
 
-// nni_chunk_insert prepends data to the chunk, as efficiently as possible.
-// If the data pointer is NULL, then no data is actually copied, but the
-// data region will have "grown" in the beginning, with uninitialized data.
 static int
 nni_chunk_insert(nni_chunk *ch, const void *data, size_t len)
 {
@@ -269,16 +221,12 @@ nni_chunk_insert(nni_chunk *ch, const void *data, size_t len)
 	if ((ch->ch_ptr >= ch->ch_buf) &&
 	    (ch->ch_ptr < (ch->ch_buf + ch->ch_cap)) &&
 	    (len <= (size_t)(ch->ch_ptr - ch->ch_buf))) {
-		// There is already enough room at the beginning.
 		ch->ch_ptr -= len;
 	} else if ((ch->ch_len + len) <= ch->ch_cap) {
-		// We had enough capacity, just shuffle data down.
 		memmove(ch->ch_buf + len, ch->ch_ptr, ch->ch_len);
 	} else if ((rv = nni_chunk_grow(ch, 0, len)) == 0) {
-		// We grew the chunk, so adjust.
 		ch->ch_ptr -= len;
 	} else {
-		// Couldn't grow the chunk either.  Error.
 		return (rv);
 	}
 
@@ -306,19 +254,14 @@ nni_msg_clone(nni_msg *m)
 	nni_atomic_inc(&m->m_refcnt);
 }
 
-// This returns either the original message or a new message on success.
-// If it fails, then NULL is returned.  Either way the original message
-// has its reference count dropped (and freed if zero).
 nni_msg *
 nni_msg_unique(nni_msg *m)
 {
 	nni_msg *m2;
 
-	// If we already have an exclusive copy, just keep using it.
 	if (nni_atomic_get(&m->m_refcnt) == 1) {
 		return (m);
 	}
-	// Otherwise we need to make a copy
 	if (nni_msg_dup(&m2, m) != 0) {
 		m2 = NULL;
 	}
@@ -332,20 +275,11 @@ nni_msg_shared(nni_msg *m)
 	return (nni_atomic_get(&m->m_refcnt) > 1);
 }
 
-// nni_msg_pull_up ensures that the message is unique, and that any header
-// is merged with the message.  The main purpose of doing this is to break
-// up the inproc binding -- protocols send messages to inproc with a
-// separate header, but they really would like receive a unified
-// message so they can pick apart the header.
 nni_msg *
 nni_msg_pull_up(nni_msg *m)
 {
-	// This implementation is optimized to ensure that this function
-	// will not copy the message more than once, and it will not
-	// allocate unless there is no other option.
 	if (((nni_chunk_room(&m->m_body) < nni_msg_header_len(m))) ||
 	    (nni_atomic_get(&m->m_refcnt) != 1)) {
-		// We have to duplicate the message.
 		nni_msg *m2;
 		uint8_t *dst;
 		size_t   len = nni_msg_len(m) + nni_msg_header_len(m);
@@ -361,9 +295,6 @@ nni_msg_pull_up(nni_msg *m)
 		return (m2);
 	}
 
-	// At this point, we have a unique instance of the message.
-	// We also know that we have sufficient space in the message,
-	// so this insert operation cannot fail.
 	nni_msg_insert(m, nni_msg_header(m), nni_msg_header_len(m));
 	nni_msg_header_clear(m);
 	return (m);
@@ -379,11 +310,6 @@ nni_msg_alloc(nni_msg **mp, size_t sz)
 		return (NNG_ENOMEM);
 	}
 
-	// If the message is less than 1024 bytes, or is not power
-	// of two aligned, then we insert a 32 bytes of headroom
-	// to allow for inlining backtraces, etc.  We also allow the
-	// amount of space at the end for the same reason.  Large aligned
-	// allocations are unmolested to avoid excessive overallocation.
 	if ((sz < 1024) || ((sz & (sz - 1)) != 0)) {
 		rv = nni_chunk_grow(&m->m_body, sz + 32, 32);
 	} else {
@@ -394,11 +320,9 @@ nni_msg_alloc(nni_msg **mp, size_t sz)
 		return (rv);
 	}
 	if (nni_chunk_append(&m->m_body, NULL, sz) != 0) {
-		// Should not happen since we just grew it to fit.
 		nni_panic("chunk_append failed");
 	}
 
-	// We always start with a single valid reference count.
 	nni_atomic_init(&m->m_refcnt);
 	nni_atomic_set(&m->m_refcnt, 1);
 	*mp = m;
@@ -450,7 +374,6 @@ nni_msg_realloc(nni_msg *m, size_t sz)
 			return (rv);
 		}
 	} else {
-		// "Shrinking", just mark bytes at end usable again.
 		nni_chunk_chop(&m->m_body, m->m_body.ch_len - sz);
 	}
 	return (0);

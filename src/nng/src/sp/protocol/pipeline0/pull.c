@@ -13,8 +13,6 @@
 #include "core/nng_impl.h"
 #include "nng/protocol/pipeline0/pull.h"
 
-// Pull protocol.  The PULL protocol is the "read" side of a pipeline.
-
 #ifndef NNI_PROTO_PULL_V0
 #define NNI_PROTO_PULL_V0 NNI_PROTO(5, 1)
 #endif
@@ -28,16 +26,14 @@ typedef struct pull0_sock pull0_sock;
 
 static void pull0_recv_cb(void *);
 
-// pull0_sock is our per-socket protocol private structure.
 struct pull0_sock {
 	bool         raw;
-	nni_list     pl; // pipe list (pipes with data ready)
-	nni_list     rq; // recv queue (aio list)
+	nni_list     pl;
+	nni_list     rq;
 	nni_mtx      m;
 	nni_pollable readable;
 };
 
-// pull0_pipe is our per-pipe protocol private structure.
 struct pull0_pipe {
 	nni_pipe *    p;
 	pull0_sock *  s;
@@ -103,11 +99,9 @@ pull0_pipe_start(void *arg)
 	pull0_pipe *p = arg;
 
 	if (nni_pipe_peer(p->p) != NNI_PROTO_PUSH_V0) {
-		// Peer protocol mismatch.
 		return (NNG_EPROTO);
 	}
 
-	// Start the pending receive...
 	nni_pipe_recv(p->p, &p->aio);
 
 	return (0);
@@ -142,12 +136,10 @@ pull0_recv_cb(void *arg)
 	nni_msg *   m;
 
 	if (nni_aio_result(ap) != 0) {
-		// Failed to get a message, probably the pipe is closed.
 		nni_pipe_close(p->p);
 		return;
 	}
 
-	// Got a message... start the put to send it up to the application.
 	m = nni_aio_get_msg(ap);
 	nni_aio_set_msg(ap, NULL);
 	nni_msg_set_pipe(m, nni_pipe_id(p->p));
@@ -191,7 +183,6 @@ pull0_sock_close(void *arg)
 		nni_aio_list_remove(a);
 		nni_aio_finish_error(a, NNG_ECLOSED);
 	}
-	// NB: The common socket framework closes pipes before this.
 	nni_mtx_unlock(&s->m);
 }
 
@@ -267,7 +258,6 @@ static nni_option pull0_sock_options[] = {
 	    .o_name = NNG_OPT_RECVFD,
 	    .o_get  = pull0_sock_get_recv_fd,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},

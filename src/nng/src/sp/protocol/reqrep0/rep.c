@@ -13,10 +13,6 @@
 #include "core/nng_impl.h"
 #include "nng/protocol/reqrep0/rep.h"
 
-// Response protocol.  The REP protocol is the "reply" side of a
-// request-reply pair.  This is useful for building RPC servers, for
-// example.
-
 typedef struct rep0_pipe rep0_pipe;
 typedef struct rep0_sock rep0_sock;
 typedef struct rep0_ctx  rep0_ctx;
@@ -28,36 +24,34 @@ static void rep0_pipe_fini(void *);
 struct rep0_ctx {
 	rep0_sock *   sock;
 	uint32_t      pipe_id;
-	rep0_pipe *   spipe; // send pipe
-	nni_aio *     saio;  // send aio
-	nni_aio *     raio;  // recv aio
+	rep0_pipe *   spipe;
+	nni_aio *     saio;
+	nni_aio *     raio;
 	nni_list_node sqnode;
 	nni_list_node rqnode;
 	size_t        btrace_len;
 	uint32_t      btrace[NNI_MAX_MAX_TTL + 1];
 };
 
-// rep0_sock is our per-socket protocol private structure.
 struct rep0_sock {
 	nni_mtx        lk;
 	nni_atomic_int ttl;
 	nni_id_map     pipes;
-	nni_list       recvpipes; // list of pipes with data to receive
+	nni_list       recvpipes;
 	nni_list       recvq;
 	rep0_ctx       ctx;
 	nni_pollable   readable;
 	nni_pollable   writable;
 };
 
-// rep0_pipe is our per-pipe protocol private structure.
 struct rep0_pipe {
 	nni_pipe *    pipe;
 	rep0_sock *   rep;
 	uint32_t      id;
 	nni_aio       aio_send;
 	nni_aio       aio_recv;
-	nni_list_node rnode; // receivable list linkage
-	nni_list      sendq; // contexts waiting to send
+	nni_list_node rnode;
+	nni_list      sendq;
 	bool          busy;
 	bool          closed;
 };
@@ -121,7 +115,7 @@ rep0_ctx_cancel_send(nni_aio *aio, void *arg, int rv)
 	ctx->saio = NULL;
 	nni_mtx_unlock(&s->lk);
 
-	nni_msg_header_clear(nni_aio_get_msg(aio)); // reset the headers
+	nni_msg_header_clear(nni_aio_get_msg(aio));
 	nni_aio_finish_error(aio, rv);
 }
 
@@ -134,7 +128,7 @@ rep0_ctx_send(void *arg, nni_aio *aio)
 	nni_msg *  msg;
 	int        rv;
 	size_t     len;
-	uint32_t   p_id; // pipe id
+	uint32_t   p_id;
 
 	msg = nni_aio_get_msg(aio);
 	nni_msg_header_clear(msg);
@@ -147,16 +141,10 @@ rep0_ctx_send(void *arg, nni_aio *aio)
 	len  = ctx->btrace_len;
 	p_id = ctx->pipe_id;
 
-	// Assert "completion" of the previous req request.  This ensures
-	// exactly one send for one receive ordering.
 	ctx->btrace_len = 0;
 	ctx->pipe_id    = 0;
 
 	if (ctx == &s->ctx) {
-		// No matter how this goes, we will no longer be able
-		// to send on the socket (root context).  That's because
-		// we will have finished (successfully or otherwise) the
-		// reply for the single request we got.
 		nni_pollable_clear(&s->writable);
 	}
 	if (len == 0) {
@@ -170,9 +158,6 @@ rep0_ctx_send(void *arg, nni_aio *aio)
 		return;
 	}
 	if ((p = nni_id_get(&s->pipes, p_id)) == NULL) {
-		// Pipe is gone.  Make this look like a good send to avoid
-		// disrupting the state machine.  We don't care if the peer
-		// lost interest in our reply.
 		nni_mtx_unlock(&s->lk);
 		nni_aio_set_msg(aio, NULL);
 		nni_aio_finish(aio, 0, nni_msg_len(msg));
@@ -231,8 +216,6 @@ rep0_sock_init(void *arg, nni_sock *sock)
 
 	rep0_ctx_init(&s->ctx, s);
 
-	// We start off without being either readable or writable.
-	// Readability comes when there is something on the socket.
 	nni_pollable_init(&s->writable);
 	nni_pollable_init(&s->readable);
 }
@@ -299,7 +282,6 @@ rep0_pipe_start(void *arg)
 	int        rv;
 
 	if (nni_pipe_peer(p->pipe) != NNG_REP0_PEER) {
-		// Peer protocol mismatch.
 		return (NNG_EPROTO);
 	}
 
@@ -309,8 +291,6 @@ rep0_pipe_start(void *arg)
 	if (rv != 0) {
 		return (rv);
 	}
-	// By definition, we have not received a request yet on this pipe,
-	// so it cannot cause us to become writable.
 	nni_pipe_recv(p->pipe, &p->aio_recv);
 	return (0);
 }
@@ -328,14 +308,11 @@ rep0_pipe_close(void *arg)
 	nni_mtx_lock(&s->lk);
 	p->closed = true;
 	if (nni_list_active(&s->recvpipes, p)) {
-		// We are no longer "receivable".
 		nni_list_remove(&s->recvpipes, p);
 	}
 	while ((ctx = nni_list_first(&p->sendq)) != NULL) {
 		nni_aio *aio;
 		nni_msg *msg;
-		// Pipe was closed.  To avoid pushing an error back to the
-		// entire socket, we pretend we completed this successfully.
 		nni_list_remove(&p->sendq, ctx);
 		aio       = ctx->saio;
 		ctx->saio = NULL;
@@ -345,8 +322,6 @@ rep0_pipe_close(void *arg)
 		nni_msg_free(msg);
 	}
 	if (p->id == s->ctx.pipe_id) {
-		// We "can" send.  (Well, not really, but we will happily
-		// accept a message and discard it.)
 		nni_pollable_raise(&s->writable);
 	}
 	nni_id_remove(&s->pipes, nni_pipe_id(p->pipe));
@@ -372,9 +347,7 @@ rep0_pipe_send_cb(void *arg)
 	nni_mtx_lock(&s->lk);
 	p->busy = false;
 	if ((ctx = nni_list_first(&p->sendq)) == NULL) {
-		// Nothing else to send.
 		if (p->id == s->ctx.pipe_id) {
-			// Mark us ready for the other side to send!
 			nni_pollable_raise(&s->writable);
 		}
 		nni_mtx_unlock(&s->lk);
@@ -433,9 +406,6 @@ rep0_ctx_recv(void *arg, nni_aio *aio)
 			return;
 		}
 		if (ctx->raio != NULL) {
-			// Cannot have a second receive operation pending.
-			// This could be ESTATE, or we could cancel the first
-			// with ECANCELED.  We elect the former.
 			nni_mtx_unlock(&s->lk);
 			nni_aio_finish_error(aio, NNG_ESTATE);
 			return;
@@ -490,21 +460,15 @@ rep0_pipe_recv_cb(void *arg)
 
 	nni_msg_set_pipe(msg, p->id);
 
-	// Move backtrace from body to header
 	hops = 1;
 	for (;;) {
 		bool end;
 
 		if (hops > ttl) {
-			// This isn't malformed, but it has gone
-			// through too many hops.  Do not disconnect,
-			// because we can legitimately receive messages
-			// with too many hops from devices, etc.
 			goto drop;
 		}
 		hops++;
 		if (nni_msg_len(msg) < 4) {
-			// Peer is speaking garbage. Kick it.
 			nni_msg_free(msg);
 			nni_aio_set_msg(&p->aio_recv, NULL);
 			nni_pipe_close(p->pipe);
@@ -513,7 +477,6 @@ rep0_pipe_recv_cb(void *arg)
 		body = nni_msg_body(msg);
 		end  = ((body[0] & 0x80u) != 0);
 		if (nni_msg_header_append(msg, body, 4) != 0) {
-			// Out of memory, so drop it.
 			goto drop;
 		}
 		nni_msg_trim(msg, 4);
@@ -527,7 +490,6 @@ rep0_pipe_recv_cb(void *arg)
 	nni_mtx_lock(&s->lk);
 
 	if (p->closed) {
-		// If we are closed, then we can't return data.
 		nni_aio_set_msg(&p->aio_recv, NULL);
 		nni_mtx_unlock(&s->lk);
 		nni_msg_free(msg);
@@ -535,7 +497,6 @@ rep0_pipe_recv_cb(void *arg)
 	}
 
 	if ((ctx = nni_list_first(&s->recvq)) == NULL) {
-		// No one waiting to receive yet, holding pattern.
 		nni_list_append(&s->recvpipes, p);
 		nni_pollable_raise(&s->readable);
 		nni_mtx_unlock(&s->lk);
@@ -550,7 +511,6 @@ rep0_pipe_recv_cb(void *arg)
 		nni_pollable_raise(&s->writable);
 	}
 
-	// schedule another receive
 	nni_pipe_recv(p->pipe, &p->aio_recv);
 
 	ctx->btrace_len = len;
@@ -634,8 +594,6 @@ rep0_sock_recv(void *arg, nni_aio *aio)
 	rep0_ctx_recv(&s->ctx, aio);
 }
 
-// This is the global protocol structure -- our linkage to the core.
-// This should be the only global non-static symbol in this file.
 static nni_proto_pipe_ops rep0_pipe_ops = {
 	.pipe_size  = sizeof(rep0_pipe),
 	.pipe_init  = rep0_pipe_init,
@@ -667,7 +625,6 @@ static nni_option rep0_sock_options[] = {
 	    .o_name = NNG_OPT_SENDFD,
 	    .o_get  = rep0_sock_get_sendfd,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},

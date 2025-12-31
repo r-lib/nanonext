@@ -48,14 +48,6 @@ nni_plat_strerror(int errnum)
 	return (strerror(errnum));
 }
 
-// There are of course other errors than these, but these are the ones
-// that we might reasonably expect and want to handle "cleanly".  Most of
-// the others should be handled by the system error code.  Note that EFAULT
-// is very special, because if the error code is *that*, then we should panic
-// because an invalid system call has been made.  (That would be a sign
-// of a serious software bug, in other words.)  POSIX says that all these
-// error codes should exist, and be distinct positive numbers. (EWOULDBLOCK
-// and EAGAIN are permitted to have the same value.)
 static struct {
 	int posix_err;
 	int nng_err;
@@ -86,7 +78,7 @@ static struct {
 	{ EPIPE,	   NNG_ECLOSED	    },
 	{ EPROTO,	   NNG_EPROTO	    },
 	{ EPROTONOSUPPORT, NNG_ENOTSUP	    },
-#ifdef  ETIME   // Found in STREAMs, not present on all systems.
+#ifdef  ETIME
 	{ ETIME,	   NNG_ETIMEDOUT    },
 #endif
 	{ ETIMEDOUT,	   NNG_ETIMEDOUT    },
@@ -97,7 +89,6 @@ static struct {
 	{ ENFILE,	   NNG_ENOFILES	    },
 	{ EMFILE,	   NNG_ENOFILES	    },
 	{ EEXIST,	   NNG_EEXIST	    },
-	// must be last
 	{		0,		  0 },
 	// clang-format on
 };
@@ -118,8 +109,7 @@ nni_plat_errno(int errnum)
 			return (nni_plat_errnos[i].nng_err);
 		}
 	}
-	// Other system errno.
 	return (NNG_ESYSERR + errnum);
 }
 
-#endif // NNG_PLATFORM_POSIX
+#endif

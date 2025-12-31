@@ -22,20 +22,14 @@
 
 #include "websocket.h"
 
-// This should be removed or handled differently in the future.
 typedef int (*nni_ws_listen_hook)(void *, nng_http_req *, nng_http_res *);
 
-// We have chosen to be a bit more stringent in the size of the frames that
-// we send, while we more generously allow larger incoming frames.  These
-// may be tuned by options.
-#define WS_DEF_RECVMAX (1U << 20)    // 1MB Message limit (message mode only)
-#define WS_DEF_MAXRXFRAME (1U << 20) // 1MB Frame size (recv)
-#define WS_DEF_MAXTXFRAME (1U << 16) // 64KB Frame size (send)
+#define WS_DEF_RECVMAX (1U << 20)
+#define WS_DEF_MAXRXFRAME (1U << 20)
+#define WS_DEF_MAXTXFRAME (1U << 16)
 
-// Alias for checking the prefix of a string.
 #define startswith(s, t) (strncmp(s, t, strlen(t)) == 0)
 
-// Pre-defined types for some prototypes.  These are from other subsystems.
 typedef struct ws_frame ws_frame;
 
 typedef struct ws_header {
@@ -49,8 +43,8 @@ struct nni_ws {
 	nni_list_node    node;
 	nni_reap_node    reap;
 	bool             server;
-	bool             closed;      // received a close, or initiated a close
-	bool             peer_closed; // we received a close frame
+	bool             closed;
+	bool             peer_closed;
 	bool             ready;
 	bool             wclose;
 	bool             isstream;
@@ -64,12 +58,12 @@ struct nni_ws {
 	nni_list         rxq;
 	ws_frame        *txframe;
 	ws_frame        *rxframe;
-	nni_aio         *txaio; // physical aios
+	nni_aio         *txaio;
 	nni_aio         *rxaio;
-	nni_aio         *closeaio; // used for lingering/draining close
+	nni_aio         *closeaio;
 	nni_aio         *httpaio;
-	nni_aio         *connaio; // connect aio
-	nni_aio         *useraio; // user aio, during HTTP negotiation
+	nni_aio         *connaio;
+	nni_aio         *useraio;
 	nni_http_conn   *http;
 	nni_http_req    *req;
 	nni_http_res    *res;
@@ -77,7 +71,7 @@ struct nni_ws {
 	char            *reshdrs;
 	size_t           maxframe;
 	size_t           fragsize;
-	size_t           recvmax; // largest message size
+	size_t           recvmax;
 	nni_ws_listener *listener;
 	nni_ws_dialer   *dialer;
 };
@@ -100,18 +94,12 @@ struct nni_ws_listener {
 	nni_http_handler   *handler;
 	nni_ws_listen_hook  hookfn;
 	void               *hookarg;
-	nni_list            headers; // response headers
+	nni_list            headers;
 	size_t              maxframe;
 	size_t              fragsize;
-	size_t              recvmax; // largest message size
+	size_t              recvmax;
 };
 
-// The dialer tracks user aios in two lists. The first list is for aios
-// waiting for the http connection to be established, while the second
-// are waiting for the HTTP negotiation to complete.  We keep two lists
-// so we know whether to initiate another outgoing connection after the
-// completion of an earlier connection.  (We don't want to establish
-// requests when we already have connects negotiating.)
 struct nni_ws_dialer {
 	nng_stream_dialer ops;
 	nni_http_req     *req;
@@ -121,12 +109,12 @@ struct nni_ws_dialer {
 	nni_cv            cv;
 	char             *proto;
 	nng_url          *url;
-	nni_list          wspend; // ws structures still negotiating
+	nni_list          wspend;
 	bool              closed;
 	bool              isstream;
 	bool              send_text;
 	bool              recv_text;
-	nni_list          headers; // request headers
+	nni_list          headers;
 	size_t            maxframe;
 	size_t            fragsize;
 	size_t            recvmax;
@@ -155,15 +143,15 @@ typedef enum ws_reason {
 
 struct ws_frame {
 	nni_list_node node;
-	uint8_t       head[14];   // maximum header size
-	uint8_t       mask[4];    // read by server, sent by client
-	uint8_t       sdata[125]; // short data (for short frames only)
-	size_t        hlen;       // header length
-	size_t        len;        // payload length
+	uint8_t       head[14];
+	uint8_t       mask[4];
+	uint8_t       sdata[125];
+	size_t        hlen;
+	size_t        len;
 	enum ws_type  op;
 	bool          final;
 	bool          masked;
-	size_t        asize; // allocated size
+	size_t        asize;
 	uint8_t      *adata;
 	uint8_t      *buf;
 	nng_aio      *aio;
@@ -251,25 +239,19 @@ ws_set_headers(nni_list *l, const char *str)
 	if ((dupstr = nni_strdup(str)) == NULL) {
 		return (NNG_ENOMEM);
 	}
-	duplen = strlen(dupstr) + 1; // so we can free it later
+	duplen = strlen(dupstr) + 1;
 
 	n = dupstr;
 	for (;;) {
 		if ((v = strchr(n, ':')) == NULL) {
-			// Note that this also means that if
-			// a bare word is present, we ignore it.
 			break;
 		}
 		*v = '\0';
 		v++;
 		while (*v == ' ') {
-			// Skip leading whitespace.  Not strictly
-			// necessary, but still a good idea.
 			v++;
 		}
 		nl = v;
-		// Find the end of the line -- should be CRLF, but can
-		// also be unterminated or just LF if user
 		while ((*nl != '\0') && (*nl != '\r') && (*nl != '\n')) {
 			nl++;
 		}
@@ -278,14 +260,10 @@ ws_set_headers(nni_list *l, const char *str)
 			nl++;
 		}
 
-		// Note that this can lead to a partial failure.  As this
-		// is most likely ENOMEM, don't worry too much about it.
-		// This method does *not* eliminate duplicates.
 		if ((rv = ws_set_header_ext(l, n, v, false)) != 0) {
 			goto done;
 		}
 
-		// Advance to the next name.
 		n = nl;
 	}
 
@@ -296,8 +274,6 @@ done:
 	return (rv);
 }
 
-// This looks, case independently for a word in a list, which is either
-// space or comma separated.
 static bool
 ws_contains_word(const char *phrase, const char *word)
 {
@@ -309,7 +285,6 @@ ws_contains_word(const char *phrase, const char *word)
 		        (phrase[len] == ','))) {
 			return (true);
 		}
-		// Skip to next word.
 		if ((phrase = strchr(phrase, ' ')) != NULL) {
 			while ((*phrase == ' ') || (*phrase == ',')) {
 				phrase++;
@@ -319,10 +294,6 @@ ws_contains_word(const char *phrase, const char *word)
 	return (false);
 }
 
-// input is base64 challenge, output is the accepted.  input should be
-// 24 character base 64, output is 28 character base64 reply.  (output
-// must be large enough to hold 29 bytes to allow for termination.)
-// Returns 0 on success, NNG_EINVAL if the input is malformed somehow.
 static int
 ws_make_accept(const char *key, char *accept)
 {
@@ -359,7 +330,6 @@ static void
 ws_mask_frame(ws_frame *frame)
 {
 	uint32_t r;
-	// frames sent by client need mask.
 	if (frame->masked) {
 		return;
 	}
@@ -370,14 +340,13 @@ ws_mask_frame(ws_frame *frame)
 	}
 	memcpy(frame->head + frame->hlen, frame->mask, 4);
 	frame->hlen += 4;
-	frame->head[1] |= 0x80; // set masked bit
+	frame->head[1] |= 0x80;
 	frame->masked = true;
 }
 
 static void
 ws_unmask_frame(ws_frame *frame)
 {
-	// frames sent by client need mask.
 	if (!frame->masked) {
 		return;
 	}
@@ -385,7 +354,7 @@ ws_unmask_frame(ws_frame *frame)
 		frame->buf[i] ^= frame->mask[i % 4];
 	}
 	frame->hlen -= 4;
-	frame->head[1] &= 0x7f; // clear masked bit
+	frame->head[1] &= 0x7f;
 	frame->masked = false;
 }
 
@@ -407,7 +376,7 @@ ws_msg_init_control(
 	frame->len     = len;
 	frame->final   = true;
 	frame->op      = op;
-	frame->head[0] = op | 0x80; // final frame (control)
+	frame->head[0] = op | 0x80;
 	frame->head[1] = len & 0x7F;
 	frame->hlen    = 2;
 	frame->buf     = frame->sdata;
@@ -432,7 +401,6 @@ ws_frame_prep_tx(nni_ws *ws, ws_frame *frame)
 	size_t   len;
 	uint8_t *buf;
 
-	// Figure out how much we need for the entire aio.
 	frame->len = 0;
 	nni_aio_get_iov(aio, &niov, &iov);
 	for (unsigned i = 0; i < niov; i++) {
@@ -440,20 +408,11 @@ ws_frame_prep_tx(nni_ws *ws, ws_frame *frame)
 	}
 
 	if ((frame->len > ws->fragsize) && (ws->fragsize > 0)) {
-		// Limit it to a single frame per policy (fragsize), as needed.
 		frame->len = ws->fragsize;
-		// For stream mode, we constrain ourselves to one frame
-		// per message. Submitter may see a partial transmit, and
-		// should resubmit as needed.  For message mode, we will
-		// continue to resubmit.
 		frame->final = ws->isstream ? true : false;
 	} else {
-		// It all fits in this frame (which might not be the first),
-		// so we're done.
 		frame->final = true;
 	}
-	// Potentially allocate space for the data if we need to.
-	// Note that an empty message is legal.
 	if ((frame->asize < frame->len) && (frame->len > 0)) {
 		nni_free(frame->adata, frame->asize);
 		frame->adata = nni_alloc(frame->len);
@@ -466,7 +425,6 @@ ws_frame_prep_tx(nni_ws *ws, ws_frame *frame)
 	}
 	buf = frame->buf;
 
-	// Now copy the data into the frame.
 	len = frame->len;
 	while (len != 0) {
 		size_t n = len;
@@ -480,7 +438,6 @@ ws_frame_prep_tx(nni_ws *ws, ws_frame *frame)
 	}
 
 	if (nni_aio_count(aio) == 0) {
-		// This is the first frame.
 		if (ws->send_text) {
 			frame->op = WS_TEXT;
 		} else {
@@ -490,11 +447,10 @@ ws_frame_prep_tx(nni_ws *ws, ws_frame *frame)
 		frame->op = WS_CONT;
 	}
 
-	// Populate the frame header.
 	frame->head[0] = (uint8_t) frame->op;
 	frame->hlen    = 2;
 	if (frame->final) {
-		frame->head[0] |= 0x80; // final frame bit
+		frame->head[0] |= 0x80;
 	}
 	if (frame->len < 126) {
 		frame->head[1] = frame->len & 0x7f;
@@ -508,7 +464,6 @@ ws_frame_prep_tx(nni_ws *ws, ws_frame *frame)
 		frame->hlen += 8;
 	}
 
-	// If we are on the client, then we need to mask the frame.
 	frame->masked = false;
 	if (!ws->server) {
 		ws_mask_frame(frame);
@@ -526,8 +481,6 @@ ws_close_cb(void *arg)
 	nni_aio_close(ws->rxaio);
 	nni_aio_close(ws->httpaio);
 
-	// Either we sent a close frame, or we didn't.  Either way,
-	// we are done, and its time to abort everything else.
 	nni_mtx_lock(&ws->mtx);
 
 	nni_http_conn_close(ws->http);
@@ -541,7 +494,6 @@ ws_close_cb(void *arg)
 		ws_frame_fini(frame);
 	}
 
-	// Any txframe should have been killed with its wmsg.
 	nni_mtx_unlock(&ws->mtx);
 }
 
@@ -550,19 +502,12 @@ ws_close(nni_ws *ws, uint16_t code)
 {
 	nng_aio *aio;
 
-	// Receive stuff gets aborted always.  No further receives
-	// once we get a close.
 	while ((aio = nni_list_first(&ws->recvq)) != NULL) {
 		nni_aio_list_remove(aio);
 		nni_aio_finish_error(aio, NNG_ECLOSED);
 	}
 
-	// If were closing "gracefully", then don't abort in-flight
-	// stuff yet.  Note that reads should have stopped already.
-	// However, we *do* abort any inflight HTTP negotiation, or
-	// pending connect request.
 	if (!ws->closed) {
-		// ABORT connection negotiation.
 		nni_aio_close(ws->connaio);
 		nni_aio_close(ws->httpaio);
 		ws_send_close(ws, code);
@@ -577,16 +522,15 @@ ws_start_write(nni_ws *ws)
 	int       niov;
 
 	if ((ws->txframe != NULL) || (!ws->ready)) {
-		return; // busy
+		return;
 	}
 
 	if ((frame = nni_list_first(&ws->txq)) == NULL) {
-		return; // nothing to send
+		return;
 	}
 	NNI_ASSERT(frame != NULL);
 	nni_list_remove(&ws->txq, frame);
 
-	// Push it out.
 	ws->txframe    = frame;
 	niov           = 1;
 	iov[0].iov_len = frame->hlen;
@@ -629,8 +573,6 @@ ws_write_cb(void *arg)
 	ws->txframe = NULL;
 
 	if (frame->op == WS_CLOSE) {
-		// If this was a close frame, we are done.
-		// No other messages may succeed..
 		ws->txframe = NULL;
 		ws_frame_fini(frame);
 		while ((frame = nni_list_first(&ws->txq)) != NULL) {
@@ -643,7 +585,7 @@ ws_write_cb(void *arg)
 			}
 		}
 		if (ws->peer_closed) {
-			if (ws->wclose) { // could assert this?
+			if (ws->wclose) {
 				ws->wclose = false;
 				nni_aio_finish(ws->closeaio, 0, 0);
 			}
@@ -654,8 +596,6 @@ ws_write_cb(void *arg)
 
 	aio = frame->aio;
 	if ((rv = nni_aio_result(ws->txaio)) != 0) {
-		// if tx fails, we can't send a close frame either
-		// we expect the caller to just close this connection
 		frame->aio = NULL;
 		if (aio != NULL) {
 			nni_aio_list_remove(aio);
@@ -675,8 +615,6 @@ ws_write_cb(void *arg)
 			frame->aio = NULL;
 			nni_aio_list_remove(aio);
 		} else {
-			// Clear the aio so that we won't attempt to finish
-			// it outside the lock
 			aio = NULL;
 		}
 	}
@@ -684,20 +622,15 @@ ws_write_cb(void *arg)
 	if (frame->final) {
 		ws_frame_fini(frame);
 	} else {
-		// This one cannot fail here, since we only do allocation
-		// at initial scheduling.
 		ws_frame_prep_tx(ws, frame);
-		// Schedule at end.  This permits other frames to interleave.
 		nni_list_append(&ws->txq, frame);
 	}
 
 	ws_start_write(ws);
 	nni_mtx_unlock(&ws->mtx);
 
-	// We attempt to finish the operation synchronously, outside the lock.
 	if (aio != NULL) {
 		nni_msg *msg;
-		// Successful send, don't leak the message!
 		if ((msg = nni_aio_get_msg(aio)) != NULL) {
 			nni_aio_set_msg(aio, NULL);
 			nni_msg_free(msg);
@@ -712,8 +645,6 @@ ws_write_cancel(nni_aio *aio, void *arg, int rv)
 	nni_ws   *ws = arg;
 	ws_frame *frame;
 
-	// Is this aio active?  We can tell by looking at the active tx frame.
-
 	nni_mtx_lock(&ws->mtx);
 	if (!nni_aio_list_active(aio)) {
 		nni_mtx_unlock(&ws->mtx);
@@ -722,9 +653,7 @@ ws_write_cancel(nni_aio *aio, void *arg, int rv)
 	frame = nni_aio_get_prov_data(aio);
 	if (frame == ws->txframe) {
 		nni_aio_abort(ws->txaio, rv);
-		// We will wait for callback on the txaio to finish aio.
 	} else {
-		// If scheduled, just need to remove node and complete it.
 		nni_list_remove(&ws->txq, frame);
 		frame->aio = NULL;
 		nni_aio_list_remove(aio);
@@ -766,7 +695,6 @@ ws_send_close(nni_ws *ws, uint16_t code)
 		ws_frame_fini(frame);
 		return;
 	}
-	// This gets inserted at the head.
 	nni_list_prepend(&ws->txq, frame);
 	ws_start_write(ws);
 }
@@ -776,15 +704,11 @@ ws_send_control(nni_ws *ws, uint8_t op, uint8_t *buf, size_t len)
 {
 	ws_frame *frame;
 
-	// Note that we do not care if this works or not.  So no AIO needed.
-
 	if ((ws->closed) ||
 	    (ws_msg_init_control(&frame, ws, op, buf, len) != 0)) {
 		return;
 	}
 
-	// Control frames at head of list.  (Note that this may preempt
-	// the close frame or other ping/pong requests.  Oh well.)
 	nni_list_prepend(&ws->txq, frame);
 	ws_start_write(ws);
 }
@@ -797,11 +721,9 @@ ws_start_read(nni_ws *ws)
 	nni_iov   iov;
 
 	if ((ws->rxframe != NULL) || ws->closed) {
-		return; // already reading or closed
+		return;
 	}
 
-	// If nobody is waiting for recv, and we already have a data
-	// frame, stop reading.  This keeps us from buffering infinitely.
 	if (nni_list_empty(&ws->recvq) && !nni_list_empty(&ws->rxq)) {
 		return;
 	}
@@ -815,14 +737,12 @@ ws_start_read(nni_ws *ws)
 		return;
 	}
 
-	// Note that the frame is *not* associated with the message
-	// as yet, because we don't know if that's right until we receive it.
 	frame->hlen = 0;
 	frame->len  = 0;
 	ws->rxframe = frame;
 
 	aio         = ws->rxaio;
-	iov.iov_len = 2; // We want the first two bytes.
+	iov.iov_len = 2;
 	iov.iov_buf = frame->head;
 	nni_aio_set_iov(aio, 1, &iov);
 	nni_http_read_full(ws->http, aio);
@@ -845,14 +765,12 @@ ws_read_finish_str(nni_ws *ws)
 			return;
 		}
 
-		// Discard 0 length frames -- in stream mode they are not used.
 		if (frame->len == 0) {
 			nni_list_remove(&ws->rxq, frame);
 			ws_frame_fini(frame);
 			continue;
 		}
 
-		// We are completing this aio one way or the other.
 		nni_aio_list_remove(aio);
 		nni_aio_get_iov(aio, &niov, &iov);
 
@@ -860,7 +778,6 @@ ws_read_finish_str(nni_ws *ws)
 			size_t n;
 
 			if ((n = frame->len) > iov->iov_len) {
-				// This eats the entire iov.
 				n = iov->iov_len;
 			}
 			if (n != 0) {
@@ -899,16 +816,11 @@ ws_read_finish_msg(nni_ws *ws)
 	int       rv;
 	uint8_t  *body;
 
-	// If we have no data, no waiter, or have not received the complete
-	// message yet, then there is nothing to do.
 	if (ws->inmsg || nni_list_empty(&ws->rxq) ||
 	    ((aio = nni_list_first(&ws->recvq)) == NULL)) {
 		return;
 	}
 
-	// At this point, we have both a complete message in the queue (and
-	// there should not be any frames other than the for the message),
-	// and a waiting reader.
 	len = 0;
 	NNI_LIST_FOREACH (&ws->rxq, frame) {
 		len += frame->len;
@@ -961,10 +873,8 @@ ws_read_frame_cb(nni_ws *ws, ws_frame *frame)
 		break;
 	case WS_TEXT:
 		if (!ws->recv_text) {
-			// No support for text mode at present.
 			ws_close(ws, WS_CLOSE_UNSUPP_FORMAT);
 		}
-		// FALLTHROUGH
 	case WS_BINARY:
 		if (ws->inmsg) {
 			ws_close(ws, WS_CLOSE_PROTOCOL_ERR);
@@ -995,8 +905,6 @@ ws_read_frame_cb(nni_ws *ws, ws_frame *frame)
 		ws_frame_fini(frame);
 		break;
 	case WS_CLOSE:
-		// if we did not send a close frame yet, do so.
-		// (this might be a response to our close)
 		ws->peer_closed = true;
 		if (!ws->closed) {
 			ws_close(ws, WS_CLOSE_NORMAL_CLOSE);
@@ -1022,13 +930,11 @@ ws_read_cb(void *arg)
 
 	nni_mtx_lock(&ws->mtx);
 	if ((frame = ws->rxframe) == NULL) {
-		nni_mtx_unlock(&ws->mtx); // canceled during close
+		nni_mtx_unlock(&ws->mtx);
 		return;
 	}
 
 	if (nni_aio_result(aio) != 0) {
-		// on a read error, we assume the connection was
-		// abruptly closed, and we don't try to shut down nicely
 		ws->closed = true;
 		ws_close(ws, 0);
 		nni_mtx_unlock(&ws->mtx);
@@ -1049,8 +955,6 @@ ws_read_cb(void *arg)
 			frame->hlen += 2;
 		}
 
-		// If we didn't read the full header yet, then read
-		// the rest of it.
 		if (frame->hlen != 2) {
 			nni_iov iov;
 			iov.iov_buf = frame->head + 2;
@@ -1062,16 +966,8 @@ ws_read_cb(void *arg)
 		}
 	}
 
-	// If we are returning from a read of additional data, then
-	// the buf will be set.  Otherwise, we need to determine
-	// how much data to read.  As our headers are complete, we take
-	// this time to do some protocol checks -- no point in waiting
-	// to read data.  (Frame size check needs to be done first
-	// anyway to prevent DoS.)
-
 	if (frame->buf == NULL) {
 
-		// Determine expected frame size.
 		switch ((frame->len = (frame->head[1] & 0x7Fu))) {
 		case 127:
 			NNI_GET64(frame->head + 2, frame->len);
@@ -1097,9 +993,6 @@ ws_read_cb(void *arg)
 			nni_mtx_unlock(&ws->mtx);
 			return;
 		}
-		// For message mode, also check to make sure that the overall
-		// length of the message has not exceeded our recvmax.
-		// (Protect against an infinite stream of small messages!)
 		if ((!ws->isstream) && (ws->recvmax > 0)) {
 			size_t    totlen = frame->len;
 			ws_frame *fr2;
@@ -1113,8 +1006,6 @@ ws_read_cb(void *arg)
 			}
 		}
 
-		// Check for masking.  (We don't actually unmask
-		// here, because we don't have data yet.)
 		if (frame->masked) {
 			memcpy(frame->mask, frame->head + frame->hlen - 4, 4);
 			if (!ws->server) {
@@ -1128,12 +1019,10 @@ ws_read_cb(void *arg)
 			return;
 		}
 
-		// If we expected data, then ask for it.
 		if (frame->len != 0) {
 
 			nni_iov iov;
 
-			// Short frames can avoid an alloc
 			if (frame->len < 126) {
 				frame->buf   = frame->sdata;
 				frame->asize = 0;
@@ -1157,8 +1046,7 @@ ws_read_cb(void *arg)
 		}
 	}
 
-	// At this point, we have a complete frame.
-	ws_unmask_frame(frame); // idempotent
+	ws_unmask_frame(frame);
 
 	ws_read_frame_cb(ws, frame);
 	ws_start_read(ws);
@@ -1195,7 +1083,6 @@ ws_fini(void *arg)
 
 	ws_close_error(ws, WS_CLOSE_NORMAL_CLOSE);
 
-	// Give a chance for the close frame to drain.
 	if (ws->closeaio) {
 		nni_aio_wait(ws->closeaio);
 	}
@@ -1315,25 +1202,15 @@ ws_http_cb_dialer(nni_ws *ws, nni_aio *aio)
 	nni_mtx_lock(&d->mtx);
 	uaio = ws->useraio;
 
-	// We have two steps.  In step 1, we just sent the request,
-	// and need to retrieve the reply.  In step two we have
-	// received the reply, and need to validate it.
-	// Note that its possible that the user canceled the request,
-	// in which case we no longer care, and just go to the error
-	// case to discard the ws.
 	if (((rv = nni_aio_result(aio)) != 0) || (uaio == NULL)) {
 		goto err;
 	}
 
-	// There is a race between the dialer closing and any connections
-	// that were in progress completing.
 	if (d->closed){
 		rv = NNG_ECLOSED;
 		goto err;
 	}
 
-	// If we have no response structure, then this was completion
-	// of sending the request.  Prepare an empty response, and read it.
 	if (ws->res == NULL) {
 		if ((rv = nni_http_res_alloc(&ws->res)) != 0) {
 			goto err;
@@ -1353,16 +1230,14 @@ ws_http_cb_dialer(nni_ws *ws, nni_aio *aio)
 		goto err;
 	case NNG_HTTP_STATUS_NOT_FOUND:
 	case NNG_HTTP_STATUS_METHOD_NOT_ALLOWED:
-		rv = NNG_ECONNREFUSED; // Treat these as refusals.
+		rv = NNG_ECONNREFUSED;
 		goto err;
 	case NNG_HTTP_STATUS_BAD_REQUEST:
 	default:
-		// Perhaps we should use NNG_ETRANERR...
 		rv = NNG_EPROTO;
 		goto err;
 	}
 
-	// Check that the server gave us back the right key.
 	rv = ws_make_accept(
 	    nni_http_req_get_header(ws->req, "Sec-WebSocket-Key"), wskey);
 	if (rv != 0) {
@@ -1391,7 +1266,6 @@ ws_http_cb_dialer(nni_ws *ws, nni_aio *aio)
 	}
 #undef GETH
 
-	// At this point, we are in business!
 	nni_list_remove(&d->wspend, ws);
 	ws->ready   = true;
 	ws->useraio = NULL;
@@ -1465,7 +1339,7 @@ ws_init(nni_ws **wsp)
 	ws->ops.s_get   = ws_str_get;
 	ws->ops.s_set   = ws_str_set;
 
-	ws->fragsize = 1 << 20; // we won't send a frame larger than this
+	ws->fragsize = 1 << 20;
 	*wsp         = ws;
 	return (0);
 }
@@ -1535,14 +1409,12 @@ ws_handler(nni_aio *aio)
 		goto err;
 	}
 
-	// Now check the headers, etc.
 	if (strcmp(nni_http_req_get_version(req), "HTTP/1.1") != 0) {
 		status = NNG_HTTP_STATUS_HTTP_VERSION_NOT_SUPP;
 		goto err;
 	}
 
 	if (strcmp(nni_http_req_get_method(req), "GET") != 0) {
-		// HEAD request.  We can't really deal with it.
 		status = NNG_HTTP_STATUS_BAD_REQUEST;
 		goto err;
 	}
@@ -1557,7 +1429,6 @@ ws_handler(nni_aio *aio)
 		goto err;
 	}
 
-	// These headers have to be present.
 	if (((ptr = GETH("Upgrade")) == NULL) ||
 	    (!ws_contains_word(ptr, "websocket")) ||
 	    ((ptr = GETH("Connection")) == NULL) ||
@@ -1574,10 +1445,6 @@ ws_handler(nni_aio *aio)
 		goto err;
 	}
 
-	// If the client has requested a specific subprotocol, then
-	// we need to try to match it to what the handler says we
-	// support. (If no suitable option is found in the handler, we
-	// fail the request.)
 	proto = GETH("Sec-WebSocket-Protocol");
 	if (proto == NULL) {
 		if (l->proto != NULL) {
@@ -1591,7 +1458,6 @@ ws_handler(nni_aio *aio)
 	}
 
 	if ((rv = nni_http_res_alloc(&res)) != 0) {
-		// Give a chance to reply to client.
 		status = NNG_HTTP_STATUS_INTERNAL_SERVER_ERROR;
 		goto err;
 	}
@@ -1615,8 +1481,6 @@ ws_handler(nni_aio *aio)
 		goto err;
 	}
 
-	// Set any user supplied headers.  This is better than using a hook
-	// for most things, because it is loads easier.
 	NNI_LIST_FOREACH (&l->headers, hdr) {
 		if (SETH(hdr->name, hdr->value) != 0) {
 			status = NNG_HTTP_STATUS_INTERNAL_SERVER_ERROR;
@@ -1625,10 +1489,6 @@ ws_handler(nni_aio *aio)
 		}
 	}
 
-	// The hook function gives us the ability to intercept the HTTP
-	// response altogether.  Its best not to do this unless you really
-	// need to, because it's much more complex.  But if you want to set
-	// up an HTTP Authorization handler this might be the only choice.
 	if (l->hookfn != NULL) {
 		rv = l->hookfn(l->hookarg, req, res);
 		if (rv != 0) {
@@ -1640,14 +1500,6 @@ ws_handler(nni_aio *aio)
 
 		if (nni_http_res_get_status(res) !=
 		    NNG_HTTP_STATUS_SWITCHING) {
-			// The hook has decided to give back a
-			// different reply and we are not upgrading
-			// anymore.  For example the Origin might not
-			// be permitted, or another level of
-			// authentication may be required. (Note that
-			// the hook can also give back various other
-			// headers, but it would be bad for it to alter
-			// the websocket mandated headers.)
 			nni_http_req_free(req);
 			nni_aio_set_output(aio, 0, res);
 			nni_aio_finish(aio, 0, 0);
@@ -1659,8 +1511,6 @@ ws_handler(nni_aio *aio)
 #undef GETH
 #undef SETH
 
-	// We are good to go, provided we can get the websocket struct,
-	// and send the reply.
 	if ((rv = ws_init(&ws)) != 0) {
 		nni_http_req_free(req);
 		nni_http_res_free(res);
@@ -1772,7 +1622,6 @@ ws_listener_close(void *arg)
 	nni_mtx_unlock(&l->mtx);
 }
 
-// XXX: Consider replacing this with an option.
 void
 nni_ws_listener_hook(
     nni_ws_listener *l, nni_ws_listen_hook hookfn, void *hookarg)
@@ -1827,9 +1676,6 @@ ws_listener_set_size(
 	size_t val;
 	int    rv;
 
-	// Max size is limited to 4 GB, but you really never want to have
-	// to have a larger value.  If you think you need that, you're doing it
-	// wrong.  You *can* set the size to 0 for unlimited.
 	if ((rv = nni_copyin_size(&val, buf, sz, 0, NNI_MAXSZ, t)) == 0) {
 		nni_mtx_lock(&l->mtx);
 		*valp = val;
@@ -2040,7 +1886,6 @@ static const nni_option ws_listener_options[] = {
 	{
 	    .o_name = NNG_OPT_WS_RESPONSE_HEADERS,
 	    .o_set  = ws_listener_set_res_headers,
-	    // XXX: Get not implemented yet; likely of marginal value.
 	},
 	{
 	    .o_name = NNG_OPT_WS_PROTOCOL,
@@ -2131,7 +1976,6 @@ nni_ws_listener_alloc(nng_stream_listener **wslp, const nng_url *url)
 	NNI_LIST_INIT(&l->pend, nni_ws, node);
 	NNI_LIST_INIT(&l->reply, nni_ws, node);
 
-	// make a private copy of the url structure.
 	if ((rv = nng_url_clone(&l->url, url)) != 0) {
 		ws_listener_free(l);
 		return (rv);
@@ -2211,7 +2055,6 @@ ws_conn_cb(void *arg)
 	http = nni_aio_get_output(ws->connaio, 0);
 	nni_aio_set_output(ws->connaio, 0, NULL);
 	if (uaio == NULL) {
-		// This request was canceled for some reason.
 		nni_http_conn_fini(http);
 		nni_mtx_unlock(&ws->mtx);
 		ws_reap(ws);
@@ -2418,9 +2261,6 @@ ws_dialer_set_size(
 	size_t val;
 	int    rv;
 
-	// Max size is limited to 4 GB, but you really never want to have
-	// to have a larger value.  If you think you need that, you're doing it
-	// wrong.  You *can* set the size to 0 for unlimited.
 	if ((rv = nni_copyin_size(&val, buf, sz, 0, NNI_MAXSZ, t)) == 0) {
 		nni_mtx_lock(&d->mtx);
 		*valp = val;
@@ -2574,7 +2414,6 @@ static const nni_option ws_dialer_options[] = {
 	{
 	    .o_name = NNG_OPT_WS_REQUEST_HEADERS,
 	    .o_set  = ws_dialer_set_req_headers,
-	    // XXX: Get not implemented yet; likely of marginal value.
 	},
 	{
 	    .o_name = NNG_OPT_WS_PROTOCOL,
@@ -2681,11 +2520,6 @@ nni_ws_dialer_alloc(nng_stream_dialer **dp, const nng_url *url)
 	return (0);
 }
 
-// Dialer does not get a hook chance, as it can examine the request
-// and reply after dial is done; this is not a 3-way handshake, so
-// the dialer does not confirm the server's response at the HTTP
-// level. (It can still issue a websocket close).
-
 static void
 ws_str_free(void *arg)
 {
@@ -2729,7 +2563,6 @@ ws_str_send(void *arg, nni_aio *aio)
 		iov[niov].iov_buf = nni_msg_body(msg);
 		niov++;
 
-		// Scribble into the iov for now.
 		nni_aio_set_iov(aio, niov, iov);
 	}
 
@@ -2876,7 +2709,6 @@ ws_str_set(void *arg, const char *nm, const void *buf, size_t sz, nni_type t)
 	nni_ws *ws = arg;
 	int     rv;
 
-	// Headers can only be set.
 	nni_mtx_lock(&ws->mtx);
 	if (ws->closed) {
 		nni_mtx_unlock(&ws->mtx);
@@ -2939,7 +2771,6 @@ ws_str_get(void *arg, const char *nm, void *buf, size_t *szp, nni_type t)
 	if (rv == NNG_ENOTSUP) {
 		rv = nni_getopt(ws_options, nm, ws, buf, szp, t);
 	}
-	// Check for generic headers...
 	if (rv == NNG_ENOTSUP) {
 		if (startswith(nm, NNG_OPT_WS_REQUEST_HEADER)) {
 			rv = ws_get_req_header(ws, nm, buf, szp, t);

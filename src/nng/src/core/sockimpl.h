@@ -12,26 +12,26 @@
 #define CORE_SOCKIMPL_H
 
 struct nni_dialer {
-	nni_sp_dialer_ops d_ops;  // transport ops
-	nni_sp_tran      *d_tran; // transport pointer
-	void             *d_data; // transport private
-	uint32_t          d_id;   // endpoint id
-	nni_list_node     d_node; // per socket list
+	nni_sp_dialer_ops d_ops;
+	nni_sp_tran      *d_tran;
+	void             *d_data;
+	uint32_t          d_id;
+	nni_list_node     d_node;
 	nni_sock         *d_sock;
 	nni_url          *d_url;
-	nni_pipe         *d_pipe; // active pipe (for re-dialer)
+	nni_pipe         *d_pipe;
 	int               d_ref;
-	bool              d_closed; // full shutdown
+	bool              d_closed;
 	nni_atomic_flag   d_closing;
 	nni_atomic_flag   d_started;
 	nni_mtx           d_mtx;
 	nni_list          d_pipes;
 	nni_aio          *d_user_aio;
 	nni_aio           d_con_aio;
-	nni_aio           d_tmo_aio;  // backoff timer
-	nni_duration      d_maxrtime; // maximum time for reconnect
-	nni_duration      d_currtime; // current time for reconnect
-	nni_duration      d_inirtime; // initial time for reconnect
+	nni_aio           d_tmo_aio;
+	nni_duration      d_maxrtime;
+	nni_duration      d_currtime;
+	nni_duration      d_inirtime;
 	nni_reap_node     d_reap;
 
 #ifdef NNG_ENABLE_STATS
@@ -42,11 +42,11 @@ struct nni_dialer {
 	nni_stat_item st_pipes;
 	nni_stat_item st_connect;
 	nni_stat_item st_refused;
-	nni_stat_item st_disconnect; // aborted remotely
+	nni_stat_item st_disconnect;
 	nni_stat_item st_canceled;
 	nni_stat_item st_other;
 	nni_stat_item st_timeout;
-	nni_stat_item st_proto; // protocol error
+	nni_stat_item st_proto;
 	nni_stat_item st_auth;
 	nni_stat_item st_oom;
 	nni_stat_item st_reject;
@@ -54,16 +54,16 @@ struct nni_dialer {
 };
 
 struct nni_listener {
-	nni_sp_listener_ops l_ops;  // transport ops
-	nni_sp_tran        *l_tran; // transport pointer
-	void               *l_data; // transport private
-	uint32_t            l_id;   // endpoint id
-	nni_list_node       l_node; // per socket list
+	nni_sp_listener_ops l_ops;
+	nni_sp_tran        *l_tran;
+	void               *l_data;
+	uint32_t            l_id;
+	nni_list_node       l_node;
 	nni_sock           *l_sock;
 	nni_url            *l_url;
 	int                 l_ref;
-	bool                l_closed;  // full shutdown
-	nni_atomic_flag     l_closing; // close started (shutdown)
+	bool                l_closed;
+	nni_atomic_flag     l_closing;
 	nni_atomic_flag     l_started;
 	nni_list            l_pipes;
 	nni_aio             l_acc_aio;
@@ -77,11 +77,11 @@ struct nni_listener {
 	nni_stat_item st_url;
 	nni_stat_item st_pipes;
 	nni_stat_item st_accept;
-	nni_stat_item st_disconnect; // aborted remotely
+	nni_stat_item st_disconnect;
 	nni_stat_item st_canceled;
 	nni_stat_item st_other;
 	nni_stat_item st_timeout;
-	nni_stat_item st_proto; // protocol error
+	nni_stat_item st_proto;
 	nni_stat_item st_auth;
 	nni_stat_item st_oom;
 	nni_stat_item st_reject;
@@ -145,4 +145,4 @@ extern int  nni_pipe_create_listener(nni_pipe **, nni_listener *, void *);
 
 extern void nni_pipe_start(nni_pipe *);
 
-#endif // CORE_SOCKIMPL_H
+#endif

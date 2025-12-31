@@ -17,4 +17,4 @@
 extern int nni_tls_dialer_alloc(nng_stream_dialer **, const nng_url *);
 extern int nni_tls_listener_alloc(nng_stream_listener **, const nng_url *);
 
-#endif // NNG_SUPPLEMENTAL_TLS_TLS_API_H
+#endif

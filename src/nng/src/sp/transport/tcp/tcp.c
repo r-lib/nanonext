@@ -14,13 +14,9 @@
 
 #include "core/nng_impl.h"
 
-// TCP transport.   Platform specific TCP operations must be
-// supplied as well.
-
 typedef struct tcptran_pipe tcptran_pipe;
 typedef struct tcptran_ep   tcptran_ep;
 
-// tcp_pipe is one end of a TCP connection.
 struct tcptran_pipe {
 	nng_stream     *conn;
 	nni_pipe       *npipe;
@@ -55,15 +51,15 @@ struct tcptran_ep {
 	bool                 started;
 	bool                 closed;
 	nng_url             *url;
-	const char          *host; // for dialers
+	const char          *host;
 	nng_sockaddr         src;
-	int                  refcnt; // active pipes
+	int                  refcnt;
 	nni_aio             *useraio;
 	nni_aio             *connaio;
 	nni_aio             *timeaio;
-	nni_list             busypipes; // busy pipes -- ones passed to socket
-	nni_list             waitpipes; // pipes waiting to match to socket
-	nni_list             negopipes; // pipes busy negotiating
+	nni_list             busypipes;
+	nni_list             waitpipes;
+	nni_list             negopipes;
 	nni_reap_node        reap;
 	nng_stream_dialer   *dialer;
 	nng_stream_listener *listener;
@@ -232,7 +228,6 @@ tcptran_pipe_nego_cb(void *arg)
 		goto error;
 	}
 
-	// We start transmitting before we receive.
 	if (p->gottxhead < p->wanttxhead) {
 		p->gottxhead += nni_aio_count(aio);
 	} else if (p->gotrxhead < p->wantrxhead) {
@@ -243,7 +238,6 @@ tcptran_pipe_nego_cb(void *arg)
 		nni_iov iov;
 		iov.iov_len = p->wanttxhead - p->gottxhead;
 		iov.iov_buf = &p->txlen[p->gottxhead];
-		// send it down...
 		nni_aio_set_iov(aio, 1, &iov);
 		nng_stream_send(p->conn, aio);
 		nni_mtx_unlock(&ep->mtx);
@@ -258,8 +252,6 @@ tcptran_pipe_nego_cb(void *arg)
 		nni_mtx_unlock(&ep->mtx);
 		return;
 	}
-	// We have both sent and received the headers.  Let's check the
-	// receiver.
 	if ((p->rxlen[0] != 0) || (p->rxlen[1] != 'S') ||
 	    (p->rxlen[2] != 'P') || (p->rxlen[3] != 0) || (p->rxlen[6] != 0) ||
 	    (p->rxlen[7] != 0)) {
@@ -269,8 +261,6 @@ tcptran_pipe_nego_cb(void *arg)
 
 	NNI_GET16(&p->rxlen[4], p->peer);
 
-	// We are ready now.  We put this in the wait list, and
-	// then try to run the matcher.
 	nni_list_remove(&ep->negopipes, p);
 	nni_list_append(&ep->waitpipes, p);
 
@@ -280,10 +270,6 @@ tcptran_pipe_nego_cb(void *arg)
 	return;
 
 error:
-	// If the connection is closed, we need to pass back a different
-	// error code.  This is necessary to avoid a problem where the
-	// closed status is confused with the accept file descriptor
-	// being closed.
 	if (rv == NNG_ECLOSED) {
 		rv = NNG_ECONNSHUT;
 	}
@@ -314,11 +300,6 @@ tcptran_pipe_send_cb(void *arg)
 
 	if ((rv = nni_aio_result(txaio)) != 0) {
 		nni_pipe_bump_error(p->npipe, rv);
-		// Intentionally we do not queue up another transfer.
-		// There's an excellent chance that the pipe is no longer
-		// usable, with a partial transfer.
-		// The protocol should see this error, and close the
-		// pipe itself, we hope.
 		nni_aio_list_remove(aio);
 		nni_mtx_unlock(&p->mtx);
 		nni_aio_finish_error(aio, rv);
@@ -376,16 +357,10 @@ tcptran_pipe_recv_cb(void *arg)
 		return;
 	}
 
-	// If we don't have a message yet, we were reading the TCP message
-	// header, which is just the length.  This tells us the size of the
-	// message to allocate and how much more to expect.
 	if (p->rxmsg == NULL) {
 		uint64_t len;
-		// We should have gotten a message header.
 		NNI_GET64(p->rxlen, len);
 
-		// Make sure the message payload is not too big.  If it is
-		// the caller will shut down the pipe.
 		if ((len > p->rcvmax) && (p->rcvmax > 0)) {
 			rv = NNG_EMSGSIZE;
 			goto recv_error;
@@ -395,8 +370,6 @@ tcptran_pipe_recv_cb(void *arg)
 			goto recv_error;
 		}
 
-		// Submit the rest of the data for a read -- we want to
-		// read the entire message now.
 		if (len != 0) {
 			nni_iov iov;
 			iov.iov_buf = nni_msg_body(p->rxmsg);
@@ -409,7 +382,6 @@ tcptran_pipe_recv_cb(void *arg)
 		}
 	}
 
-	// We read a message completely.  Let the user know the good news.
 	nni_aio_list_remove(aio);
 	msg      = p->rxmsg;
 	p->rxmsg = NULL;
@@ -428,8 +400,6 @@ recv_error:
 	msg      = p->rxmsg;
 	p->rxmsg = NULL;
 	nni_pipe_bump_error(p->npipe, rv);
-	// Intentionally, we do not queue up another receive.
-	// The protocol should notice this error and close the pipe.
 	nni_mtx_unlock(&p->mtx);
 
 	nni_msg_free(msg);
@@ -446,9 +416,6 @@ tcptran_pipe_send_cancel(nni_aio *aio, void *arg, int rv)
 		nni_mtx_unlock(&p->mtx);
 		return;
 	}
-	// If this is being sent, then cancel the pending transfer.
-	// The callback on the txaio will cause the user aio to
-	// be canceled too.
 	if (nni_list_first(&p->sendq) == aio) {
 		nni_aio_abort(p->txaio, rv);
 		nni_mtx_unlock(&p->mtx);
@@ -482,7 +449,6 @@ tcptran_pipe_send_start(tcptran_pipe *p)
 		return;
 	}
 
-	// This runs to send the message.
 	msg = nni_aio_get_msg(aio);
 	len = nni_msg_len(msg) + nni_msg_header_len(msg);
 
@@ -514,8 +480,6 @@ tcptran_pipe_send(void *arg, nni_aio *aio)
 	int           rv;
 
 	if (nni_aio_begin(aio) != 0) {
-		// No way to give the message back to the protocol, so
-		// we just discard it silently to prevent it from leaking.
 		nni_msg_free(nni_aio_get_msg(aio));
 		nni_aio_set_msg(aio, NULL);
 		return;
@@ -543,9 +507,6 @@ tcptran_pipe_recv_cancel(nni_aio *aio, void *arg, int rv)
 		nni_mtx_unlock(&p->mtx);
 		return;
 	}
-	// If receive in progress, then cancel the pending transfer.
-	// The callback on the rxaio will cause the user aio to
-	// be canceled too.
 	if (nni_list_first(&p->recvq) == aio) {
 		nni_aio_abort(p->rxaio, rv);
 		nni_mtx_unlock(&p->mtx);
@@ -575,7 +536,6 @@ tcptran_pipe_recv_start(tcptran_pipe *p)
 		return;
 	}
 
-	// Schedule a read of the header.
 	rxaio       = p->rxaio;
 	iov.iov_buf = p->rxlen;
 	iov.iov_len = sizeof(p->rxlen);
@@ -650,7 +610,7 @@ tcptran_pipe_start(tcptran_pipe *p, nng_stream *conn, tcptran_ep *ep)
 	nni_aio_set_iov(p->negoaio, 1, &iov);
 	nni_list_append(&ep->negopipes, p);
 
-	nni_aio_set_timeout(p->negoaio, 10000); // 10 sec timeout to negotiate
+	nni_aio_set_timeout(p->negoaio, 10000);
 	nng_stream_send(p->conn, p->negoaio);
 }
 
@@ -710,9 +670,6 @@ tcptran_ep_close(void *arg)
 	nni_mtx_unlock(&ep->mtx);
 }
 
-// This parses off the optional source address that this transport uses.
-// The special handling of this URL format is quite honestly an historical
-// mistake, which we would remove if we could.
 static int
 tcptran_url_parse_source(nng_url *url, nng_sockaddr *sa, const nng_url *surl)
 {
@@ -722,9 +679,6 @@ tcptran_url_parse_source(nng_url *url, nng_sockaddr *sa, const nng_url *surl)
 	size_t   len;
 	int      rv;
 	nni_aio *aio;
-
-	// We modify the URL.  This relies on the fact that the underlying
-	// transport does not free this, so we can just use references.
 
 	url->u_scheme   = surl->u_scheme;
 	url->u_port     = surl->u_port;
@@ -809,8 +763,6 @@ tcptran_accept_cb(void *arg)
 	return;
 
 error:
-	// When an error here occurs, let's send a notice up to the consumer.
-	// That way it can be reported properly.
 	if ((aio = ep->useraio) != NULL) {
 		ep->useraio = NULL;
 		nni_aio_finish_error(aio, rv);
@@ -863,8 +815,6 @@ tcptran_dial_cb(void *arg)
 	return;
 
 error:
-	// Error connecting.  We need to pass this straight back
-	// to the user.
 	nni_mtx_lock(&ep->mtx);
 	if ((aio = ep->useraio) != NULL) {
 		ep->useraio = NULL;
@@ -913,7 +863,6 @@ tcptran_dialer_init(void **dp, nng_url *url, nni_dialer *ndialer)
 	nni_sock    *sock = nni_dialer_sock(ndialer);
 	nng_url      myurl;
 
-	// Check for invalid URL components.
 	if ((strlen(url->u_path) != 0) && (strcmp(url->u_path, "/") != 0)) {
 		return (NNG_EADDRINVAL);
 	}
@@ -958,7 +907,6 @@ tcptran_listener_init(void **lp, nng_url *url, nni_listener *nlistener)
 	int         rv;
 	nni_sock   *sock = nni_listener_sock(nlistener);
 
-	// Check for invalid URL components.
 	if ((strlen(url->u_path) != 0) && (strcmp(url->u_path, "/") != 0)) {
 		return (NNG_EADDRINVAL);
 	}
@@ -1146,7 +1094,6 @@ static const nni_option tcptran_ep_opts[] = {
 	    .o_name = NNG_OPT_URL,
 	    .o_get  = tcptran_ep_get_url,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},

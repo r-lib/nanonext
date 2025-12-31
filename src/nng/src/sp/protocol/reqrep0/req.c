@@ -12,9 +12,6 @@
 #include "core/nng_impl.h"
 #include "nng/protocol/reqrep0/req.h"
 
-// Request protocol.  The REQ protocol is the "request" side of a
-// request-reply pair.  This is useful for building RPC clients, for example.
-
 typedef struct req0_pipe req0_pipe;
 typedef struct req0_sock req0_sock;
 typedef struct req0_ctx  req0_ctx;
@@ -26,53 +23,48 @@ static void req0_ctx_fini(void *);
 static void req0_ctx_init(void *, void *);
 static void req0_retry_cb(void *);
 
-// A req0_ctx is a "context" for the request.  It uses most of the
-// socket, but keeps track of its own outstanding replays, the request ID,
-// and so forth.
 struct req0_ctx {
 	req0_sock    *sock;
-	nni_list_node sock_node;  // node on the socket context list
-	nni_list_node send_node;  // node on the send_queue
-	nni_list_node pipe_node;  // node on the pipe list
-	nni_list_node retry_node; // node on the socket retry list
-	uint32_t      request_id; // request ID, without high bit set
-	nni_aio      *recv_aio;   // user aio waiting to recv - only one!
-	nni_aio      *send_aio;   // user aio waiting to send
-	nng_msg      *req_msg;    // request message (owned by protocol)
-	size_t        req_len;    // length of request message (for stats)
-	nng_msg      *rep_msg;    // reply message
+	nni_list_node sock_node;
+	nni_list_node send_node;
+	nni_list_node pipe_node;
+	nni_list_node retry_node;
+	uint32_t      request_id;
+	nni_aio      *recv_aio;
+	nni_aio      *send_aio;
+	nng_msg      *req_msg;
+	size_t        req_len;
+	nng_msg      *rep_msg;
 	nni_duration  retry;
-	nni_time      retry_time; // retry after this expires
-	bool          conn_reset; // sent message w/o retry, peer disconnect
+	nni_time      retry_time;
+	bool          conn_reset;
 };
 
-// A req0_sock is our per-socket protocol private structure.
 struct req0_sock {
 	nni_duration   retry;
 	bool           closed;
-	bool           retry_active; // true if retry aio running
+	bool           retry_active;
 	nni_atomic_int ttl;
-	req0_ctx       master; // base socket master
+	req0_ctx       master;
 	nni_list       ready_pipes;
 	nni_list       busy_pipes;
 	nni_list       stop_pipes;
 	nni_list       contexts;
-	nni_list       send_queue; // contexts waiting to send.
+	nni_list       send_queue;
 	nni_list       retry_queue;
-	nni_aio        retry_aio; // retry timer
-	nni_id_map     requests;  // contexts by request ID
+	nni_aio        retry_aio;
+	nni_id_map     requests;
 	nni_pollable   readable;
 	nni_pollable   writable;
-	nni_duration   retry_tick; // clock interval for retry timer
+	nni_duration   retry_tick;
 	nni_mtx        mtx;
 };
 
-// A req0_pipe is our per-pipe protocol private structure.
 struct req0_pipe {
 	nni_pipe     *pipe;
 	req0_sock    *req;
 	nni_list_node node;
-	nni_list      contexts; // contexts with pending traffic
+	nni_list      contexts;
 	bool          closed;
 	nni_aio       aio_send;
 	nni_aio       aio_recv;
@@ -89,9 +81,6 @@ req0_sock_init(void *arg, nni_sock *sock)
 
 	NNI_ARG_UNUSED(sock);
 
-	// Request IDs are 32 bits, with the high order bit set.
-	// We start at a random point, to minimize likelihood of
-	// accidental collision across restarts.
 	nni_id_map_init(&s->requests, 0x80000000u, 0xffffffffu, true);
 
 	nni_mtx_init(&s->mtx);
@@ -103,9 +92,8 @@ req0_sock_init(void *arg, nni_sock *sock)
 	NNI_LIST_INIT(&s->retry_queue, req0_ctx, retry_node);
 	NNI_LIST_INIT(&s->contexts, req0_ctx, sock_node);
 
-	// this is "semi random" start for request IDs.
 	s->retry      = NNI_SECOND * 60;
-	s->retry_tick = NNI_SECOND; // how often we check for retries
+	s->retry_tick = NNI_SECOND;
 
 	req0_ctx_init(&s->master, s);
 
@@ -221,9 +209,6 @@ req0_pipe_close(void *arg)
 	nni_aio_close(&p->aio_send);
 
 	nni_mtx_lock(&s->mtx);
-	// This removes the node from either busy_pipes or ready_pipes.
-	// It doesn't much matter which.  We stick the pipe on the stop
-	// list, so that we can wait for that to close down safely.
 	p->closed = true;
 	nni_list_node_remove(&p->node);
 	nni_list_append(&s->stop_pipes, p);
@@ -235,9 +220,6 @@ req0_pipe_close(void *arg)
 		nni_list_remove(&p->contexts, ctx);
 		nng_aio *aio;
 		if (ctx->retry <= 0) {
-			// If we can't retry, then just cancel the operation
-			// altogether.  We should only be waiting for recv,
-			// because we will already have sent if we are here.
 			if ((aio = ctx->recv_aio) != NULL) {
 				ctx->recv_aio = NULL;
 				nni_aio_finish_error(aio, NNG_ECONNRESET);
@@ -247,10 +229,6 @@ req0_pipe_close(void *arg)
 				ctx->conn_reset = true;
 			}
 		} else if (ctx->req_msg != NULL) {
-			// Reset the retry time to make it expire immediately.
-			// Also move this immediately to the resend queue.
-			// The timer should still be firing, so we don't need
-			// to restart or reschedule that.
 			ctx->retry_time = nni_clock() + ctx->retry;
 
 			if (!nni_list_node_active(&ctx->send_node)) {
@@ -262,11 +240,6 @@ req0_pipe_close(void *arg)
 	nni_mtx_unlock(&s->mtx);
 }
 
-// For cooked mode, we use a context, and send out that way.  This
-// completely bypasses the upper write queue.  Each context keeps one
-// message pending; these are "scheduled" via the send_queue.  The send_queue
-// is ordered, so FIFO ordering between contexts is provided for.
-
 static void
 req0_send_cb(void *arg)
 {
@@ -276,20 +249,14 @@ req0_send_cb(void *arg)
 
 	nni_aio_completions_init(&sent_list);
 	if (nni_aio_result(&p->aio_send) != 0) {
-		// We failed to send... clean up and deal with it.
 		nni_msg_free(nni_aio_get_msg(&p->aio_send));
 		nni_aio_set_msg(&p->aio_send, NULL);
 		nni_pipe_close(p->pipe);
 		return;
 	}
 
-	// We completed a cooked send, so we need to reinsert ourselves
-	// in the ready list, and re-run the send_queue.
-
 	nni_mtx_lock(&s->mtx);
 	if (p->closed || s->closed) {
-		// This occurs if the req0_pipe_close has been called.
-		// In that case we don't want any more processing.
 		nni_mtx_unlock(&s->mtx);
 		return;
 	}
@@ -323,31 +290,22 @@ req0_recv_cb(void *arg)
 	nni_aio_set_msg(&p->aio_recv, NULL);
 	nni_msg_set_pipe(msg, nni_pipe_id(p->pipe));
 
-	// We yank 4 bytes from front of body, and move them to the header.
 	if (nni_msg_len(msg) < 4) {
-		// Malformed message.
 		goto malformed;
 	}
 	id = nni_msg_trim_u32(msg);
 
-	// Schedule another receive while we are processing this.
 	nni_mtx_lock(&s->mtx);
 
-	// NB: If close was called, then this will just abort.
 	nni_pipe_recv(p->pipe, &p->aio_recv);
 
-	// Look for a context to receive it.
 	if (((ctx = nni_id_get(&s->requests, id)) == NULL) ||
 	    (ctx->send_aio != NULL) || (ctx->rep_msg != NULL)) {
 		nni_mtx_unlock(&s->mtx);
-		// No waiting context, we have not sent the request out to
-		// the wire yet, or context already has a reply ready.
-		// Discard the message.
 		nni_msg_free(msg);
 		return;
 	}
 
-	// We have our match, so we can remove this.
 	nni_list_node_remove(&ctx->send_node);
 	nni_id_remove(&s->requests, id);
 	ctx->request_id = 0;
@@ -358,14 +316,12 @@ req0_recv_cb(void *arg)
 		ctx->req_msg = NULL;
 	}
 
-	// Is there an aio waiting for us?
 	if ((aio = ctx->recv_aio) != NULL) {
 		ctx->recv_aio = NULL;
 		nni_mtx_unlock(&s->mtx);
 		nni_aio_set_msg(aio, msg);
 		nni_aio_finish_sync(aio, 0, nni_msg_len(msg));
 	} else {
-		// No AIO, so stash msg.  Receive will pick it up later.
 		ctx->rep_msg = msg;
 		if (ctx == &s->master) {
 			nni_pollable_raise(&s->readable);
@@ -387,10 +343,6 @@ req0_retry_cb(void *arg)
 	nni_time   now;
 	bool       reschedule = false;
 
-	// The design of this is that retries are infrequent, because
-	// we should normally be succeeding.  We also hope that we are not
-	// executing this linear scan of all requests too often, once
-	// per clock tick is all we want.
 	now = nni_clock();
 	nni_mtx_lock(&s->mtx);
 	if (s->closed || (nni_aio_result(&s->retry_aio) != 0)) {
@@ -408,8 +360,6 @@ req0_retry_cb(void *arg)
 		reschedule = true;
 	}
 	if (!nni_list_empty(&s->retry_queue)) {
-		// if there are still jobs in the queue waiting to be
-		// retried, do them.
 		nni_sleep_aio(s->retry_tick, &s->retry_aio);
 	} else {
 		s->retry_active = false;
@@ -477,7 +427,6 @@ req0_run_send_queue(req0_sock *s, nni_aio_completions *sent_list)
 	req0_ctx *ctx;
 	nni_aio  *aio;
 
-	// Note: This routine should be called with the socket lock held.
 	while ((ctx = nni_list_first(&s->send_queue)) != NULL) {
 		req0_pipe *p;
 
@@ -485,25 +434,13 @@ req0_run_send_queue(req0_sock *s, nni_aio_completions *sent_list)
 			return;
 		}
 
-		// We have a place to send it, so send it.
-		// If a sending error occurs that causes the message to
-		// be dropped, we rely on the resend timer to pick it up.
-		// We also notify the completion callback if this is the
-		// first send attempt.
 		nni_list_remove(&s->send_queue, ctx);
 
-		// Schedule a retry.  We only do this if we got
-		// a pipe to send to.  Otherwise, we should get handled
-		// the next time that the send_queue is run.  We don't do this
-		// if the retry is "disabled" with NNG_DURATION_INFINITE.
 		if (ctx->retry > 0) {
 			nni_list_node_remove(&ctx->retry_node);
 			nni_list_append(&s->retry_queue, ctx);
 		}
 
-		// Put us on the pipe list of active contexts.
-		// This gives the pipe a chance to kick a resubmit
-		// if the pipe is removed.
 		nni_list_node_remove(&ctx->pipe_node);
 		nni_list_append(&p->contexts, ctx);
 
@@ -516,8 +453,6 @@ req0_run_send_queue(req0_sock *s, nni_aio_completions *sent_list)
 		if ((aio = ctx->send_aio) != NULL) {
 			ctx->send_aio = NULL;
 			nni_aio_bump_count(aio, ctx->req_len);
-			// If the list was passed in, we want to do a
-			// synchronous completion later.
 			if (sent_list != NULL) {
 				nni_aio_completions_add(sent_list, aio, 0, 0);
 			} else {
@@ -525,9 +460,6 @@ req0_run_send_queue(req0_sock *s, nni_aio_completions *sent_list)
 			}
 		}
 
-		// At this point, we will never give this message back to
-		// the user, so we don't have to worry about making it
-		// unique.  We can freely clone it.
 		if (ctx->retry > 0) {
 		  nni_msg_clone(ctx->req_msg);
 		}
@@ -540,7 +472,6 @@ void
 req0_ctx_reset(req0_ctx *ctx)
 {
 	req0_sock *s = ctx->sock;
-	// Call with sock lock held!
 
 	nni_list_node_remove(&ctx->retry_node);
 	nni_list_node_remove(&ctx->pipe_node);
@@ -570,13 +501,6 @@ req0_ctx_cancel_recv(nni_aio *aio, void *arg, int rv)
 
 	nni_mtx_lock(&s->mtx);
 
-	// So it turns out that some users start receiving before waiting
-	// for the send notification.  In this case if receiving is
-	// canceled before sending completes, we need to restore the
-	// message for the user.  It's probably a mis-design if the user
-	// is trying to receive without waiting for sending to complete, but
-	// it was reported in the field.  Users who want to avoid this mess
-	// should just start receiving from the send completion callback.
 	if (ctx->send_aio != NULL) {
 		nni_aio_set_msg(ctx->send_aio, ctx->req_msg);
 		nni_msg_header_clear(ctx->req_msg);
@@ -589,13 +513,6 @@ req0_ctx_cancel_recv(nni_aio *aio, void *arg, int rv)
 	if (ctx->recv_aio == aio) {
 		ctx->recv_aio = NULL;
 
-		// Cancellation of a pending receive is treated as aborting the
-		// entire state machine.  This allows us to preserve the
-		// semantic of exactly one receive operation per send
-		// operation, and should be the least surprising for users. The
-		// main consequence is that if the operation is completed
-		// (in error or otherwise), the user must submit a new send
-		// operation to restart the state machine.
 		req0_ctx_reset(ctx);
 
 		nni_aio_finish_error(aio, rv);
@@ -617,9 +534,6 @@ req0_ctx_recv(void *arg, nni_aio *aio)
 	nni_mtx_lock(&s->mtx);
 	if ((ctx->recv_aio != NULL) ||
 	    ((ctx->req_msg == NULL) && (ctx->rep_msg == NULL))) {
-		// We have already got a pending receive or have not
-		// tried to send a request yet.
-		// Either of these violate our basic state assumptions.
 		int rv;
 		if (ctx->conn_reset) {
 			ctx->conn_reset = false;
@@ -647,7 +561,6 @@ req0_ctx_recv(void *arg, nni_aio *aio)
 
 	ctx->rep_msg = NULL;
 
-	// We have got a message to pass up, yay!
 	nni_aio_set_msg(aio, msg);
 	if (ctx == &s->master) {
 		nni_pollable_clear(&s->readable);
@@ -664,22 +577,12 @@ req0_ctx_cancel_send(nni_aio *aio, void *arg, int rv)
 
 	nni_mtx_lock(&s->mtx);
 	if (ctx->send_aio == aio) {
-		// There should not be a pending reply, because we canceled
-		// it while we were waiting.
 		NNI_ASSERT(ctx->recv_aio == NULL);
 		ctx->send_aio = NULL;
-		// Restore the message back to the aio.
 		nni_aio_set_msg(aio, ctx->req_msg);
 		nni_msg_header_clear(ctx->req_msg);
 		ctx->req_msg = NULL;
 
-		// Cancellation of a pending receive is treated as aborting the
-		// entire state machine.  This allows us to preserve the
-		// semantic of exactly one receive operation per send
-		// operation, and should be the least surprising for users. The
-		// main consequence is that if a receive operation is completed
-		// (in error or otherwise), the user must submit a new send
-		// operation to restart the state machine.
 		req0_ctx_reset(ctx);
 
 		nni_aio_finish_error(aio, rv);
@@ -704,8 +607,6 @@ req0_ctx_send(void *arg, nni_aio *aio)
 		nni_aio_finish_error(aio, NNG_ECLOSED);
 		return;
 	}
-	// Sending a new request cancels the old one, including any
-	// outstanding reply.
 	if (ctx->recv_aio != NULL) {
 		nni_aio_finish_error(ctx->recv_aio, NNG_ECANCELED);
 		ctx->recv_aio = NULL;
@@ -719,10 +620,8 @@ req0_ctx_send(void *arg, nni_aio *aio)
 		nni_list_remove(&s->send_queue, ctx);
 	}
 
-	// This resets the entire state machine.
 	req0_ctx_reset(ctx);
 
-	// Insert us on the per ID hash list, so that receives can find us.
 	if ((rv = nni_id_alloc32(&s->requests, &ctx->request_id, ctx)) != 0) {
 		nni_mtx_unlock(&s->mtx);
 		nni_aio_finish_error(aio, rv);
@@ -731,8 +630,6 @@ req0_ctx_send(void *arg, nni_aio *aio)
 	nni_msg_header_clear(msg);
 	nni_msg_header_append_u32(msg, ctx->request_id);
 
-	// If no pipes are ready, and the request was a poll (no background
-	// schedule), then fail it.  Should be NNG_ETIMEDOUT.
 	rv = nni_aio_schedule(aio, req0_ctx_cancel_send, ctx);
 	if ((rv != 0) && (nni_list_empty(&s->ready_pipes))) {
 		nni_id_remove(&s->requests, ctx->request_id);
@@ -754,7 +651,6 @@ req0_ctx_send(void *arg, nni_aio *aio)
 		}
 	}
 
-	// Stick us on the send_queue list.
 	nni_list_append(&s->send_queue, ctx);
 
 	req0_run_send_queue(s, NULL);
@@ -921,7 +817,6 @@ static nni_option req0_sock_options[] = {
 	    .o_set  = req0_sock_set_resend_tick,
 	},
 
-	// terminate list
 	{
 	    .o_name = NULL,
 	},

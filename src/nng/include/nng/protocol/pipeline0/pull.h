@@ -30,4 +30,4 @@ NNG_DECL int nng_pull0_open_raw(nng_socket *);
 }
 #endif
 
-#endif // NNG_PROTOCOL_PIPELINE0_PULL_H
+#endif

@@ -56,4 +56,4 @@ extern int nni_getopt(
 extern int nni_setopt(
     const nni_option *, const char *, void *, const void *, size_t, nni_type);
 
-#endif // CORE_OPTIONS_H
+#endif

@@ -13,10 +13,6 @@
 #include "core/nng_impl.h"
 #include "nng/protocol/survey0/respond.h"
 
-// Respondent protocol.  The RESPONDENT protocol is the "replier" side of
-// the surveyor pattern.  This is useful for building service discovery, or
-// voting algorithms, for example.
-
 #ifndef NNI_PROTO_SURVEYOR_V0
 #define NNI_PROTO_SURVEYOR_V0 NNI_PROTO(6, 2)
 #endif
@@ -35,7 +31,6 @@ static void xresp0_send_cb(void *);
 static void xresp0_sock_getq_cb(void *);
 static void xresp0_pipe_fini(void *);
 
-// resp0_sock is our per-socket protocol private structure.
 struct xresp0_sock {
 	nni_msgq *     urq;
 	nni_msgq *     uwq;
@@ -45,7 +40,6 @@ struct xresp0_sock {
 	nni_mtx        mtx;
 };
 
-// resp0_pipe is our per-pipe protocol private structure.
 struct xresp0_pipe {
 	nni_pipe *   npipe;
 	xresp0_sock *psock;
@@ -74,7 +68,7 @@ xresp0_sock_init(void *arg, nni_sock *ns)
 
 	nni_mtx_init(&s->mtx);
 	nni_atomic_init(&s->ttl);
-	nni_atomic_set(&s->ttl, 8); // Per RFC
+	nni_atomic_set(&s->ttl, 8);
 	nni_id_map_init(&s->pipes, 0, 0, false);
 	nni_aio_init(&s->aio_getq, xresp0_sock_getq_cb, s);
 
@@ -186,11 +180,6 @@ xresp0_pipe_close(void *arg)
 	nni_mtx_unlock(&s->mtx);
 }
 
-// resp0_sock_send watches for messages from the upper write queue,
-// extracts the destination pipe, and forwards it to the appropriate
-// destination pipe via a separate queue.  This prevents a single bad
-// or slow pipe from gumming up the works for the entire socket.s
-
 void
 xresp0_sock_getq_cb(void *arg)
 {
@@ -205,19 +194,14 @@ xresp0_sock_getq_cb(void *arg)
 	msg = nni_aio_get_msg(&s->aio_getq);
 	nni_aio_set_msg(&s->aio_getq, NULL);
 
-	// We yank the outgoing pipe id from the header
 	if (nni_msg_header_len(msg) < 4) {
 		nni_msg_free(msg);
-		// We can't really close down the socket, so just keep going.
 		nni_msgq_aio_get(s->uwq, &s->aio_getq);
 		return;
 	}
 	id = nni_msg_header_trim_u32(msg);
 
 	nni_mtx_lock(&s->mtx);
-	// Look for the pipe, and attempt to put the message there
-	// (nonblocking) if we can.  If we can't for any reason, then we
-	// free the message.
 	if (((p = nni_id_get(&s->pipes, id)) == NULL) ||
 	    (nni_msgq_tryput(p->sendq, msg) != 0)) {
 		nni_msg_free(msg);
@@ -277,10 +261,8 @@ xresp0_recv_cb(void *arg)
 	nni_aio_set_msg(&p->aio_recv, NULL);
 	nni_msg_set_pipe(msg, p->id);
 
-	// Store the pipe id in the header, first thing.
 	nni_msg_header_append_u32(msg, p->id);
 
-	// Move backtrace from body to header
 	hops = 1;
 	for (;;) {
 		bool     end;
@@ -291,7 +273,6 @@ xresp0_recv_cb(void *arg)
 		}
 		hops++;
 		if (nni_msg_len(msg) < 4) {
-			// Peer sent us garbage, so kick it.
 			nni_msg_free(msg);
 			nni_pipe_close(p->npipe);
 			return;
@@ -307,7 +288,6 @@ xresp0_recv_cb(void *arg)
 		}
 	}
 
-	// Now send it up.
 	nni_aio_set_msg(&p->aio_putq, msg);
 	nni_msgq_aio_put(urq, &p->aio_putq);
 	return;
@@ -382,7 +362,6 @@ static nni_option xresp0_sock_options[] = {
 	    .o_get  = xresp0_sock_get_maxttl,
 	    .o_set  = xresp0_sock_set_maxttl,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},

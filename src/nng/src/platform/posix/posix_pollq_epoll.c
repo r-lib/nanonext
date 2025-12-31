@@ -15,7 +15,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h> /* for strerror() */
+#include <string.h> 
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <unistd.h>
@@ -34,29 +34,14 @@ typedef struct nni_posix_pollq nni_posix_pollq;
 
 #define NNI_MAX_EPOLL_EVENTS 64
 
-// flags we always want enabled as long as at least one event is active
 #define NNI_EPOLL_FLAGS ((unsigned) EPOLLONESHOT | (unsigned) EPOLLERR)
 
-// Locking strategy:
-//
-// The pollq mutex protects its own reapq, close state, and the close
-// state of the individual pfds.  It also protects the pfd cv, which is
-// only signaled when the pfd is closed.  This mutex is only acquired
-// when shutting down the pollq, or closing a pfd.  For normal hot-path
-// operations we don't need it.
-//
-// The pfd mutex protects the pfd's own "closing" flag (test and set),
-// the callback and arg, and its event mask.  This mutex is used a lot,
-// but it should be uncontended excepting possibly when closing.
-
-// nni_posix_pollq is a work structure that manages state for the epoll-based
-// pollq implementation
 struct nni_posix_pollq {
 	nni_mtx  mtx;
-	int      epfd;  // epoll handle
-	int      evfd;  // event fd (to wake us for other stuff)
-	bool     close; // request for worker to exit
-	nni_thr  thr;   // worker thread
+	int      epfd;
+	int      evfd;
+	bool     close;
+	nni_thr  thr;
 	nni_list reapq;
 };
 
@@ -74,7 +59,6 @@ struct nni_posix_pfd {
 	nni_cv           cv;
 };
 
-// single global instance for now.
 static nni_posix_pollq nni_posix_global_pollq;
 
 int
@@ -106,7 +90,6 @@ nni_posix_pfd_init(nni_posix_pfd **pfdp, int fd)
 
 	NNI_LIST_NODE_INIT(&pfd->node);
 
-	// notifications disabled to begin with
 	memset(&ev, 0, sizeof(ev));
 	ev.events   = 0;
 	ev.data.ptr = pfd;
@@ -127,11 +110,6 @@ int
 nni_posix_pfd_arm(nni_posix_pfd *pfd, unsigned events)
 {
 	nni_posix_pollq *pq = pfd->pq;
-
-	// NB: We depend on epoll event flags being the same as their POLLIN
-	// equivalents.  I.e. POLLIN == EPOLLIN, POLLOUT == EPOLLOUT, and so
-	// forth.  This turns out to be true both for Linux and the illumos
-	// epoll implementation.
 
 	nni_mtx_lock(&pfd->mtx);
 	if (!pfd->closing) {
@@ -174,7 +152,7 @@ nni_posix_pfd_close(nni_posix_pfd *pfd)
 	nni_mtx_lock(&pfd->mtx);
 	if (!pfd->closing) {
 		nni_posix_pollq *  pq = pfd->pq;
-		struct epoll_event ev; // Not actually used.
+		struct epoll_event ev;
 		pfd->closing = true;
 
 		(void) shutdown(pfd->fd, SHUT_RDWR);
@@ -190,8 +168,6 @@ nni_posix_pfd_fini(nni_posix_pfd *pfd)
 
 	nni_posix_pfd_close(pfd);
 
-	// We have to synchronize with the pollq thread (unless we are
-	// on that thread!)
 	NNI_ASSERT(!nni_thr_is_self(&pq->thr));
 
 	uint64_t one = 1;
@@ -199,14 +175,6 @@ nni_posix_pfd_fini(nni_posix_pfd *pfd)
 	nni_mtx_lock(&pq->mtx);
 	nni_list_append(&pq->reapq, pfd);
 
-	// Wake the remote side.  For now we assume this always
-	// succeeds.  The only failure modes here occur when we
-	// have already excessively signaled this (2^64 times
-	// with no read!!), or when the evfd is closed, or some
-	// kernel bug occurs.  Those errors would manifest as
-	// a hang waiting for the poller to reap the pfd in fini,
-	// if it were possible for them to occur.  (Barring other
-	// bugs, it isn't.)
 	if (write(pq->evfd, &one, sizeof(one)) != sizeof(one)) {
 		nni_panic("BUG! write to epoll fd incorrect!");
 	}
@@ -215,8 +183,6 @@ nni_posix_pfd_fini(nni_posix_pfd *pfd)
 		nni_cv_wait(&pfd->cv);
 	}
 	nni_mtx_unlock(&pq->mtx);
-
-	// We're exclusive now.
 
 	(void) close(pfd->fd);
 	nni_cv_fini(&pfd->cv);
@@ -232,8 +198,6 @@ nni_posix_pollq_reap(nni_posix_pollq *pq)
 	while ((pfd = nni_list_first(&pq->reapq)) != NULL) {
 		nni_list_remove(&pq->reapq, pfd);
 
-		// Let fini know we're done with it, and it's safe to
-		// remove.
 		pfd->closed = true;
 		nni_cv_wake(&pfd->cv);
 	}
@@ -252,16 +216,13 @@ nni_posix_poll_thr(void *arg)
 
 		n = epoll_wait(pq->epfd, events, NNI_MAX_EPOLL_EVENTS, -1);
 		if ((n < 0) && (errno == EBADF)) {
-			// Epoll fd closed, bail.
 			return;
 		}
 
-		// dispatch events
 		for (int i = 0; i < n; ++i) {
 			const struct epoll_event *ev;
 
 			ev = &events[i];
-			// If the waker pipe was signaled, read from it.
 			if ((ev->data.ptr == NULL) &&
 			    (ev->events & (unsigned) POLLIN)) {
 				uint64_t clear;
@@ -286,7 +247,6 @@ nni_posix_poll_thr(void *arg)
 				cbarg = pfd->arg;
 				nni_mtx_unlock(&pfd->mtx);
 
-				// Execute the callback with lock released
 				if (cb != NULL) {
 					cb(pfd, mask, cbarg);
 				}
@@ -314,8 +274,6 @@ nni_posix_pollq_destroy(nni_posix_pollq *pq)
 	pq->close = true;
 
 	if (write(pq->evfd, &one, sizeof(one)) != sizeof(one)) {
-		// This should never occur, and if it does it could
-		// lead to a hang.
 		nni_panic("BUG! unable to write to evfd!");
 	}
 	nni_mtx_unlock(&pq->mtx);
@@ -331,7 +289,6 @@ nni_posix_pollq_destroy(nni_posix_pollq *pq)
 static int
 nni_posix_pollq_add_eventfd(nni_posix_pollq *pq)
 {
-	// add event fd so we can wake ourself on exit
 	struct epoll_event ev;
 	int                fd;
 
@@ -343,7 +300,6 @@ nni_posix_pollq_add_eventfd(nni_posix_pollq *pq)
 	(void) fcntl(fd, F_SETFD, FD_CLOEXEC);
 	(void) fcntl(fd, F_SETFL, O_NONBLOCK);
 
-	// This is *NOT* one shot.  We want to wake EVERY single time.
 	ev.events   = EPOLLIN;
 	ev.data.ptr = 0;
 
@@ -365,8 +321,6 @@ nni_posix_pollq_create(nni_posix_pollq *pq)
 		return (nni_plat_errno(errno));
 	}
 #else
-	// Old Linux.  Size is a "hint" about number of descriptors.
-	// Hopefully not a hard limit, and not used in modern Linux.
 	if ((pq->epfd = epoll_create(16)) < 0) {
 		return (nni_plat_errno(errno));
 	}
@@ -406,4 +360,4 @@ nni_posix_pollq_sysfini(void)
 	nni_posix_pollq_destroy(&nni_posix_global_pollq);
 }
 
-#endif // NNG_HAVE_EPOLL
+#endif

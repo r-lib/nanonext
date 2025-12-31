@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <string.h>
 
-// Functionality related to dialing.
 static void dialer_connect_start(nni_dialer *);
 static void dialer_connect_cb(void *);
 static void dialer_timer_cb(void *);
@@ -168,7 +167,7 @@ dialer_stats_init(nni_dialer *d)
 	nni_stat_set_string(&d->st_url, d->d_url->u_rawurl);
 	nni_stat_register(&d->st_root);
 }
-#endif // NNG_ENABLE_STATS
+#endif
 
 void
 nni_dialer_bump_error(nni_dialer *d, int err)
@@ -199,7 +198,6 @@ nni_dialer_bump_error(nni_dialer *d, int err)
 		nni_stat_inc(&d->st_oom, 1);
 		break;
 	case NNG_ECLOSED:
-		// do nothing.
 		break;
 	default:
 		nni_stat_inc(&d->st_other, 1);
@@ -211,11 +209,6 @@ nni_dialer_bump_error(nni_dialer *d, int err)
 #endif
 }
 
-// nni_dialer_create creates a dialer on the socket.
-// The caller should have a hold on the socket, and on success
-// the dialer inherits the callers hold.  (If the caller wants
-// an additional hold, it should get an extra hold before calling this
-// function.)
 int
 nni_dialer_create(nni_dialer **dp, nni_sock *s, const char *url_str)
 {
@@ -245,9 +238,6 @@ nni_dialer_create(nni_dialer **dp, nni_sock *s, const char *url_str)
 	d->d_tran   = tran;
 	nni_atomic_flag_reset(&d->d_started);
 
-	// Make a copy of the endpoint operations.  This allows us to
-	// modify them (to override NULLs for example), and avoids an extra
-	// dereference on hot paths.
 	d->d_ops = *tran->tran_dialer;
 
 	NNI_LIST_NODE_INIT(&d->d_node);
@@ -381,8 +371,8 @@ dialer_connect_cb(void *arg)
 #endif
 		nni_dialer_add_pipe(d, nni_aio_get_output(aio, 0));
 		break;
-	case NNG_ECLOSED:   // No further action.
-	case NNG_ECANCELED: // No further action.
+	case NNG_ECLOSED:
+	case NNG_ECANCELED:
 		nni_dialer_bump_error(d, rv);
 		break;
 	case NNG_ECONNREFUSED:
@@ -540,9 +530,6 @@ nni_dialer_getopt(
 		return (o->o_get(d->d_data, valp, szp, t));
 	}
 
-	// We provide a fallback on the URL, but let the implementation
-	// override.  This allows the URL to be created with wildcards,
-	// that are resolved later.
 	if (strcmp(name, NNG_OPT_URL) == 0) {
 		return (nni_copyout_str(d->d_url->u_rawurl, valp, szp, t));
 	}

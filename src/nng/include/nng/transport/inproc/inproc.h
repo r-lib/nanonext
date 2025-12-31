@@ -17,7 +17,6 @@
 extern "C" {
 #endif
 
-// inproc transport.  This is used for intra-process communication.
 #ifndef NNG_ELIDE_DEPRECATED
 NNG_DECL int nng_inproc_register(void);
 #endif
@@ -26,4 +25,4 @@ NNG_DECL int nng_inproc_register(void);
 }
 #endif
 
-#endif // NNG_TRANSPORT_INPROC_INPROC_H
+#endif

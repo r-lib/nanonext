@@ -13,12 +13,6 @@
 #include "core/nng_impl.h"
 #include "nng/protocol/survey0/survey.h"
 
-// Surveyor protocol.  The SURVEYOR protocol is the "survey" side of the
-// survey pattern.  This is useful for building service discovery, voting, etc.
-// Note that this pattern is not optimized for extreme low latency, as it makes
-// multiple use of queues for simplicity.  Typically this is used in cases
-// where a few dozen extra microseconds does not matter.
-
 typedef struct surv0_pipe surv0_pipe;
 typedef struct surv0_sock surv0_sock;
 typedef struct surv0_ctx  surv0_ctx;
@@ -28,7 +22,7 @@ static void surv0_pipe_recv_cb(void *);
 
 struct surv0_ctx {
 	surv0_sock *   sock;
-	uint32_t       survey_id; // survey id
+	uint32_t       survey_id;
 	nni_lmq        recv_lmq;
 	nni_list       recv_queue;
 	nni_atomic_int recv_buf;
@@ -37,7 +31,6 @@ struct surv0_ctx {
 	int            err;
 };
 
-// surv0_sock is our per-socket protocol private structure.
 struct surv0_sock {
 	int            ttl;
 	nni_list       pipes;
@@ -49,7 +42,6 @@ struct surv0_sock {
 	nni_atomic_int send_buf;
 };
 
-// surv0_pipe is our per-pipe protocol private structure.
 struct surv0_pipe {
 	nni_pipe *    pipe;
 	surv0_sock *  sock;
@@ -114,7 +106,7 @@ surv0_ctx_init(void *c, void *s)
 
 	if (ctx == &sock->ctx) {
 		len = 128;
-		tmo = NNI_SECOND; // survey timeout
+		tmo = NNI_SECOND;
 	} else {
 		len = nni_atomic_get(&sock->ctx.recv_buf);
 		tmo = nni_atomic_get(&sock->ctx.survey_time);
@@ -169,7 +161,6 @@ surv0_ctx_recv(void *arg, nni_aio *aio)
 
 	timeout = nni_aio_get_timeout(aio);
 	if ((timeout < 1) || ((now + timeout) > ctx->expire)) {
-		// limit the timeout to the survey time
 		nni_aio_set_expire(aio, ctx->expire);
 	}
 
@@ -216,10 +207,8 @@ surv0_ctx_send(void *arg, nni_aio *aio)
 
 	nni_mtx_lock(&sock->mtx);
 
-	// Abort everything outstanding.
 	surv0_ctx_abort(ctx, NNG_ECANCELED);
 
-	// Allocate the new ID.
 	if ((rv = nni_id_alloc32(&sock->surveys, &ctx->survey_id, ctx)) != 0) {
 		nni_mtx_unlock(&sock->mtx);
 		nni_aio_finish_error(aio, rv);
@@ -228,13 +217,9 @@ surv0_ctx_send(void *arg, nni_aio *aio)
 	nni_msg_header_clear(msg);
 	nni_msg_header_append_u32(msg, (uint32_t) ctx->survey_id);
 
-	// From this point, we're committed to success.  Note that we send
-	// regardless of whether there are any pipes or not.  If no pipes,
-	// then it just gets discarded.
 	nni_aio_set_msg(aio, NULL);
 	NNI_LIST_FOREACH (&sock->pipes, pipe) {
 
-		// if the pipe isn't busy, then send this message direct.
 		if (!pipe->busy) {
 			pipe->busy = true;
 			nni_msg_clone(msg);
@@ -246,8 +231,6 @@ surv0_ctx_send(void *arg, nni_aio *aio)
 		}
 	}
 
-	// save the survey time, so we know the maximum timeout to use when
-	// waiting for receive
 	ctx->expire = nni_clock() + survey_time;
 
 	nni_mtx_unlock(&sock->mtx);
@@ -279,19 +262,11 @@ surv0_sock_init(void *arg, nni_sock *s)
 	nni_mtx_init(&sock->mtx);
 	nni_pollable_init(&sock->readable);
 	nni_pollable_init(&sock->writable);
-	// We are always writable.
 	nni_pollable_raise(&sock->writable);
 
-	// We allow for some buffering on a per-pipe basis, to allow for
-	// multiple contexts to have surveys outstanding.  It is recommended
-	// to increase this if many contexts will want to publish
-	// at nearly the same time.
 	nni_atomic_init(&sock->send_buf);
 	nni_atomic_set(&sock->send_buf, 8);
 
-	// Survey IDs are 32 bits, with the high order bit set.
-	// We start at a random point, to minimize likelihood of
-	// accidental collision across restarts.
 	nni_id_map_init(&sock->surveys, 0x80000000u, 0xffffffffu, true);
 
 	surv0_ctx_init(&sock->ctx, sock);
@@ -343,9 +318,6 @@ surv0_pipe_init(void *arg, nni_pipe *pipe, void *s)
 	nni_aio_init(&p->aio_send, surv0_pipe_send_cb, p);
 	nni_aio_init(&p->aio_recv, surv0_pipe_recv_cb, p);
 
-	// This depth could be tunable.  The deeper the queue, the more
-	// concurrent surveys that can be delivered (multiple contexts).
-	// Note that surveys can be *outstanding*, but not yet put on the wire.
 	nni_lmq_init(&p->send_queue, len);
 
 	p->pipe = pipe;
@@ -436,9 +408,7 @@ surv0_pipe_recv_cb(void *arg)
 	nni_aio_set_msg(&p->aio_recv, NULL);
 	nni_msg_set_pipe(msg, nni_pipe_id(p->pipe));
 
-	// We yank 4 bytes of body, and move them to the header.
 	if (nni_msg_len(msg) < 4) {
-		// Peer sent us garbage.  Kick it.
 		nni_msg_free(msg);
 		nni_pipe_close(p->pipe);
 		return;
@@ -447,8 +417,6 @@ surv0_pipe_recv_cb(void *arg)
 	nni_msg_header_append_u32(msg, id);
 
 	nni_mtx_lock(&sock->mtx);
-	// Best effort at delivery.  Discard if no context or context is
-	// unable to receive it.
 	if (((ctx = nni_id_get(&sock->surveys, id)) == NULL) ||
 	    (nni_lmq_full(&ctx->recv_lmq))) {
 		nni_msg_free(msg);
@@ -603,7 +571,6 @@ static nni_option surv0_sock_options[] = {
 	    .o_name = NNG_OPT_SENDFD,
 	    .o_get  = surv0_sock_get_send_fd,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},

@@ -10,9 +10,6 @@
 
 #include "core/nng_impl.h"
 
-// This stub file exists to support configuration of the stream subsystem
-// when websocket support is unconfigured.
-
 int
 nni_ws_dialer_alloc(nng_stream_dialer **dp, const nng_url *url)
 {

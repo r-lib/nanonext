@@ -21,7 +21,7 @@ struct nni_id_map {
 	uint32_t      id_cap;
 	uint32_t      id_count;
 	uint32_t      id_load;
-	uint32_t      id_min_load; // considers placeholders
+	uint32_t      id_min_load;
 	uint32_t      id_max_load;
 	uint64_t      id_min_val;
 	uint64_t      id_max_val;
@@ -29,9 +29,9 @@ struct nni_id_map {
 	nni_id_entry *id_entries;
 };
 
-#define NNI_ID_FLAG_STATIC 1   // allocated statically
-#define NNI_ID_FLAG_RANDOM 2   // start at a random value
-#define NNI_ID_FLAG_REGISTER 4 // map is registered for finalization
+#define NNI_ID_FLAG_STATIC 1
+#define NNI_ID_FLAG_RANDOM 2
+#define NNI_ID_FLAG_REGISTER 4
 
 extern void  nni_id_map_init(nni_id_map *, uint64_t, uint64_t, bool);
 extern void  nni_id_map_fini(nni_id_map *);
@@ -48,4 +48,4 @@ extern void  nni_id_map_sys_fini(void);
 		.id_flags = ((flags) | NNI_ID_FLAG_STATIC) \
 	}
 
-#endif // CORE_IDHASH_H
+#endif

@@ -15,10 +15,6 @@
 #include "core/nng_impl.h"
 #include "nng/protocol/pubsub0/sub.h"
 
-// Subscriber protocol.  The SUB protocol receives messages sent to
-// it from publishers, and filters out those it is not interested in,
-// only passing up ones that match known subscriptions.
-
 #ifndef NNI_PROTO_SUB_V0
 #define NNI_PROTO_SUB_V0 NNI_PROTO(2, 1)
 #endif
@@ -27,10 +23,8 @@
 #define NNI_PROTO_PUB_V0 NNI_PROTO(2, 0)
 #endif
 
-// By default, we accept 128 messages.
 #define SUB0_DEFAULT_RECV_BUF_LEN 128
 
-// By default, prefer new messages when the queue is full.
 #define SUB0_DEFAULT_PREFER_NEW true
 
 typedef struct sub0_pipe  sub0_pipe;
@@ -47,29 +41,25 @@ struct sub0_topic {
 	void         *buf;
 };
 
-// sub0_ctx is a context for a SUB socket.  The advantage of contexts is
-// that different contexts can maintain different subscriptions.
 struct sub0_ctx {
 	nni_list_node node;
 	sub0_sock    *sock;
-	nni_list      topics;     // TODO: Consider patricia trie
-	nni_list      recv_queue; // can have multiple pending receives
+	nni_list      topics;
+	nni_list      recv_queue;
 	nni_lmq       lmq;
 	bool          prefer_new;
 };
 
-// sub0_sock is our per-socket protocol private structure.
 struct sub0_sock {
 	nni_pollable readable;
-	sub0_ctx     master;   // default context
-	nni_list     contexts; // all contexts
+	sub0_ctx     master;
+	nni_list     contexts;
 	int          num_contexts;
 	size_t       recv_buf_len;
 	bool         prefer_new;
 	nni_mtx      lk;
 };
 
-// sub0_pipe is our per-pipe protocol private structure.
 struct sub0_pipe {
 	nni_pipe  *pipe;
 	sub0_sock *sub;
@@ -273,7 +263,6 @@ sub0_pipe_start(void *arg)
 	sub0_pipe *p = arg;
 
 	if (nni_pipe_peer(p->pipe) != NNI_PROTO_PUB_V0) {
-		// Peer protocol mismatch.
 		return (NNG_EPROTO);
 	}
 
@@ -294,8 +283,6 @@ sub0_matches(sub0_ctx *ctx, uint8_t *body, size_t len)
 {
 	sub0_topic *topic;
 
-	// This is a naive and trivial matcher.  Replace with a real
-	// patricia trie later.
 	NNI_LIST_FOREACH (&ctx->topics, topic) {
 		if (len < topic->len) {
 			continue;
@@ -337,12 +324,10 @@ sub0_recv_cb(void *arg)
 	dup_msg = NULL;
 
 	nni_mtx_lock(&sock->lk);
-	// Go through all contexts.  We will try to send up.
 	NNI_LIST_FOREACH (&sock->contexts, ctx) {
 		bool queued = false;
 
 		if (nni_lmq_full(&ctx->lmq) && !ctx->prefer_new) {
-			// Cannot deliver here, as receive buffer is full.
 			continue;
 		}
 
@@ -350,17 +335,11 @@ sub0_recv_cb(void *arg)
 			continue;
 		}
 
-		// This is a performance optimization, that ensures we
-		// do not duplicate a message in the common case, where there
-		// is only a single context.
 		if (sock->num_contexts > 1) {
 			if (nni_msg_dup(&dup_msg, msg) != 0) {
-				// if we cannot dup it, continue on
 				continue;
 			}
 		} else {
-			// We only have one context, so it's the only
-			// possible message.
 			dup_msg = msg;
 		}
 
@@ -369,10 +348,8 @@ sub0_recv_cb(void *arg)
 			nni_list_remove(&ctx->recv_queue, aio);
 			nni_aio_set_msg(aio, dup_msg);
 
-			// Save for synchronous completion
 			nni_aio_completions_add(&finish, aio, 0, len);
 		} else if (nni_lmq_full(&ctx->lmq)) {
-			// Make space for the new message.
 			nni_msg *old;
 			(void) nni_lmq_get(&ctx->lmq, &old);
 			nni_msg_free(old);
@@ -390,14 +367,7 @@ sub0_recv_cb(void *arg)
 	}
 	nni_mtx_unlock(&sock->lk);
 
-	// NB: This is slightly less efficient in that we may have
-	// created an extra copy in the face of e.g. two subscriptions,
-	// but optimizing this further would require checking the subscription
-	// list twice, adding complexity.  If this turns out to be a problem
-	// we could probably add some other sophistication with a counter
-	// and flags on the contexts themselves.
 	if (msg != dup_msg) {
-		// If we didn't just use the message, then free our copy.
 		nni_msg_free(msg);
 	}
 
@@ -436,19 +406,12 @@ sub0_ctx_set_recv_buf_len(void *arg, const void *buf, size_t sz, nni_type t)
 		return (rv);
 	}
 
-	// If we change the socket, then this will change the queue for
-	// any new contexts. (Previously constructed contexts are unaffected.)
 	if (&sock->master == ctx) {
 		sock->recv_buf_len = (size_t) val;
 	}
 	nni_mtx_unlock(&sock->lk);
 	return (0);
 }
-
-// For now, we maintain subscriptions on a sorted linked list.  As we do not
-// expect to have huge numbers of subscriptions, and as the operation is
-// really O(n), we think this is acceptable.  In the future we might decide
-// to replace this with a patricia trie, like old nanomsg had.
 
 static int
 sub0_ctx_subscribe(void *arg, const void *buf, size_t sz, nni_type t)
@@ -465,7 +428,6 @@ sub0_ctx_subscribe(void *arg, const void *buf, size_t sz, nni_type t)
 			continue;
 		}
 		if (memcmp(topic->buf, buf, sz) == 0) {
-			// Already have it.
 			nni_mtx_unlock(&sock->lk);
 			return (0);
 		}
@@ -503,7 +465,6 @@ sub0_ctx_unsubscribe(void *arg, const void *buf, size_t sz, nni_type t)
 			continue;
 		}
 		if (memcmp(topic->buf, buf, sz) == 0) {
-			// Matched!
 			break;
 		}
 	}
@@ -513,9 +474,6 @@ sub0_ctx_unsubscribe(void *arg, const void *buf, size_t sz, nni_type t)
 	}
 	nni_list_remove(&ctx->topics, topic);
 
-	// Now we need to make sure that any messages that are waiting still
-	// match the subscription.  We basically just run through the queue
-	// and requeue those messages we need.
 	len = nni_lmq_len(&ctx->lmq);
 	for (size_t i = 0; i < len; i++) {
 		nni_msg *msg;
@@ -666,8 +624,6 @@ sub0_sock_set_prefer_new(void *arg, const void *buf, size_t sz, nni_type t)
 	return (sub0_ctx_set_prefer_new(&sock->master, buf, sz, t));
 }
 
-// This is the global protocol structure -- our linkage to the core.
-// This should be the only global non-static symbol in this file.
 static nni_proto_pipe_ops sub0_pipe_ops = {
 	.pipe_size  = sizeof(sub0_pipe),
 	.pipe_init  = sub0_pipe_init,
@@ -709,7 +665,6 @@ static nni_option sub0_sock_options[] = {
 	    .o_get  = sub0_sock_get_prefer_new,
 	    .o_set  = sub0_sock_set_prefer_new,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},
@@ -725,7 +680,6 @@ nng_sub0_socket_subscribe(nng_socket id, const void *buf, size_t sz)
       ((rv = nni_sock_find(&s, id.id)) != 0)) {
     return (rv);
   }
-  // validate the socket type
   if (nni_sock_proto_ops(s)->sock_init != sub0_sock_init) {
     nni_sock_rele(s);
     return (NNG_ENOTSUP);
@@ -746,7 +700,6 @@ nng_sub0_socket_unsubscribe(nng_socket id, const void *buf, size_t sz)
       ((rv = nni_sock_find(&s, id.id)) != 0)) {
     return (rv);
   }
-  // validate the socket type
   if (nni_sock_proto_ops(s)->sock_init != sub0_sock_init) {
     nni_sock_rele(s);
     return (NNG_ENOTSUP);
@@ -767,7 +720,6 @@ nng_sub0_ctx_subscribe(nng_ctx id, const void *buf, size_t sz)
       ((rv = nni_ctx_find(&c, id.id, false)) != 0)) {
     return (rv);
   }
-  // validate the socket type
   if (nni_ctx_proto_ops(c)->ctx_init != sub0_ctx_init) {
     nni_ctx_rele(c);
     return (NNG_ENOTSUP);
@@ -788,7 +740,6 @@ nng_sub0_ctx_unsubscribe(nng_ctx id, const void *buf, size_t sz)
       ((rv = nni_ctx_find(&c, id.id, false)) != 0)) {
     return (rv);
   }
-  // validate the socket type
   if (nni_ctx_proto_ops(c)->ctx_init != sub0_ctx_init) {
     nni_ctx_rele(c);
     return (NNG_ENOTSUP);

@@ -21,14 +21,6 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-// We use a single resolver taskq - but we allocate a few threads
-// for it to ensure that names can be looked up concurrently.  This isn't
-// as elegant or scalable as a true asynchronous resolver would be, but
-// it has the advantage of being fairly portable, and concurrent enough for
-// the vast majority of use cases.  The total thread count can be
-// changed with this define.  Note that some platforms may not have a
-// thread-safe getaddrinfo().  In that case they should set this to 1.
-
 #ifndef AI_NUMERICSERV
 #define AI_NUMERICSERV 0
 #endif
@@ -65,22 +57,15 @@ resolv_cancel(nni_aio *aio, void *arg, int rv)
 
 	nni_mtx_lock(&resolv_mtx);
 	if (item != nni_aio_get_prov_data(aio)) {
-		// Already canceled?
 		nni_mtx_unlock(&resolv_mtx);
 		return;
 	}
 	nni_aio_set_prov_data(aio, NULL);
 	if (nni_aio_list_active(aio)) {
-		// We have not been picked up by a resolver thread yet,
-		// so we can just discard everything.
 		nni_aio_list_remove(aio);
 		nni_mtx_unlock(&resolv_mtx);
 		resolv_free_item(item);
 	} else {
-		// This case indicates the resolver is still processing our
-		// node. We can discard our interest in the result, but we
-		// can't interrupt the resolver itself.  (Too bad, name
-		// resolution is utterly synchronous for now.)
 		item->aio = NULL;
 		item->sa  = NULL;
 		nni_mtx_unlock(&resolv_mtx);
@@ -139,8 +124,6 @@ resolv_task(resolv_item *item)
 
 	results = NULL;
 
-	// We treat these all as IP addresses.  The service and the
-	// host part are split.
 	memset(&hints, 0, sizeof(hints));
 #ifdef AI_ADDRCONFIG
 	hints.ai_flags = AI_ADDRCONFIG;
@@ -151,17 +134,13 @@ resolv_task(resolv_item *item)
 	hints.ai_family   = item->family;
 	hints.ai_socktype = SOCK_STREAM;
 
-	// Check to see if this is a numeric port number, and if it is
-	// make sure that it's in the valid range (because Windows may
-	// incorrectly simple do a conversion and mask off upper bits.
 	if (item->serv != NULL) {
 		long  port;
 		char *end;
 		port = strtol(item->serv, &end, 10);
-		if (*end == '\0') { // we fully converted it as a number...
+		if (*end == '\0') {
 			hints.ai_flags |= AI_NUMERICSERV;
 
-			// Not a valid port number.  Fail.
 			if ((port < 0) || (port > 0xffff)) {
 				rv = NNG_EADDRINVAL;
 				goto done;
@@ -169,16 +148,11 @@ resolv_task(resolv_item *item)
 		}
 	}
 
-	// We can pass any non-zero service number, but we have to pass
-	// *something*, in case we are using a NULL hostname.
 	if ((rv = getaddrinfo(item->host, item->serv, &hints, &results)) !=
 	    0) {
 		rv = posix_gai_errno(rv);
 		goto done;
 	}
-
-	// We only take the first matching address.  Presumably
-	// DNS load balancing is done by the resolver/server.
 
 	rv = NNG_EADDRINVAL;
 	for (probe = results; probe != NULL; probe = probe->ai_next) {
@@ -317,12 +291,10 @@ resolv_worker(void *unused)
 		item = nni_aio_get_prov_data(aio);
 		nni_aio_list_remove(aio);
 
-		// Now attempt to do the work.  This runs synchronously.
 		nni_mtx_unlock(&resolv_mtx);
 		rv = resolv_task(item);
 		nni_mtx_lock(&resolv_mtx);
 
-		// Check to make sure we were not canceled.
 		if ((aio = item->aio) != NULL) {
 
 			nni_aio_set_prov_data(aio, NULL);
@@ -390,7 +362,6 @@ parse_ip(const char *addr, nng_sockaddr *sa, bool want_port)
 	}
 
 	if (wrapped) {
-		// Never got the closing bracket.
 		rv = NNG_EADDRINVAL;
 		goto done;
 	}
@@ -456,7 +427,6 @@ nni_posix_resolv_sysinit(void)
 	if (resolv_num_thr < 1) {
 		resolv_num_thr = 1;
 	}
-	// no limit on the maximum for now
 	nni_init_set_effective(NNG_INIT_NUM_RESOLVER_THREADS, resolv_num_thr);
 	resolv_thrs = NNI_ALLOC_STRUCTS(resolv_thrs, resolv_num_thr);
 	if (resolv_thrs == NULL) {
@@ -493,4 +463,4 @@ nni_posix_resolv_sysfini(void)
 	}
 }
 
-#endif // NNG_USE_POSIX_RESOLV_GAI
+#endif

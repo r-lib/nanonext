@@ -13,11 +13,6 @@
 #include "core/nng_impl.h"
 #include "nng/protocol/pubsub0/pub.h"
 
-// Publish protocol.  The PUB protocol simply sends messages out, as
-// a broadcast.  It has nothing more sophisticated because it does not
-// perform sender-side filtering.  Its best effort delivery, so anything
-// that can't receive the message won't get one.
-
 #ifndef NNI_PROTO_SUB_V0
 #define NNI_PROTO_SUB_V0 NNI_PROTO(2, 1)
 #endif
@@ -34,7 +29,6 @@ static void pub0_pipe_send_cb(void *);
 static void pub0_sock_fini(void *);
 static void pub0_pipe_fini(void *);
 
-// pub0_sock is our per-socket protocol private structure.
 struct pub0_sock {
 	nni_list     pipes;
 	nni_mtx      mtx;
@@ -43,7 +37,6 @@ struct pub0_sock {
 	nni_pollable sendable;
 };
 
-// pub0_pipe is our per-pipe protocol private structure.
 struct pub0_pipe {
 	nni_pipe     *pipe;
 	pub0_sock    *pub;
@@ -73,7 +66,7 @@ pub0_sock_init(void *arg, nni_sock *ns)
 	nni_pollable_init(&sock->sendable);
 	nni_mtx_init(&sock->mtx);
 	NNI_LIST_INIT(&sock->pipes, pub0_pipe, node);
-	sock->sendbuf = 16; // fairly arbitrary
+	sock->sendbuf = 16;
 }
 
 static void
@@ -141,7 +134,6 @@ pub0_pipe_start(void *arg)
 	nni_list_append(&sock->pipes, p);
 	nni_mtx_unlock(&sock->mtx);
 
-	// Start the receiver.
 	nni_pipe_recv(p->pipe, &p->aio_recv);
 
 	return (0);
@@ -171,8 +163,6 @@ pub0_pipe_recv_cb(void *arg)
 {
 	pub0_pipe *p = arg;
 
-	// We should never receive a message -- the only valid reason for us to
-	// be here is on pipe close.
 	if (nni_aio_result(&p->aio_recv) == 0) {
 		nni_msg_free(nni_aio_get_msg(&p->aio_recv));
 	}
@@ -232,7 +222,6 @@ pub0_sock_send(void *arg, nni_aio *aio)
 		nni_msg_clone(msg);
 		if (p->busy) {
 			if (nni_lmq_full(&p->sendq)) {
-				// Make space for the new message.
 				nni_msg *old;
 				(void) nni_lmq_get(&p->sendq, &old);
 				nni_msg_free(old);
@@ -256,7 +245,6 @@ pub0_sock_get_sendfd(void *arg, void *buf, size_t *szp, nni_type t)
 	int        fd;
 	int        rv;
 	nni_mtx_lock(&sock->mtx);
-	// PUB sockets are *always* writable.
 	nni_pollable_raise(&sock->sendable);
 	rv = nni_pollable_getfd(&sock->sendable, &fd);
 	nni_mtx_unlock(&sock->mtx);
@@ -282,11 +270,6 @@ pub0_sock_set_sendbuf(void *arg, const void *buf, size_t sz, nni_type t)
 	nni_mtx_lock(&sock->mtx);
 	sock->sendbuf = (size_t) val;
 	NNI_LIST_FOREACH (&sock->pipes, p) {
-		// If we fail part way through (should only be ENOMEM), we
-		// stop short.  The others would likely fail for ENOMEM as
-		// well anyway.  There is a weird effect here where the
-		// buffers may have been set for *some* of the pipes, but
-		// we have no way to correct partial failure.
 		if ((rv = nni_lmq_resize(&p->sendq, (size_t) val)) != 0) {
 			break;
 		}
@@ -316,7 +299,6 @@ static nni_proto_pipe_ops pub0_pipe_ops = {
 };
 
 static nni_option pub0_sock_options[] = {
-	// terminate list
 	{
 	    .o_name = NNG_OPT_SENDFD,
 	    .o_get  = pub0_sock_get_sendfd,

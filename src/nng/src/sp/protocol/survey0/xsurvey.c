@@ -11,9 +11,6 @@
 #include "core/nng_impl.h"
 #include "nng/protocol/survey0/survey.h"
 
-// Surveyor protocol.  The SURVEYOR protocol is the "survey" side of the
-// survey pattern.  This is useful for building service discovery, voting, etc.
-
 typedef struct xsurv0_pipe xsurv0_pipe;
 typedef struct xsurv0_sock xsurv0_sock;
 
@@ -23,7 +20,6 @@ static void xsurv0_putq_cb(void *);
 static void xsurv0_send_cb(void *);
 static void xsurv0_recv_cb(void *);
 
-// surv0_sock is our per-socket protocol private structure.
 struct xsurv0_sock {
 	nni_list       pipes;
 	nni_aio        aio_getq;
@@ -33,7 +29,6 @@ struct xsurv0_sock {
 	nni_atomic_int ttl;
 };
 
-// surv0_pipe is our per-pipe protocol private structure.
 struct xsurv0_pipe {
 	nni_pipe *    npipe;
 	xsurv0_sock * psock;
@@ -119,12 +114,6 @@ xsurv0_pipe_init(void *arg, nni_pipe *npipe, void *s)
 	nni_aio_init(&p->aio_send, xsurv0_send_cb, p);
 	nni_aio_init(&p->aio_recv, xsurv0_recv_cb, p);
 
-	// This depth could be tunable.  The queue exists so that if we
-	// have multiple requests coming in faster than we can deliver them,
-	// we try to avoid dropping them.  We don't really have a solution
-	// for applying back pressure.  It would be nice if surveys carried
-	// an expiration with them, so that we could discard any that are
-	// not delivered before their expiration date.
 	if ((rv = nni_msgq_init(&p->sendq, 16)) != 0) {
 		xsurv0_pipe_fini(p);
 		return (rv);
@@ -241,7 +230,6 @@ xsurv0_recv_cb(void *arg)
 		uint8_t *body;
 
 		if (nni_msg_len(msg) < 4) {
-			// Peer gave us garbage, so kick it.
 			nni_msg_free(msg);
 			nni_pipe_close(p->npipe);
 			return;
@@ -250,11 +238,7 @@ xsurv0_recv_cb(void *arg)
 		end  = ((body[0] & 0x80u) != 0);
 
 		if (nni_msg_header_append(msg, body, sizeof(uint32_t)) != 0) {
-			// TODO: bump a no-memory stat
 			nni_msg_free(msg);
-			// Closing the pipe may release some memory.
-			// It at least gives an indication to the peer
-			// that we've lost the message.
 			nni_pipe_close(p->npipe);
 			return;
 		}
@@ -292,7 +276,6 @@ xsurv0_sock_getq_cb(void *arg)
 	nni_msg *    msg;
 
 	if (nni_aio_result(&s->aio_getq) != 0) {
-		// Should be NNG_ECLOSED.
 		return;
 	}
 	msg = nni_aio_get_msg(&s->aio_getq);
@@ -309,7 +292,6 @@ xsurv0_sock_getq_cb(void *arg)
 	nni_msgq_aio_get(s->uwq, &s->aio_getq);
 	nni_mtx_unlock(&s->mtx);
 
-	// If there were no pipes to send on, just toss the message.
 	nni_msg_free(msg);
 }
 
@@ -344,7 +326,6 @@ static nni_option xsurv0_sock_options[] = {
 	    .o_get  = xsurv0_sock_get_max_ttl,
 	    .o_set  = xsurv0_sock_set_max_ttl,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},

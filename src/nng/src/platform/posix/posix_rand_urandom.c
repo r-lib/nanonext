@@ -16,18 +16,6 @@
 
 #include "core/nng_impl.h"
 
-// The historic /dev/urandom device.  This is not as a good as
-// a system call, since file descriptor attacks are possible,  and it may
-// need special permissions. Modern advice is to always use /dev/urandom
-// unless you have very particular reasons for doing otherwise.
-// If you're in this code base, you're probably on either an ancient OS,
-// or one of the off-beat ones that hasn't updated for support with
-// arc4random or getrandom.
-
-// We could use ISAAC or something like that to seed it only once,
-// but instead we just keep our file descriptor open.  This will have
-// the apparent effect of leaking these file descriptors across fork.
-
 static int             urandom_fd   = -1;
 static pthread_mutex_t urandom_lock = PTHREAD_MUTEX_INITIALIZER;
 

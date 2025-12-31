@@ -54,8 +54,6 @@ nni_cv_wait(nni_cv *cv)
 int
 nni_cv_until(nni_cv *cv, nni_time until)
 {
-	// Some special cases for times.  Catching these here means that
-	// platforms can assume a valid time is presented to them.
 	if (until == NNI_TIME_NEVER) {
 		nni_plat_cv_wait(cv);
 		return (0);

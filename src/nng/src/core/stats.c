@@ -17,7 +17,7 @@ typedef struct nng_stat nni_stat;
 
 struct nng_stat {
 	const nni_stat_info *s_info;
-	const nni_stat_item *s_item; // Used during snapshot collection
+	const nni_stat_item *s_item;
 	nni_list             s_children;
 	nni_stat            *s_parent;
 	nni_list_node        s_node;
@@ -50,8 +50,6 @@ void
 nni_stat_add(nni_stat_item *parent, nni_stat_item *child)
 {
 #ifdef NNG_ENABLE_STATS
-	// Make sure that the lists for both children and parents
-	// are correctly initialized.
 	if (parent->si_children.ll_head.ln_next == NULL) {
 		NNI_LIST_INIT(&parent->si_children, nni_stat_item, si_node);
 	}
@@ -65,8 +63,6 @@ nni_stat_add(nni_stat_item *parent, nni_stat_item *child)
 #endif
 }
 
-// nni_stat_register registers a stat tree, acquiring the lock
-// on the stats structures before doing so.
 void
 nni_stat_register(nni_stat_item *child)
 {
@@ -156,7 +152,6 @@ void
 nni_stat_set_id(nni_stat_item *item, int id)
 {
 #ifdef NNG_ENABLE_STATS
-	// IDs don't change, so just set it.
 	item->si_u.sv_id = id;
 #else
 	NNI_ARG_UNUSED(item);
@@ -168,7 +163,6 @@ void
 nni_stat_set_bool(nni_stat_item *item, bool b)
 {
 #ifdef NNG_ENABLE_STATS
-	// bool is atomic by definitions.
 	item->si_u.sv_bool = b;
 #else
 	NNI_ARG_UNUSED(item);
@@ -185,13 +179,11 @@ nni_stat_set_string(nni_stat_item *item, const char *s)
 
 	nni_mtx_lock(&stats_val_lock);
 	if ((s != NULL) && (old != NULL) && (strcmp(s, old) == 0)) {
-		// no change
 		nni_mtx_unlock(&stats_val_lock);
 		return;
 	}
 
 	if (!info->si_alloc) {
-		// no allocation, just set it.
 		item->si_u.sv_string = (char *) s;
 		nni_mtx_unlock(&stats_val_lock);
 		return;
@@ -301,8 +293,6 @@ stat_update(nni_stat *stat)
 		old = stat->s_val.sv_string;
 		str = item->si_u.sv_string;
 
-		// If we have to allocate a new string, do so.  But
-		// only do it if new string is different.
 		if ((info->si_alloc) && (str != NULL) &&
 		    ((old == NULL) || (strcmp(str, old) != 0))) {
 
@@ -378,7 +368,7 @@ nng_stat *
 nng_stat_next(nng_stat *stat)
 {
 	if (stat->s_parent == NULL) {
-		return (NULL); // Root node, no siblings.
+		return (NULL);
 	}
 	return (nni_list_next(&stat->s_parent->s_children, stat));
 }
@@ -520,7 +510,7 @@ void
 nng_stats_dump(nng_stat *stat)
 {
 #ifdef NNG_ENABLE_STATS
-	static char        buf[128]; // to minimize recursion, not thread safe
+	static char        buf[128];
 	int                len;
 	char              *scope;
 	char              *indent = "        ";

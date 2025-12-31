@@ -107,7 +107,7 @@ struct nni_atomic_ptr {
 	atomic_uintptr_t v;
 };
 
-#else // NNG_HAVE_C11_ATOMIC
+#else
 struct nni_atomic_flag {
 	bool f;
 };
@@ -137,4 +137,4 @@ extern void nni_posix_pollq_sysfini(void);
 extern int  nni_posix_resolv_sysinit(void);
 extern void nni_posix_resolv_sysfini(void);
 
-#endif // PLATFORM_POSIX_IMPL_H
+#endif

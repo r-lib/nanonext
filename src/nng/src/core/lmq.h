@@ -14,13 +14,13 @@
 
 typedef struct nni_lmq {
 	size_t    lmq_cap;
-	size_t    lmq_alloc; // alloc is cap, rounded up to power of 2
+	size_t    lmq_alloc;
 	size_t    lmq_mask;
 	size_t    lmq_len;
 	size_t    lmq_get;
 	size_t    lmq_put;
 	nng_msg **lmq_msgs;
-	nng_msg  *lmq_buf[2]; // default minimal buffer
+	nng_msg  *lmq_buf[2];
 } nni_lmq;
 
 extern void   nni_lmq_init(nni_lmq *, size_t);
@@ -34,4 +34,4 @@ extern int    nni_lmq_resize(nni_lmq *, size_t);
 extern bool   nni_lmq_full(nni_lmq *);
 extern bool   nni_lmq_empty(nni_lmq *);
 
-#endif // CORE_LMQ_H
+#endif

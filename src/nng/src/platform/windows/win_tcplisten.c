@@ -22,8 +22,8 @@ struct nni_tcp_listener {
 	nni_list                  aios;
 	bool                      closed;
 	bool                      started;
-	bool                      nodelay;   // initial value for child conns
-	bool                      keepalive; // initial value for child conns
+	bool                      nodelay;
+	bool                      keepalive;
 	bool                      running;
 	LPFN_ACCEPTEX             acceptex;
 	LPFN_GETACCEPTEXSOCKADDRS getacceptexsockaddrs;
@@ -35,8 +35,6 @@ struct nni_tcp_listener {
 	nni_tcp_conn             *pend_conn;
 };
 
-// tcp_listener_funcs looks up function pointers we need for advanced accept
-// functionality on Windows.  Windows is weird.
 static int
 tcp_listener_funcs(nni_tcp_listener *l)
 {
@@ -58,7 +56,6 @@ tcp_listener_funcs(nni_tcp_listener *l)
 			return (rv);
 		}
 
-		// Look up the function pointer.
 		if ((WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid1,
 		         sizeof(guid1), &acceptex, sizeof(acceptex), &nbytes,
 		         NULL, NULL) == SOCKET_ERROR) ||
@@ -139,8 +136,6 @@ nni_tcp_listener_init(nni_tcp_listener **lp)
 		return (rv);
 	}
 
-	// We assume these defaults -- not everyone will agree, but anyone
-	// can change them.
 	l->keepalive = false;
 	l->nodelay   = true;
 
@@ -221,7 +216,6 @@ nni_tcp_listener_listen(nni_tcp_listener *l, const nni_sockaddr *sa)
 		return (rv);
 	}
 
-	// Don't inherit the handle (CLOEXEC really).
 	SetHandleInformation((HANDLE) l->s, HANDLE_FLAG_INHERIT, 0);
 
 	no = 0;
@@ -238,8 +232,6 @@ nni_tcp_listener_listen(nni_tcp_listener *l, const nni_sockaddr *sa)
 		return (rv);
 	}
 
-	// Make sure that we use the address exclusively.  Windows lets
-	// others hijack us by default.
 	yes = 1;
 	if ((setsockopt(l->s, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char *) &yes,
 	         sizeof(yes)) != 0) ||
@@ -326,10 +318,7 @@ tcp_listener_doaccept(nni_tcp_listener *l)
   int           rv;
   DWORD         cnt;
 
-
   while ((aio = nni_list_first(&l->aios)) != NULL) {
-    // Windows requires us to explicitly create the socket
-    // before calling accept on it.
     if (l->closed) {
       nni_aio_list_remove(aio);
       nni_aio_finish_error(aio, NNG_ECLOSED);
@@ -353,18 +342,15 @@ tcp_listener_doaccept(nni_tcp_listener *l)
     l->pend_conn = c;
     if (l->acceptex(l->s, s, c->buf, 0, 256, 256, &cnt,
                     &l->accept_io.olpd)) {
-      // completed synchronously
       tcp_listener_accepted(l);
       continue;
     }
 
     if ((rv = GetLastError()) == ERROR_IO_PENDING) {
-      // deferred (will be handled in callback)
       l->running = true;
       return;
     }
 
-    // Fast failure (synchronous.)
     nni_aio_list_remove(aio);
     nng_stream_free(&c->ops);
     nni_aio_finish_error(aio, rv);

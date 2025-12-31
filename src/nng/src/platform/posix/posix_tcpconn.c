@@ -86,13 +86,9 @@ tcp_dowrite(nni_tcp_conn *c)
 		}
 
 		nni_aio_bump_count(aio, n);
-		// We completed the entire operation on this aio.
-		// (Sendmsg never returns a partial result.)
 		nni_aio_list_remove(aio);
 		nni_aio_finish(aio, 0, nni_aio_count(aio));
 
-		// Go back to start of loop to see if there is another
-		// aio ready for us to process.
 	}
 }
 
@@ -143,8 +139,6 @@ tcp_doread(nni_tcp_conn *c)
 		}
 
 		if (n == 0) {
-			// No bytes indicates a closed descriptor.
-			// This implicitly completes this (all!) aio.
 			nni_aio_list_remove(aio);
 			nni_aio_finish_error(aio, NNG_ECONNSHUT);
 			continue;
@@ -152,12 +146,9 @@ tcp_doread(nni_tcp_conn *c)
 
 		nni_aio_bump_count(aio, n);
 
-		// We completed the entire operation on this aio.
 		nni_aio_list_remove(aio);
 		nni_aio_finish(aio, 0, nni_aio_count(aio));
 
-		// Go back to start of loop to see if there is another
-		// aio ready for us to process.
 	}
 }
 
@@ -199,8 +190,6 @@ tcp_close(void *arg)
 	nni_mtx_unlock(&c->mtx);
 }
 
-// tcp_fini may block briefly waiting for the pollq thread.
-// To get that out of our context, we simply reap this.
 static void
 tcp_fini(void *arg)
 {
@@ -290,9 +279,6 @@ tcp_send(void *arg, nni_aio *aio)
 
 	if (nni_list_first(&c->writeq) == aio) {
 		tcp_dowrite(c);
-		// If we are still the first thing on the list, that
-		// means we didn't finish the job, so arm the poller to
-		// complete us.
 		if (nni_list_first(&c->writeq) == aio) {
 			nni_posix_pfd_arm(c->pfd, POLLOUT);
 		}
@@ -318,15 +304,8 @@ tcp_recv(void *arg, nni_aio *aio)
 	}
 	nni_aio_list_append(&c->readq, aio);
 
-	// If we are only job on the list, go ahead and try to do an
-	// immediate transfer. This allows for faster completions in
-	// many cases.  We also need not arm a list if it was already
-	// armed.
 	if (nni_list_first(&c->readq) == aio) {
 		tcp_doread(c);
-		// If we are still the first thing on the list, that
-		// means we didn't finish the job, so arm the poller to
-		// complete us.
 		if (nni_list_first(&c->readq) == aio) {
 			nni_posix_pfd_arm(c->pfd, POLLIN);
 		}
@@ -515,7 +494,6 @@ nni_posix_tcp_init(nni_tcp_conn *c, nni_posix_pfd *pfd)
 void
 nni_posix_tcp_start(nni_tcp_conn *c, int nodelay, int keepalive)
 {
-	// Configure the initial socket options.
 	(void) setsockopt(nni_posix_pfd_fd(c->pfd), IPPROTO_TCP, TCP_NODELAY,
 	    &nodelay, sizeof(int));
 	(void) setsockopt(nni_posix_pfd_fd(c->pfd), SOL_SOCKET, SO_KEEPALIVE,

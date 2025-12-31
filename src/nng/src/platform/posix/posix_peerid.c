@@ -38,7 +38,6 @@
 #define SOL_LOCAL 0
 #endif
 
-
 int
 nni_posix_peerid(int fd, uint64_t *euid, uint64_t *egid, uint64_t *prid,
     uint64_t *znid)
@@ -98,7 +97,7 @@ nni_posix_peerid(int fd, uint64_t *euid, uint64_t *egid, uint64_t *prid,
 	*egid = xu.cr_gid;
 	*prid = (uint64_t) -1;
 	*znid = (uint64_t) -1;
-#if defined(NNG_HAVE_LOCALPEERPID) // documented on macOS since 10.8
+#if defined(NNG_HAVE_LOCALPEERPID)
 	{
 		pid_t pid;
 		if (getsockopt(fd, SOL_LOCAL, LOCAL_PEERPID, &pid, &len) ==
@@ -106,7 +105,7 @@ nni_posix_peerid(int fd, uint64_t *euid, uint64_t *egid, uint64_t *prid,
 			*prid = (uint64_t) pid;
 		}
 	}
-#endif // NNG_HAVE_LOCALPEERPID
+#endif
 	return (0);
 #else
 	if (fd < 0) {

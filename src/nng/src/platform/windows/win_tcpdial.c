@@ -17,12 +17,12 @@
 #include <stdio.h>
 
 struct nni_tcp_dialer {
-	LPFN_CONNECTEX   connectex; // looked up name via ioctl
-	nni_list         aios;      // in flight connections
+	LPFN_CONNECTEX   connectex;
+	nni_list         aios;
 	bool             closed;
-	bool             nodelay;   // initial value for child conns
-	bool             keepalive; // initial value for child conns
-	SOCKADDR_STORAGE src;       // source address
+	bool             nodelay;
+	bool             keepalive;
+	SOCKADDR_STORAGE src;
 	size_t           srclen;
 	nni_mtx          mtx;
 	nni_reap_node    reap;
@@ -44,7 +44,6 @@ nni_tcp_dialer_init(nni_tcp_dialer **dp)
 	nni_mtx_init(&d->mtx);
 	nni_aio_list_init(&d->aios);
 
-	// Create a scratch socket for use with ioctl.
 	s = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
 	if (s == INVALID_SOCKET) {
 		rv = nni_win_error(GetLastError());
@@ -52,7 +51,6 @@ nni_tcp_dialer_init(nni_tcp_dialer **dp)
 		return (rv);
 	}
 
-	// Look up the function pointer.
 	if (WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid,
 	        sizeof(guid), &d->connectex, sizeof(d->connectex), &nbytes,
 	        NULL, NULL) == SOCKET_ERROR) {
@@ -138,7 +136,6 @@ tcp_dial_cb(nni_win_io *io, int rv, size_t cnt)
 
 	nni_mtx_lock(&d->mtx);
 	if ((aio = c->conn_aio) == NULL) {
-		// This should never occur.
 		nni_mtx_unlock(&d->mtx);
 		return;
 	}
@@ -218,9 +215,6 @@ nni_tcp_dial(nni_tcp_dialer *d, const nni_sockaddr *sa, nni_aio *aio)
 		return;
 	}
 
-	// Windows ConnectEx requires the socket to be bound
-	// first. We just bind to an ephemeral address in the
-	// same family, unless a different default was requested.
 	if (d->srclen != 0) {
 		len = (int) d->srclen;
 		memcpy(&c->sockname, &d->src, len);
@@ -247,7 +241,6 @@ nni_tcp_dial(nni_tcp_dialer *d, const nni_sockaddr *sa, nni_aio *aio)
 	c->conn_aio = aio;
 	nni_aio_list_append(&d->aios, aio);
 
-	// dialing is concurrent.
 	if (!d->connectex(s, (struct sockaddr *) &c->peername, len, NULL, 0,
 	        NULL, &c->conn_io.olpd)) {
 		if ((rv = GetLastError()) != ERROR_IO_PENDING) {
@@ -346,8 +339,6 @@ tcp_dialer_set_locaddr(void *arg, const void *buf, size_t sz, nni_type t)
 	if ((sslen = nni_win_nn2sockaddr(&ss, &sa)) == 0) {
 		return (NNG_EADDRINVAL);
 	}
-	// Ensure we are either IPv4 or IPv6, and port is not set.  (We
-	// do not allow binding to a specific port.)
 	switch (ss.ss_family) {
 	case AF_INET:
 		sin = (void *) &ss;

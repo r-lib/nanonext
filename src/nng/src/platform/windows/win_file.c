@@ -17,15 +17,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// File support.
-
 static char *
 nni_plat_find_pathsep(char *path)
 {
 	char *p;
-	// Legal path separators are "\\" and "/" under Windows.
-	// This is sort of a poormans strchr, but with the two specific
-	// separator characters instead.
 	for (p = path; *p != '\0'; p++) {
 		if ((*p == '/') || (*p == '\\')) {
 			return (p);
@@ -40,13 +35,10 @@ nni_plat_make_parent_dirs(const char *path)
 	char *dup;
 	char *p;
 
-	// creates everything up until the last component.
 	if ((dup = nni_strdup(path)) == NULL) {
 		return (NNG_ENOMEM);
 	}
 
-	// Skip past C:, C:\, \\ and \ style prefixes, because we cannot
-	// create those things as directories -- they should already exist.
 	p = dup;
 	if (isalpha(p[0]) && (p[1] == ':')) {
 		p += 2;
@@ -69,9 +61,8 @@ nni_plat_make_parent_dirs(const char *path)
 				return (nni_win_error(rv));
 			}
 		}
-		*p = '\\'; // Windows prefers this though.
+		*p = '\\';
 
-		// collapse grouped pathsep characters
 		while ((*p == '/') || (*p == '\\')) {
 			p++;
 		}
@@ -80,10 +71,6 @@ nni_plat_make_parent_dirs(const char *path)
 	return (0);
 }
 
-// nni_plat_file_put writes the named file, with the provided data,
-// and the given size.  If the file already exists it is overwritten.
-// The permissions on the file should be limited to read and write
-// access by the entity running the application only.
 int
 nni_plat_file_put(const char *name, const void *data, size_t len)
 {
@@ -106,8 +93,6 @@ nni_plat_file_put(const char *name, const void *data, size_t len)
 		(void) DeleteFile(name);
 		goto done;
 	}
-	// These are regular files, synchronous operations.  If we got a
-	// short write, then we should have gotten an error!
 	NNI_ASSERT(nwrite == len);
 
 done:
@@ -115,9 +100,6 @@ done:
 	return (rv);
 }
 
-// nni_plat_file_get reads the entire named file, allocating storage
-// to receive the data and returning the data and the size in the
-// reference arguments.
 int
 nni_plat_file_get(const char *name, void **datap, size_t *lenp)
 {
@@ -132,7 +114,6 @@ nni_plat_file_get(const char *name, void **datap, size_t *lenp)
 	if (h == INVALID_HANDLE_VALUE) {
 		return (nni_win_error(GetLastError()));
 	}
-	// We choose not to support extraordinarily large files (>4GB)
 	if ((sz = GetFileSize(h, NULL)) == INVALID_FILE_SIZE) {
 		rv = nni_win_error(GetLastError());
 		goto done;
@@ -152,11 +133,6 @@ nni_plat_file_get(const char *name, void **datap, size_t *lenp)
 		nread = 0;
 	}
 
-	// We can get a short read, indicating end of file.  We return
-	// the actual number of bytes read.  The fact that the data buffer
-	// is larger than this is ok, because our nni_free() routine just
-	// uses HeapFree(), which doesn't need a matching size.
-
 	*datap = data;
 	*lenp  = (size_t) nread;
 done:
@@ -164,7 +140,6 @@ done:
 	return (rv);
 }
 
-// nni_plat_file_delete deletes the named file.
 int
 nni_plat_file_delete(const char *name)
 {
@@ -198,7 +173,6 @@ nni_plat_file_walk_inner(const char *name, nni_plat_file_walker walkfn,
 	}
 
 	for (;;) {
-		// We never return hidden files.
 		if ((data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) ||
 		    (strcmp(data.cFileName, ".") == 0) ||
 		    (strcmp(data.cFileName, "..") == 0)) {
@@ -218,7 +192,7 @@ nni_plat_file_walk_inner(const char *name, nni_plat_file_walker walkfn,
 				    path, walkfn, arg, flags, stop);
 				if (rv != 0) {
 					if (rv == NNG_ENOENT) {
-						rv = 0; // File deleted.
+						rv = 0;
 					}
 					FindClose(dirh);
 					return (rv);
@@ -315,7 +289,6 @@ nni_plat_file_basename(const char *name)
 {
 	const char *s;
 
-	// skip over drive designator if present
 	if (isalpha(name[0]) && (name[1] == ':')) {
 		name += 2;
 	}
@@ -334,8 +307,6 @@ nni_plat_file_lock(const char *path, nni_plat_flock *lk)
 {
 	HANDLE h;
 
-	// On Windows we do not have to explicitly lock the file, the
-	// dwShareMode being set to zeor effectively prevents it.
 	h = CreateFile(path, GENERIC_WRITE, 0, NULL, OPEN_ALWAYS,
 	    FILE_ATTRIBUTE_NORMAL, NULL);
 	if (h == INVALID_HANDLE_VALUE) {
@@ -353,4 +324,4 @@ nni_plat_file_unlock(nni_plat_flock *lk)
 	lk->h = INVALID_HANDLE_VALUE;
 }
 
-#endif // NNG_PLATFORM_WINDOWS
+#endif

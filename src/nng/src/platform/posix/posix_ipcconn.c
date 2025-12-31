@@ -87,13 +87,9 @@ ipc_dowrite(ipc_conn *c)
 		}
 
 		nni_aio_bump_count(aio, n);
-		// We completed the entire operation on this aio.
-		// (Sendmsg never returns a partial result.)
 		nni_aio_list_remove(aio);
 		nni_aio_finish(aio, 0, nni_aio_count(aio));
 
-		// Go back to start of loop to see if there is another
-		// aio ready for us to process.
 	}
 }
 
@@ -144,8 +140,6 @@ ipc_doread(ipc_conn *c)
 		}
 
 		if (n == 0) {
-			// Zero indicates a closed descriptor.
-			// This implicitly completes this (all!) aio.
 			nni_aio_list_remove(aio);
 			nni_aio_finish_error(aio, NNG_ECONNSHUT);
 			continue;
@@ -153,12 +147,9 @@ ipc_doread(ipc_conn *c)
 
 		nni_aio_bump_count(aio, n);
 
-		// We completed the entire operation on this aio.
 		nni_aio_list_remove(aio);
 		nni_aio_finish(aio, 0, nni_aio_count(aio));
 
-		// Go back to start of loop to see if there is another
-		// aio ready for us to process.
 	}
 }
 
@@ -260,9 +251,6 @@ ipc_send(void *arg, nni_aio *aio)
 
 	if (nni_list_first(&c->writeq) == aio) {
 		ipc_dowrite(c);
-		// If we are still the first thing on the list, that
-		// means we didn't finish the job, so arm the poller to
-		// complete us.
 		if (nni_list_first(&c->writeq) == aio) {
 			nni_posix_pfd_arm(c->pfd, POLLOUT);
 		}
@@ -288,15 +276,8 @@ ipc_recv(void *arg, nni_aio *aio)
 	}
 	nni_aio_list_append(&c->readq, aio);
 
-	// If we are only job on the list, go ahead and try to do an
-	// immediate transfer. This allows for faster completions in
-	// many cases.  We also need not arm a list if it was already
-	// armed.
 	if (nni_list_first(&c->readq) == aio) {
 		ipc_doread(c);
-		// If we are still the first thing on the list, that
-		// means we didn't finish the job, so arm the poller to
-		// complete us.
 		if (nni_list_first(&c->readq) == aio) {
 			nni_posix_pfd_arm(c->pfd, POLLIN);
 		}
@@ -347,7 +328,6 @@ ipc_get_peer_zoneid(void *arg, void *buf, size_t *szp, nni_type t)
 		return (rv);
 	}
 	if (id == (uint64_t) -1) {
-		// NB: -1 is not a legal zone id (illumos/Solaris)
 		return (NNG_ENOTSUP);
 	}
 	return (nni_copyout_u64(id, buf, szp, t));
@@ -366,7 +346,6 @@ ipc_get_peer_pid(void *arg, void *buf, size_t *szp, nni_type t)
 		return (rv);
 	}
 	if (id == (uint64_t) -1) {
-		// NB: -1 is not a legal process id
 		return (NNG_ENOTSUP);
 	}
 	return (nni_copyout_u64(id, buf, szp, t));

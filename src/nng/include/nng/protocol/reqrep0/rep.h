@@ -35,4 +35,4 @@ NNG_DECL int nng_rep0_open_raw(nng_socket *);
 }
 #endif
 
-#endif // NNG_PROTOCOL_REQREP0_REP_H
+#endif

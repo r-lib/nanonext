@@ -10,8 +10,6 @@
 
 #include "core/nng_impl.h"
 
-// We pack the wfd and rfd into a uint64_t so that we can update the pair
-// atomically and use nni_atomic_cas64, to be lock free.
 #define WFD(fds) ((int) ((fds) &0xffffffffu))
 #define RFD(fds) ((int) (((fds) >> 32u) & 0xffffffffu))
 #define FD_JOIN(wfd, rfd) ((uint64_t)(wfd) + ((uint64_t)(rfd) << 32u))
@@ -31,7 +29,6 @@ nni_pollable_fini(nni_pollable *p)
 	fds = nni_atomic_get64(&p->p_fds);
 	if (fds != (uint64_t) -1) {
 		int rfd, wfd;
-		// Read in the high order, write in the low order.
 		rfd = RFD(fds);
 		wfd = WFD(fds);
 		nni_plat_pipe_close(rfd, wfd);
@@ -90,7 +87,6 @@ nni_pollable_getfd(nni_pollable *p, int *fdp)
 			return (0);
 		}
 
-		// Someone beat us.  Close ours, and try again.
 		nni_plat_pipe_close(wfd, rfd);
 	}
 }

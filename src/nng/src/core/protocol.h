@@ -68,25 +68,25 @@ typedef struct nni_proto_id {
 } nni_proto_id;
 
 struct nni_proto {
-	uint32_t                  proto_version;  // Ops vector version
-	nni_proto_id              proto_self;     // Our identity
-	nni_proto_id              proto_peer;     // Peer identity
-	uint32_t                  proto_flags;    // Protocol flags
-	const nni_proto_sock_ops *proto_sock_ops; // Per-socket operations
-	const nni_proto_pipe_ops *proto_pipe_ops; // Per-pipe operations
-	const nni_proto_ctx_ops * proto_ctx_ops;  // Context operations
+	uint32_t                  proto_version;
+	nni_proto_id              proto_self;
+	nni_proto_id              proto_peer;
+	uint32_t                  proto_flags;
+	const nni_proto_sock_ops *proto_sock_ops;
+	const nni_proto_pipe_ops *proto_pipe_ops;
+	const nni_proto_ctx_ops * proto_ctx_ops;
 };
 
-#define NNI_PROTOCOL_V3 0x50520003u // "pr\0\3"
+#define NNI_PROTOCOL_V3 0x50520003u
 #define NNI_PROTOCOL_VERSION NNI_PROTOCOL_V3
 
-#define NNI_PROTO_FLAG_RCV 1u    // Protocol can receive
-#define NNI_PROTO_FLAG_SND 2u    // Protocol can send
-#define NNI_PROTO_FLAG_SNDRCV 3u // Protocol can both send & recv
-#define NNI_PROTO_FLAG_RAW 4u    // Protocol is raw
+#define NNI_PROTO_FLAG_RCV 1u
+#define NNI_PROTO_FLAG_SND 2u
+#define NNI_PROTO_FLAG_SNDRCV 3u
+#define NNI_PROTO_FLAG_RAW 4u
 
 extern int nni_proto_open(nng_socket *, const nni_proto *);
 
 #define NNI_PROTO(major, minor) (((major) *16) + (minor))
 
-#endif // CORE_PROTOCOL_H
+#endif

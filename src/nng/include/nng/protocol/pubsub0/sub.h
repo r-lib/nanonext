@@ -36,4 +36,4 @@ NNG_DECL int nng_sub0_open_raw(nng_socket *);
 }
 #endif
 
-#endif // NNG_PROTOCOL_PUBSUB0_SUB_H
+#endif

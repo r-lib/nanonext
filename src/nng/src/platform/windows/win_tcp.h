@@ -33,11 +33,11 @@ struct nni_tcp_conn {
 	bool              closed;
 	bool              sending;
 	bool              recving;
-	char              buf[512]; // to hold acceptex results
+	char              buf[512];
 	nni_mtx           mtx;
 	nni_cv            cv;
 };
 
 extern int nni_win_tcp_init(nni_tcp_conn **, SOCKET);
 
-#endif // NNG_PLATFORM_WIN_WINTCP_H
+#endif

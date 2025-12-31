@@ -21,7 +21,6 @@ nng_clock(void)
 	return (nni_clock());
 }
 
-// Sleep for specified msecs.
 void
 nng_msleep(nng_duration dur)
 {
@@ -29,10 +28,6 @@ nng_msleep(nng_duration dur)
 	nni_msleep(dur);
 }
 
-// Create and start a thread.  Note that on some platforms, this might
-// actually be a coroutine, with limitations about what system APIs
-// you can call.  Therefore, these threads should only be used with the
-// I/O APIs provided by nng.  The thread runs until completion.
 int
 nng_thread_create(nng_thread **thrp, void (*func)(void *), void *arg)
 {
@@ -58,8 +53,6 @@ nng_thread_set_name(nng_thread *thr, const char *name)
 	nni_thr_set_name((void *)thr, name);
 }
 
-// Destroy a thread (waiting for it to complete.)  When this function
-// returns all resources for the thread are cleaned up.
 void
 nng_thread_destroy(nng_thread *thr)
 {

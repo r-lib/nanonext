@@ -56,4 +56,4 @@ extern bool nni_thr_is_self(nni_thr *thr);
 
 extern void nni_thr_set_name(nni_thr *thr, const char *);
 
-#endif // CORE_THREAD_H
+#endif

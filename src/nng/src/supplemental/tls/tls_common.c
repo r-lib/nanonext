@@ -18,24 +18,13 @@
 #include <nng/supplemental/tls/engine.h>
 #include <nng/supplemental/tls/tls.h>
 
-// NNG_TLS_MAX_SEND_SIZE limits the amount of data we will buffer for sending,
-// exerting back-pressure if this size is exceeded.  The 16K is aligned to the
-// maximum TLS record size.
 #ifndef NNG_TLS_MAX_SEND_SIZE
 #define NNG_TLS_MAX_SEND_SIZE 16384
 #endif
 
-// NNG_TLS_MAX_RECV_SIZE limits the amount of data we will receive in a single
-// operation.  As we have to buffer data, this drives the size of our
-// intermediary buffer.  The 16K is aligned to the maximum TLS record size.
 #ifndef NNG_TLX_MAX_RECV_SIZE
 #define NNG_TLS_MAX_RECV_SIZE 16384
 #endif
-
-// This file contains common code for TLS, and is only compiled if we
-// have TLS configured in the system.  In particular, this provides the
-// parts of TLS support that are invariant relative to different TLS
-// libraries, such as dialer and listener support.
 
 #ifdef NNG_SUPP_TLS
 
@@ -43,13 +32,12 @@ static nni_atomic_ptr tls_engine;
 
 struct nng_tls_config {
 	nng_tls_engine_config_ops ops;
-	const nng_tls_engine *    engine; // store this so we can verify
+	const nng_tls_engine *    engine;
 	nni_mtx                   lock;
 	int                       ref;
 	int                       busy;
 	size_t                    size;
 
-	// ... engine config data follows
 };
 
 typedef struct {
@@ -58,16 +46,16 @@ typedef struct {
 	nng_tls_config *        cfg;
 	const nng_tls_engine *  engine;
 	size_t                  size;
-	nni_aio *               user_aio; // user's aio for connect/accept
-	nni_aio                 conn_aio; // system aio for connect/accept
+	nni_aio *               user_aio;
+	nni_aio                 conn_aio;
 	nni_mtx                 lock;
 	bool                    closed;
 	bool                    hs_done;
 	nni_list                send_queue;
 	nni_list                recv_queue;
-	nng_stream *            tcp;      // lower level stream
-	nni_aio                 tcp_send; // lower level send pending
-	nni_aio                 tcp_recv; // lower level recv pending
+	nng_stream *            tcp;
+	nni_aio                 tcp_send;
+	nni_aio                 tcp_recv;
 	uint8_t *               tcp_send_buf;
 	uint8_t *               tcp_recv_buf;
 	size_t                  tcp_recv_len;
@@ -79,7 +67,6 @@ typedef struct {
 	size_t                  tcp_send_tail;
 	nni_reap_node           reap;
 
-	// ... engine connection data follows
 } tls_conn;
 
 static void tls_tcp_send_cb(void *arg);
@@ -100,9 +87,9 @@ static nni_reap_list tls_conn_reap_list = {
 
 typedef struct {
 	nng_stream_dialer  ops;
-	nng_stream_dialer *d; // underlying TCP dialer
+	nng_stream_dialer *d;
 	nng_tls_config *   cfg;
-	nni_mtx            lk; // protects the config
+	nni_mtx            lk;
 } tls_dialer;
 
 static void
@@ -123,9 +110,6 @@ tls_dialer_free(void *arg)
 		NNI_FREE_STRUCT(d);
 	}
 }
-
-// For dialing, we need to have our own completion callback, instead of
-// the user's completion callback.
 
 static void
 tls_conn_cb(void *arg)
@@ -152,8 +136,6 @@ tls_conn_cb(void *arg)
 	nni_aio_finish(conn->user_aio, 0, 0);
 }
 
-// Dialer cancel is called when the user has indicated that they no longer
-// want to wait for the connection to establish.
 static void
 tls_conn_cancel(nni_aio *aio, void *arg, int rv)
 {
@@ -161,8 +143,6 @@ tls_conn_cancel(nni_aio *aio, void *arg, int rv)
 
 	NNI_ARG_UNUSED(aio);
 
-	// Just pass this down.  If the connection is already done, this
-	// will have no effect.
 	nni_aio_abort(&conn->conn_aio, rv);
 }
 
@@ -200,7 +180,6 @@ tls_check_string(const void *v, size_t sz, nni_opt_type t)
 		}
 		return (0);
 	case NNI_TYPE_STRING:
-		// Caller is assumed to pass a good string.
 		return (0);
 	default:
 		return (NNG_EBADTYPE);
@@ -394,7 +373,6 @@ nni_tls_dialer_alloc(nng_stream_dialer **dp, const nng_url *url)
 		return (rv);
 	}
 
-	// Set the expected outbound hostname
 	nng_tls_config_server_name(d->cfg, url->u_hostname);
 
 	d->ops.sd_close = tls_dialer_close;
@@ -680,7 +658,6 @@ tls_cancel(nni_aio *aio, void *arg, int rv)
 	nni_mtx_unlock(&conn->lock);
 }
 
-// tls_send implements the upper layer stream send operation.
 static void
 tls_send(void *arg, nni_aio *aio)
 {
@@ -888,7 +865,6 @@ tls_reap(void *arg)
 {
 	tls_conn *conn = arg;
 
-	// Shut it all down first.  We should be freed.
 	if (conn->tcp != NULL) {
 		nng_stream_close(conn->tcp);
 	}
@@ -902,7 +878,7 @@ tls_reap(void *arg)
 	nni_aio_fini(&conn->tcp_recv);
 	nng_stream_free(conn->tcp);
 	if (conn->cfg != NULL) {
-		nng_tls_config_free(conn->cfg); // this drops our hold on it
+		nng_tls_config_free(conn->cfg);
 	}
 	if (conn->tcp_send_buf != NULL) {
 		nni_free(conn->tcp_send_buf, NNG_TLS_MAX_SEND_SIZE);
@@ -936,7 +912,6 @@ tls_start(tls_conn *conn, nng_stream *tcp)
 static void
 tls_tcp_error(tls_conn *conn, int rv)
 {
-	// An error here is fatal.  Shut it all down.
 	nni_aio *aio;
 	nng_stream_close(conn->tcp);
 	nni_aio_close(&conn->tcp_send);
@@ -957,7 +932,6 @@ tls_do_handshake(tls_conn *conn)
 	}
 	rv = conn->ops.handshake((void *) (conn + 1));
 	if (rv == NNG_EAGAIN) {
-		// We need more data.
 		return (false);
 	}
 	if (rv == 0) {
@@ -990,7 +964,6 @@ tls_do_recv(tls_conn *conn)
 			}
 		}
 		if (len == 0 || buf == NULL) {
-			// Caller has asked to receive "nothing".
 			nni_aio_list_remove(aio);
 			nni_aio_finish_error(aio, NNG_EINVAL);
 			continue;
@@ -998,13 +971,9 @@ tls_do_recv(tls_conn *conn)
 
 		rv = conn->ops.recv((void *) (conn + 1), buf, &len);
 		if (rv == NNG_EAGAIN) {
-			// Nothing more we can do, the engine doesn't
-			// have anything else for us (yet).
 			return;
 		}
 
-		// Unlike the send side, we want to return back to the
-		// caller as *soon* as we have some data.
 		nni_aio_list_remove(aio);
 
 		if (rv != 0) {
@@ -1015,7 +984,6 @@ tls_do_recv(tls_conn *conn)
 	}
 }
 
-// tls_do_send attempts to send user data.
 static void
 tls_do_send(tls_conn *conn)
 {
@@ -1039,17 +1007,12 @@ tls_do_send(tls_conn *conn)
 		}
 		if (len == 0 || buf == NULL) {
 			nni_aio_list_remove(aio);
-			// Presumably this means we've completed this
-			// one, lets preserve the count, and move to the
-			// next.
 			nni_aio_finish(aio, 0, nni_aio_count(aio));
 			continue;
 		}
 
-		// Ask the engine to send.
 		rv = conn->ops.send((void *) (conn + 1), buf, &len);
 		if (rv == NNG_EAGAIN) {
-			// Can't send any more, wait for callback.
 			return;
 		}
 
@@ -1129,11 +1092,9 @@ tls_tcp_recv_start(tls_conn *conn)
 	nng_iov iov;
 
 	if (conn->tcp_recv_len != 0) {
-		// We already have data in the buffer.
 		return;
 	}
 	if (conn->tcp_recv_pend) {
-		// Already have a receive in flight.
 		return;
 	}
 	conn->tcp_recv_off = 0;
@@ -1212,8 +1173,6 @@ nng_tls_engine_send(void *arg, const uint8_t *buf, size_t *szp)
 		len = space;
 	}
 
-	// We are committed at this point to sending out len bytes.
-	// Update this now, so that we can use len to update.
 	*szp = len;
 	conn->tcp_send_len += len;
 	NNI_ASSERT(conn->tcp_send_len <= NNG_TLS_MAX_SEND_SIZE);
@@ -1261,8 +1220,6 @@ nng_tls_engine_recv(void *arg, uint8_t *buf, size_t *szp)
 	conn->tcp_recv_off += len;
 	conn->tcp_recv_len -= len;
 
-	// If we still have data left in the buffer, then the following
-	// call is a no-op.
 	tls_tcp_recv_start(conn);
 
 	*szp = len;
@@ -1540,9 +1497,8 @@ nni_tls_sys_fini(void)
 	NNG_TLS_ENGINE_FINI();
 }
 
-#else // NNG_SUPP_TLS
+#else
 
-// Provide stubs for the case where TLS is not enabled.
 void
 nni_tls_config_fini(nng_tls_config *cfg)
 {
@@ -1728,4 +1684,4 @@ nni_tls_sys_fini(void)
 {
 }
 
-#endif // !NNG_SUPP_TLS
+#endif

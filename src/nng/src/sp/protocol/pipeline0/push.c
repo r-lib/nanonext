@@ -13,10 +13,6 @@
 #include "core/nng_impl.h"
 #include "nng/protocol/pipeline0/push.h"
 
-// Push protocol.  The PUSH protocol is the "write" side of a pipeline.
-// Push distributes fairly, or tries to, by giving messages in round-robin
-// order.
-
 #ifndef NNI_PROTO_PULL_V0
 #define NNI_PROTO_PULL_V0 NNI_PROTO(5, 1)
 #endif
@@ -32,16 +28,14 @@ static void push0_send_cb(void *);
 static void push0_recv_cb(void *);
 static void push0_pipe_ready(push0_pipe *);
 
-// push0_sock is our per-socket protocol private structure.
 struct push0_sock {
-	nni_lmq      wq; // list of messages queued
-	nni_list     aq; // list of aio senders waiting
-	nni_list     pl; // list of pipes ready to send
+	nni_lmq      wq;
+	nni_list     aq;
+	nni_list     pl;
 	nni_pollable writable;
 	nni_mtx      m;
 };
 
-// push0_pipe is our per-pipe protocol private structure.
 struct push0_pipe {
 	nni_pipe     *pipe;
 	push0_sock   *push;
@@ -60,7 +54,7 @@ push0_sock_init(void *arg, nni_sock *sock)
 	nni_mtx_init(&s->m);
 	nni_aio_list_init(&s->aq);
 	NNI_LIST_INIT(&s->pl, push0_pipe, node);
-	nni_lmq_init(&s->wq, 0); // initially we start unbuffered.
+	nni_lmq_init(&s->wq, 0);
 	nni_pollable_init(&s->writable);
 }
 
@@ -132,8 +126,6 @@ push0_pipe_start(void *arg)
 		return (NNG_EPROTO);
 	}
 
-	// Schedule a receiver.  This is mostly so that we can detect
-	// a closed transport pipe.
 	nni_pipe_recv(p->pipe, &p->aio_recv);
 	push0_pipe_ready(p);
 
@@ -165,8 +157,6 @@ push0_recv_cb(void *arg)
 {
 	push0_pipe *p = arg;
 
-	// We normally expect to receive an error.  If a pipe actually
-	// sends us data, we just discard it.
 	if (nni_aio_result(&p->aio_recv) != 0) {
 		nni_pipe_close(p->pipe);
 		return;
@@ -189,8 +179,6 @@ push0_pipe_ready(push0_pipe *p)
 
 	blocked = nni_lmq_full(&s->wq) && nni_list_empty(&s->pl);
 
-	// if  message is waiting in the buffered queue
-	// then we prefer that.
 	if (nni_lmq_get(&s->wq, &m) == 0) {
 		nni_aio_set_msg(&p->aio_send, m);
 		nni_pipe_send(p->pipe, &p->aio_send);
@@ -203,8 +191,6 @@ push0_pipe_ready(push0_pipe *p)
 		}
 
 	} else if ((a = nni_list_first(&s->aq)) != NULL) {
-		// Looks like we had the unbuffered case, but
-		// someone was waiting.
 		nni_aio_list_remove(a);
 		m = nni_aio_get_msg(a);
 		l = nni_msg_len(m);
@@ -212,12 +198,10 @@ push0_pipe_ready(push0_pipe *p)
 		nni_aio_set_msg(&p->aio_send, m);
 		nni_pipe_send(p->pipe, &p->aio_send);
 	} else {
-		// We had nothing to send.  Just put us in the ready list.
 		nni_list_append(&s->pl, p);
 	}
 
 	if (blocked) {
-		// if we blocked, then toggle the status.
 		if ((!nni_lmq_full(&s->wq)) || (!nni_list_empty(&s->pl))) {
 			nni_pollable_raise(&s->writable);
 		}
@@ -277,15 +261,8 @@ push0_sock_send(void *arg, nni_aio *aio)
 
 	nni_mtx_lock(&s->m);
 
-	// First we want to see if we can send it right now.
-	// Note that we don't block the sender until the read is complete,
-	// only until we have committed to send it.
 	if ((p = nni_list_first(&s->pl)) != NULL) {
 		nni_list_remove(&s->pl, p);
-		// NB: We won't have had any waiters in the message queue
-		// or the aio queue, because we would not put the pipe
-		// in the ready list in that case.  Note though that the
-		// wq may be "full" if we are unbuffered.
 		if (nni_list_empty(&s->pl) && (nni_lmq_full(&s->wq))) {
 			nni_pollable_clear(&s->writable);
 		}
@@ -297,9 +274,7 @@ push0_sock_send(void *arg, nni_aio *aio)
 		return;
 	}
 
-	// Can we queue it?
 	if (nni_lmq_put(&s->wq, m) == 0) {
-		// Yay, we can.  So we're done.
 		nni_aio_set_msg(aio, NULL);
 		nni_aio_finish(aio, 0, l);
 		if (nni_lmq_full(&s->wq)) {
@@ -337,7 +312,6 @@ push0_set_send_buf_len(void *arg, const void *buf, size_t sz, nni_type t)
 	}
 	nni_mtx_lock(&s->m);
 	rv = nni_lmq_resize(&s->wq, (size_t) val);
-	// Changing the size of the queue can affect our readiness.
 	if (!nni_lmq_full(&s->wq)) {
 		nni_pollable_raise(&s->writable);
 	} else if (nni_list_empty(&s->pl)) {
@@ -392,7 +366,6 @@ static nni_option push0_sock_options[] = {
 	    .o_get  = push0_get_send_buf_len,
 	    .o_set  = push0_set_send_buf_len,
 	},
-	// terminate list
 	{
 	    .o_name = NULL,
 	},

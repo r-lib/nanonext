@@ -20,11 +20,8 @@
 
 #include <nng/supplemental/tls/tls.h>
 
-// We insist that individual headers fit in 8K.
-// If you need more than that, you need something we can't do.
 #define HTTP_BUFSIZE 8192
 
-// types of reads
 enum read_flavor {
 	HTTP_RD_RAW,
 	HTTP_RD_FULL,
@@ -44,13 +41,13 @@ struct nng_http_conn {
 	nng_stream *sock;
 	void       *ctx;
 	bool        closed;
-	nni_list    rdq; // high level http read requests
-	nni_list    wrq; // high level http write requests
+	nni_list    rdq;
+	nni_list    wrq;
 
-	nni_aio *rd_uaio; // user aio for read
-	nni_aio *wr_uaio; // user aio for write
-	nni_aio *rd_aio;  // bottom half read operations
-	nni_aio *wr_aio;  // bottom half write operations
+	nni_aio *rd_uaio;
+	nni_aio *wr_uaio;
+	nni_aio *rd_aio;
+	nni_aio *wr_aio;
 
 	nni_mtx mtx;
 
@@ -79,7 +76,6 @@ nni_http_conn_get_ctx(nni_http_conn *conn)
 static void
 http_close(nni_http_conn *conn)
 {
-	// Call with lock held.
 	nni_aio *aio;
 
 	if (conn->closed) {
@@ -99,7 +95,6 @@ http_close(nni_http_conn *conn)
 		nni_aio_finish_error(aio, NNG_ECLOSED);
 	}
 
-	// Abort all operations except the one in flight.
 	while ((aio = nni_list_first(&conn->wrq)) != NULL) {
 		nni_aio_list_remove(aio);
 		nni_aio_finish_error(aio, NNG_ECLOSED);
@@ -122,7 +117,6 @@ nni_http_conn_close(nni_http_conn *conn)
 	nni_mtx_unlock(&conn->mtx);
 }
 
-// http_rd_buf attempts to satisfy the read from data in the buffer.
 static int
 http_rd_buf(nni_http_conn *conn, nni_aio *aio)
 {
@@ -138,11 +132,10 @@ http_rd_buf(nni_http_conn *conn, nni_aio *aio)
 
 	switch (conn->rd_flavor) {
 	case HTTP_RD_RAW:
-		raw = true; // FALLTHROUGH
+		raw = true;
 	case HTTP_RD_FULL:
 		nni_aio_get_iov(aio, &nio, &iov);
 		while ((nio != 0) && (cnt != 0)) {
-			// Pull up data from the buffer if possible.
 			n = iov[0].iov_len;
 			if (n > cnt) {
 				n = cnt;
@@ -164,16 +157,9 @@ http_rd_buf(nni_http_conn *conn, nni_aio *aio)
 		nni_aio_set_iov(aio, nio, iov);
 
 		if ((nio == 0) || (raw && (nni_aio_count(aio) != 0))) {
-			// Finished the read.  (We are finished if we either
-			// got *all* the data, or we got *some* data for
-			// a raw read.)
 			return (0);
 		}
 
-		// No more data left in the buffer, so use a physio.
-		// (Note that we get here if we either have not completed
-		// a full transaction on a FULL read, or were not even able
-		// to get *any* data for a partial RAW read.)
 		conn->rd_buffered = false;
 		nni_aio_set_iov(conn->rd_aio, nio, iov);
 		nng_stream_recv(conn->sock, conn->rd_aio);
@@ -242,7 +228,6 @@ http_rd_start(nni_http_conn *conn)
 
 		if ((aio = conn->rd_uaio) == NULL) {
 			if ((aio = nni_list_first(&conn->rdq)) == NULL) {
-				// No more stuff waiting for read.
 				return;
 			}
 			nni_list_remove(&conn->rdq, aio);
@@ -295,7 +280,6 @@ http_rd_cb(void *arg)
 
 	cnt = nni_aio_count(aio);
 
-	// If we were reading into the buffer, then advance location(s).
 	if (conn->rd_buffered) {
 		conn->rd_put += cnt;
 		NNI_ASSERT(conn->rd_put <= conn->rd_bufsz);
@@ -304,13 +288,9 @@ http_rd_cb(void *arg)
 		return;
 	}
 
-	// Otherwise we are completing a USER request, and there should
-	// be no data left in the user buffer.
 	NNI_ASSERT(conn->rd_get == conn->rd_put);
 
 	if ((uaio = conn->rd_uaio) == NULL) {
-		// This indicates that a read request was canceled.  This
-		// can occur only when shutting down, really.
 		nni_mtx_unlock(&conn->mtx);
 		return;
 	}
@@ -318,7 +298,6 @@ http_rd_cb(void *arg)
 	nni_aio_get_iov(uaio, &niov, &iov);
 
 	while ((niov != 0) && (cnt != 0)) {
-		// Pull up data from the buffer if possible.
 		size_t n = iov[0].iov_len;
 		if (n > cnt) {
 			n = cnt;
@@ -335,10 +314,6 @@ http_rd_cb(void *arg)
 	}
 	nni_aio_set_iov(uaio, niov, iov);
 
-	// Resubmit the start.  This will attempt to consume data
-	// from the read buffer (there won't be any), and then either
-	// complete the I/O (for HTTP_RD_RAW, or if there is nothing left),
-	// or submit another physio.
 	http_rd_start(conn);
 	nni_mtx_unlock(&conn->mtx);
 }
@@ -392,7 +367,6 @@ http_wr_start(nni_http_conn *conn)
 
 	if ((aio = conn->wr_uaio) == NULL) {
 		if ((aio = nni_list_first(&conn->wrq)) == NULL) {
-			// No more stuff waiting for read.
 			return;
 		}
 		nni_list_remove(&conn->wrq, aio);
@@ -418,7 +392,6 @@ http_wr_cb(void *arg)
 	uaio = conn->wr_uaio;
 
 	if ((rv = nni_aio_result(aio)) != 0) {
-		// We failed to complete the aio.
 		if (uaio != NULL) {
 			conn->wr_uaio = NULL;
 			nni_aio_finish_error(uaio, rv);
@@ -429,9 +402,6 @@ http_wr_cb(void *arg)
 	}
 
 	if (uaio == NULL) {
-		// Write canceled?  This happens pretty much only during
-		// shutdown/close, so we don't want to resume writing.
-		// The stream is probably corrupted at this point anyway.
 		nni_mtx_unlock(&conn->mtx);
 		return;
 	}
@@ -440,14 +410,10 @@ http_wr_cb(void *arg)
 	nni_aio_bump_count(uaio, n);
 
 	if (conn->wr_flavor == HTTP_WR_RAW) {
-		// For raw data, we just send partial completion
-		// notices to the consumer.
 		goto done;
 	}
 	nni_aio_iov_advance(aio, n);
 	if (nni_aio_iov_count(aio) > 0) {
-		// We have more to transmit - start another and leave
-		// (we will get called again when it is done).
 		nng_stream_send(conn->sock, aio);
 		nni_mtx_unlock(&conn->mtx);
 		return;
@@ -457,7 +423,6 @@ done:
 	conn->wr_uaio = NULL;
 	nni_aio_finish(uaio, 0, nni_aio_count(uaio));
 
-	// Start next write if another is ready.
 	http_wr_start(conn);
 
 	nni_mtx_unlock(&conn->mtx);

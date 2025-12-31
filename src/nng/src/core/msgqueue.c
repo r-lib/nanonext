@@ -10,15 +10,10 @@
 
 #include "nng_impl.h"
 
-// Message queue.  These operate in some respects like Go channels,
-// but as we have access to the internals, we have made some fundamental
-// differences and improvements.  For example, these can grow, and either
-// side can close, and they may be closed more than once.
-
 struct nni_msgq {
 	nni_mtx   mq_lock;
 	unsigned  mq_cap;
-	unsigned  mq_alloc; // alloc is cap + 2...
+	unsigned  mq_alloc;
 	unsigned  mq_len;
 	unsigned  mq_get;
 	unsigned  mq_put;
@@ -28,7 +23,6 @@ struct nni_msgq {
 	nni_list mq_aio_putq;
 	nni_list mq_aio_getq;
 
-	// Pollable status.
 	nni_pollable mq_sendable;
 	nni_pollable mq_recvable;
 };
@@ -41,11 +35,6 @@ nni_msgq_init(nni_msgq **mqp, unsigned cap)
 	struct nni_msgq *mq;
 	unsigned         alloc;
 
-	// We allocate 2 extra cells in the fifo.  One to accommodate a
-	// waiting writer when cap == 0. (We can "briefly" move the message
-	// through.)  This lets us behave the same as unbuffered Go channels.
-	// The second cell is to permit pushback later, e.g. for REQ to stash
-	// a message back at the end to do a retry.
 	alloc = cap + 2;
 
 	if ((mq = NNI_ALLOC_STRUCT(mq)) == NULL) {
@@ -80,7 +69,7 @@ nni_msgq_fini(nni_msgq *mq)
 	}
 	nni_mtx_fini(&mq->mq_lock);
 
-	/* Free any orphaned messages. */
+	
 	while (mq->mq_len > 0) {
 		nni_msg *msg = mq->mq_msgs[mq->mq_get++];
 		if (mq->mq_get >= mq->mq_alloc) {
@@ -107,9 +96,6 @@ nni_msgq_run_putq(nni_msgq *mq)
 		size_t   len = nni_msg_len(msg);
 		nni_aio *raio;
 
-		// The presence of any blocked reader indicates that
-		// the queue is empty, otherwise it would have just taken
-		// data from the queue.
 		if ((raio = nni_list_first(&mq->mq_aio_getq)) != NULL) {
 
 			nni_aio_set_msg(waio, NULL);
@@ -120,7 +106,6 @@ nni_msgq_run_putq(nni_msgq *mq)
 			continue;
 		}
 
-		// Otherwise if we have room in the buffer, just queue it.
 		if (mq->mq_len < mq->mq_cap) {
 			nni_list_remove(&mq->mq_aio_putq, waio);
 			mq->mq_msgs[mq->mq_put++] = msg;
@@ -133,7 +118,6 @@ nni_msgq_run_putq(nni_msgq *mq)
 			continue;
 		}
 
-		// Unable to make progress, leave the aio where it is.
 		break;
 	}
 }
@@ -145,7 +129,6 @@ nni_msgq_run_getq(nni_msgq *mq)
 
 	while ((raio = nni_list_first(&mq->mq_aio_getq)) != NULL) {
 		nni_aio *waio;
-		// If anything is waiting in the queue, get it first.
 		if (mq->mq_len != 0) {
 			nni_msg *msg = mq->mq_msgs[mq->mq_get++];
 			if (mq->mq_get == mq->mq_alloc) {
@@ -158,7 +141,6 @@ nni_msgq_run_getq(nni_msgq *mq)
 			continue;
 		}
 
-		// Nothing queued (unbuffered?), maybe a writer is waiting.
 		if ((waio = nni_list_first(&mq->mq_aio_putq)) != NULL) {
 			nni_msg *msg;
 			size_t   len;
@@ -175,8 +157,6 @@ nni_msgq_run_getq(nni_msgq *mq)
 			continue;
 		}
 
-		// No data to get, and no unbuffered writers waiting.  Just
-		// wait until something arrives.
 		break;
 	}
 }
@@ -220,8 +200,6 @@ nni_msgq_aio_put(nni_msgq *mq, nni_aio *aio)
 	}
 	nni_mtx_lock(&mq->mq_lock);
 
-	// If this is an instantaneous poll operation, and the queue has
-	// no room, nobody is waiting to receive, then report NNG_ETIMEDOUT.
 	rv = nni_aio_schedule(aio, nni_msgq_cancel, mq);
 	if ((rv != 0) && (mq->mq_len >= mq->mq_cap) &&
 	    (nni_list_empty(&mq->mq_aio_getq))) {
@@ -271,9 +249,6 @@ nni_msgq_tryput(nni_msgq *mq, nni_msg *msg)
 		return (NNG_ECLOSED);
 	}
 
-	// The presence of any blocked reader indicates that
-	// the queue is empty, otherwise it would have just taken
-	// data from the queue.
 	if ((raio = nni_list_first(&mq->mq_aio_getq)) != NULL) {
 
 		nni_list_remove(&mq->mq_aio_getq, raio);
@@ -283,7 +258,6 @@ nni_msgq_tryput(nni_msgq *mq, nni_msg *msg)
 		return (0);
 	}
 
-	// Otherwise if we have room in the buffer, just queue it.
 	if (mq->mq_len < mq->mq_cap) {
 		mq->mq_msgs[mq->mq_put++] = msg;
 		if (mq->mq_put == mq->mq_alloc) {
@@ -306,7 +280,6 @@ nni_msgq_close(nni_msgq *mq)
 
 	nni_mtx_lock(&mq->mq_lock);
 	mq->mq_closed = true;
-	// Free the messages orphaned in the queue.
 	while (mq->mq_len > 0) {
 		nni_msg *msg = mq->mq_msgs[mq->mq_get++];
 		if (mq->mq_get >= mq->mq_alloc) {
@@ -316,7 +289,6 @@ nni_msgq_close(nni_msgq *mq)
 		nni_msg_free(msg);
 	}
 
-	// Let all pending blockers know we are closing the queue.
 	while (((aio = nni_list_first(&mq->mq_aio_getq)) != NULL) ||
 	    ((aio = nni_list_first(&mq->mq_aio_putq)) != NULL)) {
 		nni_aio_list_remove(aio);
@@ -360,9 +332,6 @@ nni_msgq_resize(nni_msgq *mq, int cap)
 
 	nni_mtx_lock(&mq->mq_lock);
 	while (mq->mq_len > ((unsigned)cap + 1)) {
-		// too many messages -- we allow that one for
-		// the case of pushback or cap == 0.
-		// we delete the oldest messages first
 		msg = mq->mq_msgs[mq->mq_get++];
 		if (mq->mq_get > mq->mq_alloc) {
 			mq->mq_get = 0;
@@ -371,7 +340,6 @@ nni_msgq_resize(nni_msgq *mq, int cap)
 		nni_msg_free(msg);
 	}
 	if (newq == NULL) {
-		// Just shrinking the queue, no changes
 		mq->mq_cap = cap;
 		goto out;
 	}
@@ -400,7 +368,6 @@ nni_msgq_resize(nni_msgq *mq, int cap)
 	nni_free(oldq, sizeof(nni_msg *) * oldalloc);
 
 out:
-	// Wake everyone up -- we changed everything.
 	nni_mtx_unlock(&mq->mq_lock);
 	return (0);
 }

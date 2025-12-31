@@ -49,4 +49,4 @@ struct nni_task {
 	nni_cv        task_cv;
 };
 
-#endif // CORE_TASKQ_H
+#endif

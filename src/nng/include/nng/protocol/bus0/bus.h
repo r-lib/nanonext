@@ -36,4 +36,4 @@ NNG_DECL int nng_bus0_open_raw(nng_socket *);
 }
 #endif
 
-#endif // NNG_PROTOCOL_BUS0_BUS_H
+#endif

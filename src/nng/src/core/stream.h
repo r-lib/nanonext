@@ -53,4 +53,4 @@ struct nng_stream_listener {
 	int (*sl_set)(void *, const char *, const void *, size_t, nni_type);
 };
 
-#endif // CORE_STREAM_H
+#endif

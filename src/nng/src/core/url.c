@@ -32,10 +32,6 @@ url_hex_val(char c)
 	return (0);
 }
 
-// This returns either 0, or NNG_EINVAL, if the supplied input string
-// is malformed UTF-8.  We consider UTF-8 malformed when the sequence
-// is an invalid code point, not the shortest possible code point, or
-// incomplete.
 static int
 url_utf8_validate(void *arg)
 {
@@ -49,7 +45,6 @@ url_utf8_validate(void *arg)
 			continue;
 		}
 		if ((s[0] & 0xe0u) == 0xc0) {
-			// 0x80 thru 0x7ff
 			v    = (s[0] & 0x1fu);
 			minv = 0x80;
 			nb   = 1;
@@ -62,14 +57,12 @@ url_utf8_validate(void *arg)
 			minv = 0x10000;
 			nb   = 3;
 		} else {
-			// invalid byte, either continuation, or too many
-			// leading 1 bits.
 			return (NNG_EINVAL);
 		}
 		s++;
 		for (int i = 0; i < nb; i++) {
 			if ((s[0] & 0xc0u) != 0x80) {
-				return (NNG_EINVAL); // not continuation
+				return (NNG_EINVAL);
 			}
 			s++;
 			v <<= 6u;
@@ -125,13 +118,11 @@ url_canonify_uri(char **outp, const char *in)
 	int     rv;
 	bool    skip;
 
-	// We know that the transform is strictly "reducing".
 	if ((out = nni_strdup(in)) == NULL) {
 		return (NNG_ENOMEM);
 	}
 	len = strlen(out);
 
-	// First pass, convert '%xx' for safe characters to unescaped forms.
 	src = dst = 0;
 	while ((c = out[src]) != 0) {
 		if (c == '%') {
@@ -143,10 +134,6 @@ url_canonify_uri(char **outp, const char *in)
 			c = url_hex_val(out[src + 1]);
 			c *= 16;
 			c += url_hex_val(out[src + 2]);
-			// If it's a safe character, decode, otherwise leave
-			// it alone.  We also decode valid high-bytes for
-			// UTF-8, which will let us validate them and use
-			// those characters in file names later.
 			if (((c >= 'A') && (c <= 'Z')) ||
 			    ((c >= 'a') && (c <= 'z')) ||
 			    ((c >= '0') && (c <= '9')) || (c == '.') ||
@@ -166,7 +153,6 @@ url_canonify_uri(char **outp, const char *in)
 	}
 	out[dst] = 0;
 
-	// Second pass, eliminate redundant //.
 	src = dst = 0;
 	skip      = false;
 	while ((c = out[src]) != 0) {
@@ -185,7 +171,6 @@ url_canonify_uri(char **outp, const char *in)
 	}
 	out[dst] = 0;
 
-	// Second pass, reduce /. and /.. elements, but only in the path.
 	src = dst = 0;
 	skip      = false;
 	while ((c = out[src]) != 0) {
@@ -205,7 +190,7 @@ url_canonify_uri(char **outp, const char *in)
 			if ((strncmp(out + src, "/.", 2) == 0) &&
 			    (out[src + 2] == 0 || out[src + 2] == '#' ||
 			        out[src + 2] == '?' || out[src + 2] == '/')) {
-				src += 2; // just skip over it
+				src += 2;
 				continue;
 			}
 			out[dst++] = '/';
@@ -220,8 +205,6 @@ url_canonify_uri(char **outp, const char *in)
 	}
 	out[dst] = 0;
 
-	// Finally lets make sure that the results are valid UTF-8.
-	// This guards against using UTF-8 redundancy to break security.
 	if ((rv = url_utf8_validate(out)) != 0) {
 		nni_free(out, len);
 		return (rv);
@@ -236,10 +219,6 @@ static struct {
 	const char *scheme;
 	const char *port;
 } nni_url_default_ports[] = {
-	// This list is not exhaustive, but likely covers the main ones we
-	// care about.  Feel free to add additional ones as use cases arise.
-	// Note also that we don't use "default" ports for SP protocols
-	// that have no "default" port, like tcp:// or tls+tcp://.
 	// clang-format off
 	{ "git", "9418" },
 	{ "gopher", "70" },
@@ -263,8 +242,6 @@ nni_url_default_port(const char *scheme)
 		if (strncmp(s, scheme, strlen(s)) != 0) {
 			continue;
 		}
-		// It can have a suffix of either "4" or "6" to restrict
-		// the address family.  This is an NNG extension.
 		switch (scheme[l]) {
 		case '\0':
 			return (nni_url_default_ports[i].port);
@@ -279,18 +256,6 @@ nni_url_default_port(const char *scheme)
 	return ("");
 }
 
-// URLs usually follow the following format:
-//
-// scheme:[//[userinfo@]host][/]path[?query][#fragment]
-//
-// There are other URL formats, for example mailto: but these are
-// generally not used with nanomsg transports.  Golang calls these
-//
-// scheme:opaque[?query][#fragment]
-//
-// Nanomsg URLs are always of the first form, we always require a
-// scheme with a leading //, such as http:// or tcp://. So our parser
-// is a bit more restricted, but sufficient for our needs.
 int
 nni_url_parse(nni_url **urlp, const char *raw)
 {
@@ -309,7 +274,6 @@ nni_url_parse(nni_url **urlp, const char *raw)
 		goto error;
 	}
 
-	// Grab the scheme.
 	s = raw;
 	for (len = 0; (c = s[len]) != ':'; len++) {
 		if (c == 0) {
@@ -329,17 +293,7 @@ nni_url_parse(nni_url **urlp, const char *raw)
 		url->u_scheme[i] = (char) tolower(s[i]);
 	}
 	url->u_scheme[len] = '\0';
-	s += len + 3; // strlen("://")
-
-	// For compatibility reasons, we treat ipc:// and inproc:// paths
-	// specially. These names URLs have a path name (ipc) or arbitrary
-	// string (inproc) and don't include anything like a host.  Note that
-	// in the case of path names, it is incumbent upon the application to
-	// ensure that valid and safe path names are used.  Note also that
-	// path names are not canonicalized, which means that the address and
-	// URL properties for relative paths won't be portable to other
-	// processes unless they are in the same directory.  When in doubt,
-	// we recommend using absolute paths, such as ipc:///var/run/socket.
+	s += len + 3;
 
 	if ((strcmp(url->u_scheme, "ipc") == 0) ||
 	    (strcmp(url->u_scheme, "unix") == 0) ||
@@ -353,16 +307,12 @@ nni_url_parse(nni_url **urlp, const char *raw)
 		return (0);
 	}
 
-	// Look for host part (including colon).  Will be terminated by
-	// a path, or NUL.  May also include an "@", separating a user
-	// field.
 	for (len = 0; (c = s[len]) != '/'; len++) {
 		if ((c == '\0') || (c == '#') || (c == '?')) {
 			break;
 		}
 		if (c == '@') {
-			// This is a username.
-			if (url->u_userinfo != NULL) { // we already have one
+			if (url->u_userinfo != NULL) {
 				rv = NNG_EINVAL;
 				goto error;
 			}
@@ -372,15 +322,11 @@ nni_url_parse(nni_url **urlp, const char *raw)
 			}
 			memcpy(url->u_userinfo, s, len);
 			url->u_userinfo[len] = '\0';
-			s += len + 1; // skip past user@ ...
+			s += len + 1;
 			len = 0;
 		}
 	}
 
-	// If the hostname part is just '*', skip over it.  (We treat it
-	// as an empty host for legacy nanomsg compatibility.  This may be
-	// non-RFC compliant, but we're really only interested in parsing
-	// nanomsg URLs.)
 	if (((len == 1) && (s[0] == '*')) ||
 	    ((len > 1) && (strncmp(s, "*:", 2) == 0))) {
 		s++;
@@ -391,8 +337,6 @@ nni_url_parse(nni_url **urlp, const char *raw)
 		rv = NNG_ENOMEM;
 		goto error;
 	}
-	// Copy the host portion, but make it lower case (hostnames are
-	// case insensitive).
 	for (size_t i = 0; i < len; i++) {
 		url->u_host[i] = (char) tolower(s[i]);
 	}
@@ -419,7 +363,6 @@ nni_url_parse(nni_url **urlp, const char *raw)
 
 	s += len;
 
-	// Look for query info portion.
 	if (s[0] == '?') {
 		s++;
 		for (len = 0; (c = s[len]) != '\0'; len++) {
@@ -436,8 +379,6 @@ nni_url_parse(nni_url **urlp, const char *raw)
 		s += len;
 	}
 
-	// Look for fragment.  Will always be last, so we just use
-	// strdup.
 	if (s[0] == '#') {
 		if ((url->u_fragment = nni_strdup(s + 1)) == NULL) {
 			rv = NNG_ENOMEM;
@@ -445,8 +386,6 @@ nni_url_parse(nni_url **urlp, const char *raw)
 		}
 	}
 
-	// Now go back to the host portion, and look for a separate
-	// port We also yank off the "[" part for IPv6 addresses.
 	s = url->u_host;
 	if (s[0] == '[') {
 		s++;
@@ -476,11 +415,9 @@ nni_url_parse(nni_url **urlp, const char *raw)
 	s += len;
 
 	if (s[0] == ']') {
-		s++; // skip over ']', only used with IPv6 addresses
+		s++;
 	}
 	if (s[0] == ':') {
-		// If a colon was present, but no port value present, then
-		// that is an error.
 		if (s[1] == '\0') {
 			rv = NNG_EINVAL;
 			goto error;
@@ -554,9 +491,6 @@ nni_url_asprintf(char **str, const nni_url *url)
 	    url->u_requri != NULL ? url->u_requri : ""));
 }
 
-// nni_url_asprintf_port is like nni_url_asprintf, but includes a port
-// override.  If non-zero, this port number replaces the port number
-// in the port string.
 int
 nni_url_asprintf_port(char **str, const nni_url *url, int port)
 {
