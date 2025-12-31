@@ -1,15 +1,3 @@
-/**
- * \file sha1.h
- *
- * \brief This file contains SHA-1 definitions and functions.
- *
- * The Secure Hash Algorithm 1 (SHA-1) cryptographic hash function is defined in
- * <em>FIPS 180-4: Secure Hash Standard (SHS)</em>.
- *
- * \warning   SHA-1 is considered a weak message digest and its use constitutes
- *            a security risk. We recommend considering stronger message
- *            digests instead.
- */
 /*
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
@@ -30,6 +18,7 @@ extern "C" {
 #endif
 
 #if !defined(MBEDTLS_SHA1_ALT)
+
 typedef struct mbedtls_sha1_context {
     uint32_t MBEDTLS_PRIVATE(total)[2];
     uint32_t MBEDTLS_PRIVATE(state)[5];
@@ -37,9 +26,9 @@ typedef struct mbedtls_sha1_context {
 }
 mbedtls_sha1_context;
 
-#else  /* MBEDTLS_SHA1_ALT */
+#else
 #include "sha1_alt.h"
-#endif /* MBEDTLS_SHA1_ALT */
+#endif
 
 void mbedtls_sha1_init(mbedtls_sha1_context *ctx);
 
@@ -63,6 +52,12 @@ int mbedtls_internal_sha1_process(mbedtls_sha1_context *ctx,
 int mbedtls_sha1(const unsigned char *input,
                  size_t ilen,
                  unsigned char output[20]);
+
+#if defined(MBEDTLS_SELF_TEST)
+
+int mbedtls_sha1_self_test(int verbose);
+
+#endif
 
 #ifdef __cplusplus
 }

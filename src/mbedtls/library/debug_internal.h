@@ -1,8 +1,3 @@
-/**
- * \file debug_internal.h
- *
- * \brief Internal part of the public "debug.h".
- */
 /*
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
@@ -58,4 +53,5 @@ void mbedtls_debug_printf_ecdh(const mbedtls_ssl_context *ssl, int level,
                                const mbedtls_ecdh_context *ecdh,
                                mbedtls_debug_ecdh_attr attr);
 #endif
+
 #endif

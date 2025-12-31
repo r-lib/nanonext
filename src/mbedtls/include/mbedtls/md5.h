@@ -1,12 +1,3 @@
-/**
- * \file md5.h
- *
- * \brief MD5 message digest algorithm (hash function)
- *
- * \warning   MD5 is considered a weak message digest and its use constitutes a
- *            security risk. We recommend considering stronger message
- *            digests instead.
- */
 /*
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
@@ -33,9 +24,9 @@ typedef struct mbedtls_md5_context {
 }
 mbedtls_md5_context;
 
-#else  /* MBEDTLS_MD5_ALT */
+#else
 #include "md5_alt.h"
-#endif /* MBEDTLS_MD5_ALT */
+#endif
 
 void mbedtls_md5_init(mbedtls_md5_context *ctx);
 
@@ -59,6 +50,12 @@ int mbedtls_internal_md5_process(mbedtls_md5_context *ctx,
 int mbedtls_md5(const unsigned char *input,
                 size_t ilen,
                 unsigned char output[16]);
+
+#if defined(MBEDTLS_SELF_TEST)
+
+int mbedtls_md5_self_test(int verbose);
+
+#endif
 
 #ifdef __cplusplus
 }

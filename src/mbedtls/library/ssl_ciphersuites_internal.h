@@ -1,8 +1,3 @@
-/**
- * \file ssl_ciphersuites_internal.h
- *
- * \brief Internal part of the public "ssl_ciphersuites.h".
- */
 /*
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
@@ -17,9 +12,9 @@ mbedtls_pk_type_t mbedtls_ssl_get_ciphersuite_sig_pk_alg(const mbedtls_ssl_ciphe
 #if defined(MBEDTLS_USE_PSA_CRYPTO)
 psa_algorithm_t mbedtls_ssl_get_ciphersuite_sig_pk_psa_alg(const mbedtls_ssl_ciphersuite_t *info);
 psa_key_usage_t mbedtls_ssl_get_ciphersuite_sig_pk_psa_usage(const mbedtls_ssl_ciphersuite_t *info);
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
+#endif
 mbedtls_pk_type_t mbedtls_ssl_get_ciphersuite_sig_alg(const mbedtls_ssl_ciphersuite_t *info);
-#endif /* MBEDTLS_PK_C */
+#endif
 
 int mbedtls_ssl_ciphersuite_uses_ec(const mbedtls_ssl_ciphersuite_t *info);
 int mbedtls_ssl_ciphersuite_uses_psk(const mbedtls_ssl_ciphersuite_t *info);
@@ -40,7 +35,7 @@ static inline int mbedtls_ssl_ciphersuite_has_pfs(const mbedtls_ssl_ciphersuite_
             return 0;
     }
 }
-#endif /* MBEDTLS_KEY_EXCHANGE_SOME_PFS_ENABLED */
+#endif
 
 #if defined(MBEDTLS_KEY_EXCHANGE_SOME_NON_PFS_ENABLED)
 static inline int mbedtls_ssl_ciphersuite_no_pfs(const mbedtls_ssl_ciphersuite_t *info)
@@ -57,7 +52,7 @@ static inline int mbedtls_ssl_ciphersuite_no_pfs(const mbedtls_ssl_ciphersuite_t
             return 0;
     }
 }
-#endif /* MBEDTLS_KEY_EXCHANGE_SOME_NON_PFS_ENABLED */
+#endif
 
 #if defined(MBEDTLS_KEY_EXCHANGE_SOME_ECDH_ENABLED)
 static inline int mbedtls_ssl_ciphersuite_uses_ecdh(const mbedtls_ssl_ciphersuite_t *info)
@@ -71,7 +66,7 @@ static inline int mbedtls_ssl_ciphersuite_uses_ecdh(const mbedtls_ssl_ciphersuit
             return 0;
     }
 }
-#endif /* MBEDTLS_KEY_EXCHANGE_SOME_ECDH_ENABLED */
+#endif
 
 static inline int mbedtls_ssl_ciphersuite_cert_req_allowed(const mbedtls_ssl_ciphersuite_t *info)
 {
@@ -118,7 +113,7 @@ static inline int mbedtls_ssl_ciphersuite_uses_dhe(const mbedtls_ssl_ciphersuite
             return 0;
     }
 }
-#endif /* MBEDTLS_KEY_EXCHANGE_SOME_DHE_ENABLED) */
+#endif
 
 #if defined(MBEDTLS_KEY_EXCHANGE_SOME_ECDHE_ENABLED)
 static inline int mbedtls_ssl_ciphersuite_uses_ecdhe(const mbedtls_ssl_ciphersuite_t *info)
@@ -133,7 +128,7 @@ static inline int mbedtls_ssl_ciphersuite_uses_ecdhe(const mbedtls_ssl_ciphersui
             return 0;
     }
 }
-#endif /* MBEDTLS_KEY_EXCHANGE_SOME_ECDHE_ENABLED) */
+#endif
 
 #if defined(MBEDTLS_KEY_EXCHANGE_WITH_SERVER_SIGNATURE_ENABLED)
 static inline int mbedtls_ssl_ciphersuite_uses_server_signature(
@@ -149,6 +144,6 @@ static inline int mbedtls_ssl_ciphersuite_uses_server_signature(
             return 0;
     }
 }
-#endif /* MBEDTLS_KEY_EXCHANGE_WITH_SERVER_SIGNATURE_ENABLED */
+#endif
 
-#endif /* MBEDTLS_SSL_CIPHERSUITES_INTERNAL_H */
+#endif

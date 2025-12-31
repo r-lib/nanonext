@@ -19,4 +19,4 @@
 MBEDTLS_CHECK_RETURN_CRITICAL
 int mbedtls_ssl_write_client_hello(mbedtls_ssl_context *ssl);
 
-#endif /* MBEDTLS_SSL_CLIENT_H */
+#endif

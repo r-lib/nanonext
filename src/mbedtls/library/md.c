@@ -11,22 +11,6 @@
 
 #include "common.h"
 
-/*
- * Availability of functions in this module is controlled by two
- * feature macros:
- * - MBEDTLS_MD_C enables the whole module;
- * - MBEDTLS_MD_LIGHT enables only functions for hashing and accessing
- * most hash metadata (everything except string names); is it
- * automatically set whenever MBEDTLS_MD_C is defined.
- *
- * In this file, functions from MD_LIGHT are at the top, MD_C at the end.
- *
- * In the future we may want to change the contract of some functions
- * (behaviour with NULL arguments) depending on whether MD_C is defined or
- * only MD_LIGHT. Also, the exact scope of MD_LIGHT might vary.
- *
- * For these reasons, we're keeping MD_LIGHT internal for now.
- */
 #if defined(MBEDTLS_MD_LIGHT)
 
 #include "mbedtls/md.h"
@@ -57,7 +41,6 @@
 #include <stdio.h>
 #endif
 
-/* See comment above MBEDTLS_MD_MAX_SIZE in md.h */
 #if defined(MBEDTLS_PSA_CRYPTO_C) && MBEDTLS_MD_MAX_SIZE < PSA_HASH_MAX_SIZE
 #error "Internal error: MBEDTLS_MD_MAX_SIZE < PSA_HASH_MAX_SIZE"
 #endif
@@ -248,11 +231,11 @@ static int md_can_use_psa(const mbedtls_md_info_t *info)
 
     return psa_can_do_hash(alg);
 }
-#endif /* MBEDTLS_MD_SOME_PSA */
+#endif
 
 void mbedtls_md_init(mbedtls_md_context_t *ctx)
 {
-    /* Note: this sets engine (if present) to MBEDTLS_MD_ENGINE_LEGACY */
+
     memset(ctx, 0, sizeof(mbedtls_md_context_t));
 }
 
@@ -313,7 +296,7 @@ void mbedtls_md_free(mbedtls_md_context_t *ctx)
                 break;
 #endif
             default:
-                /* Shouldn't happen */
+
                 break;
         }
         mbedtls_free(ctx->md_ctx);
@@ -340,10 +323,7 @@ int mbedtls_md_clone(mbedtls_md_context_t *dst,
 
 #if defined(MBEDTLS_MD_SOME_PSA)
     if (src->engine != dst->engine) {
-        /* This can happen with src set to legacy because PSA wasn't ready
-         * yet, and dst to PSA because it became ready in the meantime.
-         * We currently don't support that case (we'd need to re-allocate
-         * md_ctx to the size of the appropriate MD context). */
+
         return MBEDTLS_ERR_MD_FEATURE_UNAVAILABLE;
     }
 
@@ -765,18 +745,10 @@ int mbedtls_md_error_from_psa(psa_status_t status)
     return PSA_TO_MBEDTLS_ERR_LIST(status, psa_to_md_errors,
                                    psa_generic_status_to_mbedtls);
 }
-#endif /* MBEDTLS_PSA_CRYPTO_CLIENT */
+#endif
 
-
-/************************************************************************
- * Functions above this separator are part of MBEDTLS_MD_LIGHT,         *
- * functions below are only available when MBEDTLS_MD_C is set.         *
- ************************************************************************/
 #if defined(MBEDTLS_MD_C)
 
-/*
- * Reminder: update profiles in x509_crt.c when adding a new hash!
- */
 static const int supported_digests[] = {
 
 #if defined(MBEDTLS_MD_CAN_SHA512)
@@ -844,7 +816,7 @@ static const md_name_entry md_names[] = {
 #endif
 #if defined(MBEDTLS_MD_CAN_SHA1)
     { "SHA1", MBEDTLS_MD_SHA1 },
-    { "SHA", MBEDTLS_MD_SHA1 }, // compatibility fallback
+    { "SHA", MBEDTLS_MD_SHA1 },
 #endif
 #if defined(MBEDTLS_MD_CAN_SHA224)
     { "SHA224", MBEDTLS_MD_SHA224 },
@@ -930,7 +902,6 @@ int mbedtls_md_file(const mbedtls_md_info_t *md_info, const char *path, unsigned
         return MBEDTLS_ERR_MD_FILE_IO_ERROR;
     }
 
-    /* Ensure no stdio buffering of secrets, as such buffers cannot be wiped. */
     mbedtls_setbuf(f, NULL);
 
     mbedtls_md_init(&ctx);
@@ -962,7 +933,7 @@ cleanup:
 
     return ret;
 }
-#endif /* MBEDTLS_FS_IO */
+#endif
 
 int mbedtls_md_hmac_starts(mbedtls_md_context_t *ctx, const unsigned char *key, size_t keylen)
 {
@@ -1101,6 +1072,6 @@ cleanup:
     return ret;
 }
 
-#endif /* MBEDTLS_MD_C */
+#endif
 
-#endif /* MBEDTLS_MD_LIGHT */
+#endif

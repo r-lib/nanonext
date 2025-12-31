@@ -12,6 +12,7 @@
 
 #include "mbedtls/rsa.h"
 #include "mbedtls/bignum.h"
+#include "bignum_internal.h"
 #include "rsa_alt_helpers.h"
 
 int mbedtls_rsa_deduce_primes(mbedtls_mpi const *N,
@@ -72,20 +73,22 @@ int mbedtls_rsa_deduce_primes(mbedtls_mpi const *N,
     for (; attempt < num_primes; ++attempt) {
         MBEDTLS_MPI_CHK(mbedtls_mpi_lset(&K, primes[attempt]));
 
-        MBEDTLS_MPI_CHK(mbedtls_mpi_gcd(P, &K, N));
+        MBEDTLS_MPI_CHK(mbedtls_mpi_gcd_modinv_odd(P, NULL, &K, N));
         if (mbedtls_mpi_cmp_int(P, 1) != 0) {
             continue;
         }
 
-        MBEDTLS_MPI_CHK(mbedtls_mpi_exp_mod(&K, &K, &T, N, Q));
+        MBEDTLS_MPI_CHK(mbedtls_mpi_exp_mod(&K, &K, &T, N,
+                                            Q ));
 
         for (iter = 1; iter <= order; ++iter) {
+
             if (mbedtls_mpi_cmp_int(&K, 1) == 0) {
                 break;
             }
 
             MBEDTLS_MPI_CHK(mbedtls_mpi_add_int(&K, &K, 1));
-            MBEDTLS_MPI_CHK(mbedtls_mpi_gcd(P, &K, N));
+            MBEDTLS_MPI_CHK(mbedtls_mpi_gcd_modinv_odd(P, NULL, &K, N));
 
             if (mbedtls_mpi_cmp_int(P, 1) ==  1 &&
                 mbedtls_mpi_cmp_mpi(P, N) == -1) {
@@ -131,6 +134,10 @@ int mbedtls_rsa_deduce_private_exponent(mbedtls_mpi const *P,
         return MBEDTLS_ERR_MPI_BAD_INPUT_DATA;
     }
 
+    if (mbedtls_mpi_get_bit(E, 0) != 1) {
+        return MBEDTLS_ERR_MPI_NOT_ACCEPTABLE;
+    }
+
     mbedtls_mpi_init(&K);
     mbedtls_mpi_init(&L);
 
@@ -142,7 +149,7 @@ int mbedtls_rsa_deduce_private_exponent(mbedtls_mpi const *P,
     MBEDTLS_MPI_CHK(mbedtls_mpi_mul_mpi(&K, &K, &L));
     MBEDTLS_MPI_CHK(mbedtls_mpi_div_mpi(&K, NULL, &K, D));
 
-    MBEDTLS_MPI_CHK(mbedtls_mpi_inv_mod(D, E, &K));
+    MBEDTLS_MPI_CHK(mbedtls_mpi_inv_mod_even_in_range(D, E, &K));
 
 cleanup:
 
@@ -171,7 +178,7 @@ int mbedtls_rsa_deduce_crt(const mbedtls_mpi *P, const mbedtls_mpi *Q,
     }
 
     if (QP != NULL) {
-        MBEDTLS_MPI_CHK(mbedtls_mpi_inv_mod(QP, Q, P));
+        MBEDTLS_MPI_CHK(mbedtls_mpi_inv_mod_odd(QP, Q, P));
     }
 
 cleanup:
@@ -208,7 +215,7 @@ int mbedtls_rsa_validate_params(const mbedtls_mpi *N, const mbedtls_mpi *P,
 #else
     ((void) f_rng);
     ((void) p_rng);
-#endif /* MBEDTLS_GENPRIME */
+#endif
 
     if (P != NULL && Q != NULL && N != NULL) {
         MBEDTLS_MPI_CHK(mbedtls_mpi_mul_mpi(&K, P, Q));

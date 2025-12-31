@@ -14,6 +14,7 @@
 
 static inline void mbedtls_ctr_increment_counter(uint8_t n[16])
 {
+
     for (int i = 3;; i--) {
         uint32_t x = MBEDTLS_GET_UINT32_BE(n, i << 2);
         x += 1;
@@ -24,4 +25,4 @@ static inline void mbedtls_ctr_increment_counter(uint8_t n[16])
     }
 }
 
-#endif /* MBEDTLS_CTR_H */
+#endif

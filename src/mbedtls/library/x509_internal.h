@@ -1,8 +1,3 @@
-/**
- * \file x509.h
- *
- * \brief Internal part of the public "x509.h".
- */
 /*
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
@@ -83,4 +78,4 @@ int mbedtls_x509_info_key_usage(char **buf, size_t *size,
 int mbedtls_x509_write_set_san_common(mbedtls_asn1_named_data **extensions,
                                       const mbedtls_x509_san_list *san_list);
 
-#endif /* MBEDTLS_X509_INTERNAL_H */
+#endif

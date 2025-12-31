@@ -16,6 +16,8 @@
 #   mbedtls, mbedx509, mbedcrypto and apidoc targets.
 #
 
+# We specify a minimum requirement of 3.10.2, but for now use 3.5.1 here
+# until our infrastructure catches up.
 cmake_minimum_required(VERSION 3.10.2)
 
 include(CMakePackageConfigHelpers)
@@ -38,12 +40,12 @@ cmake_policy(SET CMP0012 NEW)
 if(TEST_CPP)
     project("Mbed TLS"
         LANGUAGES C CXX
-        VERSION 3.6.2
+        VERSION 3.6.5
     )
 else()
     project("Mbed TLS"
         LANGUAGES C
-        VERSION 3.6.2
+        VERSION 3.6.5
     )
 endif()
 
@@ -59,12 +61,13 @@ endif()
 
 # Set the project root directory.
 set(MBEDTLS_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(MBEDTLS_FRAMEWORK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/framework)
 
-set(CMAKE_STATIC_LIBRARY_SUFFIX ".b")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_COLOR_MAKEFILE OFF)
 set(CMAKE_INSTALL_MESSAGE NEVER)
+set(CMAKE_STATIC_LIBRARY_SUFFIX ".b")
 
 option(UNSAFE_BUILD "Allow unsafe builds. These builds ARE NOT SECURE." OFF)
 
@@ -224,7 +227,7 @@ if(NOT DISABLE_PACKAGE_CONFIG_AND_INSTALL)
     write_basic_package_version_file(
         "cmake/MbedTLSConfigVersion.cmake"
             COMPATIBILITY SameMajorVersion
-            VERSION 3.6.2)
+            VERSION 3.6.5)
 
     install(
         FILES "${CMAKE_CURRENT_BINARY_DIR}/cmake/MbedTLSConfig.cmake"

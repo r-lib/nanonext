@@ -1,8 +1,3 @@
-/**
- * \file debug.h
- *
- * \brief Functions for controlling and providing debug output from the library.
- */
 /*
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
@@ -48,15 +43,15 @@
     mbedtls_debug_print_crt(ssl, level, __FILE__, __LINE__, text, crt)
 #else
 #define MBEDTLS_SSL_DEBUG_CRT(level, text, crt)       do { } while (0)
-#endif /* MBEDTLS_X509_REMOVE_INFO */
-#endif /* MBEDTLS_X509_CRT_PARSE_C */
+#endif
+#endif
 
 #if defined(MBEDTLS_ECDH_C)
 #define MBEDTLS_SSL_DEBUG_ECDH(level, ecdh, attr)               \
     mbedtls_debug_printf_ecdh(ssl, level, __FILE__, __LINE__, ecdh, attr)
 #endif
 
-#else /* MBEDTLS_DEBUG_C */
+#else
 
 #define MBEDTLS_SSL_DEBUG_MSG(level, args)            do { } while (0)
 #define MBEDTLS_SSL_DEBUG_RET(level, text, ret)       do { } while (0)
@@ -66,58 +61,33 @@
 #define MBEDTLS_SSL_DEBUG_CRT(level, text, crt)       do { } while (0)
 #define MBEDTLS_SSL_DEBUG_ECDH(level, ecdh, attr)     do { } while (0)
 
-#endif /* MBEDTLS_DEBUG_C */
+#endif
 
-/**
- * \def MBEDTLS_PRINTF_ATTRIBUTE
- *
- * Mark a function as having printf attributes, and thus enable checking
- * via -wFormat and other flags. This does nothing on builds with compilers
- * that do not support the format attribute
- *
- * Module:  library/debug.c
- * Caller:
- *
- * This module provides debugging functions.
- */
 #if defined(__has_attribute)
 #if __has_attribute(format)
 #if defined(__MINGW32__) && __USE_MINGW_ANSI_STDIO == 1
 #define MBEDTLS_PRINTF_ATTRIBUTE(string_index, first_to_check)    \
     __attribute__((__format__(gnu_printf, string_index, first_to_check)))
-#else /* defined(__MINGW32__) && __USE_MINGW_ANSI_STDIO == 1 */
+#else
 #define MBEDTLS_PRINTF_ATTRIBUTE(string_index, first_to_check)    \
     __attribute__((format(printf, string_index, first_to_check)))
 #endif
-#else /* __has_attribute(format) */
+#else
 #define MBEDTLS_PRINTF_ATTRIBUTE(string_index, first_to_check)
-#endif /* __has_attribute(format) */
-#else /* defined(__has_attribute) */
+#endif
+#else
 #define MBEDTLS_PRINTF_ATTRIBUTE(string_index, first_to_check)
 #endif
 
-/**
- * \def MBEDTLS_PRINTF_SIZET
- *
- * MBEDTLS_PRINTF_xxx: Due to issues with older window compilers
- * and MinGW we need to define the printf specifier for size_t
- * and long long per platform.
- *
- * Module:  library/debug.c
- * Caller:
- *
- * This module provides debugging functions.
- */
-#if (defined(__MINGW32__) && __USE_MINGW_ANSI_STDIO == 0) || (defined(_MSC_VER) && _MSC_VER < 1800)
+#if defined(__MINGW32__) || (defined(_MSC_VER) && _MSC_VER < 1900)
    #include <inttypes.h>
    #define MBEDTLS_PRINTF_SIZET     PRIuPTR
    #define MBEDTLS_PRINTF_LONGLONG  "I64d"
 #else \
-    /* (defined(__MINGW32__)  && __USE_MINGW_ANSI_STDIO == 0) || (defined(_MSC_VER) && _MSC_VER < 1800) */
+
    #define MBEDTLS_PRINTF_SIZET     "zu"
    #define MBEDTLS_PRINTF_LONGLONG  "lld"
 #endif \
-    /* (defined(__MINGW32__)  && __USE_MINGW_ANSI_STDIO == 0) || (defined(_MSC_VER) && _MSC_VER < 1800) */
 
 #if !defined(MBEDTLS_PRINTF_MS_TIME)
 #include <inttypes.h>
@@ -126,31 +96,16 @@
 #else
 #define MBEDTLS_PRINTF_MS_TIME PRId64
 #endif
-#endif /* MBEDTLS_PRINTF_MS_TIME */
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/**
- * \brief   Set the threshold error level to handle globally all debug output.
- *          Debug messages that have a level over the threshold value are
- *          discarded.
- *          (Default value: 0 = No debug )
- *
- * \param threshold     threshold level of messages to filter on. Messages at a
- *                      higher level will be discarded.
- *                          - Debug levels
- *                              - 0 No debug
- *                              - 1 Error
- *                              - 2 State change
- *                              - 3 Informational
- *                              - 4 Verbose
- */
 void mbedtls_debug_set_threshold(int threshold);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* MBEDTLS_DEBUG_H */
+#endif

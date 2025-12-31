@@ -4,38 +4,38 @@
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
+
 #ifndef MBEDTLS_CONSTANT_TIME_IMPL_H
-#define MBEDTLS_CONSTANT_TIME_IMPL_H 
+#define MBEDTLS_CONSTANT_TIME_IMPL_H
+
 #include <stddef.h>
+
 #include "common.h"
+
 #if defined(MBEDTLS_BIGNUM_C)
 #include "mbedtls/bignum.h"
 #endif
-#if defined(MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN) || \
-    (defined(MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND) && !defined(MBEDTLS_TEST_CONSTANT_FLOW_ASM))
-#define MBEDTLS_CT_NO_ASM 
-#elif defined(__has_feature)
-#if __has_feature(memory_sanitizer)
-#define MBEDTLS_CT_NO_ASM 
-#endif
-#endif
+
 #if defined(MBEDTLS_HAVE_ASM) && defined(__GNUC__) && (!defined(__ARMCC_VERSION) || \
-    __ARMCC_VERSION >= 6000000) && !defined(MBEDTLS_CT_NO_ASM)
-#define MBEDTLS_CT_ASM 
+    __ARMCC_VERSION >= 6000000)
+#define MBEDTLS_CT_ASM
 #if (defined(__arm__) || defined(__thumb__) || defined(__thumb2__))
-#define MBEDTLS_CT_ARM_ASM 
+#define MBEDTLS_CT_ARM_ASM
 #elif defined(__aarch64__)
-#define MBEDTLS_CT_AARCH64_ASM 
+#define MBEDTLS_CT_AARCH64_ASM
 #elif defined(__amd64__) || defined(__x86_64__)
-#define MBEDTLS_CT_X86_64_ASM 
+#define MBEDTLS_CT_X86_64_ASM
 #elif defined(__i386__)
-#define MBEDTLS_CT_X86_ASM 
+#define MBEDTLS_CT_X86_ASM
 #endif
 #endif
+
 #define MBEDTLS_CT_SIZE (sizeof(mbedtls_ct_uint_t) * 8)
+
 #if !defined(MBEDTLS_CT_ASM)
 extern volatile mbedtls_ct_uint_t mbedtls_ct_zero;
 #endif
+
 static inline mbedtls_ct_uint_t mbedtls_ct_compiler_opaque(mbedtls_ct_uint_t x)
 {
 #if defined(MBEDTLS_CT_ASM)
@@ -45,14 +45,17 @@ static inline mbedtls_ct_uint_t mbedtls_ct_compiler_opaque(mbedtls_ct_uint_t x)
     return x ^ mbedtls_ct_zero;
 #endif
 }
+
 #if defined(MBEDTLS_COMPILER_IS_GCC) && defined(__thumb__) && !defined(__thumb2__) && \
     (__GNUC__ < 11) && !defined(__ARM_ARCH_2__)
-#define RESTORE_ASM_SYNTAX ".syntax divided                      \n\t"
+#define RESTORE_ASM_SYNTAX  ".syntax divided                      \n\t"
 #else
-#define RESTORE_ASM_SYNTAX 
+#define RESTORE_ASM_SYNTAX
 #endif
+
 static inline mbedtls_ct_condition_t mbedtls_ct_bool(mbedtls_ct_uint_t x)
 {
+
 #if defined(MBEDTLS_CT_AARCH64_ASM) && (defined(MBEDTLS_CT_SIZE_32) || defined(MBEDTLS_CT_SIZE_64))
     mbedtls_ct_uint_t s;
     asm volatile ("neg %x[s], %x[x]                               \n\t"
@@ -108,11 +111,23 @@ static inline mbedtls_ct_condition_t mbedtls_ct_bool(mbedtls_ct_uint_t x)
     return (mbedtls_ct_condition_t) x;
 #else
     const mbedtls_ct_uint_t xo = mbedtls_ct_compiler_opaque(x);
+#if defined(_MSC_VER)
+
+#pragma warning( push )
+#pragma warning( disable : 4146 )
+#endif
+
     mbedtls_ct_int_t y = (-xo) | -(xo >> 1);
+
     y = (((mbedtls_ct_uint_t) y) >> (MBEDTLS_CT_SIZE - 1));
+
     return (mbedtls_ct_condition_t) (-y);
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif
 #endif
 }
+
 static inline mbedtls_ct_uint_t mbedtls_ct_if(mbedtls_ct_condition_t condition,
                                               mbedtls_ct_uint_t if1,
                                               mbedtls_ct_uint_t if0)
@@ -178,6 +193,7 @@ static inline mbedtls_ct_uint_t mbedtls_ct_if(mbedtls_ct_condition_t condition,
     return (mbedtls_ct_uint_t) ((condition & if1) | (not_cond & if0));
 #endif
 }
+
 static inline mbedtls_ct_condition_t mbedtls_ct_uint_lt(mbedtls_ct_uint_t x, mbedtls_ct_uint_t y)
 {
 #if defined(MBEDTLS_CT_AARCH64_ASM) && (defined(MBEDTLS_CT_SIZE_32) || defined(MBEDTLS_CT_SIZE_64))
@@ -258,19 +274,28 @@ static inline mbedtls_ct_condition_t mbedtls_ct_uint_lt(mbedtls_ct_uint_t x, mbe
                   );
     return (mbedtls_ct_condition_t) x;
 #else
+
     const mbedtls_ct_uint_t xo = mbedtls_ct_compiler_opaque(x);
     const mbedtls_ct_uint_t yo = mbedtls_ct_compiler_opaque(y);
+
     mbedtls_ct_condition_t cond = mbedtls_ct_bool((xo ^ yo) >> (MBEDTLS_CT_SIZE - 1));
+
     mbedtls_ct_uint_t ret = mbedtls_ct_if(cond, yo, (mbedtls_ct_uint_t) (xo - yo));
+
     ret = ret >> (MBEDTLS_CT_SIZE - 1);
+
     return mbedtls_ct_bool(ret);
 #endif
 }
+
 static inline mbedtls_ct_condition_t mbedtls_ct_uint_ne(mbedtls_ct_uint_t x, mbedtls_ct_uint_t y)
 {
+
     const mbedtls_ct_uint_t diff = mbedtls_ct_compiler_opaque(x) ^ mbedtls_ct_compiler_opaque(y);
+
     return mbedtls_ct_bool(diff);
 }
+
 static inline unsigned char mbedtls_ct_uchar_in_range_if(unsigned char low,
                                                          unsigned char high,
                                                          unsigned char c,
@@ -278,22 +303,28 @@ static inline unsigned char mbedtls_ct_uchar_in_range_if(unsigned char low,
 {
     const unsigned char co = (unsigned char) mbedtls_ct_compiler_opaque(c);
     const unsigned char to = (unsigned char) mbedtls_ct_compiler_opaque(t);
+
     unsigned low_mask = ((unsigned) co - low) >> 8;
+
     unsigned high_mask = ((unsigned) high - co) >> 8;
+
     return (unsigned char) (~(low_mask | high_mask)) & to;
 }
+
 static inline size_t mbedtls_ct_size_if(mbedtls_ct_condition_t condition,
                                         size_t if1,
                                         size_t if0)
 {
     return (size_t) mbedtls_ct_if(condition, (mbedtls_ct_uint_t) if1, (mbedtls_ct_uint_t) if0);
 }
+
 static inline unsigned mbedtls_ct_uint_if(mbedtls_ct_condition_t condition,
                                           unsigned if1,
                                           unsigned if0)
 {
     return (unsigned) mbedtls_ct_if(condition, (mbedtls_ct_uint_t) if1, (mbedtls_ct_uint_t) if0);
 }
+
 static inline mbedtls_ct_condition_t mbedtls_ct_bool_if(mbedtls_ct_condition_t condition,
                                                         mbedtls_ct_condition_t if1,
                                                         mbedtls_ct_condition_t if0)
@@ -301,7 +332,9 @@ static inline mbedtls_ct_condition_t mbedtls_ct_bool_if(mbedtls_ct_condition_t c
     return (mbedtls_ct_condition_t) mbedtls_ct_if(condition, (mbedtls_ct_uint_t) if1,
                                                   (mbedtls_ct_uint_t) if0);
 }
+
 #if defined(MBEDTLS_BIGNUM_C)
+
 static inline mbedtls_mpi_uint mbedtls_ct_mpi_uint_if(mbedtls_ct_condition_t condition,
                                                       mbedtls_mpi_uint if1,
                                                       mbedtls_mpi_uint if0)
@@ -310,73 +343,97 @@ static inline mbedtls_mpi_uint mbedtls_ct_mpi_uint_if(mbedtls_ct_condition_t con
                                             (mbedtls_ct_uint_t) if1,
                                             (mbedtls_ct_uint_t) if0);
 }
+
 #endif
+
 static inline size_t mbedtls_ct_size_if_else_0(mbedtls_ct_condition_t condition, size_t if1)
 {
     return (size_t) (condition & if1);
 }
+
 static inline unsigned mbedtls_ct_uint_if_else_0(mbedtls_ct_condition_t condition, unsigned if1)
 {
     return (unsigned) (condition & if1);
 }
+
 static inline mbedtls_ct_condition_t mbedtls_ct_bool_if_else_0(mbedtls_ct_condition_t condition,
                                                                mbedtls_ct_condition_t if1)
 {
     return (mbedtls_ct_condition_t) (condition & if1);
 }
+
 #if defined(MBEDTLS_BIGNUM_C)
+
 static inline mbedtls_mpi_uint mbedtls_ct_mpi_uint_if_else_0(mbedtls_ct_condition_t condition,
                                                              mbedtls_mpi_uint if1)
 {
     return (mbedtls_mpi_uint) (condition & if1);
 }
+
 #endif
+
 static inline int mbedtls_ct_error_if(mbedtls_ct_condition_t condition, int if1, int if0)
 {
+
     return -((int) mbedtls_ct_if(condition, (mbedtls_ct_uint_t) (-if1),
                                  (mbedtls_ct_uint_t) (-if0)));
 }
+
 static inline int mbedtls_ct_error_if_else_0(mbedtls_ct_condition_t condition, int if1)
 {
     return -((int) (condition & (-if1)));
 }
+
 static inline mbedtls_ct_condition_t mbedtls_ct_uint_eq(mbedtls_ct_uint_t x,
                                                         mbedtls_ct_uint_t y)
 {
     return ~mbedtls_ct_uint_ne(x, y);
 }
+
 static inline mbedtls_ct_condition_t mbedtls_ct_uint_gt(mbedtls_ct_uint_t x,
                                                         mbedtls_ct_uint_t y)
 {
     return mbedtls_ct_uint_lt(y, x);
 }
+
 static inline mbedtls_ct_condition_t mbedtls_ct_uint_ge(mbedtls_ct_uint_t x,
                                                         mbedtls_ct_uint_t y)
 {
     return ~mbedtls_ct_uint_lt(x, y);
 }
+
 static inline mbedtls_ct_condition_t mbedtls_ct_uint_le(mbedtls_ct_uint_t x,
                                                         mbedtls_ct_uint_t y)
 {
     return ~mbedtls_ct_uint_gt(x, y);
 }
+
 static inline mbedtls_ct_condition_t mbedtls_ct_bool_ne(mbedtls_ct_condition_t x,
                                                         mbedtls_ct_condition_t y)
 {
     return (mbedtls_ct_condition_t) (x ^ y);
 }
+
 static inline mbedtls_ct_condition_t mbedtls_ct_bool_and(mbedtls_ct_condition_t x,
                                                          mbedtls_ct_condition_t y)
 {
     return (mbedtls_ct_condition_t) (x & y);
 }
+
 static inline mbedtls_ct_condition_t mbedtls_ct_bool_or(mbedtls_ct_condition_t x,
                                                         mbedtls_ct_condition_t y)
 {
     return (mbedtls_ct_condition_t) (x | y);
 }
+
 static inline mbedtls_ct_condition_t mbedtls_ct_bool_not(mbedtls_ct_condition_t x)
 {
     return (mbedtls_ct_condition_t) (~x);
 }
+
+#if defined(MBEDTLS_COMPILER_IS_GCC) && (__GNUC__ > 4)
+
+    #pragma GCC diagnostic pop
+#endif
+
 #endif
