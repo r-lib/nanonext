@@ -158,7 +158,7 @@ install.packages("nanonext", repos = "https://r-lib.r-universe.dev")
 
 #### Linux / Mac / Solaris
 
-Installation from source requires 'libnng' >= v1.9.0 and 'libmbedtls' >= 2.5.0 (suitable installations are automatically detected), or else 'cmake' to compile 'libnng' v1.11.0 and 'libmbedtls' v3.6.2 included within the package sources.
+Installation from source requires 'libnng' >= v1.9.0 and 'libmbedtls' >= 2.5.0 (suitable installations are automatically detected), or else 'cmake' to compile 'libnng' v1.11.0 and 'libmbedtls' v3.6.5 included within the package sources.
 
 **It is recommended for optimal performance and stability to let the package automatically compile bundled versions of 'libmbedtls' and 'libnng' during installation.** To ensure the libraries are compiled from source even if system installations are present, set the `NANONEXT_LIBS` environment variable prior to installation e.g. by `Sys.setenv(NANONEXT_LIBS = 1)`.
 
@@ -168,7 +168,7 @@ As system libraries, 'libnng' is available as libnng-dev (deb) or nng-devel (rpm
 
 #### Windows
 
-On Windows, 'libnng' v1.11.0 and 'libmbedtls' v3.6.2 will be compiled from the package sources during installation and hence requires the 'Rtools' toolchain.
+On Windows, 'libnng' v1.11.0 and 'libmbedtls' v3.6.5 will be compiled from the package sources during installation and hence requires the 'Rtools' toolchain.
 
 For R >= 4.2 using the 'Rtools42' or newer toolchains, the prerequisite 'cmake' is included. For previous R versions using 'Rtools40' or earlier, it may be necessary to separately install a version of 'cmake' in Windows and ensure that it is added to your system's `PATH`.
 
