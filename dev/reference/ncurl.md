@@ -114,7 +114,7 @@ ncurl(
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Wed, 31 Dec 2025 20:25:39 GMT"
+#> [1] "Fri, 02 Jan 2026 09:24:21 GMT"
 #> 
 #> $headers$`content-type`
 #> [1] "application/json; charset=utf-8"
