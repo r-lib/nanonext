@@ -106,12 +106,11 @@ if (NNG_PLATFORM_POSIX)
     else ()
         nng_sources(posix_pollq_poll.c)
     endif ()
-
-    # Arc4random and getrandom order reversed for Emscripten
-    if (NNG_HAVE_GETRANDOM)
-        nng_sources(posix_rand_getrandom.c)
-    elseif (NNG_HAVE_ARC4RANDOM)
+    
+    if (NNG_HAVE_ARC4RANDOM AND NOT NNG_PLATFORM_EMSCRIPTEN)
         nng_sources(posix_rand_arc4random.c)
+    elseif (NNG_HAVE_GETRANDOM)
+        nng_sources(posix_rand_getrandom.c)
     else ()
         nng_sources(posix_rand_urandom.c)
     endif ()
