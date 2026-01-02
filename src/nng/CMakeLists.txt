@@ -159,7 +159,7 @@ if (NOT WIN32 AND NOT CYGWIN)
     endif ()
 endif ()
 
-if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+if (CMAKE_SYSTEM_NAME MATCHES "Emscripten" OR CMAKE_C_COMPILER MATCHES "emcc")
     add_definitions(-DNNG_PLATFORM_POSIX)
     add_definitions(-DNNG_PLATFORM_EMSCRIPTEN)
     add_definitions(-DNNG_USE_GETTIMEOFDAY)
