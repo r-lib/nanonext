@@ -432,7 +432,7 @@ SEXP nano_decode(unsigned char *buf, const size_t sz, const uint8_t mod, SEXP ho
 void nano_encode(nano_buf *enc, const SEXP object) {
 
   switch (TYPEOF(object)) {
-  case STRSXP: ;
+  case STRSXP: {
     const char *s;
     R_xlen_t xlen = XLENGTH(object);
     if (xlen == 1) {
@@ -452,6 +452,7 @@ void nano_encode(nano_buf *enc, const SEXP object) {
       enc->cur += slen;
     }
     break;
+  }
   case REALSXP:
     NANO_INIT(enc, (unsigned char *) DATAPTR_RO(object), XLENGTH(object) * sizeof(double));
     break;

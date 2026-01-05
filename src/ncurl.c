@@ -54,10 +54,11 @@ static nano_buf nano_char_buf(const SEXP data) {
 
   nano_buf buf = {0};
   switch (TYPEOF(data)) {
-  case STRSXP: ;
+  case STRSXP: {
     const char *s = NANO_STRING(data);
     NANO_INIT(&buf, (unsigned char *) s, strlen(s));
     break;
+  }
   case RAWSXP:
     NANO_INIT(&buf, NANO_DATAPTR(data), XLENGTH(data));
     break;

@@ -543,11 +543,12 @@ SEXP rnng_serial_config(SEXP klass, SEXP sfunc, SEXP ufunc) {
     break;
   case CLOSXP:
   case SPECIALSXP:
-  case BUILTINSXP: ;
+  case BUILTINSXP: {
     SEXP slist = Rf_allocVector(VECSXP, 1);
     SET_VECTOR_ELT(out, 1, slist);
     SET_VECTOR_ELT(slist, 0, sfunc);
     break;
+  }
   default:
     Rf_error("`sfunc` must be a function or list of functions");
   }
@@ -558,11 +559,12 @@ SEXP rnng_serial_config(SEXP klass, SEXP sfunc, SEXP ufunc) {
     break;
   case CLOSXP:
   case SPECIALSXP:
-  case BUILTINSXP: ;
+  case BUILTINSXP: {
     SEXP ulist = Rf_allocVector(VECSXP, 1);
     SET_VECTOR_ELT(out, 2, ulist);
     SET_VECTOR_ELT(ulist, 0, ufunc);
     break;
+  }
   default:
     Rf_error("`ufunc` must be a function or list of functions");
   }
