@@ -244,6 +244,22 @@ collect_aio <- function(x) .Call(rnng_aio_collect, x)
 #'
 collect_aio_ <- function(x) .Call(rnng_aio_collect_safe, x)
 
+#' Race Aio
+#'
+#' Returns the index of the first resolved Aio in a list, waiting if necessary.
+#'
+#' @param x A list of Aio objects.
+#' @param cv A condition variable. This must be the same cv supplied to
+#'   [recv_aio()] or [request()] when creating the Aio objects in `x`.
+#'
+#' @return Integer index of the first resolved Aio, or 0L if none are resolved,
+#'   the list is empty, or the cv was terminated.
+#'
+#' @keywords internal
+#' @export
+#'
+race_aio <- function(x, cv) .Call(rnng_race_aio, x, cv)
+
 #' Stop Asynchronous Aio Operation
 #'
 #' Stop an asynchronous Aio operation, or a list of Aio operations.
@@ -372,7 +388,7 @@ as.promise.recvAio <- function(x) {
   if (is.null(promise)) {
     promise <- promises::promise(
       function(resolve, reject) {
-        if (unresolved(x)) .keep(x, environment()) else resolve(.subset2(x, "value"))
+      if (unresolved(x)) .keep(x, environment()) else resolve(.subset2(x, "value"))
       }
     )$then(
       onFulfilled = handle_fulfilled

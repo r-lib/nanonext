@@ -624,6 +624,82 @@ SEXP rnng_unresolved2(SEXP x) {
 
 }
 
+static inline R_xlen_t race_find_resolved(SEXP x, R_xlen_t xlen) {
+  for (R_xlen_t i = 0; i < xlen; i++) {
+    SEXP elem = NANO_VECTOR(x)[i];
+    if (TYPEOF(elem) == ENVSXP && !rnng_unresolved2_impl(elem))
+      return i + 1;
+  }
+  return 0;
+}
+
+static inline int race_count_unresolved(SEXP x, R_xlen_t xlen) {
+  int n = 0;
+  for (R_xlen_t i = 0; i < xlen; i++)
+    n += rnng_unresolved2_impl(NANO_VECTOR(x)[i]);
+  return n;
+}
+
+SEXP rnng_race_aio(SEXP x, SEXP cvar) {
+
+  if (TYPEOF(x) != VECSXP)
+    return Rf_ScalarInteger(0);
+
+  const R_xlen_t xlen = Rf_xlength(x);
+  if (xlen == 0)
+    return Rf_ScalarInteger(0);
+
+  R_xlen_t idx = race_find_resolved(x, xlen);
+  if (idx)
+    return Rf_ScalarInteger((int) idx);
+
+  if (NANO_PTR_CHECK(cvar, nano_CvSymbol))
+    return Rf_ScalarInteger(0);
+
+  nano_cv *ncv = (nano_cv *) NANO_PTR(cvar);
+  nng_cv *cv = ncv->cv;
+  nng_mtx *mtx = ncv->mtx;
+
+  nng_mtx_lock(mtx);
+  ncv->flag = ncv->flag < 0;
+  ncv->condition = 0;
+  int n = race_count_unresolved(x, xlen);
+  nng_mtx_unlock(mtx);
+  if (n == 0)
+    return Rf_ScalarInteger((int) race_find_resolved(x, xlen));
+
+  nng_time time = nng_clock();
+  int current_n, flag;
+
+  do {
+    time = time + 400;
+    int signalled = 1;
+    nng_mtx_lock(mtx);
+    while (ncv->condition == 0) {
+      if (nng_cv_until(cv, time) == NNG_ETIMEDOUT) {
+        signalled = 0;
+        break;
+      }
+    }
+    if (signalled)
+      ncv->condition--;
+    flag = ncv->flag;
+    nng_mtx_unlock(mtx);
+
+    if (flag < 0)
+      return Rf_ScalarInteger(0);
+
+    if (!signalled)
+      R_CheckUserInterrupt();
+
+    current_n = race_count_unresolved(x, xlen);
+
+  } while (current_n == n);
+
+  return Rf_ScalarInteger((int) race_find_resolved(x, xlen));
+
+}
+
 // send recv aio functions -----------------------------------------------------
 
 SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP clo) {

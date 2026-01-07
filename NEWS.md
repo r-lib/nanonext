@@ -1,5 +1,11 @@
 # nanonext (development version)
 
+#### New Features
+
+* Adds `race_aio()` to wait for and return the index of the first resolved Aio in a list of Aios.
+
+#### Updates
+
 * `random()` now only accepts 'n' between 1 and 1024. Supplying 0 will error (#238).
 * Fixes a potential crash when a serialization hook errors (#225).
 * Performance improvements for serialization, streaming, and async sends.
