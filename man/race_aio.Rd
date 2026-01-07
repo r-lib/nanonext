@@ -19,4 +19,3 @@ the list is empty, or the cv was terminated.
 \description{
 Returns the index of the first resolved Aio in a list, waiting if necessary.
 }
-\keyword{internal}

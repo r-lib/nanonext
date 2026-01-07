@@ -255,7 +255,6 @@ collect_aio_ <- function(x) .Call(rnng_aio_collect_safe, x)
 #' @return Integer index of the first resolved Aio, or 0L if none are resolved,
 #'   the list is empty, or the cv was terminated.
 #'
-#' @keywords internal
 #' @export
 #'
 race_aio <- function(x, cv) .Call(rnng_race_aio, x, cv)
