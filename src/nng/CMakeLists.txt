@@ -70,8 +70,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_COLOR_MAKEFILE OFF)
 set(CMAKE_INSTALL_MESSAGE NEVER)
-set(CMAKE_STATIC_LIBRARY_SUFFIX ".b")
-list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES ".b")
 
 # This prefix is appended to by subdirectories, so that each test
 # gets named based on where it is in the tree.

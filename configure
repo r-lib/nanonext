@@ -3,10 +3,45 @@
 # Initialise
 PKG_CFLAGS=""
 PKG_LIBS=""
-MBEDTLS_CFLAGS=""
-MBEDTLS_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto"
-NNG_CFLAGS=""
-NNG_LIBS="-lnng"
+
+# Helper function: detect cmake
+detect_cmake() {
+  if which cmake > /dev/null 2>&1; then
+    return 0
+  fi
+  export PATH=$PATH:/Applications/CMake.app/Contents/bin
+  if which cmake > /dev/null 2>&1; then
+    return 0
+  fi
+  echo "Required 'cmake' not found"
+  exit 1
+}
+
+# Helper function: find library paths
+# Usage: find_lib_paths <lib_name> <default_libs>
+# Sets: LIB_CFLAGS, LIB_LIBS
+find_lib_paths() {
+  lib_name=$1
+  default_libs=$2
+  LIB_CFLAGS=""
+  LIB_LIBS="$default_libs"
+
+  if [ "$INCLUDE_DIR" ] || [ "$LIB_DIR" ]; then
+    LIB_CFLAGS="-I$INCLUDE_DIR"
+    LIB_LIBS="-L$LIB_DIR $LIB_LIBS"
+    echo "Found INCLUDE_DIR $INCLUDE_DIR"
+    echo "Found LIB_DIR $LIB_DIR"
+  elif [ -d "/usr/local/include/$lib_name" ]; then
+    LIB_CFLAGS="-I/usr/local/include"
+    LIB_LIBS="-L/usr/local/lib $LIB_LIBS"
+  elif [ -d "/usr/include/$lib_name" ]; then
+    LIB_CFLAGS="-I/usr/include"
+    LIB_LIBS="-L/usr/lib $LIB_LIBS"
+  elif [ -d "/usr/local/opt/$lib_name" ]; then
+    LIB_CFLAGS="-I/usr/local/opt/$lib_name/include"
+    LIB_LIBS="-L/usr/local/opt/$lib_name/lib $LIB_LIBS"
+  fi
+}
 
 # Find compiler and export flags
 CC=`"${R_HOME}/bin/R" CMD config CC`
@@ -15,7 +50,7 @@ LDFLAGS=`"${R_HOME}/bin/R" CMD config LDFLAGS`
 export CC CFLAGS LDFLAGS
 
 if [ -z "$MACOSX_DEPLOYMENT_TARGET" ]; then
-export MACOSX_DEPLOYMENT_TARGET=`echo $CC | sed -En 's/.*-version-min=([0-9][0-9.]*).*/\1/p'`
+  export MACOSX_DEPLOYMENT_TARGET=`echo $CC | sed -En 's/.*-version-min=([0-9][0-9.]*).*/\1/p'`
 fi
 
 # Detect -latomic linker flag for ARM architectures (Raspberry Pi etc.)
@@ -24,139 +59,86 @@ uint64_t v;
 int main() {
     return (int)__atomic_load_n(&v, __ATOMIC_ACQUIRE);
 }" | ${CC} -xc - -o /dev/null > /dev/null 2>&1
-if [ $? -ne 0 ]
-then
+if [ $? -ne 0 ]; then
   echo "Adding -latomic linker flag ..."
   PKG_LIBS="$PKG_LIBS -latomic"
 fi
 
-# Force build bundled libs
-if [ -z "$NANONEXT_LIBS" ]; then
+# Determine whether to compile bundled libraries
+compile_mbedtls=0
+compile_nng=0
 
-# Find MbedTLS and compile if necessary
-if [ "$INCLUDE_DIR" ] || [ "$LIB_DIR" ]
-then
-  MBEDTLS_CFLAGS="-I$INCLUDE_DIR"
-  MBEDTLS_LIBS="-L$LIB_DIR $MBEDTLS_LIBS"
-  echo "Found INCLUDE_DIR $INCLUDE_DIR"
-  echo "Found LIB_DIR $LIB_DIR"
-elif [ -d "/usr/local/include/mbedtls" ]
-then
-  MBEDTLS_CFLAGS="-I/usr/local/include"
-  MBEDTLS_LIBS="-L/usr/local/lib $MBEDTLS_LIBS"
-elif [ -d "/usr/include/mbedtls" ]
-then
-  MBEDTLS_CFLAGS="-I/usr/include"
-  MBEDTLS_LIBS="-L/usr/lib $MBEDTLS_LIBS"
-elif [ -d "/usr/local/opt/mbedtls" ]
-then
-  MBEDTLS_CFLAGS="-I/usr/local/opt/mbedtls/include"
-  MBEDTLS_LIBS="-L/usr/local/opt/mbedtls/lib $MBEDTLS_LIBS"
-fi
-echo "#include <mbedtls/version.h>
+if [ -n "$NANONEXT_LIBS" ]; then
+  echo "NANONEXT_LIBS is set... building from source"
+  compile_mbedtls=1
+  compile_nng=1
+else
+  # Find MbedTLS
+  find_lib_paths "mbedtls" "-lmbedtls -lmbedx509 -lmbedcrypto"
+  MBEDTLS_CFLAGS="$LIB_CFLAGS"
+  MBEDTLS_LIBS="$LIB_LIBS"
+
+  echo "#include <mbedtls/version.h>
 int main() {
 #if MBEDTLS_VERSION_MAJOR < 2 || MBEDTLS_VERSION_MAJOR == 2 && MBEDTLS_VERSION_MINOR < 5
     *(void *) 0 = 0;
 #endif
 }" | ${CC} ${MBEDTLS_CFLAGS} -xc - -o /dev/null > /dev/null 2>&1
-
-else
-  echo "NANONEXT_LIBS is set... skipping detection"
-  false
-fi
-
-if [ $? -ne 0 ]
-then
-  echo "Existing 'libmbedtls' >= 2.5.0 not found"
-  echo "Detecting 'cmake'..."
-  which cmake
-  if [ $? -ne 0 ]
-  then
-    export PATH=$PATH:/Applications/CMake.app/Contents/bin
-    which cmake
-    if [ $? -ne 0 ]
-    then
-      echo "Required 'cmake' not found"
-      exit 1
-    fi
+  if [ $? -ne 0 ]; then
+    compile_mbedtls=1
+  else
+    echo "Found 'libmbedtls' $MBEDTLS_CFLAGS"
+    PKG_CFLAGS="$MBEDTLS_CFLAGS $PKG_CFLAGS"
+    PKG_LIBS="$MBEDTLS_LIBS $PKG_LIBS"
   fi
-  echo "Compiling 'libmbedtls' from source ..."
-  cmake -S src/mbedtls -B build -DCMAKE_INSTALL_PREFIX=install -DCMAKE_INSTALL_LIBDIR=lib
-  cmake --build build --target install
-  rm -rf build
-else
-  echo "Found 'libmbedtls' $MBEDTLS_CFLAGS"
-  PKG_CFLAGS="$MBEDTLS_CFLAGS $PKG_CFLAGS"
-  PKG_LIBS="$MBEDTLS_LIBS $PKG_LIBS"
-fi
 
-# Force build bundled libs
-if [ -z "$NANONEXT_LIBS" ]; then
+  # Find NNG
+  find_lib_paths "nng" "-lnng"
+  NNG_CFLAGS="$LIB_CFLAGS"
+  NNG_LIBS="$LIB_LIBS"
 
-# Find NNG and compile if necessary
-if [ "$INCLUDE_DIR" ] || [ "$LIB_DIR" ]
-then
-  NNG_CFLAGS="-I$INCLUDE_DIR"
-  NNG_LIBS="-L$LIB_DIR $NNG_LIBS"
-elif [ -d "/usr/local/include/nng" ]
-then
-  NNG_CFLAGS="-I/usr/local/include"
-  NNG_LIBS="-L/usr/local/lib $NNG_LIBS"
-elif [ -d "/usr/include/nng" ]
-then
-  NNG_CFLAGS="-I/usr/include"
-  NNG_LIBS="-L/usr/lib $NNG_LIBS"
-elif [ -d "/usr/local/opt/nng" ]
-then
-  NNG_CFLAGS="-I/usr/local/opt/nng/include"
-  NNG_LIBS="-L/usr/local/opt/nng/lib $NNG_LIBS"
-fi
-
-echo "#include <nng/nng.h>
+  echo "#include <nng/nng.h>
 int main() {
 #if NNG_MAJOR_VERSION < 1 || NNG_MAJOR_VERSION == 1 && NNG_MINOR_VERSION < 9
     *(void *) 0 = 0;
 #endif
 }" | ${CC} ${NNG_CFLAGS} -xc - -o /dev/null > /dev/null 2>&1
-
-else
-  echo "NANONEXT_LIBS is set... skipping detection"
-  false
+  if [ $? -ne 0 ]; then
+    compile_nng=1
+  else
+    echo "Found 'libnng' $NNG_CFLAGS"
+    PKG_CFLAGS="$NNG_CFLAGS $PKG_CFLAGS"
+    PKG_LIBS="$NNG_LIBS $PKG_LIBS"
+  fi
 fi
 
-if [ $? -ne 0 ]
-then
+# Compile MbedTLS if needed
+if [ $compile_mbedtls -eq 1 ]; then
+  echo "Existing 'libmbedtls' >= 2.5.0 not found"
+  detect_cmake
+  echo "Compiling 'libmbedtls' from source ..."
+  cmake -S src/mbedtls -B build -DCMAKE_INSTALL_PREFIX=install -DCMAKE_INSTALL_LIBDIR=lib
+  cmake --build build --target install
+  rm -rf build
+fi
+
+# Compile NNG if needed
+if [ $compile_nng -eq 1 ]; then
   echo "Existing 'libnng' >= 1.9.0 not found"
-  echo "Detecting 'cmake'..."
-  which cmake
-  if [ $? -ne 0 ]
-  then
-    export PATH=$PATH:/Applications/CMake.app/Contents/bin
-    which cmake
-    if [ $? -ne 0 ]
-    then
-      echo "Required 'cmake' not found"
-      exit 1
-    fi
-  fi
+  detect_cmake
   echo "Compiling 'libnng' from source ..."
   cmake -S src/nng -B build -DCMAKE_INSTALL_PREFIX=install -DCMAKE_INSTALL_LIBDIR=lib
   cmake --build build --target install
   rm -rf build
-else
-  echo "Found 'libnng' $NNG_CFLAGS"
-  PKG_CFLAGS="$NNG_CFLAGS $PKG_CFLAGS"
-  PKG_LIBS="$NNG_LIBS $PKG_LIBS"
 fi
 
-if [ -d "install/lib" ]
-then
-  PKG_CFLAGS="-I../install/include $PKG_CFLAGS"
-  if [ -f "install/lib/libmbedtls.b" ]
-  then
-    PKG_LIBS="../install/lib/libnng.b ../install/lib/libmbedtls.b ../install/lib/libmbedx509.b ../install/lib/libmbedcrypto.b $PKG_LIBS"
+# Set flags for bundled libraries
+if [ -d "install/lib" ]; then
+  PKG_CFLAGS="-I../install/include -DNNG_STATIC_LIB $PKG_CFLAGS"
+  if [ -f "install/lib/libmbedtls.a" ]; then
+    PKG_LIBS="../install/lib/libnng.a ../install/lib/libmbedtls.a ../install/lib/libmbedx509.a ../install/lib/libmbedcrypto.a $PKG_LIBS"
   else
-    PKG_LIBS="../install/lib/libnng.b $PKG_LIBS"
+    PKG_LIBS="../install/lib/libnng.a $PKG_LIBS"
   fi
 fi
 
