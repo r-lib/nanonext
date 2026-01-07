@@ -2,6 +2,15 @@
 
 ## nanonext (development version)
 
+##### New Features
+
+- Adds
+  [`race_aio()`](https://nanonext.r-lib.org/dev/reference/race_aio.md)
+  to wait for and return the index of the first resolved Aio in a list
+  of Aios.
+
+##### Updates
+
 - [`random()`](https://nanonext.r-lib.org/dev/reference/random.md) now
   only accepts ‘n’ between 1 and 1024. Supplying 0 will error
   ([\#238](https://github.com/r-lib/nanonext/issues/238)).
