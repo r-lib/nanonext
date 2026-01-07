@@ -80,6 +80,8 @@
   : Pipe Notify
 - [`protocols`](https://nanonext.r-lib.org/dev/reference/protocols.md) :
   Protocols (Documentation)
+- [`race_aio()`](https://nanonext.r-lib.org/dev/reference/race_aio.md) :
+  Race Aio
 - [`random()`](https://nanonext.r-lib.org/dev/reference/random.md) :
   Random Data Generation
 - [`read_stdin()`](https://nanonext.r-lib.org/dev/reference/read_stdin.md)
