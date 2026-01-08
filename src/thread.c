@@ -406,10 +406,13 @@ SEXP rnng_wait_thread_create(SEXP x) {
     case RECVAIOS:
     case REQAIOS:
     case IOV_RECVAIOS:
+    case MSG_RECVAIO:
+    case MSG_RECVAIOS:
       nano_aio_get_msg(x);
       break;
     case SENDAIO:
     case IOV_SENDAIO:
+    case MSG_SENDAIO:
       nano_aio_result(x);
       break;
     case HTTP_AIO:

@@ -162,6 +162,7 @@ typedef struct nano_stream_s {
   } endpoint;
   nng_tls_config *tls;
   int textframes;
+  int msgmode;
   enum {
     NANO_STREAM_DIALER,
     NANO_STREAM_LISTENER
@@ -177,7 +178,10 @@ typedef enum nano_aio_typ {
   HTTP_AIO,
   RECVAIOS,
   REQAIOS,
-  IOV_RECVAIOS
+  IOV_RECVAIOS,
+  MSG_SENDAIO,
+  MSG_RECVAIO,
+  MSG_RECVAIOS
 } nano_aio_typ;
 
 typedef struct nano_aio_s {
