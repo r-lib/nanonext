@@ -216,6 +216,9 @@ static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP tls) {
     goto fail;
 
   if (!strcmp(up->u_scheme, "ws") || !strcmp(up->u_scheme, "wss")) {
+    nst->msgmode = 1;
+    if ((xc = nng_stream_dialer_set_bool(nst->endpoint.dial, "ws:msgmode", 1)))
+      goto fail;
     if (nst->textframes &&
         ((xc = nng_stream_dialer_set_bool(nst->endpoint.dial, "ws:recv-text", 1)) ||
         (xc = nng_stream_dialer_set_bool(nst->endpoint.dial, "ws:send-text", 1))))
@@ -297,6 +300,9 @@ static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls) {
     goto fail;
 
   if (!strcmp(up->u_scheme, "ws") || !strcmp(up->u_scheme, "wss")) {
+    nst->msgmode = 1;
+    if ((xc = nng_stream_listener_set_bool(nst->endpoint.list, "ws:msgmode", 1)))
+      goto fail;
     if (nst->textframes &&
         ((xc = nng_stream_listener_set_bool(nst->endpoint.list, "ws:recv-text", 1)) ||
         (xc = nng_stream_listener_set_bool(nst->endpoint.list, "ws:send-text", 1))))
