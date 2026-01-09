@@ -5,7 +5,7 @@
 
 // internals -------------------------------------------------------------------
 
-static void nano_load_later(void) {
+void nano_load_later(void) {
 
   SEXP str, call;
   PROTECT(str = Rf_mkString("later"));
@@ -16,7 +16,7 @@ static void nano_load_later(void) {
 
 }
 
-static inline SEXP nano_PreserveObject(const SEXP x) {
+SEXP nano_PreserveObject(const SEXP x) {
 
   SEXP tail = CDR(nano_precious);
   SEXP node = Rf_cons(nano_precious, tail);
@@ -29,7 +29,7 @@ static inline SEXP nano_PreserveObject(const SEXP x) {
 
 }
 
-static inline void nano_ReleaseObject(SEXP node) {
+void nano_ReleaseObject(SEXP node) {
 
   SET_TAG(node, R_NilValue);
   SEXP head = CAR(node);

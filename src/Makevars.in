@@ -1,7 +1,7 @@
 PKG_CFLAGS = @cflags@ $(C_VISIBILITY)
 PKG_LIBS = @libs@
 
-SOURCES = aio.c comms.c core.c dispatcher.c init.c ncurl.c net.c proto.c sync.c thread.c tls.c utils.c
+SOURCES = aio.c comms.c core.c dispatcher.c init.c ncurl.c net.c proto.c server.c sync.c thread.c tls.c utils.c
 OBJECTS = $(SOURCES:.c=.o)
 
 .PHONY: all cleanup clean
