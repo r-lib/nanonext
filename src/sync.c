@@ -5,7 +5,7 @@
 
 // internals -------------------------------------------------------------------
 
-static void nano_load_later(void) {
+void nano_load_later(void) {
 
   SEXP str, call;
   PROTECT(str = Rf_mkString("later"));
@@ -16,7 +16,7 @@ static void nano_load_later(void) {
 
 }
 
-static inline SEXP nano_PreserveObject(const SEXP x) {
+SEXP nano_PreserveObject(const SEXP x) {
 
   SEXP tail = CDR(nano_precious);
   SEXP node = Rf_cons(nano_precious, tail);
@@ -29,7 +29,7 @@ static inline SEXP nano_PreserveObject(const SEXP x) {
 
 }
 
-static inline void nano_ReleaseObject(SEXP node) {
+void nano_ReleaseObject(SEXP node) {
 
   SET_TAG(node, R_NilValue);
   SEXP head = CAR(node);
@@ -563,12 +563,15 @@ SEXP rnng_set_promise_context(SEXP x, SEXP ctx) {
   case RECVAIOS:
   case IOV_RECVAIO:
   case IOV_RECVAIOS:
+  case MSG_RECVAIO:
+  case MSG_RECVAIOS:
   case HTTP_AIO:
     NANO_SET_ENCLOS(x, ctx);
     raio->cb = nano_PreserveObject(x);
     break;
   case SENDAIO:
   case IOV_SENDAIO:
+  case MSG_SENDAIO:
     break;
   }
 
