@@ -1021,7 +1021,7 @@ if (later && NOT_CRAN) {
     textframes = TRUE
   ))
   test_zero(wss_srv$start())
-  Sys.sleep(0.1)
+  Sys.sleep(0.5)
   wss_aio <- ncurl_aio("https://127.0.0.1:29994/secure", tls = wss_tls_client, timeout = 2000)
   for (i in 1:20) { later::run_now(0.1); if (!unresolved(wss_aio)) break }
   test_equal(wss_aio$status, 200L)
