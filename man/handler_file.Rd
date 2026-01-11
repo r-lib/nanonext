@@ -18,7 +18,7 @@ A handler object for use with \code{\link[=http_server]{http_server()}}.
 }
 \description{
 Creates an HTTP handler that serves a single file. NNG handles MIME type
-detection, ETag caching, and range requests automatically.
+detection automatically.
 }
 \examples{
 \dontrun{

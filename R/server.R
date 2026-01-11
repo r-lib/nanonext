@@ -170,7 +170,7 @@ handler <- function(path, callback, method = "GET", tree = FALSE) {
 #' Create Static File Handler
 #'
 #' Creates an HTTP handler that serves a single file. NNG handles MIME type
-#' detection, ETag caching, and range requests automatically.
+#' detection automatically.
 #'
 #' @param path URI path to match (e.g., "/favicon.ico").
 #' @param file Path to the file to serve. Must exist.
@@ -193,7 +193,7 @@ handler_file <- function(path, file, tree = FALSE) {
 #' Create Static Directory Handler
 #'
 #' Creates an HTTP handler that serves files from a directory tree. NNG handles
-#' MIME type detection, ETag caching, and range requests automatically.
+#' MIME type detection automatically.
 #'
 #' @param path URI path prefix (e.g., "/static"). Requests to "/static/foo.js"
 #'   will serve "directory/foo.js".
@@ -212,8 +212,6 @@ handler_file <- function(path, file, tree = FALSE) {
 #' Note: The trailing slash behavior depends on how clients make requests.
 #' A request to "/static" (no trailing slash) will not automatically redirect
 #' to "/static/". Consider using [handler_redirect()] if you need this behavior.
-#'
-#' NNG prevents directory traversal attacks (e.g., "../" in paths).
 #'
 #' @examples
 #' \dontrun{
