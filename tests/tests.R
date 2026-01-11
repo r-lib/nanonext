@@ -876,6 +876,8 @@ if (NOT_CRAN) {
 test_error(http_server("http://127.0.0.1:29995", tls = "invalid"), "valid TLS")
 fakeserver <- `class<-`("test", "nanoServer")
 test_error(close(fakeserver), "valid HTTP Server")
+test_error(handler_file("/bad", "/nonexistent/file.txt"))
+test_error(handler_redirect("/bad", "/good", status = 999L), "301, 302, 303, 307, or 308")
 
 if (later && NOT_CRAN) {
   test_class("nanoServer", srv <- http_server(
@@ -932,15 +934,15 @@ if (later && NOT_CRAN) {
       handler("/", function(req) list(status = 200L, body = "index"))
     ),
     ws_path = "/ws",
-    onWSOpen = function(ws) {
+    on_open = function(ws) {
       ws_conn <<- ws
       msgs <<- c(msgs, list("open"))
     },
-    onWSMessage = function(ws, data) {
+    on_message = function(ws, data) {
       msgs <<- c(msgs, list(data))
       ws$send(data)
     },
-    onWSClose = function(ws) { msgs <<- c(msgs, list("close")) },
+    on_close = function(ws) { msgs <<- c(msgs, list("close")) },
     textframes = TRUE
   ))
   test_zero(srv$start())
@@ -1011,12 +1013,12 @@ if (later && NOT_CRAN) {
       handler("/secure", function(req) list(status = 200L, body = "secure"))
     ),
     ws_path = "/wss",
-    onWSOpen = function(ws) { wss_msgs <<- c(wss_msgs, list("wss_open")) },
-    onWSMessage = function(ws, data) {
+    on_open = function(ws) { wss_msgs <<- c(wss_msgs, list("wss_open")) },
+    on_message = function(ws, data) {
       wss_msgs <<- c(wss_msgs, list(data))
       ws$send(paste0("wss:", data))
     },
-    onWSClose = function(ws) { wss_msgs <<- c(wss_msgs, list("wss_close")) },
+    on_close = function(ws) { wss_msgs <<- c(wss_msgs, list("wss_close")) },
     tls = wss_tls_server,
     textframes = TRUE
   ))
@@ -1040,6 +1042,52 @@ if (later && NOT_CRAN) {
   }
   test_zero(wss_srv$stop())
   test_zero(wss_srv$close())
+}
+
+if (later && NOT_CRAN) {
+  static_test_dir <- tempfile()
+  dir.create(static_test_dir)
+  writeLines("Hello from file", file.path(static_test_dir, "test.txt"))
+  writeLines("<html><body>Index</body></html>", file.path(static_test_dir, "index.html"))
+
+  test_class("nanoServer", static_srv <- http_server(
+    url = "http://127.0.0.1:29992",
+    handlers = list(
+      handler_file("/single.txt", file.path(static_test_dir, "test.txt")),
+      handler_directory("/files", static_test_dir),
+      handler_inline("/inline", "Inline content", content_type = "text/plain"),
+      handler_inline("/binary", as.raw(c(0x89, 0x50, 0x4e, 0x47))),
+      handler_redirect("/old", "/files/index.html", status = 302L)
+    )
+  ))
+  test_zero(static_srv$start())
+  Sys.sleep(0.1)
+
+  aio <- ncurl_aio("http://127.0.0.1:29992/single.txt", timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_equal(trimws(aio$data), "Hello from file")
+
+  aio <- ncurl_aio("http://127.0.0.1:29992/files/test.txt", timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_equal(trimws(aio$data), "Hello from file")
+
+  aio <- ncurl_aio("http://127.0.0.1:29992/inline", timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_equal(aio$data, "Inline content")
+
+  aio <- ncurl_aio("http://127.0.0.1:29992/binary", timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+
+  aio <- ncurl_aio("http://127.0.0.1:29992/old", timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 302L)
+
+  test_zero(static_srv$close())
+  unlink(static_test_dir, recursive = TRUE)
 }
 
 if (!interactive() && NOT_CRAN) {

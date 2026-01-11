@@ -8,6 +8,7 @@ static const char *http_common_headers[] = {
   "Content-Type", "Content-Length", "Authorization", "Accept",
   "User-Agent", "Host", "Origin", "Cookie", "X-Requested-With", NULL
 };
+#define HTTP_HEADER_COUNT (sizeof(http_common_headers) / sizeof(http_common_headers[0]) - 1)
 
 // Message data passed to ws_invoke_onmessage
 typedef struct {
@@ -85,12 +86,8 @@ static void http_handler_cb(nng_aio *aio) {
   }
 
   // Extract common headers
-  int max_headers = 0;
-  for (const char **hp = http_common_headers; *hp != NULL; hp++)
-    max_headers++;
-
-  r->header_names = malloc(max_headers * sizeof(char *));
-  r->header_values = malloc(max_headers * sizeof(char *));
+  r->header_names = malloc(HTTP_HEADER_COUNT * sizeof(char *));
+  r->header_values = malloc(HTTP_HEADER_COUNT * sizeof(char *));
   if (r->header_names != NULL && r->header_values != NULL) {
     for (const char **hp = http_common_headers; *hp != NULL; hp++) {
       const char *val = nng_http_req_get_header(req, *hp);
@@ -673,29 +670,87 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP ws_path,
   srv->handler_count = handler_count;
   if (handler_count > 0) {
     hinfo = malloc(handler_count * sizeof(nano_http_handler_info));
-    NANO_ENSURE_ALLOC(hinfo);
+    if (hinfo == NULL) { xc = NNG_ENOMEM; goto fail; }
     memset(hinfo, 0, handler_count * sizeof(nano_http_handler_info));
     srv->handlers = hinfo;
 
     for (int i = 0; i < handler_count; i++) {
       SEXP h = VECTOR_ELT(handlers, i);
-      const char *path = CHAR(STRING_ELT(VECTOR_ELT(h, 0), 0));
-      SEXP callback = VECTOR_ELT(h, 1);
-      const char *method = VECTOR_ELT(h, 2) == R_NilValue ? NULL :
-                           CHAR(STRING_ELT(VECTOR_ELT(h, 2), 0));
-      const int tree = NANO_INTEGER(VECTOR_ELT(h, 3));
 
-      if ((xc = nng_http_handler_alloc(&srv->handlers[i].handler, path, http_handler_cb)))
-        goto fail;
-      if (method != NULL && (xc = nng_http_handler_set_method(srv->handlers[i].handler, method)))
-        goto fail;
-      if (tree && (xc = nng_http_handler_set_tree(srv->handlers[i].handler)))
-        goto fail;
+      // Detect handler type - absence of "type" field means callback handler
+      SEXP type_elem = get_list_element(h, "type");
+      const char *type = (type_elem != R_NilValue) ?
+                         CHAR(STRING_ELT(type_elem, 0)) : "callback";
+      SEXP path_elem = get_list_element(h, "path");
+      const char *path = CHAR(STRING_ELT(path_elem, 0));
+      SEXP tree_elem = get_list_element(h, "tree");
+      const int tree = (tree_elem != R_NilValue) ? NANO_INTEGER(tree_elem) : 0;
 
-      srv->handlers[i].callback = callback;
-      srv->handlers[i].preserved = nano_PreserveObject(callback);
-      srv->handlers[i].server = srv;
-      nng_http_handler_set_data(srv->handlers[i].handler, &srv->handlers[i], NULL);
+      if (strcmp(type, "callback") == 0) {
+        // Dynamic callback handler
+        SEXP callback = get_list_element(h, "callback");
+        SEXP method_elem = get_list_element(h, "method");
+        const char *method = (method_elem != R_NilValue && TYPEOF(method_elem) == STRSXP) ?
+                             CHAR(STRING_ELT(method_elem, 0)) : NULL;
+
+        if ((xc = nng_http_handler_alloc(&srv->handlers[i].handler, path, http_handler_cb)))
+          goto fail;
+        if (method != NULL &&
+            (xc = nng_http_handler_set_method(srv->handlers[i].handler, method)))
+          goto fail;
+        if (tree && (xc = nng_http_handler_set_tree(srv->handlers[i].handler)))
+          goto fail;
+
+        srv->handlers[i].callback = callback;
+        srv->handlers[i].preserved = nano_PreserveObject(callback);
+        srv->handlers[i].server = srv;
+        nng_http_handler_set_data(srv->handlers[i].handler, &srv->handlers[i], NULL);
+
+      } else if (strcmp(type, "file") == 0) {
+        // Static file handler
+        SEXP file_elem = get_list_element(h, "file");
+        const char *file = CHAR(STRING_ELT(file_elem, 0));
+        if ((xc = nng_http_handler_alloc_file(&srv->handlers[i].handler, path, file)))
+          goto fail;
+        if (tree && (xc = nng_http_handler_set_tree(srv->handlers[i].handler)))
+          goto fail;
+
+      } else if (strcmp(type, "directory") == 0) {
+        // Directory handler (tree is implicit)
+        SEXP dir_elem = get_list_element(h, "directory");
+        const char *dir = CHAR(STRING_ELT(dir_elem, 0));
+        if ((xc = nng_http_handler_alloc_directory(&srv->handlers[i].handler, path, dir)))
+          goto fail;
+
+      } else if (strcmp(type, "inline") == 0) {
+        // Inline static content handler
+        SEXP data_elem = get_list_element(h, "data");
+        SEXP ct_elem = get_list_element(h, "content_type");
+        const char *content_type = (ct_elem != R_NilValue && TYPEOF(ct_elem) == STRSXP) ?
+                                   CHAR(STRING_ELT(ct_elem, 0)) : "application/octet-stream";
+        if ((xc = nng_http_handler_alloc_static(&srv->handlers[i].handler, path,
+                                                 RAW(data_elem), XLENGTH(data_elem),
+                                                 content_type)))
+          goto fail;
+        if (tree && (xc = nng_http_handler_set_tree(srv->handlers[i].handler)))
+          goto fail;
+
+      } else if (strcmp(type, "redirect") == 0) {
+        // Redirect handler
+        SEXP loc_elem = get_list_element(h, "location");
+        SEXP status_elem = get_list_element(h, "status");
+        const char *location = CHAR(STRING_ELT(loc_elem, 0));
+        const int status_int = NANO_INTEGER(status_elem);
+        if ((xc = nng_http_handler_alloc_redirect(&srv->handlers[i].handler, path,
+                                                   (uint16_t) status_int, location)))
+          goto fail;
+        if (tree && (xc = nng_http_handler_set_tree(srv->handlers[i].handler)))
+          goto fail;
+
+      } else {
+        Rf_error("unknown handler type: %s", type);
+      }
+
       if ((xc = nng_http_server_add_handler(srv->server, srv->handlers[i].handler)))
         goto fail;
       handlers_added++;
@@ -892,21 +947,19 @@ SEXP rnng_ws_send(SEXP xptr, SEXP data) {
   // Allocate message
   nng_msg *msgp;
   int xc;
-  if ((xc = nng_msg_alloc(&msgp, len)))
-    return mk_error(xc);
-  memcpy(nng_msg_body(msgp), buf, len);
+    if ((xc = nng_msg_alloc(&msgp, len)))
+      return mk_error(xc);
+    memcpy(nng_msg_body(msgp), buf, len);
 
-  // Set message on AIO and send
-  nng_aio_set_msg(conn->send_aio, msgp);
-  nng_stream_send(conn->stream, conn->send_aio);
+    nng_aio_set_msg(conn->send_aio, msgp);
+    nng_stream_send(conn->stream, conn->send_aio);
 
-  // Wait for send to complete
-  nng_aio_wait(conn->send_aio);
-  xc = nng_aio_result(conn->send_aio);
-  if (xc)
-    nng_msg_free(nng_aio_get_msg(conn->send_aio));
+    nng_aio_wait(conn->send_aio);
+    xc = nng_aio_result(conn->send_aio);
+    if (xc)
+      nng_msg_free(nng_aio_get_msg(conn->send_aio));
 
-  return xc ? mk_error(xc) : nano_success;
+    return xc ? mk_error(xc) : nano_success;
 
 }
 
