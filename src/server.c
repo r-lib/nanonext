@@ -866,18 +866,14 @@ SEXP rnng_http_server_start(SEXP xptr) {
 
   int xc;
 
-  // Start the HTTP server
-  if ((xc = nng_http_server_start(srv->server)))
-    ERROR_OUT(xc);
-
-  // Start the WebSocket listener
   if (srv->ws_listener != NULL) {
-    if ((xc = nng_stream_listener_listen(srv->ws_listener))) {
-      nng_http_server_stop(srv->server);
+    // WebSocket listener starts the shared HTTP server implicitly
+    if ((xc = nng_stream_listener_listen(srv->ws_listener)))
       ERROR_OUT(xc);
-    }
-
     nng_stream_listener_accept(srv->ws_listener, srv->accept_aio);
+  } else {
+    if ((xc = nng_http_server_start(srv->server)))
+      ERROR_OUT(xc);
   }
 
   srv->started = 1;
