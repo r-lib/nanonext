@@ -10,11 +10,11 @@
 #' @param handlers List of HTTP handlers created with [handler()].
 #' @param ws_path Path for WebSocket connections (default "/"). Only used
 #'   if WebSocket callbacks are provided.
-#' @param onWSOpen Function called when a WebSocket client connects.
+#' @param on_open Function called when a WebSocket client connects.
 #'   Receives the connection object as its argument.
-#' @param onWSMessage Function called when a WebSocket message is received.
+#' @param on_message Function called when a WebSocket message is received.
 #'   Receives the connection object and message data.
-#' @param onWSClose Function called when a WebSocket client disconnects.
+#' @param on_close Function called when a WebSocket client disconnects.
 #'   Receives the connection object.
 #' @param tls TLS configuration for HTTPS/WSS, created via [tls_config()].
 #' @param textframes \[default FALSE\] Logical, use WebSocket text frames.
@@ -66,14 +66,14 @@
 #'     })
 #'   ),
 #'   ws_path = "/ws",
-#'   onWSOpen = function(ws) {
+#'   on_open = function(ws) {
 #'     cat("WebSocket connected:", ws$id, "\n")
 #'   },
-#'   onWSMessage = function(ws, data) {
+#'   on_message = function(ws, data) {
 #'     cat("Received:", data, "\n")
 #'     ws$send(data)
 #'   },
-#'   onWSClose = function(ws) {
+#'   on_close = function(ws) {
 #'     cat("WebSocket disconnected:", ws$id, "\n")
 #'   },
 #'   textframes = TRUE
@@ -91,13 +91,13 @@
 http_server <- function(url,
                         handlers = list(),
                         ws_path = "/",
-                        onWSOpen = NULL,
-                        onWSMessage = NULL,
-                        onWSClose = NULL,
+                        on_open = NULL,
+                        on_message = NULL,
+                        on_close = NULL,
                         tls = NULL,
                         textframes = FALSE) {
   srv <- .Call(rnng_http_server_create, url, handlers, ws_path,
-               onWSOpen, onWSMessage, onWSClose, tls, textframes)
+               on_open, on_message, on_close, tls, textframes)
   # Add method attributes for $start(), $stop(), $close() access
   attr(srv, "start") <- function() {
     res <- .Call(rnng_http_server_start, srv)
@@ -165,6 +165,135 @@ http_server <- function(url,
 #'
 handler <- function(path, callback, method = "GET", tree = FALSE) {
   list(path = path, callback = callback, method = method, tree = tree)
+}
+
+#' Create Static File Handler
+#'
+#' Creates an HTTP handler that serves a single file. NNG handles MIME type
+#' detection, ETag caching, and range requests automatically.
+#'
+#' @param path URI path to match (e.g., "/favicon.ico").
+#' @param file Path to the file to serve. Must exist.
+#' @param tree \[default FALSE\] Logical, if TRUE matches path as prefix.
+#'
+#' @return A handler object for use with [http_server()].
+#'
+#' @examples
+#' \dontrun{
+#' h <- handler_file("/favicon.ico", "www/favicon.ico")
+#' }
+#'
+#' @export
+#'
+handler_file <- function(path, file, tree = FALSE) {
+  list(type = "file", path = path, file = normalizePath(file, mustWork = TRUE),
+       tree = tree)
+}
+
+#' Create Static Directory Handler
+#'
+#' Creates an HTTP handler that serves files from a directory tree. NNG handles
+#' MIME type detection, ETag caching, and range requests automatically.
+#'
+#' @param path URI path prefix (e.g., "/static"). Requests to "/static/foo.js"
+#'   will serve "directory/foo.js".
+#' @param directory Path to the directory to serve.
+#'
+#' @return A handler object for use with [http_server()].
+#'
+#' @details
+#' Directory handlers automatically match all paths under the prefix (tree
+#' matching is implicit). The URI path is mapped to the filesystem:
+#' \itemize{
+#'   \item Request to "/static/css/style.css" serves "directory/css/style.css"
+#'   \item Request to "/static/" serves "directory/index.html" if it exists
+#' }
+#'
+#' Note: The trailing slash behavior depends on how clients make requests.
+#' A request to "/static" (no trailing slash) will not automatically redirect
+#' to "/static/". Consider using [handler_redirect()] if you need this behavior.
+#'
+#' NNG prevents directory traversal attacks (e.g., "../" in paths).
+#'
+#' @examples
+#' \dontrun{
+#' h <- handler_directory("/static", "www/assets")
+#' }
+#'
+#' @export
+#'
+handler_directory <- function(path, directory) {
+  if (!dir.exists(directory))
+    warning("directory does not exist: ", directory)
+  list(type = "directory", path = path,
+       directory = normalizePath(directory, mustWork = FALSE))
+}
+
+#' Create Inline Static Content Handler
+#'
+#' Creates an HTTP handler that serves in-memory static content. Useful for
+#' small files like robots.txt or inline JSON/HTML.
+#'
+#' @param path URI path to match (e.g., "/robots.txt").
+#' @param data Content to serve. Character data is converted to raw bytes.
+#' @param content_type MIME type (e.g., "text/plain", "application/json").
+#'   Defaults to "application/octet-stream" if NULL.
+#' @param tree \[default FALSE\] Logical, if TRUE matches path as prefix.
+#'
+#' @return A handler object for use with [http_server()].
+#'
+#' @examples
+#' \dontrun{
+#' h1 <- handler_inline("/robots.txt", "User-agent: *\nDisallow:",
+#'                      content_type = "text/plain")
+#' h2 <- handler_inline("/health", '{"status":"ok"}',
+#'                      content_type = "application/json")
+#' }
+#'
+#' @export
+#'
+handler_inline <- function(path, data, content_type = NULL, tree = FALSE) {
+  if (is.character(data)) data <- charToRaw(data)
+  list(type = "inline", path = path, data = data, content_type = content_type,
+       tree = tree)
+}
+
+#' Create HTTP Redirect Handler
+#'
+#' Creates an HTTP handler that returns a redirect response.
+#'
+#' @param path URI path to match (e.g., "/old-page").
+#' @param location URL to redirect to. Can be relative (e.g., "/new-page") or
+#'   absolute (e.g., "https://example.com/page").
+#' @param status HTTP redirect status code. Must be one of:
+#'   \itemize{
+#'     \item 301 - Moved Permanently
+#'     \item 302 - Found (default)
+#'     \item 303 - See Other
+#'     \item 307 - Temporary Redirect
+#'     \item 308 - Permanent Redirect
+#'   }
+#' @param tree \[default FALSE\] Logical, if TRUE matches path as prefix.
+#'
+#' @return A handler object for use with [http_server()].
+#'
+#' @examples
+#' \dontrun{
+#' # Permanent redirect
+#' h1 <- handler_redirect("/old", "/new", status = 301L)
+#'
+#' # Redirect bare path to trailing slash
+#' h2 <- handler_redirect("/app", "/app/")
+#' }
+#'
+#' @export
+#'
+handler_redirect <- function(path, location, status = 302L, tree = FALSE) {
+  status <- as.integer(status)
+  if (!status %in% c(301L, 302L, 303L, 307L, 308L))
+    stop("redirect status must be 301, 302, 303, 307, or 308")
+  list(type = "redirect", path = path, location = location, status = status,
+       tree = tree)
 }
 
 #' @rdname close

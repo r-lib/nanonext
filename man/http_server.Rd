@@ -8,9 +8,9 @@ http_server(
   url,
   handlers = list(),
   ws_path = "/",
-  onWSOpen = NULL,
-  onWSMessage = NULL,
-  onWSClose = NULL,
+  on_open = NULL,
+  on_message = NULL,
+  on_close = NULL,
   tls = NULL,
   textframes = FALSE
 )
@@ -24,13 +24,13 @@ Examples: "http://0.0.0.0:8080", "https://127.0.0.1:8443"}
 \item{ws_path}{Path for WebSocket connections (default "/"). Only used
 if WebSocket callbacks are provided.}
 
-\item{onWSOpen}{Function called when a WebSocket client connects.
+\item{on_open}{Function called when a WebSocket client connects.
 Receives the connection object as its argument.}
 
-\item{onWSMessage}{Function called when a WebSocket message is received.
+\item{on_message}{Function called when a WebSocket message is received.
 Receives the connection object and message data.}
 
-\item{onWSClose}{Function called when a WebSocket client disconnects.
+\item{on_close}{Function called when a WebSocket client disconnects.
 Receives the connection object.}
 
 \item{tls}{TLS configuration for HTTPS/WSS, created via \code{\link[=tls_config]{tls_config()}}.}
@@ -89,14 +89,14 @@ server <- http_server(
     })
   ),
   ws_path = "/ws",
-  onWSOpen = function(ws) {
+  on_open = function(ws) {
     cat("WebSocket connected:", ws$id, "\n")
   },
-  onWSMessage = function(ws, data) {
+  on_message = function(ws, data) {
     cat("Received:", data, "\n")
     ws$send(data)
   },
-  onWSClose = function(ws) {
+  on_close = function(ws) {
     cat("WebSocket disconnected:", ws$id, "\n")
   },
   textframes = TRUE
