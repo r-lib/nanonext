@@ -178,10 +178,7 @@ typedef enum nano_aio_typ {
   HTTP_AIO,
   RECVAIOS,
   REQAIOS,
-  IOV_RECVAIOS,
-  MSG_SENDAIO,
-  MSG_RECVAIO,
-  MSG_RECVAIOS
+  IOV_RECVAIOS
 } nano_aio_typ;
 
 typedef struct nano_aio_s {

@@ -278,8 +278,6 @@ SEXP nano_aio_get_msg(SEXP env) {
   case RECVAIOS:
   case REQAIOS:
   case IOV_RECVAIOS:
-  case MSG_RECVAIO:
-  case MSG_RECVAIOS:
     res = raio->result;
     if (res > 0)
       return mk_error_aio(res, env);
@@ -375,13 +373,10 @@ SEXP rnng_aio_call(SEXP x) {
     case RECVAIOS:
     case REQAIOS:
     case IOV_RECVAIOS:
-    case MSG_RECVAIO:
-    case MSG_RECVAIOS:
       nano_aio_get_msg(x);
       break;
     case SENDAIO:
     case IOV_SENDAIO:
-    case MSG_SENDAIO:
       nano_aio_result(x);
       break;
     case HTTP_AIO:
@@ -765,7 +760,7 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     if (nst->msgmode) {
       nng_msg *msg;
       const size_t xlen = buf.cur - nst->textframes;
-      saio->type = MSG_SENDAIO;
+      saio->type = SENDAIO;
       if ((xc = nng_msg_alloc(&msg, xlen)))
         goto fail;
       memcpy(nng_msg_body(msg), buf.buf, xlen);
@@ -862,16 +857,9 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
     raio->mode = mod;
 
     if (nst->msgmode) {
-      raio->type = signal ? MSG_RECVAIOS : MSG_RECVAIO;
-
-      if ((xc = nng_aio_alloc(&raio->aio, interrupt ? raio_complete_interrupt : raio_complete, raio)))
+      raio->type = signal ? RECVAIOS : RECVAIO;
+      if ((xc = nng_aio_alloc(&raio->aio, raio_complete, raio)))
         goto fail;
-
-      nng_aio_set_timeout(raio->aio, dur);
-      nng_stream_recv(sp, raio->aio);
-
-      PROTECT(aio = R_MakeExternalPtr(raio, nano_AioSymbol, R_NilValue));
-      R_RegisterCFinalizerEx(aio, raio_finalizer, TRUE);
     } else {
       const size_t xlen = (size_t) nano_integer(bytes);
       raio->type = signal ? IOV_RECVAIOS : IOV_RECVAIO;
@@ -881,17 +869,16 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
         .iov_buf = raio->data,
         .iov_len = xlen
       };
-
       if ((xc = nng_aio_alloc(&raio->aio, iraio_complete, raio)) ||
           (xc = nng_aio_set_iov(raio->aio, 1u, &iov)))
         goto fail;
-
-      nng_aio_set_timeout(raio->aio, dur);
-      nng_stream_recv(sp, raio->aio);
-
-      PROTECT(aio = R_MakeExternalPtr(raio, nano_AioSymbol, R_NilValue));
-      R_RegisterCFinalizerEx(aio, iaio_finalizer, TRUE);
     }
+
+    nng_aio_set_timeout(raio->aio, dur);
+    nng_stream_recv(sp, raio->aio);
+
+    PROTECT(aio = R_MakeExternalPtr(raio, nano_AioSymbol, R_NilValue));
+    R_RegisterCFinalizerEx(aio, nst->msgmode ? raio_finalizer : iaio_finalizer, TRUE);
 
   } else {
     Rf_error("`con` is not a valid Socket, Context or Stream");
