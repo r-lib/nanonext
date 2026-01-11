@@ -17,7 +17,7 @@ A handler object for use with \code{\link[=http_server]{http_server()}}.
 }
 \description{
 Creates an HTTP handler that serves files from a directory tree. NNG handles
-MIME type detection, ETag caching, and range requests automatically.
+MIME type detection automatically.
 }
 \details{
 Directory handlers automatically match all paths under the prefix (tree
@@ -30,8 +30,6 @@ matching is implicit). The URI path is mapped to the filesystem:
 Note: The trailing slash behavior depends on how clients make requests.
 A request to "/static" (no trailing slash) will not automatically redirect
 to "/static/". Consider using \code{\link[=handler_redirect]{handler_redirect()}} if you need this behavior.
-
-NNG prevents directory traversal attacks (e.g., "../" in paths).
 }
 \examples{
 \dontrun{
