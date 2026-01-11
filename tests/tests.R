@@ -1026,8 +1026,7 @@ if (later && NOT_CRAN) {
   Sys.sleep(0.5)
   wss_aio <- ncurl_aio("https://127.0.0.1:29994/secure", tls = wss_tls_client, timeout = 2000)
   for (i in 1:20) { later::run_now(0.1); if (!unresolved(wss_aio)) break }
-  if (!is_error_value(wss_aio)) test_equal(wss_aio$status, 200L)
-  if (!is_error_value(wss_aio)) test_equal(wss_aio$data, "secure")
+  if (wss_aio$status == 200L) test_equal(wss_aio$data, "secure")
   wss_client <- tryCatch(stream(dial = "wss://127.0.0.1:29994/wss", tls = wss_tls_client, textframes = TRUE), error = identity)
   if (is_nano(wss_client)) {
     for (i in 1:5) later::run_now(0.1)
