@@ -3,13 +3,11 @@
 #define NANONEXT_HTTP
 #include "nanonext.h"
 
-// Common HTTP headers to extract (NNG doesn't expose header iteration)
+// Common HTTP headers to extract
 static const char *http_common_headers[] = {
   "Content-Type", "Content-Length", "Authorization", "Accept",
   "User-Agent", "Host", "Origin", "Cookie", "X-Requested-With", NULL
 };
-#define HTTP_COMMON_HEADER_COUNT \
-  (sizeof(http_common_headers) / sizeof(http_common_headers[0]) - 1)
 
 // Message data passed to ws_invoke_onmessage
 typedef struct {
@@ -24,11 +22,9 @@ static void http_invoke_callback(void *);
 static int http_request_unlink(nano_http_request *);
 static void http_request_free(nano_http_request *);
 static void http_cancel_pending_requests(nano_http_server *);
-static void ws_start_accept(nano_http_server *);
 static void ws_accept_cb(void *);
 static void ws_conn_unlink_locked(nano_ws_conn *);
 static int ws_conn_begin_close_locked(nano_ws_conn *);
-static int ws_conn_begin_close(nano_ws_conn *);
 static void ws_conn_schedule_onclose(nano_ws_conn *);
 static void ws_recv_cb(void *);
 static void ws_conn_cleanup(nano_ws_conn *);
@@ -88,11 +84,14 @@ static void http_handler_cb(nng_aio *aio) {
       memcpy(r->body_copy, body_src, r->body_len);
   }
 
-  // Extract common headers (NNG doesn't expose header iteration)
-  r->header_names = malloc(HTTP_COMMON_HEADER_COUNT * sizeof(char *));
-  r->header_values = malloc(HTTP_COMMON_HEADER_COUNT * sizeof(char *));
+  // Extract common headers
+  int max_headers = 0;
+  for (const char **hp = http_common_headers; *hp != NULL; hp++)
+    max_headers++;
+
+  r->header_names = malloc(max_headers * sizeof(char *));
+  r->header_values = malloc(max_headers * sizeof(char *));
   if (r->header_names != NULL && r->header_values != NULL) {
-    r->header_count = 0;
     for (const char **hp = http_common_headers; *hp != NULL; hp++) {
       const char *val = nng_http_req_get_header(req, *hp);
       if (val != NULL) {
@@ -275,13 +274,6 @@ static void http_cancel_pending_requests(nano_http_server *srv) {
 
 // WebSocket functions ---------------------------------------------------------
 
-// Called when server starts - begin accepting WebSocket connections
-static void ws_start_accept(nano_http_server *srv) {
-
-  nng_stream_listener_accept(srv->ws_listener, srv->accept_aio);
-
-}
-
 // AIO callback when new WebSocket connection is accepted
 static void ws_accept_cb(void *arg) {
 
@@ -324,9 +316,6 @@ static void ws_accept_cb(void *arg) {
 
     // Schedule connection initialization and onWSOpen callback
     later2(ws_invoke_onopen, conn);
-
-    // Start receive loop for this connection
-    nng_stream_recv(conn->stream, conn->recv_aio);
   }
 
   next:
@@ -353,6 +342,17 @@ static void ws_conn_unlink_locked(nano_ws_conn *conn) {
 
 }
 
+// Helper: Check if connection is open (thread-safe)
+static inline int ws_conn_is_open(nano_ws_conn *conn) {
+
+  nano_http_server *srv = conn->server;
+  nng_mtx_lock(srv->mtx);
+  const int is_open = conn->state == WS_STATE_OPEN;
+  nng_mtx_unlock(srv->mtx);
+  return is_open;
+
+}
+
 // Helper: Initiate connection close (thread-safe, idempotent)
 // Returns 1 if this call initiated the close, 0 if already closing/closed
 // Caller must hold srv->mtx
@@ -370,7 +370,7 @@ static int ws_conn_begin_close_locked(nano_ws_conn *conn) {
 }
 
 // Convenience wrapper that acquires the mutex
-static int ws_conn_begin_close(nano_ws_conn *conn) {
+static inline int ws_conn_begin_close(nano_ws_conn *conn) {
 
   nano_http_server *srv = conn->server;
   nng_mtx_lock(srv->mtx);
@@ -401,16 +401,7 @@ static void ws_conn_schedule_onclose(nano_ws_conn *conn) {
 static void ws_recv_cb(void *arg) {
 
   nano_ws_conn *conn = (nano_ws_conn *) arg;
-  nano_http_server *srv = conn->server;
   const int xc = nng_aio_result(conn->recv_aio);
-
-  // Check if connection is still open
-  nng_mtx_lock(srv->mtx);
-  const int is_open = conn->state == WS_STATE_OPEN;
-  nng_mtx_unlock(srv->mtx);
-
-  if (!is_open)
-    return;
 
   if (xc == 0) {
     // Message received - get message from AIO
@@ -435,13 +426,8 @@ static void ws_recv_cb(void *arg) {
     nng_msg_free(msgp);
 
     // Continue receiving
-    nng_mtx_lock(srv->mtx);
-    const int still_open = conn->state == WS_STATE_OPEN;
-    nng_mtx_unlock(srv->mtx);
-
-    if (still_open) {
+    if (ws_conn_is_open(conn))
       nng_stream_recv(conn->stream, conn->recv_aio);
-    }
 
   } else if (xc == NNG_ECLOSED || xc == NNG_ECONNSHUT || xc == NNG_ECANCELED) {
     // Connection closed by peer or cancelled
@@ -455,14 +441,9 @@ static void ws_recv_cb(void *arg) {
 static void ws_invoke_onopen(void *arg) {
 
   nano_ws_conn *conn = (nano_ws_conn *) arg;
-  nano_http_server *srv = conn->server;
-
-  // Check if connection was closed before we got here
-  nng_mtx_lock(srv->mtx);
-  const int is_open = conn->state == WS_STATE_OPEN;
-  nng_mtx_unlock(srv->mtx);
-  if (!is_open)
+  if (!ws_conn_is_open(conn))
     return;
+  nano_http_server *srv = conn->server;
 
   // Create external pointer for this connection
   if (conn->xptr == R_NilValue) {
@@ -480,6 +461,9 @@ static void ws_invoke_onopen(void *arg) {
     UNPROTECT(1);
   }
 
+  // Start receive loop after onWSOpen completes (ensures correct lifecycle)
+  nng_stream_recv(conn->stream, conn->recv_aio);
+
 }
 
 // Runs on R main thread - calls onWSMessage with connection and data
@@ -487,17 +471,12 @@ static void ws_invoke_onmessage(void *arg) {
 
   ws_message *msg = (ws_message *) arg;
   nano_ws_conn *conn = msg->conn;
-  nano_http_server *srv = conn->server;
-
-  // Check if connection was closed
-  nng_mtx_lock(srv->mtx);
-  const int is_open = conn->state == WS_STATE_OPEN;
-  nng_mtx_unlock(srv->mtx);
-  if (!is_open || conn->xptr == R_NilValue) {
+  if (!ws_conn_is_open(conn) || conn->xptr == R_NilValue) {
     free(msg->data);
     free(msg);
     return;
   }
+  nano_http_server *srv = conn->server;
 
   // Create R data object (raw vector or string based on textframes setting)
   SEXP data;
@@ -726,10 +705,12 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP ws_path,
   // Create WebSocket listener if callbacks provided
   if (onWSOpen != R_NilValue || onWSMessage != R_NilValue) {
     // Build WebSocket URL
-    char ws_url[512];
     const char *scheme = strcmp(up->u_scheme, "https") == 0 ? "wss" : "ws";
     const char *path = ws_path != R_NilValue ? CHAR(STRING_ELT(ws_path, 0)) : "/";
-    snprintf(ws_url, sizeof(ws_url), "%s://%s:%s%s",
+    const size_t url_len = strlen(scheme) + strlen(up->u_hostname) +
+                           strlen(up->u_port) + strlen(path) + 5;
+    char ws_url[url_len];
+    snprintf(ws_url, url_len, "%s://%s:%s%s",
              scheme, up->u_hostname, up->u_port, path);
 
     if ((xc = nng_stream_listener_alloc(&ws_listener, ws_url)))
@@ -841,7 +822,7 @@ SEXP rnng_http_server_start(SEXP xptr) {
       ERROR_OUT(xc);
     }
 
-    ws_start_accept(srv);
+    nng_stream_listener_accept(srv->ws_listener, srv->accept_aio);
   }
 
   srv->started = 1;
