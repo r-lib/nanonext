@@ -61,7 +61,6 @@ To process callbacks, you must run the event loop (e.g., using
 \code{later::run_now()} in a loop).
 }
 \examples{
-\dontrun{
 # Simple HTTP server
 server <- http_server(
   url = "http://127.0.0.1:8080",
@@ -79,10 +78,13 @@ server <- http_server(
   )
 )
 server$start()
+# Run event loop
+# repeat later::run_now(Inf)
+server$close()
 
 # HTTP + WebSocket server
 server <- http_server(
-  url = "http://127.0.0.1:8080",
+  url = "http://127.0.0.1:8443",
   handlers = list(
     handler("/", function(req) {
       list(status = 200L, body = "<html>...</html>")
@@ -102,11 +104,32 @@ server <- http_server(
   textframes = TRUE
 )
 server$start()
-
 # Run event loop
-repeat later::run_now(Inf)
+# repeat later::run_now(Inf)
+server$close()
+
+# HTTPS server with self-signed certificate
+cert <- write_cert(cn = "127.0.0.1")
+server <- http_server(
+  url = "https://127.0.0.1:8445",
+  handlers = list(
+    handler("/", function(req) list(status = 200L, body = "Hello, HTTPS!"))
+  ),
+  tls = tls_config(server = cert$server)
+)
+server$start()
+
+# Send async request and run event loop
+aio <- ncurl_aio(
+  "https://127.0.0.1:8443/",
+  tls = tls_config(client = cert$client),
+  timeout = 2000
+)
+while (unresolved(aio)) later::run_now(0.1)
+
+aio$status
+aio$data
 
 server$close()
-}
 
 }
