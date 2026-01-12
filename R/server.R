@@ -358,7 +358,7 @@ close.nanoServer <- function(con, ...) invisible(.Call(rnng_http_server_close, c
 print.nanoServer <- function(x, ...) {
   cat("< nanoServer >\n")
   cat(" - url:", attr(x, "url"), "\n")
-  cat(" - status:", attr(x, "state"), "\n")
+  cat(" - state:", attr(x, "state"), "\n")
   invisible(x)
 }
 
