@@ -139,6 +139,10 @@ http_server <- function(url, handlers = list(), tls = NULL) {
 #'
 #' @return A handler object for use with [http_server()].
 #'
+#' @seealso [handler_ws()] for WebSocket handlers. Static handlers:
+#'   [handler_file()], [handler_directory()], [handler_inline()],
+#'   [handler_redirect()].
+#'
 #' @examples
 #' # Simple GET handler
 #' h1 <- handler("/hello", function(req) {

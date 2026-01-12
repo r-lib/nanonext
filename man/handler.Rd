@@ -52,3 +52,8 @@ h3 <- handler("/static", function(req) {
 }, method = NULL, tree = TRUE)
 
 }
+\seealso{
+\code{\link[=handler_ws]{handler_ws()}} for WebSocket handlers. Static handlers:
+\code{\link[=handler_file]{handler_file()}}, \code{\link[=handler_directory]{handler_directory()}}, \code{\link[=handler_inline]{handler_inline()}},
+\code{\link[=handler_redirect]{handler_redirect()}}.
+}
