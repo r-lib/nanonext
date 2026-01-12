@@ -931,19 +931,21 @@ if (later && NOT_CRAN) {
   test_class("nanoServer", srv <- http_server(
     url = "http://127.0.0.1:29997",
     handlers = list(
-      handler("/", function(req) list(status = 200L, body = "index"))
-    ),
-    ws_path = "/ws",
-    on_open = function(ws) {
-      ws_conn <<- ws
-      msgs <<- c(msgs, list("open"))
-    },
-    on_message = function(ws, data) {
-      msgs <<- c(msgs, list(data))
-      ws$send(data)
-    },
-    on_close = function(ws) { msgs <<- c(msgs, list("close")) },
-    textframes = TRUE
+      handler("/", function(req) list(status = 200L, body = "index")),
+      handler_ws(
+        "/ws",
+        on_message = function(ws, data) {
+          msgs <<- c(msgs, list(data))
+          ws$send(data)
+        },
+        on_open = function(ws) {
+          ws_conn <<- ws
+          msgs <<- c(msgs, list("open"))
+        },
+        on_close = function(ws) { msgs <<- c(msgs, list("close")) },
+        textframes = TRUE
+      )
+    )
   ))
   test_zero(srv$start())
   Sys.sleep(0.1)
@@ -977,7 +979,7 @@ if (later && NOT_CRAN) {
   test_class("nanoServer", srv <- http_server(
     url = "http://127.0.0.1:29996",
     handlers = list(
-      handler("/error", function(req) stop("intentional error"))
+      handler("/error", function(req) stop(simpleError("")))
     )
   ))
   test_zero(srv$start())
@@ -1010,17 +1012,19 @@ if (later && NOT_CRAN) {
   test_class("nanoServer", wss_srv <- http_server(
     url = "https://127.0.0.1:29994",
     handlers = list(
-      handler("/secure", function(req) list(status = 200L, body = "secure"))
+      handler("/secure", function(req) list(status = 200L, body = "secure")),
+      handler_ws(
+        "/wss",
+        on_message = function(ws, data) {
+          wss_msgs <<- c(wss_msgs, list(data))
+          ws$send(paste0("wss:", data))
+        },
+        on_open = function(ws) { wss_msgs <<- c(wss_msgs, list("wss_open")) },
+        on_close = function(ws) { wss_msgs <<- c(wss_msgs, list("wss_close")) },
+        textframes = TRUE
+      )
     ),
-    ws_path = "/wss",
-    on_open = function(ws) { wss_msgs <<- c(wss_msgs, list("wss_open")) },
-    on_message = function(ws, data) {
-      wss_msgs <<- c(wss_msgs, list(data))
-      ws$send(paste0("wss:", data))
-    },
-    on_close = function(ws) { wss_msgs <<- c(wss_msgs, list("wss_close")) },
-    tls = wss_tls_server,
-    textframes = TRUE
+    tls = wss_tls_server
   ))
   test_zero(wss_srv$start())
   Sys.sleep(0.5)
@@ -1041,6 +1045,50 @@ if (later && NOT_CRAN) {
   }
   test_zero(wss_srv$stop())
   test_zero(wss_srv$close())
+}
+
+if (later && NOT_CRAN) {
+  echo_msgs <- list()
+  upper_msgs <- list()
+  test_class("nanoServer", multi_ws_srv <- http_server(
+    url = "http://127.0.0.1:29991",
+    handlers = list(
+      handler_ws("/echo", function(ws, data) {
+        echo_msgs <<- c(echo_msgs, list(data))
+        ws$send(data)
+      }),
+      handler_ws("/upper", function(ws, data) {
+        upper_msgs <<- c(upper_msgs, list(data))
+        ws$send(toupper(data))
+      }, textframes = TRUE)
+    )
+  ))
+  test_zero(multi_ws_srv$start())
+  Sys.sleep(0.1)
+
+  ws_echo <- tryCatch(stream(dial = "ws://127.0.0.1:29991/echo"), error = identity)
+  if (is_nano(ws_echo)) {
+    for (i in 1:5) later::run_now(0.1)
+    test_zero(send(ws_echo, charToRaw("binary_test"), block = 500))
+    for (i in 1:10) later::run_now(0.1)
+    echo_reply <- recv(ws_echo, block = 500, mode = "raw")
+    test_equal(rawToChar(echo_reply), "binary_test")
+    test_zero(close(ws_echo))
+    for (i in 1:5) later::run_now(0.1)
+  }
+
+  ws_upper <- tryCatch(stream(dial = "ws://127.0.0.1:29991/upper", textframes = TRUE), error = identity)
+  if (is_nano(ws_upper)) {
+    for (i in 1:5) later::run_now(0.1)
+    test_zero(send(ws_upper, "hello", block = 500))
+    for (i in 1:10) later::run_now(0.1)
+    upper_reply <- recv(ws_upper, block = 500, mode = "character")
+    test_equal(upper_reply, "HELLO")
+    test_zero(close(ws_upper))
+    for (i in 1:5) later::run_now(0.1)
+  }
+
+  test_zero(multi_ws_srv$close())
 }
 
 if (later && NOT_CRAN) {

@@ -4,56 +4,31 @@
 \alias{http_server}
 \title{Create HTTP/WebSocket Server}
 \usage{
-http_server(
-  url,
-  handlers = list(),
-  ws_path = "/",
-  on_open = NULL,
-  on_message = NULL,
-  on_close = NULL,
-  tls = NULL,
-  textframes = FALSE
-)
+http_server(url, handlers = list(), tls = NULL)
 }
 \arguments{
-\item{url}{URL to listen on. Use "http://" or "https://" scheme.
-Examples: "http://0.0.0.0:8080", "https://127.0.0.1:8443"}
+\item{url}{URL to listen on (e.g., "http://127.0.0.1:8080").}
 
-\item{handlers}{List of HTTP handlers created with \code{\link[=handler]{handler()}}.}
-
-\item{ws_path}{Path for WebSocket connections (default "/"). Only used
-if WebSocket callbacks are provided.}
-
-\item{on_open}{Function called when a WebSocket client connects.
-Receives the connection object as its argument.}
-
-\item{on_message}{Function called when a WebSocket message is received.
-Receives the connection object and message data.}
-
-\item{on_close}{Function called when a WebSocket client disconnects.
-Receives the connection object.}
+\item{handlers}{List of handlers created with \code{\link[=handler]{handler()}}, \code{\link[=handler_ws]{handler_ws()}}, etc.}
 
 \item{tls}{TLS configuration for HTTPS/WSS, created via \code{\link[=tls_config]{tls_config()}}.}
-
-\item{textframes}{[default FALSE] Logical, use WebSocket text frames.}
 }
 \value{
 A nanoServer object with methods:
 \itemize{
-\item \code{$start()} - Start accepting connections
-\item \code{$stop()} - Stop accepting new connections
-\item \code{$close()} - Stop and release all resources
-\item \code{$url} - The server URL
+\item \verb{$start()} - Start accepting connections
+\item \verb{$stop()} - Stop accepting new connections
+\item \verb{$close()} - Stop and release all resources
+\item \verb{$url} - The server URL
 }
 }
 \description{
-Creates an HTTP server that can handle both HTTP requests and WebSocket
-connections on the same port. Supports HTTP, HTTPS, WS, and WSS.
+Creates a server that can handle HTTP requests and WebSocket connections.
 }
 \details{
 This function leverages NNG's shared HTTP server architecture. When both
-HTTP handlers and WebSocket callbacks are provided, they share the same
-underlying server and port. The WebSocket listener automatically handles
+HTTP handlers and WebSocket handlers are provided, they share the same
+underlying server and port. WebSocket handlers automatically handle
 the HTTP upgrade handshake and all WebSocket framing (RFC 6455).
 
 WebSocket callbacks are executed on R's main thread via the 'later' package.
@@ -79,44 +54,40 @@ server <- http_server(
   )
 )
 server$start()
-# Run event loop
-# repeat later::run_now(Inf)
+# Run event loop: repeat later::run_now(Inf)
 server$close()
 
 # HTTP + WebSocket server
 server <- http_server(
-  url = "http://127.0.0.1:8443",
+  url = "http://127.0.0.1:8080",
   handlers = list(
     handler("/", function(req) {
       list(status = 200L, body = "<html>...</html>")
-    })
-  ),
-  ws_path = "/ws",
-  on_open = function(ws) {
-    cat("WebSocket connected:", ws$id, "\n")
-  },
-  on_message = function(ws, data) {
-    cat("Received:", data, "\n")
-    ws$send(data)
-  },
-  on_close = function(ws) {
-    cat("WebSocket disconnected:", ws$id, "\n")
-  },
-  textframes = TRUE
+    }),
+    handler_ws("/ws", function(ws, data) {
+      ws$send(data)  # Echo
+    }, textframes = TRUE)
+  )
 )
-server$start()
-# Run event loop
-# repeat later::run_now(Inf)
-server$close()
+
+# Multiple WebSocket endpoints
+server <- http_server(
+  url = "http://127.0.0.1:8080",
+  handlers = list(
+    handler_ws("/echo", function(ws, data) ws$send(data)),
+    handler_ws("/upper", function(ws, data) ws$send(toupper(data)), textframes = TRUE)
+  )
+)
 
 # HTTPS server with self-signed certificate
 cert <- write_cert(cn = "127.0.0.1")
+cfg <- tls_config(server = cert$server)
 server <- http_server(
-  url = "https://127.0.0.1:8445",
+  url = "https://127.0.0.1:8443",
   handlers = list(
-    handler("/", function(req) list(status = 200L, body = "Hello, HTTPS!"))
+    handler("/", function(req) list(status = 200L, body = "Secure!"))
   ),
-  tls = tls_config(server = cert$server)
+  tls = cfg
 )
 server$start()
 

@@ -182,7 +182,7 @@ static const R_CallMethodDef callMethods[] = {
   {"rnng_wait_thread_create", (DL_FUNC) &rnng_wait_thread_create, 1},
   {"rnng_write_cert", (DL_FUNC) &rnng_write_cert, 2},
   {"rnng_write_stdout", (DL_FUNC) &rnng_write_stdout, 1},
-  {"rnng_http_server_create", (DL_FUNC) &rnng_http_server_create, 8},
+  {"rnng_http_server_create", (DL_FUNC) &rnng_http_server_create, 3},
   {"rnng_http_server_start", (DL_FUNC) &rnng_http_server_start, 1},
   {"rnng_http_server_stop", (DL_FUNC) &rnng_http_server_stop, 1},
   {"rnng_http_server_close", (DL_FUNC) &rnng_http_server_close, 1},

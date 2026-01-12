@@ -16,6 +16,7 @@ handler(path, callback, method = "GET", tree = FALSE)
 \item \code{headers} - Named character vector of headers
 \item \code{body} - Request body (raw vector)
 }
+
 Should return a list with:
 \itemize{
 \item \code{status} - HTTP status code (integer, default 200)
