@@ -876,7 +876,7 @@ if (NOT_CRAN) {
 test_error(http_server("http://127.0.0.1:29995", tls = "invalid"), "valid TLS")
 fakeserver <- `class<-`("test", "nanoServer")
 test_error(close(fakeserver), "valid HTTP Server")
-test_error(handler_file("/bad", "/nonexistent/file.txt"))
+test_class("list", suppressWarnings(handler_file("/bad", "/nonexistent/file.txt")))
 test_error(handler_redirect("/bad", "/good", status = 999L), "301, 302, 303, 307, or 308")
 
 if (later && NOT_CRAN) {

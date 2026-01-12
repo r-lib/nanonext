@@ -30,12 +30,10 @@ A handler object for use with \code{\link[=http_server]{http_server()}}.
 Creates an HTTP handler that returns a redirect response.
 }
 \examples{
-\dontrun{
 # Permanent redirect
 h1 <- handler_redirect("/old", "/new", status = 301L)
 
 # Redirect bare path to trailing slash
 h2 <- handler_redirect("/app", "/app/")
-}
 
 }

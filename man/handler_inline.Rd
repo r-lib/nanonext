@@ -24,11 +24,9 @@ Creates an HTTP handler that serves in-memory static content. Useful for
 small files like robots.txt or inline JSON/HTML.
 }
 \examples{
-\dontrun{
 h1 <- handler_inline("/robots.txt", "User-agent: *\nDisallow:",
                      content_type = "text/plain")
 h2 <- handler_inline("/health", '{"status":"ok"}',
                      content_type = "application/json")
-}
 
 }

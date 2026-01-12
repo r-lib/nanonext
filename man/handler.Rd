@@ -35,27 +35,19 @@ A handler object for use with \code{\link[=http_server]{http_server()}}.
 Creates an HTTP route handler for use with \code{\link[=http_server]{http_server()}}.
 }
 \examples{
-\dontrun{
 # Simple GET handler
 h1 <- handler("/hello", function(req) {
   list(status = 200L, body = "Hello!")
 })
 
-# POST handler with JSON
-h2 <- handler("/api/submit", function(req) {
-  data <- jsonlite::fromJSON(rawToChar(req$body))
-  result <- process(data)
-  list(
-    status = 200L,
-    headers = c("Content-Type" = "application/json"),
-    body = jsonlite::toJSON(result)
-  )
+# POST handler that echoes the request body
+h2 <- handler("/echo", function(req) {
+  list(status = 200L, body = req$body)
 }, method = "POST")
 
 # Catch-all handler for a path prefix
 h3 <- handler("/static", function(req) {
   # Serve static files under /static/*
 }, method = NULL, tree = TRUE)
-}
 
 }

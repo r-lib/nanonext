@@ -61,6 +61,7 @@ To process callbacks, you must run the event loop (e.g., using
 \code{later::run_now()} in a loop).
 }
 \examples{
+\dontshow{if (interactive() && requireNamespace("later", quietly = TRUE)) withAutoprint(\{ # examplesIf}
 # Simple HTTP server
 server <- http_server(
   url = "http://127.0.0.1:8080",
@@ -131,5 +132,5 @@ aio$status
 aio$data
 
 server$close()
-
+\dontshow{\}) # examplesIf}
 }
