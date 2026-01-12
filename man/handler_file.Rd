@@ -9,7 +9,7 @@ handler_file(path, file, tree = FALSE)
 \arguments{
 \item{path}{URI path to match (e.g., "/favicon.ico").}
 
-\item{file}{Path to the file to serve. Must exist.}
+\item{file}{Path to the file to serve.}
 
 \item{tree}{[default FALSE] Logical, if TRUE matches path as prefix.}
 }
@@ -21,8 +21,7 @@ Creates an HTTP handler that serves a single file. NNG handles MIME type
 detection automatically.
 }
 \examples{
-\dontrun{
-h <- handler_file("/favicon.ico", "www/favicon.ico")
-}
-
+\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
+h <- handler_file("/favicon.ico", "~/favicon.ico")
+\dontshow{\}) # examplesIf}
 }

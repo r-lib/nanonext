@@ -32,8 +32,7 @@ A request to "/static" (no trailing slash) will not automatically redirect
 to "/static/". Consider using \code{\link[=handler_redirect]{handler_redirect()}} if you need this behavior.
 }
 \examples{
-\dontrun{
+\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
 h <- handler_directory("/static", "www/assets")
-}
-
+\dontshow{\}) # examplesIf}
 }

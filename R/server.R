@@ -37,7 +37,7 @@
 #' To process callbacks, you must run the event loop (e.g., using
 #' \code{later::run_now()} in a loop).
 #'
-#' @examples
+#' @examplesIf interactive() && requireNamespace("later", quietly = TRUE)
 #' # Simple HTTP server
 #' server <- http_server(
 #'   url = "http://127.0.0.1:8080",
@@ -165,28 +165,20 @@ http_server <- function(url,
 #' @return A handler object for use with [http_server()].
 #'
 #' @examples
-#' \dontrun{
 #' # Simple GET handler
 #' h1 <- handler("/hello", function(req) {
 #'   list(status = 200L, body = "Hello!")
 #' })
 #'
-#' # POST handler with JSON
-#' h2 <- handler("/api/submit", function(req) {
-#'   data <- jsonlite::fromJSON(rawToChar(req$body))
-#'   result <- process(data)
-#'   list(
-#'     status = 200L,
-#'     headers = c("Content-Type" = "application/json"),
-#'     body = jsonlite::toJSON(result)
-#'   )
+#' # POST handler that echoes the request body
+#' h2 <- handler("/echo", function(req) {
+#'   list(status = 200L, body = req$body)
 #' }, method = "POST")
 #'
 #' # Catch-all handler for a path prefix
 #' h3 <- handler("/static", function(req) {
 #'   # Serve static files under /static/*
 #' }, method = NULL, tree = TRUE)
-#' }
 #'
 #' @export
 #'
@@ -200,20 +192,20 @@ handler <- function(path, callback, method = "GET", tree = FALSE) {
 #' detection automatically.
 #'
 #' @param path URI path to match (e.g., "/favicon.ico").
-#' @param file Path to the file to serve. Must exist.
+#' @param file Path to the file to serve.
 #' @param tree \[default FALSE\] Logical, if TRUE matches path as prefix.
 #'
 #' @return A handler object for use with [http_server()].
 #'
-#' @examples
-#' \dontrun{
-#' h <- handler_file("/favicon.ico", "www/favicon.ico")
-#' }
+#' @examplesIf interactive()
+#' h <- handler_file("/favicon.ico", "~/favicon.ico")
 #'
 #' @export
 #'
 handler_file <- function(path, file, tree = FALSE) {
-  list(type = "file", path = path, file = normalizePath(file, mustWork = TRUE),
+  if (!file.exists(file))
+    warning("file does not exist: ", file)
+  list(type = "file", path = path, file = normalizePath(file, mustWork = FALSE),
        tree = tree)
 }
 
@@ -240,10 +232,8 @@ handler_file <- function(path, file, tree = FALSE) {
 #' A request to "/static" (no trailing slash) will not automatically redirect
 #' to "/static/". Consider using [handler_redirect()] if you need this behavior.
 #'
-#' @examples
-#' \dontrun{
+#' @examplesIf interactive()
 #' h <- handler_directory("/static", "www/assets")
-#' }
 #'
 #' @export
 #'
@@ -268,12 +258,10 @@ handler_directory <- function(path, directory) {
 #' @return A handler object for use with [http_server()].
 #'
 #' @examples
-#' \dontrun{
 #' h1 <- handler_inline("/robots.txt", "User-agent: *\nDisallow:",
 #'                      content_type = "text/plain")
 #' h2 <- handler_inline("/health", '{"status":"ok"}',
 #'                      content_type = "application/json")
-#' }
 #'
 #' @export
 #'
@@ -303,13 +291,11 @@ handler_inline <- function(path, data, content_type = NULL, tree = FALSE) {
 #' @return A handler object for use with [http_server()].
 #'
 #' @examples
-#' \dontrun{
 #' # Permanent redirect
 #' h1 <- handler_redirect("/old", "/new", status = 301L)
 #'
 #' # Redirect bare path to trailing slash
 #' h2 <- handler_redirect("/app", "/app/")
-#' }
 #'
 #' @export
 #'
