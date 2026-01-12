@@ -2,40 +2,28 @@
 
 #' Create HTTP/WebSocket Server
 #'
-#' Creates an HTTP server that can handle both HTTP requests and WebSocket
-#' connections on the same port. Supports HTTP, HTTPS, WS, and WSS.
+#' Creates a server that can handle HTTP requests and WebSocket connections.
 #'
-#' @param url URL to listen on. Use "http://" or "https://" scheme.
-#'   Examples: "http://0.0.0.0:8080", "https://127.0.0.1:8443"
-#' @param handlers List of HTTP handlers created with [handler()].
-#' @param ws_path Path for WebSocket connections (default "/"). Only used
-#'   if WebSocket callbacks are provided.
-#' @param on_open Function called when a WebSocket client connects.
-#'   Receives the connection object as its argument.
-#' @param on_message Function called when a WebSocket message is received.
-#'   Receives the connection object and message data.
-#' @param on_close Function called when a WebSocket client disconnects.
-#'   Receives the connection object.
+#' @param url URL to listen on (e.g., "http://127.0.0.1:8080").
+#' @param handlers List of handlers created with [handler()], [handler_ws()], etc.
 #' @param tls TLS configuration for HTTPS/WSS, created via [tls_config()].
-#' @param textframes \[default FALSE\] Logical, use WebSocket text frames.
 #'
 #' @return A nanoServer object with methods:
-#'   \itemize{
-#'     \item \code{$start()} - Start accepting connections
-#'     \item \code{$stop()} - Stop accepting new connections
-#'     \item \code{$close()} - Stop and release all resources
-#'     \item \code{$url} - The server URL
-#'   }
+#'
+#'   - `$start()` - Start accepting connections
+#'   - `$stop()` - Stop accepting new connections
+#'   - `$close()` - Stop and release all resources
+#'   - `$url` - The server URL
 #'
 #' @details
 #' This function leverages NNG's shared HTTP server architecture. When both
-#' HTTP handlers and WebSocket callbacks are provided, they share the same
-#' underlying server and port. The WebSocket listener automatically handles
+#' HTTP handlers and WebSocket handlers are provided, they share the same
+#' underlying server and port. WebSocket handlers automatically handle
 #' the HTTP upgrade handshake and all WebSocket framing (RFC 6455).
 #'
 #' WebSocket callbacks are executed on R's main thread via the 'later' package.
 #' To process callbacks, you must run the event loop (e.g., using
-#' \code{later::run_now()} in a loop).
+#' `later::run_now()` in a loop).
 #'
 #' @examplesIf interactive() && requireNamespace("later", quietly = TRUE)
 #' # Simple HTTP server
@@ -55,44 +43,40 @@
 #'   )
 #' )
 #' server$start()
-#' # Run event loop
-#' # repeat later::run_now(Inf)
+#' # Run event loop: repeat later::run_now(Inf)
 #' server$close()
 #'
 #' # HTTP + WebSocket server
 #' server <- http_server(
-#'   url = "http://127.0.0.1:8443",
+#'   url = "http://127.0.0.1:8080",
 #'   handlers = list(
 #'     handler("/", function(req) {
 #'       list(status = 200L, body = "<html>...</html>")
-#'     })
-#'   ),
-#'   ws_path = "/ws",
-#'   on_open = function(ws) {
-#'     cat("WebSocket connected:", ws$id, "\n")
-#'   },
-#'   on_message = function(ws, data) {
-#'     cat("Received:", data, "\n")
-#'     ws$send(data)
-#'   },
-#'   on_close = function(ws) {
-#'     cat("WebSocket disconnected:", ws$id, "\n")
-#'   },
-#'   textframes = TRUE
+#'     }),
+#'     handler_ws("/ws", function(ws, data) {
+#'       ws$send(data)  # Echo
+#'     }, textframes = TRUE)
+#'   )
 #' )
-#' server$start()
-#' # Run event loop
-#' # repeat later::run_now(Inf)
-#' server$close()
+#'
+#' # Multiple WebSocket endpoints
+#' server <- http_server(
+#'   url = "http://127.0.0.1:8080",
+#'   handlers = list(
+#'     handler_ws("/echo", function(ws, data) ws$send(data)),
+#'     handler_ws("/upper", function(ws, data) ws$send(toupper(data)), textframes = TRUE)
+#'   )
+#' )
 #'
 #' # HTTPS server with self-signed certificate
 #' cert <- write_cert(cn = "127.0.0.1")
+#' cfg <- tls_config(server = cert$server)
 #' server <- http_server(
-#'   url = "https://127.0.0.1:8445",
+#'   url = "https://127.0.0.1:8443",
 #'   handlers = list(
-#'     handler("/", function(req) list(status = 200L, body = "Hello, HTTPS!"))
+#'     handler("/", function(req) list(status = 200L, body = "Secure!"))
 #'   ),
-#'   tls = tls_config(server = cert$server)
+#'   tls = cfg
 #' )
 #' server$start()
 #'
@@ -111,16 +95,8 @@
 #'
 #' @export
 #'
-http_server <- function(url,
-                        handlers = list(),
-                        ws_path = "/",
-                        on_open = NULL,
-                        on_message = NULL,
-                        on_close = NULL,
-                        tls = NULL,
-                        textframes = FALSE) {
-  srv <- .Call(rnng_http_server_create, url, handlers, ws_path,
-               on_open, on_message, on_close, tls, textframes)
+http_server <- function(url, handlers = list(), tls = NULL) {
+  srv <- .Call(rnng_http_server_create, url, handlers, tls)
   # Add method attributes for $start(), $stop(), $close() access
   attr(srv, "start") <- function() {
     res <- .Call(rnng_http_server_start, srv)
@@ -146,18 +122,17 @@ http_server <- function(url,
 #'
 #' @param path URI path to match (e.g., "/api/data", "/users").
 #' @param callback Function to handle requests. Receives a list with:
-#'   \itemize{
-#'     \item \code{method} - HTTP method (character)
-#'     \item \code{uri} - Request URI (character)
-#'     \item \code{headers} - Named character vector of headers
-#'     \item \code{body} - Request body (raw vector)
-#'   }
+#'
+#'   - `method` - HTTP method (character)
+#'   - `uri` - Request URI (character)
+#'   - `headers` - Named character vector of headers
+#'   - `body` - Request body (raw vector)
+#'
 #'   Should return a list with:
-#'   \itemize{
-#'     \item \code{status} - HTTP status code (integer, default 200)
-#'     \item \code{headers} - Named character vector of response headers (optional)
-#'     \item \code{body} - Response body (character or raw)
-#'   }
+#'
+#'   - `status` - HTTP status code (integer, default 200)
+#'   - `headers` - Named character vector of response headers (optional)
+#'   - `body` - Response body (character or raw)
 #' @param method HTTP method to match (e.g., "GET", "POST", "PUT", "DELETE").
 #'   Use NULL to match any method.
 #' @param tree \[default FALSE\] Logical, if TRUE matches path as prefix.
@@ -184,6 +159,73 @@ http_server <- function(url,
 #'
 handler <- function(path, callback, method = "GET", tree = FALSE) {
   list(path = path, callback = callback, method = method, tree = tree)
+}
+
+#' Create WebSocket Handler
+#'
+#' Creates a WebSocket handler for use with [http_server()].
+#'
+#' @param path URI path for WebSocket connections (e.g., "/ws").
+#' @param on_message Function called when a message is received.
+#'   Signature: `function(ws, data)` where `ws` is the connection
+#'   object and `data` is the message. Use `ws$send()` to send
+#'   responses; the return value is ignored.
+#' @param on_open \[default NULL\] Function called when a connection opens.
+#'   Signature: `function(ws)`
+#' @param on_close \[default NULL\] Function called when a connection closes.
+#'   Signature: `function(ws)`
+#' @param textframes \[default FALSE\] Logical, use text frames instead of binary.
+#'   When TRUE: incoming `data` is character, outgoing data should be character.
+#'   When FALSE: incoming `data` is raw vector, outgoing data should be raw vector.
+#'
+#' @return A handler object for use with [http_server()].
+#'
+#' @section Connection Object:
+#' The `ws` object passed to callbacks has the following fields and methods:
+#'
+#' - `ws$send(data)`: Send a message to the client. `data` can be
+#'   a raw vector or character string. Returns 0 on success, or an error code
+#'   on failure (e.g., if the connection is closed).
+#' - `ws$close()`: Close the connection.
+#' - `ws$id`: Unique integer identifier for this connection. IDs are
+#'   unique server-wide across all WebSocket handlers, making them safe to use
+#'   as keys in a shared data structure.
+#'
+#' @examples
+#' # Simple echo server
+#' h <- handler_ws("/ws", function(ws, data) ws$send(data))
+#'
+#' # With connection tracking
+#' clients <- new.env()
+#' h <- handler_ws(
+#'   "/chat",
+#'   on_message = function(ws, data) {
+#'     # Broadcast to all
+#'     for (id in ls(clients)) {
+#'       clients[[id]]$send(data)
+#'     }
+#'   },
+#'   on_open = function(ws) {
+#'     clients[[as.character(ws$id)]] <<- ws
+#'   },
+#'   on_close = function(ws) {
+#'     rm(list = as.character(ws$id), envir = clients)
+#'   },
+#'   textframes = TRUE
+#' )
+#'
+#' @export
+#'
+handler_ws <- function(path, on_message, on_open = NULL, on_close = NULL,
+                       textframes = FALSE) {
+  list(
+    type = "ws",
+    path = path,
+    on_message = on_message,
+    on_open = on_open,
+    on_close = on_close,
+    textframes = textframes
+  )
 }
 
 #' Create Static File Handler
@@ -223,10 +265,9 @@ handler_file <- function(path, file, tree = FALSE) {
 #' @details
 #' Directory handlers automatically match all paths under the prefix (tree
 #' matching is implicit). The URI path is mapped to the filesystem:
-#' \itemize{
-#'   \item Request to "/static/css/style.css" serves "directory/css/style.css"
-#'   \item Request to "/static/" serves "directory/index.html" if it exists
-#' }
+#'
+#' - Request to "/static/css/style.css" serves "directory/css/style.css"
+#' - Request to "/static/" serves "directory/index.html" if it exists
 #'
 #' Note: The trailing slash behavior depends on how clients make requests.
 #' A request to "/static" (no trailing slash) will not automatically redirect
@@ -279,13 +320,12 @@ handler_inline <- function(path, data, content_type = NULL, tree = FALSE) {
 #' @param location URL to redirect to. Can be relative (e.g., "/new-page") or
 #'   absolute (e.g., "https://example.com/page").
 #' @param status HTTP redirect status code. Must be one of:
-#'   \itemize{
-#'     \item 301 - Moved Permanently
-#'     \item 302 - Found (default)
-#'     \item 303 - See Other
-#'     \item 307 - Temporary Redirect
-#'     \item 308 - Permanent Redirect
-#'   }
+#'
+#'   - 301 - Moved Permanently
+#'   - 302 - Found (default)
+#'   - 303 - See Other
+#'   - 307 - Temporary Redirect
+#'   - 308 - Permanent Redirect
 #' @param tree \[default FALSE\] Logical, if TRUE matches path as prefix.
 #'
 #' @return A handler object for use with [http_server()].
