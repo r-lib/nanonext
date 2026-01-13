@@ -1,23 +1,95 @@
-// nanonext - C level - HTTP/WebSocket Server -----------------------------------
+// nanonext - C level - HTTP/WebSocket Server ----------------------------------
 
 #define NANONEXT_HTTP
 #include "nanonext.h"
 
-// Common HTTP headers to extract
-static const char *http_common_headers[] = {
-  "Content-Type", "Content-Length", "Authorization", "Accept",
-  "User-Agent", "Host", "Origin", "Cookie", "X-Requested-With", NULL
-};
-#define HTTP_HEADER_COUNT (sizeof(http_common_headers) / sizeof(http_common_headers[0]) - 1)
+// NNG internals ---------------------------------------------------------------
 
-// Message data passed to ws_invoke_onmessage
+// Mirror structures for NNG HTTP header iteration (matches NNG v1.6+ internals)
+// Layout must match: src/nng/src/core/list.h and src/nng/src/supplemental/http/http_msg.c
+
+// Copyright 2019 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2018 Capitar IT Group BV <info@capitar.com>
+//
+// This software is supplied under the terms of the MIT License, a
+// copy of which should be located in the distribution where this
+// file was obtained (LICENSE.txt).  A copy of the license may also be
+// found online at https://opensource.org/licenses/MIT.
+
+typedef struct nano_list_node_s {
+  struct nano_list_node_s *next;
+  struct nano_list_node_s *prev;
+} nano_list_node_s;
+
+typedef struct nano_list_s {
+  nano_list_node_s head;
+  size_t           offset;
+} nano_list_s;
+
+typedef struct nano_http_header_s {
+  char             *name;
+  char             *value;
+  nano_list_node_s  node;
+} nano_http_header_s;
+
+// Mirror of nng_http_req - only hdrs field needed (it's the first field)
+typedef struct nano_http_req_s {
+  nano_list_s hdrs;
+} nano_http_req_s;
+
+static inline nano_http_header_s *http_header_first(nng_http_req *req) {
+  nano_http_req_s *m = (nano_http_req_s *) req;
+  nano_list_node_s *node = m->hdrs.head.next;
+  if (node == &m->hdrs.head)
+    return NULL;
+  return (nano_http_header_s *) ((char *) node - m->hdrs.offset);
+}
+
+static inline nano_http_header_s *http_header_next(nng_http_req *req,
+                                                    nano_http_header_s *h) {
+  nano_http_req_s *m = (nano_http_req_s *) req;
+  nano_list_node_s *node = h->node.next;
+  if (node == &m->hdrs.head)
+    return NULL;
+  return (nano_http_header_s *) ((char *) node - m->hdrs.offset);
+}
+
+// Headers ---------------------------------------------------------------------
+
 typedef struct {
   nano_ws_conn *conn;
   void *data;
   size_t len;
 } ws_message;
 
-// Forward declarations
+static inline void prot_add(SEXP prot, SEXP obj) {
+  SETCDR(prot, Rf_cons(obj, CDR(prot)));
+}
+
+static inline void prot_remove(SEXP prot, SEXP obj) {
+  SEXP prev = prot;
+  for (SEXP cur = CDR(prot); cur != R_NilValue; prev = cur, cur = CDR(cur)) {
+    if (CAR(cur) == obj) {
+      SETCDR(prev, CDR(cur));
+      return;
+    }
+  }
+}
+
+static SEXP get_list_element(SEXP list, const char *name) {
+  SEXP elem = Rf_getAttrib(list, Rf_install(name));
+  if (elem == R_NilValue && TYPEOF(list) == VECSXP) {
+    SEXP names = Rf_getAttrib(list, R_NamesSymbol);
+    if (names != R_NilValue) {
+      for (int i = 0; i < Rf_length(list); i++) {
+        if (strcmp(CHAR(STRING_ELT(names, i)), name) == 0)
+          return VECTOR_ELT(list, i);
+      }
+    }
+  }
+  return elem;
+}
+
 static void http_handler_cb(nng_aio *);
 static void http_invoke_callback(void *);
 static int http_request_unlink(nano_http_request *);
@@ -34,39 +106,6 @@ static void ws_invoke_onmessage(void *);
 static void ws_invoke_onclose(void *);
 static void http_server_finalizer(SEXP);
 static void http_server_do_stop(nano_http_server *);
-
-// Helper: Add object to protection pairlist (after head)
-static void prot_add(SEXP prot, SEXP obj) {
-  SETCDR(prot, Rf_cons(obj, CDR(prot)));
-}
-
-// Helper: Remove object from protection pairlist
-static void prot_remove(SEXP prot, SEXP obj) {
-  SEXP prev = prot;
-  for (SEXP cur = CDR(prot); cur != R_NilValue; prev = cur, cur = CDR(cur)) {
-    if (CAR(cur) == obj) {
-      SETCDR(prev, CDR(cur));
-      return;
-    }
-  }
-}
-
-// Helper: Get named element from R list (checks both attributes and list names)
-static SEXP get_list_element(SEXP list, const char *name) {
-
-  SEXP elem = Rf_getAttrib(list, Rf_install(name));
-  if (elem == R_NilValue && TYPEOF(list) == VECSXP) {
-    SEXP names = Rf_getAttrib(list, R_NamesSymbol);
-    if (names != R_NilValue) {
-      for (int i = 0; i < Rf_length(list); i++) {
-        if (strcmp(CHAR(STRING_ELT(names, i)), name) == 0)
-          return VECTOR_ELT(list, i);
-      }
-    }
-  }
-  return elem;
-
-}
 
 // internals -------------------------------------------------------------------
 
@@ -101,15 +140,20 @@ static void http_handler_cb(nng_aio *aio) {
       memcpy(r->body_copy, body_src, r->body_len);
   }
 
-  // Extract common headers
-  r->header_names = malloc(HTTP_HEADER_COUNT * sizeof(char *));
-  r->header_values = malloc(HTTP_HEADER_COUNT * sizeof(char *));
-  if (r->header_names != NULL && r->header_values != NULL) {
-    for (const char **hp = http_common_headers; *hp != NULL; hp++) {
-      const char *val = nng_http_req_get_header(req, *hp);
-      if (val != NULL) {
-        r->header_names[r->header_count] = strdup(*hp);
-        r->header_values[r->header_count] = strdup(val);
+  // Extract all headers using iterator
+  int header_count = 0;
+  for (nano_http_header_s *h = http_header_first(req); h != NULL;
+       h = http_header_next(req, h))
+    header_count++;
+
+  if (header_count > 0) {
+    r->header_names = malloc(header_count * sizeof(char *));
+    r->header_values = malloc(header_count * sizeof(char *));
+    if (r->header_names != NULL && r->header_values != NULL) {
+      for (nano_http_header_s *h = http_header_first(req); h != NULL;
+           h = http_header_next(req, h)) {
+        r->header_names[r->header_count] = strdup(h->name);
+        r->header_values[r->header_count] = strdup(h->value);
         r->header_count++;
       }
     }
