@@ -3,58 +3,7 @@
 #define NANONEXT_HTTP
 #include "nanonext.h"
 
-// NNG internals ---------------------------------------------------------------
-
-// Mirror structures for NNG HTTP header iteration (matches NNG v1.6+ internals)
-// Layout must match: src/nng/src/core/list.h and src/nng/src/supplemental/http/http_msg.c
-
-// Copyright 2019 Staysail Systems, Inc. <info@staysail.tech>
-// Copyright 2018 Capitar IT Group BV <info@capitar.com>
-//
-// This software is supplied under the terms of the MIT License, a
-// copy of which should be located in the distribution where this
-// file was obtained (LICENSE.txt).  A copy of the license may also be
-// found online at https://opensource.org/licenses/MIT.
-
-typedef struct nano_list_node_s {
-  struct nano_list_node_s *next;
-  struct nano_list_node_s *prev;
-} nano_list_node_s;
-
-typedef struct nano_list_s {
-  nano_list_node_s head;
-  size_t           offset;
-} nano_list_s;
-
-typedef struct nano_http_header_s {
-  char             *name;
-  char             *value;
-  nano_list_node_s  node;
-} nano_http_header_s;
-
-// Mirror of nng_http_req - only hdrs field needed (it's the first field)
-typedef struct nano_http_req_s {
-  nano_list_s hdrs;
-} nano_http_req_s;
-
-static inline nano_http_header_s *http_header_first(nng_http_req *req) {
-  nano_http_req_s *m = (nano_http_req_s *) req;
-  nano_list_node_s *node = m->hdrs.head.next;
-  if (node == &m->hdrs.head)
-    return NULL;
-  return (nano_http_header_s *) ((char *) node - m->hdrs.offset);
-}
-
-static inline nano_http_header_s *http_header_next(nng_http_req *req,
-                                                    nano_http_header_s *h) {
-  nano_http_req_s *m = (nano_http_req_s *) req;
-  nano_list_node_s *node = h->node.next;
-  if (node == &m->hdrs.head)
-    return NULL;
-  return (nano_http_header_s *) ((char *) node - m->hdrs.offset);
-}
-
-// Headers ---------------------------------------------------------------------
+// internals -------------------------------------------------------------------
 
 typedef struct {
   nano_ws_conn *conn;
@@ -142,16 +91,16 @@ static void http_handler_cb(nng_aio *aio) {
 
   // Extract all headers using iterator
   int header_count = 0;
-  for (nano_http_header_s *h = http_header_first(req); h != NULL;
-       h = http_header_next(req, h))
+  for (nano_http_header_s *h = nano_http_header_first(req); h != NULL;
+       h = nano_http_header_next(req, h))
     header_count++;
 
   if (header_count > 0) {
     r->header_names = malloc(header_count * sizeof(char *));
     r->header_values = malloc(header_count * sizeof(char *));
     if (r->header_names != NULL && r->header_values != NULL) {
-      for (nano_http_header_s *h = http_header_first(req); h != NULL;
-           h = http_header_next(req, h)) {
+      for (nano_http_header_s *h = nano_http_header_first(req); h != NULL;
+           h = nano_http_header_next(req, h)) {
         r->header_names[r->header_count] = strdup(h->name);
         r->header_values[r->header_count] = strdup(h->value);
         r->header_count++;
