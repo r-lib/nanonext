@@ -38,7 +38,8 @@ format.}
 
 \item{response}{(optional) a character vector specifying the response headers
 to return e.g. \code{c("date", "server")}. These are case-insensitive and
-will return NULL if not present. A non-character vector will be ignored.}
+will return NULL if not present. Specify \code{TRUE} to return all response
+headers. A non-character vector will be ignored (other than \code{TRUE}).}
 
 \item{timeout}{(optional) integer value in milliseconds after which the
 transaction times out if not yet complete.}
@@ -53,10 +54,11 @@ The following elements may be accessed:
 \itemize{
 \item \verb{$status} - integer HTTP repsonse status code (200 - OK).
 Use \code{\link[=status_code]{status_code()}} for a translation of the meaning.
-\item \verb{$headers} - named list of response headers supplied in \code{response},
-or NULL otherwise. If the status code is within the 300 range, i.e. a
-redirect, the response header 'Location' is automatically appended to
-return the redirect address.
+\item \verb{$headers} - named list of response headers (all headers if
+\code{response = TRUE}, or those specified in \code{response}, or NULL otherwise).
+If the status code is within the 300 range, i.e. a redirect, the response
+header 'Location' is automatically appended to return the redirect
+address.
 \item \verb{$data} - the response body, as a character string if
 \code{convert = TRUE} (may be further parsed as html, json, xml etc. as
 required), or a raw byte vector if FALSE (use \code{\link[=writeBin]{writeBin()}} to save as a

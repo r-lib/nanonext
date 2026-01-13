@@ -23,6 +23,7 @@
 
 #ifdef NANONEXT_HTTP
 #include <nng/supplemental/http/http.h>
+#include "nng_structs.h"
 
 typedef struct nano_handle_s {
   nng_url *url;
