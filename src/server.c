@@ -178,51 +178,43 @@ static void http_invoke_callback(void *arg) {
     return;
   }
 
-  // Create R list with request info
   const char *names[] = {"method", "uri", "headers", "body", ""};
   SEXP req_list = PROTECT(Rf_mkNamed(VECSXP, names));
   SET_VECTOR_ELT(req_list, 0, Rf_mkString(r->method));
   SET_VECTOR_ELT(req_list, 1, Rf_mkString(r->uri));
 
-  // Build headers as named character vector
-  SEXP headers = PROTECT(Rf_allocVector(STRSXP, r->header_count));
-  SEXP hdr_names = PROTECT(Rf_allocVector(STRSXP, r->header_count));
+  SEXP headers = Rf_allocVector(STRSXP, r->header_count);
+  SET_VECTOR_ELT(req_list, 2, headers);
+  SEXP hdr_names = Rf_allocVector(STRSXP, r->header_count);
+  Rf_namesgets(headers, hdr_names);
   for (int i = 0; i < r->header_count; i++) {
     SET_STRING_ELT(headers, i, Rf_mkChar(r->header_values[i]));
     SET_STRING_ELT(hdr_names, i, Rf_mkChar(r->header_names[i]));
   }
-  Rf_setAttrib(headers, R_NamesSymbol, hdr_names);
-  SET_VECTOR_ELT(req_list, 2, headers);
-  UNPROTECT(2);  // headers, hdr_names (now protected by req_list)
 
-  // Build body as raw vector
-  SEXP body = PROTECT(Rf_allocVector(RAWSXP, r->body_len));
+  SEXP body = Rf_allocVector(RAWSXP, r->body_len);
+  SET_VECTOR_ELT(req_list, 3, body);
   if (r->body_len > 0)
     memcpy(RAW(body), r->body_copy, r->body_len);
-  SET_VECTOR_ELT(req_list, 3, body);
-  UNPROTECT(1);  // body (now protected by req_list)
 
-  // Call R function with error handling
   SEXP call = PROTECT(Rf_lang2(r->callback, req_list));
   int err;
   SEXP result = R_tryEval(call, R_GlobalEnv, &err);
+  UNPROTECT(2);
 
   // Build HTTP response
   nng_http_res *res = NULL;
   if (err) {
-    // R callback threw an error - return 500
     nng_http_res_alloc_error(&res, 500);
   } else {
     PROTECT(result);
     nng_http_res_alloc(&res);
 
-    // Extract status from result$status (default 200)
     SEXP status_elem = get_list_element(result, "status");
     int status_code = (status_elem != R_NilValue && TYPEOF(status_elem) == INTSXP) ?
                       INTEGER(status_elem)[0] : 200;
     nng_http_res_set_status(res, (uint16_t) status_code);
 
-    // Extract headers from result$headers (named character vector)
     SEXP res_headers = get_list_element(result, "headers");
     if (res_headers != R_NilValue && TYPEOF(res_headers) == STRSXP) {
       SEXP hdr_nm = Rf_getAttrib(res_headers, R_NamesSymbol);
@@ -238,25 +230,28 @@ static void http_invoke_callback(void *arg) {
     // Extract body from result$body (character or raw)
     SEXP res_body = get_list_element(result, "body");
     if (res_body != R_NilValue) {
-      if (TYPEOF(res_body) == RAWSXP) {
-        nng_http_res_copy_data(res, RAW(res_body), XLENGTH(res_body));
-      } else if (TYPEOF(res_body) == STRSXP && XLENGTH(res_body) > 0) {
-        const char *str = CHAR(STRING_ELT(res_body, 0));
-        nng_http_res_copy_data(res, str, strlen(str));
-        // Set Content-Type if not already set
-        if (nng_http_res_get_header(res, "Content-Type") == NULL)
-          nng_http_res_set_header(res, "Content-Type", "text/plain; charset=utf-8");
+      switch (TYPEOF(res_body)) {
+      case RAWSXP:
+        nng_http_res_copy_data(res, NANO_DATAPTR(res_body), XLENGTH(res_body));
+        break;
+      case STRSXP:
+        if (XLENGTH(res_body) > 0) {
+          const char *str = CHAR(STRING_ELT(res_body, 0));
+          nng_http_res_copy_data(res, str, strlen(str));
+          if (nng_http_res_get_header(res, "Content-Type") == NULL)
+            nng_http_res_set_header(res, "Content-Type", "text/plain; charset=utf-8");
+        }
+        break;
+      default:
+        break;
       }
     }
-    UNPROTECT(1);  // result
+
+    UNPROTECT(1);
   }
 
-  // Complete the AIO with response - NNG takes ownership of res
   nng_aio_set_output(r->aio, 0, res);
   nng_aio_finish(r->aio, 0);
-
-  // Cleanup
-  UNPROTECT(2);  // call, req_list
   http_request_free(r);
 
 }
@@ -486,23 +481,20 @@ static void ws_invoke_onmessage(void *arg) {
   }
   nano_http_handler_info *info = conn->handler;
 
-  // Create R data object (raw vector or string based on textframes setting)
   SEXP data;
   if (info->textframes) {
-    data = PROTECT(Rf_ScalarString(
-      Rf_mkCharLenCE((char *) msg->data, msg->len, CE_UTF8)));
+    PROTECT(data = Rf_ScalarString(Rf_mkCharLenCE((char *) msg->data, msg->len, CE_UTF8)));
   } else {
-    data = PROTECT(Rf_allocVector(RAWSXP, msg->len));
-    memcpy(RAW(data), msg->data, msg->len);
+    PROTECT(data = Rf_allocVector(RAWSXP, msg->len));
+    memcpy(NANO_DATAPTR(data), msg->data, msg->len);
   }
 
-  // Call R on_message callback
   if (info->callback != R_NilValue) {
     SEXP call = PROTECT(Rf_lang3(info->callback, conn->xptr, data));
     R_tryEval(call, R_GlobalEnv, NULL);
-    UNPROTECT(1);  // call
+    UNPROTECT(1);
   }
-  UNPROTECT(1);  // data
+  UNPROTECT(1);
 
   free(msg->data);
   free(msg);
@@ -515,14 +507,12 @@ static void ws_invoke_onclose(void *arg) {
   nano_ws_conn *conn = (nano_ws_conn *) arg;
   nano_http_handler_info *info = conn->handler;
 
-  // Call R on_close callback if we have an external pointer
   if (info->on_close != R_NilValue && conn->xptr != R_NilValue) {
     SEXP call = PROTECT(Rf_lang2(info->on_close, conn->xptr));
     R_tryEval(call, R_GlobalEnv, NULL);
     UNPROTECT(1);
   }
 
-  // Clean up connection resources
   ws_conn_cleanup(conn);
 
 }
@@ -668,6 +658,7 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
 
   if ((xc = nng_http_server_hold(&server, up)))
     goto fail;
+
   srv->server = server;
 
   if (tls != R_NilValue) {
@@ -682,9 +673,8 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
   srv->handler_count = handler_count;
   srv->handlers = NULL;
   if (handler_count > 0) {
-    hinfo = malloc(handler_count * sizeof(nano_http_handler_info));
+    hinfo = calloc(handler_count, sizeof(nano_http_handler_info));
     if (hinfo == NULL) { xc = NNG_ENOMEM; goto fail; }
-    memset(hinfo, 0, handler_count * sizeof(nano_http_handler_info));
     srv->handlers = hinfo;
 
     for (R_xlen_t i = 0; i < handler_count; i++) {
@@ -861,7 +851,6 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
 
   nng_url_free(up);
 
-  // Return external pointer with prot pairlist for GC protection
   SEXP xptr = PROTECT(R_MakeExternalPtr(srv, nano_HttpServerSymbol, prot));
   R_RegisterCFinalizerEx(xptr, http_server_finalizer, TRUE);
   srv->xptr = xptr;
@@ -998,19 +987,20 @@ SEXP rnng_ws_send(SEXP xptr, SEXP data) {
   // Get data to send
   unsigned char *buf;
   size_t len;
-  if (TYPEOF(data) == RAWSXP) {
-    buf = RAW(data);
+  switch (TYPEOF(data)) {
+  case RAWSXP:
+    buf = (unsigned char *) DATAPTR_RO(data);
     len = XLENGTH(data);
-  } else if (TYPEOF(data) == STRSXP) {
-    const char *s = NANO_STRING(data);
-    buf = (unsigned char *) s;
-    len = strlen(s);
-  } else {
+    break;
+  case STRSXP:
+    buf = (unsigned char *) NANO_STRING(data);
+    len = strlen((char *) buf);
+    break;
+  default:
     Rf_error("`data` must be raw or character");
   }
 
-  // Allocate message
-  nng_msg *msgp;
+  nng_msg *msgp = NULL;
   int xc;
   if ((xc = nng_msg_alloc(&msgp, len)))
     return mk_error(xc);
@@ -1018,10 +1008,9 @@ SEXP rnng_ws_send(SEXP xptr, SEXP data) {
 
   nng_aio_set_msg(conn->send_aio, msgp);
   nng_stream_send(conn->stream, conn->send_aio);
-
   nng_aio_wait(conn->send_aio);
-  xc = nng_aio_result(conn->send_aio);
-  if (xc)
+  
+  if ((xc = nng_aio_result(conn->send_aio)))
     nng_msg_free(nng_aio_get_msg(conn->send_aio));
 
   return xc ? mk_error(xc) : nano_success;
