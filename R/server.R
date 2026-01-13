@@ -162,7 +162,7 @@ http_server <- function(url, handlers = list(), tls = NULL) {
 #' @export
 #'
 handler <- function(path, callback, method = "GET", tree = FALSE) {
-  list(path = path, callback = callback, method = method, tree = tree)
+  list(type = 1L, path = path, callback = callback, method = method, tree = tree)
 }
 
 #' Create WebSocket Handler
@@ -222,14 +222,8 @@ handler <- function(path, callback, method = "GET", tree = FALSE) {
 #'
 handler_ws <- function(path, on_message, on_open = NULL, on_close = NULL,
                        textframes = FALSE) {
-  list(
-    type = "ws",
-    path = path,
-    on_message = on_message,
-    on_open = on_open,
-    on_close = on_close,
-    textframes = textframes
-  )
+  list(type = 2L, path = path, on_message = on_message, on_open = on_open,
+       on_close = on_close, textframes = textframes)
 }
 
 #' Create Static File Handler
@@ -251,7 +245,7 @@ handler_ws <- function(path, on_message, on_open = NULL, on_close = NULL,
 handler_file <- function(path, file, tree = FALSE) {
   if (!file.exists(file))
     warning("file does not exist: ", file)
-  list(type = "file", path = path, file = normalizePath(file, mustWork = FALSE),
+  list(type = 3L, path = path, file = normalizePath(file, mustWork = FALSE),
        tree = tree)
 }
 
@@ -285,7 +279,7 @@ handler_file <- function(path, file, tree = FALSE) {
 handler_directory <- function(path, directory) {
   if (!dir.exists(directory))
     warning("directory does not exist: ", directory)
-  list(type = "directory", path = path,
+  list(type = 4L, path = path,
        directory = normalizePath(directory, mustWork = FALSE))
 }
 
@@ -312,7 +306,7 @@ handler_directory <- function(path, directory) {
 #'
 handler_inline <- function(path, data, content_type = NULL, tree = FALSE) {
   if (is.character(data)) data <- charToRaw(data)
-  list(type = "inline", path = path, data = data, content_type = content_type,
+  list(type = 5L, path = path, data = data, content_type = content_type,
        tree = tree)
 }
 
@@ -347,8 +341,7 @@ handler_redirect <- function(path, location, status = 302L, tree = FALSE) {
   status <- as.integer(status)
   if (!status %in% c(301L, 302L, 303L, 307L, 308L))
     stop("redirect status must be 301, 302, 303, 307, or 308")
-  list(type = "redirect", path = path, location = location, status = status,
-       tree = tree)
+  list(type = 6L, path = path, location = location, status = status, tree = tree)
 }
 
 #' @rdname close
