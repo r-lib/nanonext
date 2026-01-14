@@ -26,17 +26,14 @@ static inline void prot_remove(SEXP prot, SEXP obj) {
 }
 
 static SEXP get_list_element(SEXP list, const char *name) {
-  SEXP elem = Rf_getAttrib(list, Rf_install(name));
-  if (elem == R_NilValue && TYPEOF(list) == VECSXP) {
-    SEXP names = Rf_getAttrib(list, R_NamesSymbol);
-    if (names != R_NilValue) {
-      for (int i = 0; i < Rf_length(list); i++) {
-        if (strcmp(CHAR(STRING_ELT(names, i)), name) == 0)
-          return VECTOR_ELT(list, i);
-      }
+  SEXP names = Rf_getAttrib(list, R_NamesSymbol);
+  if (names != R_NilValue) {
+    for (R_xlen_t i = 0; i < Rf_xlength(list); i++) {
+      if (!strcmp(CHAR(STRING_ELT(names, i)), name))
+        return VECTOR_ELT(list, i);
     }
   }
-  return elem;
+  return R_NilValue;
 }
 
 static void http_handler_cb(nng_aio *);
@@ -210,8 +207,7 @@ static void http_invoke_callback(void *arg) {
     nng_http_res_alloc(&res);
 
     SEXP status_elem = get_list_element(result, "status");
-    int status_code = (status_elem != R_NilValue && TYPEOF(status_elem) == INTSXP) ?
-                      NANO_INTEGER(status_elem) : 200;
+    int status_code = TYPEOF(status_elem) == INTSXP ? NANO_INTEGER(status_elem) : 200;
     nng_http_res_set_status(res, (uint16_t) status_code);
 
     SEXP res_headers = get_list_element(result, "headers");
@@ -450,10 +446,11 @@ static void ws_invoke_onopen(void *arg) {
 
   // Create external pointer for this connection
   if (conn->xptr == R_NilValue) {
-    conn->xptr = R_MakeExternalPtr(conn, nano_WsConnSymbol, R_NilValue);
-    prot_add(info->server->prot, conn->xptr);
-    NANO_CLASS2(conn->xptr, "nanoWsConn", "nano");
-    Rf_setAttrib(conn->xptr, nano_IdSymbol, Rf_ScalarInteger(conn->id));
+    SEXP xptr = R_MakeExternalPtr(conn, nano_WsConnSymbol, R_NilValue);
+    prot_add(info->server->prot, xptr);
+    NANO_CLASS2(xptr, "nanoWsConn", "nano");
+    Rf_setAttrib(xptr, nano_IdSymbol, Rf_ScalarInteger(conn->id));
+    conn->xptr = xptr;
   }
 
   // Call R on_open callback
@@ -619,9 +616,11 @@ static void http_server_finalizer(SEXP xptr) {
   free(srv->handlers);
 
   // Free NNG resources
-  if (srv->tls != NULL) nng_tls_config_free(srv->tls);
+  if (srv->tls != NULL)
+    nng_tls_config_free(srv->tls);
   nng_http_server_release(srv->server);
-  if (srv->mtx != NULL) nng_mtx_free(srv->mtx);
+  if (srv->mtx != NULL)
+    nng_mtx_free(srv->mtx);
   free(srv);
 
 }
@@ -671,9 +670,13 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
   const R_xlen_t handler_count = Rf_xlength(handlers);
   srv->handler_count = handler_count;
   srv->handlers = NULL;
+
   if (handler_count > 0) {
     hinfo = calloc(handler_count, sizeof(nano_http_handler_info));
-    if (hinfo == NULL) { xc = NNG_ENOMEM; goto fail; }
+    if (hinfo == NULL) {
+      xc = NNG_ENOMEM;
+      goto fail;
+    }
     srv->handlers = hinfo;
 
     for (R_xlen_t i = 0; i < handler_count; i++) {
@@ -694,83 +697,75 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
       switch (type) {
       case 1: {
         // Dynamic callback handler
-        SEXP callback = get_list_element(h, "callback");
         SEXP method_elem = get_list_element(h, "method");
         const char *method = (method_elem != R_NilValue && TYPEOF(method_elem) == STRSXP) ?
                              CHAR(STRING_ELT(method_elem, 0)) : NULL;
 
         if ((xc = nng_http_handler_alloc(&srv->handlers[i].handler, path, http_handler_cb)))
           goto fail;
+
         if (method != NULL &&
             (xc = nng_http_handler_set_method(srv->handlers[i].handler, method)))
           goto fail;
+
         if (tree && (xc = nng_http_handler_set_tree(srv->handlers[i].handler)))
           goto fail;
 
-        srv->handlers[i].callback = callback;
+        SEXP callback = get_list_element(h, "callback");
         prot_add(prot, callback);
+        srv->handlers[i].callback = callback;
         srv->handlers[i].server = srv;
         nng_http_handler_set_data(srv->handlers[i].handler, &srv->handlers[i], NULL);
 
         if ((xc = nng_http_server_add_handler(srv->server, srv->handlers[i].handler)))
           goto fail;
+
         handlers_added++;
         break;
       }
       case 2: {
         // WebSocket handler
-        SEXP on_message = get_list_element(h, "on_message");
-        SEXP on_open = get_list_element(h, "on_open");
-        SEXP on_close = get_list_element(h, "on_close");
         SEXP textframes_elem = get_list_element(h, "textframes");
-        const int textframes = (textframes_elem != R_NilValue) ? NANO_INTEGER(textframes_elem) : 0;
+        const int textframes = textframes_elem != R_NilValue ? NANO_INTEGER(textframes_elem) : 0;
 
-        // Build WebSocket URL for this path
         const char *scheme = strcmp(up->u_scheme, "https") == 0 ? "wss" : "ws";
         const size_t ws_url_len = strlen(scheme) + strlen(up->u_hostname) +
                                   strlen(up->u_port) + strlen(path) + 5;
         char ws_url[ws_url_len];
-        snprintf(ws_url, ws_url_len, "%s://%s:%s%s",
-                 scheme, up->u_hostname, up->u_port, path);
+        snprintf(ws_url, ws_url_len, "%s://%s:%s%s", scheme, up->u_hostname, up->u_port, path);
 
-        // Create WebSocket listener for this path
-        if ((xc = nng_stream_listener_alloc(&srv->handlers[i].ws_listener, ws_url)))
+        if ((xc = nng_stream_listener_alloc(&srv->handlers[i].ws_listener, ws_url)) ||
+            (xc = nng_stream_listener_set_bool(srv->handlers[i].ws_listener, "ws:msgmode", true)))
           goto fail;
 
-        // Enable WebSocket message mode
-        if ((xc = nng_stream_listener_set_bool(srv->handlers[i].ws_listener, "ws:msgmode", true)))
-          goto fail;
-
-        // Configure text frames if requested
         if (textframes) {
           if ((xc = nng_stream_listener_set_bool(srv->handlers[i].ws_listener, "ws:recv-text", true)) ||
               (xc = nng_stream_listener_set_bool(srv->handlers[i].ws_listener, "ws:send-text", true)))
             goto fail;
+
           srv->handlers[i].textframes = 1;
         }
 
-        // Configure TLS for WebSocket listener
         if (srv->tls != NULL) {
           nng_stream_listener_set_ptr(srv->handlers[i].ws_listener, NNG_OPT_TLS_CONFIG, srv->tls);
         }
 
-        // Store callbacks
-        srv->handlers[i].callback = on_message;
+        SEXP on_message = get_list_element(h, "on_message");
         prot_add(prot, on_message);
-
+        srv->handlers[i].callback = on_message;
+        SEXP on_open = get_list_element(h, "on_open");
         if (on_open != R_NilValue) {
-          srv->handlers[i].on_open = on_open;
           prot_add(prot, on_open);
+          srv->handlers[i].on_open = on_open;
         }
-
+        SEXP on_close = get_list_element(h, "on_close");
         if (on_close != R_NilValue) {
-          srv->handlers[i].on_close = on_close;
           prot_add(prot, on_close);
+          srv->handlers[i].on_close = on_close;
         }
 
         srv->handlers[i].server = srv;
 
-        // Create accept AIO
         if ((xc = nng_aio_alloc(&srv->handlers[i].ws_accept_aio, ws_accept_cb, &srv->handlers[i])))
           goto fail;
 
@@ -781,13 +776,16 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
         // Static file handler
         SEXP file_elem = get_list_element(h, "file");
         const char *file = CHAR(STRING_ELT(file_elem, 0));
+
         if ((xc = nng_http_handler_alloc_file(&srv->handlers[i].handler, path, file)))
           goto fail;
+
         if (tree && (xc = nng_http_handler_set_tree(srv->handlers[i].handler)))
           goto fail;
 
         if ((xc = nng_http_server_add_handler(srv->server, srv->handlers[i].handler)))
           goto fail;
+
         handlers_added++;
         break;
       }
@@ -805,10 +803,10 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
       }
       case 5: {
         // Inline static content handler
-        SEXP data_elem = get_list_element(h, "data");
         SEXP ct_elem = get_list_element(h, "content_type");
-        const char *content_type = (ct_elem != R_NilValue && TYPEOF(ct_elem) == STRSXP) ?
+        const char *content_type = TYPEOF(ct_elem) == STRSXP ?
                                    CHAR(STRING_ELT(ct_elem, 0)) : "application/octet-stream";
+        SEXP data_elem = get_list_element(h, "data");
         if ((xc = nng_http_handler_alloc_static(&srv->handlers[i].handler, path,
                                                  RAW(data_elem), XLENGTH(data_elem),
                                                  content_type)))
@@ -824,8 +822,8 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
       case 6: {
         // Redirect handler
         SEXP loc_elem = get_list_element(h, "location");
-        SEXP status_elem = get_list_element(h, "status");
         const char *location = CHAR(STRING_ELT(loc_elem, 0));
+        SEXP status_elem = get_list_element(h, "status");
         const int status_int = NANO_INTEGER(status_elem);
         if ((xc = nng_http_handler_alloc_redirect(&srv->handlers[i].handler, path,
                                                    (uint16_t) status_int, location)))
@@ -1008,7 +1006,7 @@ SEXP rnng_ws_send(SEXP xptr, SEXP data) {
   nng_aio_set_msg(conn->send_aio, msgp);
   nng_stream_send(conn->stream, conn->send_aio);
   nng_aio_wait(conn->send_aio);
-  
+
   if ((xc = nng_aio_result(conn->send_aio)))
     nng_msg_free(nng_aio_get_msg(conn->send_aio));
 
