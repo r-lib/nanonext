@@ -511,32 +511,33 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
     Rf_error("`tls` is not a valid TLS Configuration");
 
+  if (eln2 == NULL)
+    nano_load_later();
+
   const char *ur = CHAR(STRING_ELT(url, 0));
   nng_url *up = NULL;
-  nng_http_server *server = NULL;
-  nng_mtx *mtx = NULL;
   nano_http_handler_info *hinfo = NULL;
   int xc;
   int handlers_added = 0;
 
   nano_http_server *srv = calloc(1, sizeof(nano_http_server));
-  NANO_ENSURE_ALLOC(srv);
-
+  if (srv == NULL) {
+    xc = NNG_ENOMEM;
+    goto fail;
+  }
   srv->xptr = R_NilValue;
   srv->prot = R_NilValue;
+  if ((xc = nng_mtx_alloc(&srv->mtx)))
+    goto fail;
 
-  SEXP prot = PROTECT(Rf_cons(R_NilValue, R_NilValue));
-
-  if (eln2 == NULL)
-    nano_load_later();
+  SEXP prot;
+  PROTECT(prot = Rf_cons(R_NilValue, R_NilValue));
 
   if ((xc = nng_url_parse(&up, ur)))
     goto fail;
 
-  if ((xc = nng_http_server_hold(&server, up)))
+  if ((xc = nng_http_server_hold(&srv->server, up)))
     goto fail;
-
-  srv->server = server;
 
   if (tls != R_NilValue) {
     srv->tls = (nng_tls_config *) NANO_PTR(tls);
@@ -548,7 +549,6 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
 
   const R_xlen_t handler_count = Rf_xlength(handlers);
   srv->handler_count = handler_count;
-  srv->handlers = NULL;
 
   if (handler_count > 0) {
     hinfo = calloc(handler_count, sizeof(nano_http_handler_info));
@@ -610,6 +610,10 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
         const char *scheme = strcmp(up->u_scheme, "https") == 0 ? "wss" : "ws";
         const size_t ws_url_len = strlen(scheme) + strlen(up->u_hostname) +
                                   strlen(up->u_port) + strlen(path) + 5;
+        if (ws_url_len > NANO_URL_MAX) {
+          xc = NNG_EINVAL;
+          goto fail;
+        }
         char ws_url[ws_url_len];
         snprintf(ws_url, ws_url_len, "%s://%s:%s%s", scheme, up->u_hostname, up->u_port, path);
 
@@ -672,11 +676,13 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
         // Directory handler (tree is implicit)
         SEXP dir_elem = get_list_element(h, "directory");
         const char *dir = CHAR(STRING_ELT(dir_elem, 0));
+
         if ((xc = nng_http_handler_alloc_directory(&srv->handlers[i].handler, path, dir)))
           goto fail;
 
         if ((xc = nng_http_server_add_handler(srv->server, srv->handlers[i].handler)))
           goto fail;
+
         handlers_added++;
         break;
       }
@@ -686,15 +692,20 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
         const char *content_type = TYPEOF(ct_elem) == STRSXP ?
                                    CHAR(STRING_ELT(ct_elem, 0)) : "application/octet-stream";
         SEXP data_elem = get_list_element(h, "data");
-        if ((xc = nng_http_handler_alloc_static(&srv->handlers[i].handler, path,
-                                                 RAW(data_elem), XLENGTH(data_elem),
-                                                 content_type)))
+
+        if ((xc = nng_http_handler_alloc_static(&srv->handlers[i].handler,
+                                                path,
+                                                DATAPTR_RO(data_elem),
+                                                (size_t) XLENGTH(data_elem),
+                                                content_type)))
           goto fail;
+
         if (tree && (xc = nng_http_handler_set_tree(srv->handlers[i].handler)))
           goto fail;
 
         if ((xc = nng_http_server_add_handler(srv->server, srv->handlers[i].handler)))
           goto fail;
+
         handlers_added++;
         break;
       }
@@ -704,26 +715,27 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
         const char *location = CHAR(STRING_ELT(loc_elem, 0));
         SEXP status_elem = get_list_element(h, "status");
         const int status_int = NANO_INTEGER(status_elem);
-        if ((xc = nng_http_handler_alloc_redirect(&srv->handlers[i].handler, path,
-                                                   (uint16_t) status_int, location)))
+        if ((xc = nng_http_handler_alloc_redirect(&srv->handlers[i].handler,
+                                                  path,
+                                                  (uint16_t) status_int,
+                                                  location)))
           goto fail;
+
         if (tree && (xc = nng_http_handler_set_tree(srv->handlers[i].handler)))
           goto fail;
 
         if ((xc = nng_http_server_add_handler(srv->server, srv->handlers[i].handler)))
           goto fail;
+
         handlers_added++;
         break;
       }
       default:
-        Rf_error("unknown handler type: %d", type);
+        xc = NNG_EINVAL;
+        goto fail;
       }
     }
   }
-
-  if ((xc = nng_mtx_alloc(&mtx)))
-    goto fail;
-  srv->mtx = mtx;
 
   nng_url_free(up);
 
@@ -740,20 +752,16 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
   return xptr;
 
   fail:
-  // Release TLS config reference
   if (srv->tls != NULL)
     nng_tls_config_free(srv->tls);
-
-  // Clean up handlers (callbacks protected by prot pairlist, released on UNPROTECT)
   for (int i = 0; i < handlers_added; i++) {
     if (srv->handlers[i].handler != NULL)
-      nng_http_server_del_handler(server, srv->handlers[i].handler);
+      nng_http_server_del_handler(srv->server, srv->handlers[i].handler);
     if (srv->handlers[i].ws_listener != NULL)
       nng_stream_listener_free(srv->handlers[i].ws_listener);
     if (srv->handlers[i].ws_accept_aio != NULL)
       nng_aio_free(srv->handlers[i].ws_accept_aio);
   }
-  // Clean up partially created handler if any
   if (hinfo != NULL && handlers_added < handler_count) {
     if (srv->handlers[handlers_added].handler != NULL)
       nng_http_handler_free(srv->handlers[handlers_added].handler);
@@ -762,13 +770,11 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
     if (srv->handlers[handlers_added].ws_accept_aio != NULL)
       nng_aio_free(srv->handlers[handlers_added].ws_accept_aio);
   }
-
-  if (mtx != NULL) nng_mtx_free(mtx);
-  if (server != NULL) nng_http_server_release(server);
+  if (srv->server != NULL) nng_http_server_release(srv->server);
+  if (srv->mtx != NULL) nng_mtx_free(srv->mtx);
   nng_url_free(up);
   free(hinfo);
   free(srv);
-  failmem:
   ERROR_OUT(xc);
 
 }
@@ -780,37 +786,34 @@ SEXP rnng_http_server_start(SEXP xptr) {
 
   nano_http_server *srv = (nano_http_server *) NANO_PTR(xptr);
 
-  if (srv->state == SERVER_STARTED) return R_NilValue;
-  if (srv->state == SERVER_STOPPED) Rf_error("server has been stopped");
+  if (srv->state == SERVER_STARTED)
+    return R_NilValue;
+  
+  if (srv->state == SERVER_STOPPED)
+    Rf_error("server has been stopped");
 
   int xc;
-  int ws_started = 0;
 
-  // Start all WebSocket listeners (implicitly starts HTTP server)
+  if ((xc = nng_http_server_start(srv->server)))
+    ERROR_OUT(xc);
+
   for (int i = 0; i < srv->handler_count; i++) {
     if (srv->handlers[i].ws_listener != NULL) {
       if ((xc = nng_stream_listener_listen(srv->handlers[i].ws_listener)))
         goto fail;
       nng_stream_listener_accept(srv->handlers[i].ws_listener, srv->handlers[i].ws_accept_aio);
-      ws_started = 1;
     }
-  }
-
-  // If no WS handlers, start HTTP server explicitly
-  if (!ws_started) {
-    if ((xc = nng_http_server_start(srv->server)))
-      ERROR_OUT(xc);
   }
 
   srv->state = SERVER_STARTED;
   return nano_success;
 
   fail:
-  // Close any already-started WS listeners
   for (int j = 0; j < srv->handler_count; j++) {
     if (srv->handlers[j].ws_listener != NULL)
       nng_stream_listener_close(srv->handlers[j].ws_listener);
   }
+  nng_http_server_stop(srv->server);
   ERROR_OUT(xc);
 
 }
@@ -821,11 +824,10 @@ SEXP rnng_http_server_stop(SEXP xptr) {
     Rf_error("`server` is not a valid HTTP Server");
 
   nano_http_server *srv = (nano_http_server *) NANO_PTR(xptr);
-  if (srv->state != SERVER_STARTED)
-    return nano_success;
-
-  srv->state = SERVER_STOPPED;
-  http_server_stop(srv);
+  if (srv->state == SERVER_STARTED) {
+    srv->state = SERVER_STOPPED;
+    http_server_stop(srv);
+  }
 
   return nano_success;
 
@@ -837,8 +839,6 @@ SEXP rnng_http_server_close(SEXP xptr) {
     Rf_error("`server` is not a valid HTTP Server");
 
   nano_http_server *srv = (nano_http_server *) NANO_PTR(xptr);
-  if (srv == NULL) return nano_success;
-
   http_server_shutdown(srv);
 
   return nano_success;
@@ -851,22 +851,13 @@ SEXP rnng_ws_send(SEXP xptr, SEXP data) {
     Rf_error("`ws` is not a valid WebSocket connection");
 
   nano_ws_conn *conn = (nano_ws_conn *) NANO_PTR(xptr);
-  nano_http_server *srv = conn->handler->server;
 
-  // Check state
-  nng_mtx_lock(srv->mtx);
-  const int is_open = conn->state == WS_STATE_OPEN;
-  nng_mtx_unlock(srv->mtx);
-  if (!is_open)
-    return mk_error(NNG_ECLOSED);
-
-  // Get data to send
   unsigned char *buf;
   size_t len;
   switch (TYPEOF(data)) {
   case RAWSXP:
     buf = (unsigned char *) DATAPTR_RO(data);
-    len = XLENGTH(data);
+    len = (size_t) XLENGTH(data);
     break;
   case STRSXP:
     buf = (unsigned char *) NANO_STRING(data);
@@ -880,16 +871,19 @@ SEXP rnng_ws_send(SEXP xptr, SEXP data) {
   int xc;
   if ((xc = nng_msg_alloc(&msgp, len)))
     return mk_error(xc);
+
   memcpy(nng_msg_body(msgp), buf, len);
 
   nng_aio_set_msg(conn->send_aio, msgp);
   nng_stream_send(conn->stream, conn->send_aio);
   nng_aio_wait(conn->send_aio);
 
-  if ((xc = nng_aio_result(conn->send_aio)))
+  if ((xc = nng_aio_result(conn->send_aio))) {
     nng_msg_free(nng_aio_get_msg(conn->send_aio));
+    return mk_error(xc);
+  }
 
-  return xc ? mk_error(xc) : nano_success;
+  return nano_success;
 
 }
 
