@@ -202,7 +202,6 @@ static void http_invoke_callback(void *arg) {
   SEXP result = R_tryEval(call, R_GlobalEnv, &err);
   UNPROTECT(2);
 
-  // Build HTTP response
   nng_http_res *res = NULL;
   if (err) {
     nng_http_res_alloc_error(&res, 500);
@@ -212,22 +211,23 @@ static void http_invoke_callback(void *arg) {
 
     SEXP status_elem = get_list_element(result, "status");
     int status_code = (status_elem != R_NilValue && TYPEOF(status_elem) == INTSXP) ?
-                      INTEGER(status_elem)[0] : 200;
+                      NANO_INTEGER(status_elem) : 200;
     nng_http_res_set_status(res, (uint16_t) status_code);
 
     SEXP res_headers = get_list_element(result, "headers");
-    if (res_headers != R_NilValue && TYPEOF(res_headers) == STRSXP) {
+    if (TYPEOF(res_headers) == STRSXP) {
+      PROTECT(res_headers);
       SEXP hdr_nm = Rf_getAttrib(res_headers, R_NamesSymbol);
-      for (int i = 0; i < Rf_length(res_headers); i++) {
-        if (hdr_nm != R_NilValue) {
-          const char *name = CHAR(STRING_ELT(hdr_nm, i));
-          const char *value = CHAR(STRING_ELT(res_headers, i));
+      if (TYPEOF(hdr_nm) == STRSXP) {
+        for (int i = 0; i < XLENGTH(res_headers); i++) {
+          const char *name = NANO_STR_N(hdr_nm, i);
+          const char *value = NANO_STR_N(res_headers, i);
           nng_http_res_set_header(res, name, value);
         }
       }
+      UNPROTECT(1);
     }
 
-    // Extract body from result$body (character or raw)
     SEXP res_body = get_list_element(result, "body");
     if (res_body != R_NilValue) {
       switch (TYPEOF(res_body)) {
@@ -450,11 +450,10 @@ static void ws_invoke_onopen(void *arg) {
 
   // Create external pointer for this connection
   if (conn->xptr == R_NilValue) {
-    conn->xptr = PROTECT(R_MakeExternalPtr(conn, nano_WsConnSymbol, R_NilValue));
+    conn->xptr = R_MakeExternalPtr(conn, nano_WsConnSymbol, R_NilValue);
+    prot_add(info->server->prot, conn->xptr);
     NANO_CLASS2(conn->xptr, "nanoWsConn", "nano");
     Rf_setAttrib(conn->xptr, nano_IdSymbol, Rf_ScalarInteger(conn->id));
-    prot_add(info->server->prot, conn->xptr);
-    UNPROTECT(1);
   }
 
   // Call R on_open callback
