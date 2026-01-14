@@ -245,23 +245,19 @@ typedef enum nano_list_op {
   SHUTDOWN
 } nano_list_op;
 
-// HTTP Server structures (requires NANONEXT_HTTP to be defined for nng_http types)
 #ifdef NANONEXT_HTTP
 
-// Forward declarations for HTTP server
 typedef struct nano_ws_conn_s nano_ws_conn;
 typedef struct nano_http_server_s nano_http_server;
 typedef struct nano_http_handler_info_s nano_http_handler_info;
 typedef struct nano_http_request_s nano_http_request;
 
-// Connection state machine (prevents races between R and NNG threads)
 typedef enum {
   WS_STATE_OPEN,      // Connection active, can send/receive
   WS_STATE_CLOSING,   // Close initiated, waiting for cleanup
   WS_STATE_CLOSED     // Fully closed, safe to free
 } ws_conn_state;
 
-// Per-WebSocket-connection structure
 typedef struct nano_ws_conn_s {
   nng_stream *stream;               // WebSocket stream (framing automatic)
   nng_aio *recv_aio;                // For async receive (msg mode)
@@ -275,7 +271,6 @@ typedef struct nano_ws_conn_s {
   int onclose_scheduled;            // Prevents duplicate on_close callbacks
 } nano_ws_conn;
 
-// HTTP handler info (links NNG handler to R callback)
 typedef struct nano_http_handler_info_s {
   nng_http_handler *handler;        // NNG HTTP handler (NULL for WS)
   SEXP callback;                    // HTTP callback or WS on_message
@@ -289,24 +284,16 @@ typedef struct nano_http_handler_info_s {
   int textframes;                   // Text frame mode
 } nano_http_handler_info;
 
-// Pending HTTP request - tracks async callback state
 typedef struct nano_http_request_s {
   nng_aio *aio;                     // The HTTP AIO to complete
+  nng_http_req *req;                // The HTTP request (valid until aio finished)
   SEXP callback;                    // R callback function
-  char *method;                     // Copied request method
-  char *uri;                        // Copied request URI
-  void *body_copy;                  // Copied request body
-  size_t body_len;                  // Body length
-  char **header_names;              // Array of header names (copied)
-  char **header_values;             // Array of header values (copied)
-  int header_count;                 // Number of headers extracted
   nano_http_server *server;         // Back-reference to server
   nano_http_request *next;          // Linked list for tracking
   nano_http_request *prev;
   int cancelled;                    // Set when server stops (protected by server->mtx)
 } nano_http_request;
 
-// Server structure
 typedef struct nano_http_server_s {
   nng_http_server *server;          // NNG HTTP server
   nng_tls_config *tls;              // TLS configuration
@@ -320,6 +307,12 @@ typedef struct nano_http_server_s {
   SEXP xptr;                        // R external pointer for this server
   SEXP prot;                        // Pairlist for GC protection of callbacks
 } nano_http_server;
+
+typedef struct ws_message_s {
+  nano_ws_conn *conn;
+  void *data;
+  size_t len;
+} ws_message;
 
 #endif
 
