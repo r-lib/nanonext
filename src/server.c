@@ -444,13 +444,14 @@ static void ws_invoke_onopen(void *arg) {
     return;
   nano_http_handler_info *info = conn->handler;
 
-  // Create external pointer for this connection
   if (conn->xptr == R_NilValue) {
-    SEXP xptr = R_MakeExternalPtr(conn, nano_WsConnSymbol, R_NilValue);
-    prot_add(info->server->prot, xptr);
+    SEXP xptr;
+    PROTECT(xptr = R_MakeExternalPtr(conn, nano_WsConnSymbol, R_NilValue));
     NANO_CLASS2(xptr, "nanoWsConn", "nano");
     Rf_setAttrib(xptr, nano_IdSymbol, Rf_ScalarInteger(conn->id));
+    prot_add(info->server->prot, xptr);
     conn->xptr = xptr;
+    UNPROTECT(1);
   }
 
   // Call R on_open callback
