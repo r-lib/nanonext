@@ -888,6 +888,7 @@ test_class("list", suppressWarnings(handler_file("/bad", "/nonexistent/file.txt"
 test_error(handler_redirect("/bad", "/good", status = 999L), "301, 302, 303, 307, or 308")
 
 if (later && NOT_CRAN) {
+  test_error(http_server("http://127.0.0.1:29995", handlers = list(list(type = 99L, path = "/"))), "Invalid argument")
   test_class("nanoServer", srv <- http_server(
     url = "http://127.0.0.1:29999",
     handlers = list(
