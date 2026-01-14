@@ -294,6 +294,12 @@ typedef struct nano_http_request_s {
   int cancelled;                    // Set when server stops (protected by server->mtx)
 } nano_http_request;
 
+typedef enum {
+  SERVER_CREATED,   // Server created but not started
+  SERVER_STARTED,   // Server running
+  SERVER_STOPPED    // Server stopped
+} nano_server_state;
+
 typedef struct nano_http_server_s {
   nng_http_server *server;          // NNG HTTP server
   nng_tls_config *tls;              // TLS configuration
@@ -302,16 +308,14 @@ typedef struct nano_http_server_s {
   nano_http_request *pending_reqs;  // Linked list of pending HTTP requests
   nng_mtx *mtx;                     // Mutex for thread safety
   int ws_conn_counter;              // Server-wide unique connection ID counter
-  int started;                      // Server has been started
-  int stopped;                      // Server shutdown flag
+  nano_server_state state;          // Server lifecycle state
   SEXP xptr;                        // R external pointer for this server
   SEXP prot;                        // Pairlist for GC protection of callbacks
 } nano_http_server;
 
 typedef struct ws_message_s {
   nano_ws_conn *conn;
-  void *data;
-  size_t len;
+  nng_msg *msg;
 } ws_message;
 
 #endif
