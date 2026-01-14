@@ -5,11 +5,22 @@
 
 // internals -------------------------------------------------------------------
 
-typedef struct {
-  nano_ws_conn *conn;
-  void *data;
-  size_t len;
-} ws_message;
+#define DL_PREPEND(head, node) do { \
+  (node)->next = (head); \
+  if ((head) != NULL) \
+    (head)->prev = (node); \
+  (head) = (node); \
+} while (0)
+
+#define DL_REMOVE(head, node) do { \
+  if ((node)->prev != NULL) \
+    (node)->prev->next = (node)->next; \
+  else if ((head) == (node)) \
+    (head) = (node)->next; \
+  if ((node)->next != NULL) \
+    (node)->next->prev = (node)->prev; \
+  (node)->next = (node)->prev = NULL; \
+} while (0)
 
 static inline void prot_add(SEXP prot, SEXP obj) {
   SETCDR(prot, Rf_cons(obj, CDR(prot)));
@@ -39,10 +50,8 @@ static SEXP get_list_element(SEXP list, const char *name) {
 static void http_handler_cb(nng_aio *);
 static void http_invoke_callback(void *);
 static int http_request_unlink(nano_http_request *);
-static void http_request_free(nano_http_request *);
 static void http_cancel_pending_requests(nano_http_server *);
 static void ws_accept_cb(void *);
-static void ws_conn_unlink_locked(nano_ws_conn *);
 static int ws_conn_begin_close_locked(nano_ws_conn *);
 static void ws_conn_schedule_onclose(nano_ws_conn *);
 static void ws_recv_cb(void *);
@@ -53,9 +62,8 @@ static void ws_invoke_onclose(void *);
 static void http_server_finalizer(SEXP);
 static void http_server_do_stop(nano_http_server *);
 
-// internals -------------------------------------------------------------------
+// On NNG threads --------------------------------------------------------------
 
-// This runs in NNG's thread when an HTTP request arrives
 static void http_handler_cb(nng_aio *aio) {
 
   nng_http_req *req = nng_aio_get_input(aio, 0);
@@ -63,80 +71,34 @@ static void http_handler_cb(nng_aio *aio) {
   nano_http_handler_info *info = nng_http_handler_get_data(h);
   nano_http_server *srv = info->server;
 
-  // Check if server is stopping
   if (srv->stopped) {
     nng_aio_finish(aio, NNG_ECANCELED);
     return;
   }
 
-  // Package request data for R (copy strings - they may be freed)
   nano_http_request *r = calloc(1, sizeof(nano_http_request));
   if (r == NULL) {
     nng_aio_finish(aio, NNG_ENOMEM);
     return;
   }
-
-  r->method = strdup(nng_http_req_get_method(req));
-  r->uri = strdup(nng_http_req_get_uri(req));
-  void *body_src;
-  nng_http_req_get_data(req, &body_src, &r->body_len);
-  if (r->body_len > 0) {
-    r->body_copy = malloc(r->body_len);
-    if (r->body_copy != NULL)
-      memcpy(r->body_copy, body_src, r->body_len);
-  }
-
-  // Extract all headers using iterator
-  int header_count = 0;
-  for (nano_http_header_s *h = nano_http_header_first(req); h != NULL;
-       h = nano_http_header_next(req, h))
-    header_count++;
-
-  if (header_count > 0) {
-    r->header_names = malloc(header_count * sizeof(char *));
-    r->header_values = malloc(header_count * sizeof(char *));
-    if (r->header_names != NULL && r->header_values != NULL) {
-      for (nano_http_header_s *h = nano_http_header_first(req); h != NULL;
-           h = nano_http_header_next(req, h)) {
-        r->header_names[r->header_count] = strdup(h->name);
-        r->header_values[r->header_count] = strdup(h->value);
-        r->header_count++;
-      }
-    }
-  }
-
   r->aio = aio;
+  r->req = req;
   r->callback = info->callback;
   r->server = srv;
 
-  // Add to pending requests list (for cleanup on server stop)
   nng_mtx_lock(srv->mtx);
-  r->next = srv->pending_reqs;
-  if (srv->pending_reqs != NULL)
-    srv->pending_reqs->prev = r;
-  srv->pending_reqs = r;
+  DL_PREPEND(srv->pending_reqs, r);
   nng_mtx_unlock(srv->mtx);
 
-  // Schedule R callback on main thread
   later2(http_invoke_callback, r);
 
 }
 
-// Helper: Remove request from pending list
-// Returns 1 if request was cancelled, 0 otherwise
 static int http_request_unlink(nano_http_request *r) {
 
   nano_http_server *srv = r->server;
   nng_mtx_lock(srv->mtx);
-  if (r->prev != NULL) {
-    r->prev->next = r->next;
-  } else if (srv->pending_reqs == r) {
-    srv->pending_reqs = r->next;
-  }
-  if (r->next != NULL) {
-    r->next->prev = r->prev;
-  }
-  r->next = r->prev = NULL;
+  DL_REMOVE(srv->pending_reqs, r);
   const int cancelled = r->cancelled;
   nng_mtx_unlock(srv->mtx);
 
@@ -144,57 +106,65 @@ static int http_request_unlink(nano_http_request *r) {
 
 }
 
-// Helper: Free request resources
-static void http_request_free(nano_http_request *r) {
+static void http_cancel_pending_requests(nano_http_server *srv) {
 
-  free(r->method);
-  free(r->uri);
-  free(r->body_copy);
-  for (int i = 0; i < r->header_count; i++) {
-    free(r->header_names[i]);
-    free(r->header_values[i]);
+  nng_mtx_lock(srv->mtx);
+  nano_http_request *r = srv->pending_reqs;
+  while (r != NULL) {
+    r->cancelled = 1;
+    nng_aio_finish(r->aio, NNG_ECANCELED);
+    r = r->next;
   }
-  free(r->header_names);
-  free(r->header_values);
-  free(r);
+  nng_mtx_unlock(srv->mtx);
 
 }
 
-// This runs on R's main thread
+// On R main thread ------------------------------------------------------------
+
 static void http_invoke_callback(void *arg) {
 
   nano_http_request *r = (nano_http_request *) arg;
 
-  // Remove from pending list and check if cancelled (mutex-protected)
   const int cancelled = http_request_unlink(r);
-
-  // Check if request was cancelled (server stopped)
   if (cancelled) {
-    // Server stopped - AIO was already finished with error by server stop code
-    http_request_free(r);
+    free(r);
     return;
   }
 
-  const char *names[] = {"method", "uri", "headers", "body", ""};
-  SEXP req_list = PROTECT(Rf_mkNamed(VECSXP, names));
-  SET_VECTOR_ELT(req_list, 0, Rf_mkString(r->method));
-  SET_VECTOR_ELT(req_list, 1, Rf_mkString(r->uri));
+  nng_http_req *req = r->req;
 
-  SEXP headers = Rf_allocVector(STRSXP, r->header_count);
+  const char *names[] = {"method", "uri", "headers", "body", ""};
+  SEXP req_list;
+  PROTECT(req_list = Rf_mkNamed(VECSXP, names));
+  SET_VECTOR_ELT(req_list, 0, Rf_mkString(nng_http_req_get_method(req)));
+  SET_VECTOR_ELT(req_list, 1, Rf_mkString(nng_http_req_get_uri(req)));
+
+  int header_count = 0;
+  for (nano_http_header_s *hdr = nano_http_header_first(req); hdr != NULL;
+       hdr = nano_http_header_next(req, hdr))
+    header_count++;
+  
+  SEXP headers = Rf_allocVector(STRSXP, header_count);
   SET_VECTOR_ELT(req_list, 2, headers);
-  SEXP hdr_names = Rf_allocVector(STRSXP, r->header_count);
+  SEXP hdr_names = Rf_allocVector(STRSXP, header_count);
   Rf_namesgets(headers, hdr_names);
-  for (int i = 0; i < r->header_count; i++) {
-    SET_STRING_ELT(headers, i, Rf_mkChar(r->header_values[i]));
-    SET_STRING_ELT(hdr_names, i, Rf_mkChar(r->header_names[i]));
+  int i = 0;
+  for (nano_http_header_s *hdr = nano_http_header_first(req); hdr != NULL;
+       hdr = nano_http_header_next(req, hdr), i++) {
+    SET_STRING_ELT(headers, i, Rf_mkChar(hdr->value));
+    SET_STRING_ELT(hdr_names, i, Rf_mkChar(hdr->name));
   }
 
-  SEXP body = Rf_allocVector(RAWSXP, r->body_len);
+  void *body_data;
+  size_t body_len;
+  nng_http_req_get_data(req, &body_data, &body_len);
+  SEXP body = Rf_allocVector(RAWSXP, body_len);
   SET_VECTOR_ELT(req_list, 3, body);
-  if (r->body_len > 0)
-    memcpy(RAW(body), r->body_copy, r->body_len);
+  if (body_len)
+    memcpy(NANO_DATAPTR(body), body_data, body_len);
 
-  SEXP call = PROTECT(Rf_lang2(r->callback, req_list));
+  SEXP call;
+  PROTECT(call = Rf_lang2(r->callback, req_list));
   int err;
   SEXP result = R_tryEval(call, R_GlobalEnv, &err);
   UNPROTECT(2);
@@ -225,22 +195,20 @@ static void http_invoke_callback(void *arg) {
     }
 
     SEXP res_body = get_list_element(result, "body");
-    if (res_body != R_NilValue) {
-      switch (TYPEOF(res_body)) {
-      case RAWSXP:
-        nng_http_res_copy_data(res, NANO_DATAPTR(res_body), XLENGTH(res_body));
-        break;
-      case STRSXP:
-        if (XLENGTH(res_body) > 0) {
-          const char *str = CHAR(STRING_ELT(res_body, 0));
-          nng_http_res_copy_data(res, str, strlen(str));
-          if (nng_http_res_get_header(res, "Content-Type") == NULL)
-            nng_http_res_set_header(res, "Content-Type", "text/plain; charset=utf-8");
-        }
-        break;
-      default:
-        break;
+    switch (TYPEOF(res_body)) {
+    case RAWSXP:
+      nng_http_res_copy_data(res, NANO_DATAPTR(res_body), XLENGTH(res_body));
+      break;
+    case STRSXP:
+      if (XLENGTH(res_body) > 0) {
+        const char *str = CHAR(STRING_ELT(res_body, 0));
+        nng_http_res_copy_data(res, str, strlen(str));
+        if (nng_http_res_get_header(res, "Content-Type") == NULL)
+          nng_http_res_set_header(res, "Content-Type", "text/plain; charset=utf-8");
       }
+      break;
+    default:
+      break;
     }
 
     UNPROTECT(1);
@@ -248,24 +216,7 @@ static void http_invoke_callback(void *arg) {
 
   nng_aio_set_output(r->aio, 0, res);
   nng_aio_finish(r->aio, 0);
-  http_request_free(r);
-
-}
-
-// Called during server stop to cancel all pending HTTP requests
-static void http_cancel_pending_requests(nano_http_server *srv) {
-
-  nng_mtx_lock(srv->mtx);
-  nano_http_request *r = srv->pending_reqs;
-  while (r != NULL) {
-    nano_http_request *next = r->next;
-    // Mark as cancelled - the later2 callback will see this and clean up
-    r->cancelled = 1;
-    // Finish the AIO with error so NNG knows the request is done
-    nng_aio_finish(r->aio, NNG_ECANCELED);
-    r = next;
-  }
-  nng_mtx_unlock(srv->mtx);
+  free(r);
 
 }
 
@@ -306,10 +257,7 @@ static void ws_accept_cb(void *arg) {
     // Assign unique ID (server-wide) and add to handler's connection list
     nng_mtx_lock(srv->mtx);
     conn->id = ++srv->ws_conn_counter;
-    conn->next = info->ws_conns;
-    if (info->ws_conns != NULL)
-      info->ws_conns->prev = conn;
-    info->ws_conns = conn;
+    DL_PREPEND(info->ws_conns, conn);
     nng_mtx_unlock(srv->mtx);
 
     // Schedule connection initialization and on_open callback
@@ -321,22 +269,6 @@ static void ws_accept_cb(void *arg) {
   if (!srv->stopped) {
     nng_stream_listener_accept(info->ws_listener, info->ws_accept_aio);
   }
-
-}
-
-// Helper: Remove connection from handler's linked list (must hold srv->mtx)
-static void ws_conn_unlink_locked(nano_ws_conn *conn) {
-
-  nano_http_handler_info *info = conn->handler;
-  if (conn->prev != NULL) {
-    conn->prev->next = conn->next;
-  } else {
-    info->ws_conns = conn->next;
-  }
-  if (conn->next != NULL) {
-    conn->next->prev = conn->prev;
-  }
-  conn->next = conn->prev = NULL;
 
 }
 
@@ -522,7 +454,7 @@ static void ws_conn_cleanup(nano_ws_conn *conn) {
 
   // Remove from handler's connection list
   nng_mtx_lock(srv->mtx);
-  ws_conn_unlink_locked(conn);
+  DL_REMOVE(info->ws_conns, conn);
   nng_mtx_unlock(srv->mtx);
 
   conn->state = WS_STATE_CLOSED;
