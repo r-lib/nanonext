@@ -7,6 +7,7 @@
 #### Updates
 
 * `random()` now only accepts 'n' between 1 and 1024. Supplying 0 will error (#238).
+* Fixes a potential crash when `random()` or `write_cert()` is called in a fresh session before any other TLS-related functions have been called, and nanonext has been compiled against a system Mbed TLS with PSA crypto enabled. (#242).
 * Fixes a potential crash when a serialization hook errors (#225).
 * Performance improvements for serialization, streaming, and async sends.
 * Bundled 'libmbedtls' updated to latest 3.6.5 LTS branch release (#234).
