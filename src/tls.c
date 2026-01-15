@@ -64,6 +64,10 @@ static int parse_serial_decimal_format(unsigned char *obuf, size_t obufmax,
 
 SEXP rnng_random(SEXP n, SEXP convert) {
 
+#ifdef MBEDTLS_PSA_CRYPTO_C
+  psa_crypto_init();
+#endif
+
   int sz, xc;
   switch (TYPEOF(n)) {
   case INTSXP:
@@ -112,6 +116,10 @@ SEXP rnng_random(SEXP n, SEXP convert) {
 // nanonext - Key Generation and Certificates ----------------------------------
 
 SEXP rnng_write_cert(SEXP cn, SEXP valid) {
+
+#ifdef MBEDTLS_PSA_CRYPTO_C
+  psa_crypto_init();
+#endif
 
   const char *common = CHAR(STRING_ELT(cn, 0));
   const char *not_after = CHAR(STRING_ELT(valid, 0)); /* validity period not after */

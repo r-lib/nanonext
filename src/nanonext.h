@@ -81,6 +81,9 @@ typedef struct nano_handle_s {
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/md.h>
 #include <mbedtls/error.h>
+#ifdef MBEDTLS_PSA_CRYPTO_C
+#include <psa/crypto.h>
+#endif
 #include <errno.h>
 #endif
 
