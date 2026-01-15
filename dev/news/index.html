@@ -48,6 +48,7 @@
 <h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
 <ul><li>
 <code><a href="../reference/random.html">random()</a></code> now only accepts ‘n’ between 1 and 1024. Supplying 0 will error (<a href="https://github.com/r-lib/nanonext/issues/238" class="external-link">#238</a>).</li>
+<li>Fixes a potential crash when <code><a href="../reference/random.html">random()</a></code> or <code><a href="../reference/write_cert.html">write_cert()</a></code> is called in a fresh session before any other TLS-related functions have been called, and nanonext has been compiled against a system Mbed TLS with PSA crypto enabled. (<a href="https://github.com/r-lib/nanonext/issues/242" class="external-link">#242</a>).</li>
 <li>Fixes a potential crash when a serialization hook errors (<a href="https://github.com/r-lib/nanonext/issues/225" class="external-link">#225</a>).</li>
 <li>Performance improvements for serialization, streaming, and async sends.</li>
 <li>Bundled ‘libmbedtls’ updated to latest 3.6.5 LTS branch release (<a href="https://github.com/r-lib/nanonext/issues/234" class="external-link">#234</a>).</li>

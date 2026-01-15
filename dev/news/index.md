@@ -14,6 +14,13 @@
 - [`random()`](https://nanonext.r-lib.org/dev/reference/random.md) now
   only accepts ‘n’ between 1 and 1024. Supplying 0 will error
   ([\#238](https://github.com/r-lib/nanonext/issues/238)).
+- Fixes a potential crash when
+  [`random()`](https://nanonext.r-lib.org/dev/reference/random.md) or
+  [`write_cert()`](https://nanonext.r-lib.org/dev/reference/write_cert.md)
+  is called in a fresh session before any other TLS-related functions
+  have been called, and nanonext has been compiled against a system Mbed
+  TLS with PSA crypto enabled.
+  ([\#242](https://github.com/r-lib/nanonext/issues/242)).
 - Fixes a potential crash when a serialization hook errors
   ([\#225](https://github.com/r-lib/nanonext/issues/225)).
 - Performance improvements for serialization, streaming, and async
