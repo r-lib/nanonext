@@ -692,12 +692,21 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
         const char *content_type = TYPEOF(ct_elem) == STRSXP ?
                                    CHAR(STRING_ELT(ct_elem, 0)) : "application/octet-stream";
         SEXP data_elem = get_list_element(h, "data");
+        const unsigned char *data;
+        size_t size;
+
+        switch (TYPEOF(data_elem)) {
+        case STRSXP:
+          data = (const unsigned char *) NANO_STRING(data_elem);
+          size = strlen((const char *) data);
+          break;
+        default:
+          data = NANO_DATAPTR(data_elem);
+          size = (size_t) XLENGTH(data_elem);
+        }
 
         if ((xc = nng_http_handler_alloc_static(&srv->handlers[i].handler,
-                                                path,
-                                                DATAPTR_RO(data_elem),
-                                                (size_t) XLENGTH(data_elem),
-                                                content_type)))
+                                                path, data, size, content_type)))
           goto fail;
 
         if (tree && (xc = nng_http_handler_set_tree(srv->handlers[i].handler)))

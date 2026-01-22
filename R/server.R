@@ -139,6 +139,9 @@ http_server <- function(url, handlers = list(), tls = NULL) {
 #'
 #' @return A handler object for use with [http_server()].
 #'
+#' @details If the callback throws an error, a 500 Internal Server Error
+#'   response is returned to the client.
+#'
 #' @seealso [handler_ws()] for WebSocket handlers. Static handlers:
 #'   [handler_file()], [handler_directory()], [handler_inline()],
 #'   [handler_redirect()].
@@ -305,7 +308,6 @@ handler_directory <- function(path, directory) {
 #' @export
 #'
 handler_inline <- function(path, data, content_type = NULL, tree = FALSE) {
-  if (is.character(data)) data <- charToRaw(data)
   list(type = 5L, path = path, data = data, content_type = content_type,
        tree = tree)
 }

@@ -35,6 +35,10 @@ A handler object for use with \code{\link[=http_server]{http_server()}}.
 \description{
 Creates an HTTP route handler for use with \code{\link[=http_server]{http_server()}}.
 }
+\details{
+If the callback throws an error, a 500 Internal Server Error
+response is returned to the client.
+}
 \examples{
 # Simple GET handler
 h1 <- handler("/hello", function(req) {
