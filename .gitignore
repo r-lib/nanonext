@@ -8,8 +8,8 @@ nanonext.Rcheck/00_pkg_src/nanonext/
 nanonext.Rcheck/
 *.gz
 /docs/
-/build/
-/install/
+/nano-build/
+/nano-install/
 inst/doc
 compile_commands.json
 .cache

@@ -7,14 +7,14 @@ for ARCH in x64 i386; do
     export CC CFLAGS LDFLAGS
 
     echo "Compiling 'libmbedtls' from source for ${ARCH} ..."
-    cmake -S src/mbedtls -B build -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=install/${ARCH}
-    cmake --build build --target install
-    rm -rf build
+    cmake -S src/mbedtls -B nano-build -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=nano-install/${ARCH}
+    cmake --build nano-build --target install
+    rm -rf nano-build
 
     echo "Compiling 'libnng' from source for ${ARCH} ..."
-    cmake -S src/nng -B build -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=install/${ARCH}
-    cmake --build build --target install
-    rm -rf build
+    cmake -S src/nng -B nano-build -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=nano-install/${ARCH}
+    cmake --build nano-build --target install
+    rm -rf nano-build
 
   else
   echo "Note: ${ARCH} not installed, skipping ..."

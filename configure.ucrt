@@ -5,14 +5,14 @@ LDFLAGS=`"${R_HOME}/bin/R" CMD config LDFLAGS`
 export CC CFLAGS LDFLAGS
 
 echo "Compiling 'libmbedtls' from source ..."
-cmake -S src/mbedtls -B build -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=install
-cmake --build build --target install
-rm -rf build
+cmake -S src/mbedtls -B nano-build -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=nano-install
+cmake --build nano-build --target install
+rm -rf nano-build
 
 echo "Compiling 'libnng' from source ..."
-cmake -S src/nng -B build -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=install
-cmake --build build --target install
-rm -rf build
+cmake -S src/nng -B nano-build -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=nano-install
+cmake --build nano-build --target install
+rm -rf nano-build
 
 # Success
 exit 0

@@ -1,1 +1,1 @@
-rm -rf src/Makevars build install
+rm -rf src/Makevars nano-build nano-install

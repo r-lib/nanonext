@@ -118,9 +118,9 @@ if [ $compile_mbedtls -eq 1 ]; then
   echo "Existing 'libmbedtls' >= 2.5.0 not found"
   detect_cmake
   echo "Compiling 'libmbedtls' from source ..."
-  cmake -S src/mbedtls -B build -DCMAKE_INSTALL_PREFIX=install -DCMAKE_INSTALL_LIBDIR=lib
-  cmake --build build --target install
-  rm -rf build
+  cmake -S src/mbedtls -B nano-build -DCMAKE_INSTALL_PREFIX=nano-install -DCMAKE_INSTALL_LIBDIR=lib
+  cmake --build nano-build --target install
+  rm -rf nano-build
 fi
 
 # Compile NNG if needed
@@ -128,18 +128,18 @@ if [ $compile_nng -eq 1 ]; then
   echo "Existing 'libnng' >= 1.9.0 not found"
   detect_cmake
   echo "Compiling 'libnng' from source ..."
-  cmake -S src/nng -B build -DCMAKE_INSTALL_PREFIX=install -DCMAKE_INSTALL_LIBDIR=lib
-  cmake --build build --target install
-  rm -rf build
+  cmake -S src/nng -B nano-build -DCMAKE_INSTALL_PREFIX=nano-install -DCMAKE_INSTALL_LIBDIR=lib
+  cmake --build nano-build --target install
+  rm -rf nano-build
 fi
 
 # Set flags for bundled libraries
-if [ -d "install/lib" ]; then
-  PKG_CFLAGS="-I../install/include -DNNG_STATIC_LIB $PKG_CFLAGS"
-  if [ -f "install/lib/libmbedtls.a" ]; then
-    PKG_LIBS="../install/lib/libnng.a ../install/lib/libmbedtls.a ../install/lib/libmbedx509.a ../install/lib/libmbedcrypto.a $PKG_LIBS"
+if [ -d "nano-install/lib" ]; then
+  PKG_CFLAGS="-I../nano-install/include -DNNG_STATIC_LIB $PKG_CFLAGS"
+  if [ -f "nano-install/lib/libmbedtls.a" ]; then
+    PKG_LIBS="../nano-install/lib/libnng.a ../nano-install/lib/libmbedtls.a ../nano-install/lib/libmbedx509.a ../nano-install/lib/libmbedcrypto.a $PKG_LIBS"
   else
-    PKG_LIBS="../install/lib/libnng.a $PKG_LIBS"
+    PKG_LIBS="../nano-install/lib/libnng.a $PKG_LIBS"
   fi
 fi
 

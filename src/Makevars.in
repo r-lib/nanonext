@@ -4,12 +4,12 @@ PKG_LIBS = @libs@
 SOURCES = aio.c comms.c core.c dispatcher.c init.c ncurl.c net.c proto.c sync.c thread.c tls.c utils.c
 OBJECTS = $(SOURCES:.c=.o)
 
-.PHONY: all clean-archives clean
+.PHONY: all cleanup clean
 
-all: clean-archives
+all: cleanup
 
-clean-archives: $(SHLIB)
-	@rm -f ../install/lib/*.a
+cleanup: $(SHLIB)
+	@rm -rf ../nano-install
 
 $(SHLIB): $(OBJECTS)
 

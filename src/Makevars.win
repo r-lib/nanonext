@@ -1,15 +1,15 @@
-PKG_CFLAGS = -I../install${R_ARCH}/include -DNNG_STATIC_LIB $(C_VISIBILITY)
-PKG_LIBS = ../install${R_ARCH}/lib/libnng.a ../install${R_ARCH}/lib/libmbedtls.a ../install${R_ARCH}/lib/libmbedx509.a ../install${R_ARCH}/lib/libmbedcrypto.a -lbcrypt -liphlpapi -lws2_32
+PKG_CFLAGS = -I../nano-install${R_ARCH}/include -DNNG_STATIC_LIB $(C_VISIBILITY)
+PKG_LIBS = ../nano-install${R_ARCH}/lib/libnng.a ../nano-install${R_ARCH}/lib/libmbedtls.a ../nano-install${R_ARCH}/lib/libmbedx509.a ../nano-install${R_ARCH}/lib/libmbedcrypto.a -lbcrypt -liphlpapi -lws2_32
 
 SOURCES = aio.c comms.c core.c dispatcher.c init.c ncurl.c net.c proto.c sync.c thread.c tls.c utils.c
 OBJECTS = $(SOURCES:.c=.o)
 
-.PHONY: all clean-archives clean
+.PHONY: all cleanup clean
 
-all: clean-archives
+all: cleanup
 
-clean-archives: $(SHLIB)
-	@rm -f ../install${R_ARCH}/lib/*.a
+cleanup: $(SHLIB)
+	@rm -rf ../nano-install${R_ARCH}
 
 $(SHLIB): $(OBJECTS)
 
