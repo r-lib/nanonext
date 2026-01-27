@@ -449,6 +449,10 @@ SEXP rnng_fini(void);
 SEXP rnng_fini_priors(void);
 SEXP rnng_get_opt(SEXP, SEXP);
 SEXP rnng_header_read(SEXP);
+SEXP rnng_http_server_close(SEXP);
+SEXP rnng_http_server_create(SEXP, SEXP, SEXP);
+SEXP rnng_http_server_start(SEXP);
+SEXP rnng_http_server_stop(SEXP);
 SEXP rnng_ip_addr(void);
 SEXP rnng_is_error_value(SEXP);
 SEXP rnng_is_nul_byte(SEXP);
@@ -498,12 +502,7 @@ SEXP rnng_version(void);
 SEXP rnng_wait_thread_create(SEXP);
 SEXP rnng_write_cert(SEXP, SEXP);
 SEXP rnng_write_stdout(SEXP);
-
-SEXP rnng_http_server_create(SEXP, SEXP, SEXP);
-SEXP rnng_http_server_start(SEXP);
-SEXP rnng_http_server_stop(SEXP);
-SEXP rnng_http_server_close(SEXP);
-SEXP rnng_ws_send(SEXP, SEXP);
 SEXP rnng_ws_close(SEXP);
+SEXP rnng_ws_send(SEXP, SEXP);
 
 #endif

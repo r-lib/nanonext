@@ -139,7 +139,12 @@ static void http_server_stop(nano_http_server *srv) {
 
 }
 
-static void http_server_shutdown(nano_http_server *srv) {
+// On R main thread ------------------------------------------------------------
+
+static void http_server_finalizer(SEXP xptr) {
+
+  if (NANO_PTR(xptr) == NULL) return;
+  nano_http_server *srv = (nano_http_server *) NANO_PTR(xptr);
 
   if (srv->state == SERVER_STARTED) {
     srv->state = SERVER_STOPPED;
@@ -152,17 +157,6 @@ static void http_server_shutdown(nano_http_server *srv) {
     srv->handlers[i].on_open = R_NilValue;
     srv->handlers[i].on_close = R_NilValue;
   }
-
-}
-
-// On R main thread ------------------------------------------------------------
-
-static void http_server_finalizer(SEXP xptr) {
-
-  if (NANO_PTR(xptr) == NULL) return;
-  nano_http_server *srv = (nano_http_server *) NANO_PTR(xptr);
-
-  http_server_shutdown(srv);
 
   for (int i = 0; i < srv->handler_count; i++) {
     if (srv->handlers[i].handler != NULL)
@@ -797,7 +791,7 @@ SEXP rnng_http_server_start(SEXP xptr) {
 
   if (srv->state == SERVER_STARTED)
     return R_NilValue;
-  
+
   if (srv->state == SERVER_STOPPED)
     Rf_error("server has been stopped");
 
@@ -833,6 +827,7 @@ SEXP rnng_http_server_stop(SEXP xptr) {
     Rf_error("`server` is not a valid HTTP Server");
 
   nano_http_server *srv = (nano_http_server *) NANO_PTR(xptr);
+
   if (srv->state == SERVER_STARTED) {
     srv->state = SERVER_STOPPED;
     http_server_stop(srv);
@@ -847,8 +842,9 @@ SEXP rnng_http_server_close(SEXP xptr) {
   if (NANO_PTR_CHECK(xptr, nano_HttpServerSymbol))
     Rf_error("`server` is not a valid HTTP Server");
 
-  nano_http_server *srv = (nano_http_server *) NANO_PTR(xptr);
-  http_server_shutdown(srv);
+  http_server_finalizer(xptr);
+  R_ClearExternalPtr(xptr);
+  Rf_setAttrib(xptr, nano_StateSymbol, Rf_mkString("closed"));
 
   return nano_success;
 
