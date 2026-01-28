@@ -837,22 +837,6 @@ SEXP rnng_http_server_start(SEXP xptr) {
 
 }
 
-SEXP rnng_http_server_stop(SEXP xptr) {
-
-  if (NANO_PTR_CHECK(xptr, nano_HttpServerSymbol))
-    Rf_error("`server` is not a valid HTTP Server");
-
-  nano_http_server *srv = (nano_http_server *) NANO_PTR(xptr);
-
-  if (srv->state == SERVER_STARTED) {
-    srv->state = SERVER_STOPPED;
-    http_server_stop(srv);
-  }
-
-  return nano_success;
-
-}
-
 SEXP rnng_http_server_close(SEXP xptr) {
 
   if (NANO_PTR_CHECK(xptr, nano_HttpServerSymbol))

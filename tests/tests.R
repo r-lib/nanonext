@@ -904,8 +904,6 @@ if (later && NOT_CRAN) {
   for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
   test_equal(aio$status, 200L)
   test_equal(aio$data, "OK")
-  test_zero(srv$stop())
-  test_equal(attr(srv, "state"), "stopped")
   test_zero(srv$close())
 }
 
@@ -1007,7 +1005,6 @@ if (later && NOT_CRAN) {
     test_equal(msgs[[1]], "open")
     test_equal(msgs[[2]], "hello")
   }
-  test_zero(srv$stop())
   test_zero(srv$close())
 }
 
@@ -1079,7 +1076,6 @@ if (later && NOT_CRAN) {
     test_equal(wss_msgs[[1]], "wss_open")
     test_equal(wss_msgs[[2]], "secure_hello")
   }
-  test_zero(wss_srv$stop())
   test_zero(wss_srv$close())
 }
 

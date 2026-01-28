@@ -137,7 +137,6 @@ static const R_CallMethodDef callMethods[] = {
   {"rnng_http_server_close", (DL_FUNC) &rnng_http_server_close, 1},
   {"rnng_http_server_create", (DL_FUNC) &rnng_http_server_create, 3},
   {"rnng_http_server_start", (DL_FUNC) &rnng_http_server_start, 1},
-  {"rnng_http_server_stop", (DL_FUNC) &rnng_http_server_stop, 1},
   {"rnng_ip_addr", (DL_FUNC) &rnng_ip_addr, 0},
   {"rnng_is_error_value", (DL_FUNC) &rnng_is_error_value, 1},
   {"rnng_is_nul_byte", (DL_FUNC) &rnng_is_nul_byte, 1},

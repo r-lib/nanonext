@@ -17,7 +17,6 @@ http_server(url, handlers = list(), tls = NULL)
 A nanoServer object with methods:
 \itemize{
 \item \verb{$start()} - Start accepting connections
-\item \verb{$stop()} - Stop accepting new connections
 \item \verb{$close()} - Stop and release all resources
 \item \verb{$url} - The server URL
 }

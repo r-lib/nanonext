@@ -11,7 +11,6 @@
 #' @return A nanoServer object with methods:
 #'
 #'   - `$start()` - Start accepting connections
-#'   - `$stop()` - Stop accepting new connections
 #'   - `$close()` - Stop and release all resources
 #'   - `$url` - The server URL
 #'
@@ -97,15 +96,10 @@
 #'
 http_server <- function(url, handlers = list(), tls = NULL) {
   srv <- .Call(rnng_http_server_create, url, handlers, tls)
-  # Add method attributes for $start(), $stop(), $close() access
+  # Add method attributes for $start(), $close() access
   attr(srv, "start") <- function() {
     res <- .Call(rnng_http_server_start, srv)
     if (res == 0L) attr(srv, "state") <- "started"
-    invisible(res)
-  }
-  attr(srv, "stop") <- function() {
-    res <- .Call(rnng_http_server_stop, srv)
-    if (res == 0L) attr(srv, "state") <- "stopped"
     invisible(res)
   }
   attr(srv, "close") <- function() {
