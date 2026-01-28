@@ -61,6 +61,7 @@ static void ws_invoke_onmessage(void *);
 static void ws_invoke_onclose(void *);
 static void http_server_finalizer(SEXP);
 static void http_server_stop(nano_http_server *);
+static void http_server_cleanup(void *);
 
 // On NNG threads --------------------------------------------------------------
 
@@ -131,8 +132,13 @@ static void http_server_stop(nano_http_server *srv) {
       nng_stream_listener_close(srv->handlers[i].ws_listener);
 
       nng_mtx_lock(srv->mtx);
-      for (nano_ws_conn *conn = srv->handlers[i].ws_conns; conn != NULL; conn = conn->next)
+      for (nano_ws_conn *conn = srv->handlers[i].ws_conns; conn != NULL; conn = conn->next) {
         ws_conn_close_locked(conn);
+        if (!conn->onclose_scheduled) {
+          conn->onclose_scheduled = 1;
+          later2(ws_invoke_onclose, conn);
+        }
+      }
       nng_mtx_unlock(srv->mtx);
     }
   }
@@ -141,22 +147,9 @@ static void http_server_stop(nano_http_server *srv) {
 
 // On R main thread ------------------------------------------------------------
 
-static void http_server_finalizer(SEXP xptr) {
+static void http_server_cleanup(void *arg) {
 
-  if (NANO_PTR(xptr) == NULL) return;
-  nano_http_server *srv = (nano_http_server *) NANO_PTR(xptr);
-
-  if (srv->state == SERVER_STARTED) {
-    srv->state = SERVER_STOPPED;
-    http_server_stop(srv);
-  }
-
-  // Suppress callbacks during shutdown - on_close won't fire for connections closed by server stop
-  for (int i = 0; i < srv->handler_count; i++) {
-    srv->handlers[i].callback = R_NilValue;
-    srv->handlers[i].on_open = R_NilValue;
-    srv->handlers[i].on_close = R_NilValue;
-  }
+  nano_http_server *srv = (nano_http_server *) arg;
 
   for (int i = 0; i < srv->handler_count; i++) {
     if (srv->handlers[i].handler != NULL)
@@ -166,6 +159,7 @@ static void http_server_finalizer(SEXP xptr) {
       nng_stream_listener_free(srv->handlers[i].ws_listener);
       nng_aio_free(srv->handlers[i].ws_accept_aio);
 
+      // Free any connections not cleaned up by callbacks (shouldn't normally happen)
       nano_ws_conn *conn = srv->handlers[i].ws_conns;
       while (conn != NULL) {
         nano_ws_conn *next = conn->next;
@@ -187,6 +181,28 @@ static void http_server_finalizer(SEXP xptr) {
   if (srv->mtx != NULL)
     nng_mtx_free(srv->mtx);
   free(srv);
+
+}
+
+static void http_server_finalizer(SEXP xptr) {
+
+  if (NANO_PTR(xptr) == NULL) return;
+  nano_http_server *srv = (nano_http_server *) NANO_PTR(xptr);
+
+  if (srv->state == SERVER_STARTED) {
+    srv->state = SERVER_STOPPED;
+    http_server_stop(srv);
+  }
+
+  // Suppress callbacks during shutdown - on_close won't fire for connections closed by server stop
+  for (int i = 0; i < srv->handler_count; i++) {
+    srv->handlers[i].callback = R_NilValue;
+    srv->handlers[i].on_open = R_NilValue;
+    srv->handlers[i].on_close = R_NilValue;
+  }
+
+  // Schedule deferred cleanup - runs after all pending later2 callbacks due to FIFO ordering
+  later2(http_server_cleanup, srv);
 
 }
 
