@@ -856,7 +856,7 @@ SEXP rnng_http_server_close(SEXP xptr) {
 SEXP rnng_ws_send(SEXP xptr, SEXP data) {
 
   if (NANO_PTR_CHECK(xptr, nano_WsConnSymbol))
-    Rf_error("`ws` is not a valid WebSocket connection");
+    return mk_error(NNG_ECLOSED);
 
   nano_ws_conn *conn = (nano_ws_conn *) NANO_PTR(xptr);
 
@@ -898,7 +898,7 @@ SEXP rnng_ws_send(SEXP xptr, SEXP data) {
 SEXP rnng_ws_close(SEXP xptr) {
 
   if (NANO_PTR_CHECK(xptr, nano_WsConnSymbol))
-    Rf_error("`ws` is not a valid WebSocket connection");
+    return mk_error(NNG_ECLOSED);
 
   nano_ws_conn *conn = (nano_ws_conn *) NANO_PTR(xptr);
   ws_conn_close(conn);

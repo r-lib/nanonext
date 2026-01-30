@@ -378,7 +378,7 @@ SEXP rnng_stream_open(SEXP dial, SEXP listen, SEXP textframes, SEXP tls) {
 SEXP rnng_stream_close(SEXP stream) {
 
   if (NANO_PTR_CHECK(stream, nano_StreamSymbol))
-    Rf_error("`stream` is not a valid Stream");
+    return mk_error(NNG_ECLOSED);
 
   stream_finalizer(stream);
   R_ClearExternalPtr(stream);
