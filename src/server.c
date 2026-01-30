@@ -596,8 +596,7 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
         if ((xc = nng_http_handler_alloc(&srv->handlers[i].handler, path, http_handler_cb)))
           goto fail;
 
-        if (method != NULL &&
-            (xc = nng_http_handler_set_method(srv->handlers[i].handler, method)))
+        if ((xc = nng_http_handler_set_method(srv->handlers[i].handler, method)))
           goto fail;
 
         if (tree && (xc = nng_http_handler_set_tree(srv->handlers[i].handler)))
@@ -809,7 +808,7 @@ SEXP rnng_http_server_start(SEXP xptr) {
   nano_http_server *srv = (nano_http_server *) NANO_PTR(xptr);
 
   if (srv->state == SERVER_STARTED)
-    return R_NilValue;
+    return nano_success;
 
   if (srv->state == SERVER_STOPPED)
     Rf_error("server has been stopped");
@@ -828,6 +827,17 @@ SEXP rnng_http_server_start(SEXP xptr) {
   }
 
   srv->state = SERVER_STARTED;
+
+  nng_sockaddr sa;
+  if (nng_http_server_get_addr(srv->server, &sa) == 0 && sa.s_family == NNG_AF_INET) {
+    uint16_t port = sa.s_in.sa_port;
+    port = (uint16_t) ((port >> 8) | (port << 8));
+    SEXP vec = Rf_allocVector(INTSXP, 2);
+    INTEGER(vec)[0] = 0;
+    INTEGER(vec)[1] = (int) port;
+    return vec;
+  }
+
   return nano_success;
 
   fail:
