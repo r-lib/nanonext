@@ -128,7 +128,7 @@ static void http_server_stop(nano_http_server *srv) {
 
   for (int i = 0; i < srv->handler_count; i++) {
     if (srv->handlers[i].ws_listener != NULL) {
-      nng_aio_cancel(srv->handlers[i].ws_accept_aio);
+      nng_aio_stop(srv->handlers[i].ws_accept_aio);
       nng_stream_listener_close(srv->handlers[i].ws_listener);
 
       nng_mtx_lock(srv->mtx);
@@ -140,6 +140,9 @@ static void http_server_stop(nano_http_server *srv) {
         }
       }
       nng_mtx_unlock(srv->mtx);
+
+      for (nano_ws_conn *conn = srv->handlers[i].ws_conns; conn != NULL; conn = conn->next)
+        nng_aio_wait(conn->recv_aio);
     }
   }
 
