@@ -891,17 +891,12 @@ test_error(handler_redirect("/bad", "/good", status = 999L), "301, 302, 303, 307
 
 if (later && NOT_CRAN) {
   test_error(http_server("http://127.0.0.1:0", handlers = list(list(type = 99L, path = "/"))), "Invalid argument")
-  received_headers <- NULL
   test_class("nanoServer", srv <- http_server(
     url = "http://127.0.0.1:0",
     handlers = list(
       handler("/test", function(req) list(status = 200L, body = "OK")),
       handler("/api/data", function(req) {
         list(status = 200L, headers = c("Content-Type" = "application/json"), body = '{"value":42}')
-      }),
-      handler("/headers", function(req) {
-        received_headers <<- req$headers
-        list(status = 200L, body = paste(names(req$headers), collapse = ","))
       }),
       handler("/error", function(req) stop(simpleError("")))
     )
@@ -920,6 +915,26 @@ if (later && NOT_CRAN) {
   for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
   test_equal(aio$status, 200L)
   test_equal(aio$data, '{"value":42}')
+  aio <- ncurl_aio(paste0(base_url, "/error"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 500L)
+  test_zero(srv$close())
+}
+
+if (later && NOT_CRAN) {
+  received_headers <- NULL
+  test_class("nanoServer", srv <- http_server(
+    url = "http://127.0.0.1:0",
+    handlers = list(
+      handler("/headers", function(req) {
+        received_headers <<- req$headers
+        list(status = 200L, body = paste(names(req$headers), collapse = ","))
+      })
+    )
+  ))
+  test_zero(srv$start())
+  base_url <- srv$url
+  Sys.sleep(0.1)
   aio <- ncurl_aio(
     paste0(base_url, "/headers"),
     headers = c("X-Custom-Header" = "test123", "X-Another-Header" = "value456"),
@@ -931,9 +946,6 @@ if (later && NOT_CRAN) {
   test_true("X-Another-Header" %in% names(received_headers))
   test_equal(received_headers[["X-Custom-Header"]], "test123")
   test_equal(received_headers[["X-Another-Header"]], "value456")
-  aio <- ncurl_aio(paste0(base_url, "/error"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
-  test_equal(aio$status, 500L)
   test_zero(srv$close())
 }
 
