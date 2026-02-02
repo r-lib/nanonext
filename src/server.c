@@ -829,9 +829,10 @@ SEXP rnng_http_server_start(SEXP xptr) {
   srv->state = SERVER_STARTED;
 
   nng_sockaddr sa;
-  if (nng_http_server_get_addr(srv->server, &sa) == 0 && sa.s_family == NNG_AF_INET) {
-    uint16_t port = sa.s_in.sa_port;
-    port = (uint16_t) ((port >> 8) | (port << 8));
+  if (nng_http_server_get_addr(srv->server, &sa) == 0 &&
+      (sa.s_family == NNG_AF_INET || sa.s_family == NNG_AF_INET6)) {
+    uint16_t port = (sa.s_family == NNG_AF_INET) ? sa.s_in.sa_port : sa.s_in6.sa_port;
+    port = ntohs(port);
     SEXP vec = Rf_allocVector(INTSXP, 2);
     INTEGER(vec)[0] = 0;
     INTEGER(vec)[1] = (int) port;
