@@ -4,7 +4,7 @@
 \alias{handler}
 \title{Create HTTP Handler}
 \usage{
-handler(path, callback, method = "GET", tree = FALSE)
+handler(path, callback, method = "GET", prefix = FALSE)
 }
 \arguments{
 \item{path}{URI path to match (e.g., "/api/data", "/users").}
@@ -20,14 +20,16 @@ handler(path, callback, method = "GET", tree = FALSE)
 Should return a list with:
 \itemize{
 \item \code{status} - HTTP status code (integer, default 200)
-\item \code{headers} - Named character vector of response headers (optional)
+\item \code{headers} - Response headers as a named character vector, e.g.
+\code{c("Content-Type" = "application/json")} (optional)
 \item \code{body} - Response body (character or raw)
 }}
 
-\item{method}{HTTP method to match (e.g., "GET", "POST", "PUT", "DELETE").
-Use NULL to match any method.}
+\item{method}{[default "GET"] HTTP method to match (e.g., "GET", "POST",
+"PUT", "DELETE"). Use \code{"*"} to match any method.}
 
-\item{tree}{[default FALSE] Logical, if TRUE matches path as prefix.}
+\item{prefix}{[default FALSE] Logical, if TRUE matches path as a prefix
+(e.g., "/api" will match "/api/users", "/api/items", etc.).}
 }
 \value{
 A handler object for use with \code{\link[=http_server]{http_server()}}.
@@ -53,7 +55,7 @@ h2 <- handler("/echo", function(req) {
 # Catch-all handler for a path prefix
 h3 <- handler("/static", function(req) {
   # Serve static files under /static/*
-}, method = NULL, tree = TRUE)
+}, method = "*", prefix = TRUE)
 
 }
 \seealso{

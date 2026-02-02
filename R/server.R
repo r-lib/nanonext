@@ -131,11 +131,13 @@ http_server <- function(url, handlers = list(), tls = NULL) {
 #'   Should return a list with:
 #'
 #'   - `status` - HTTP status code (integer, default 200)
-#'   - `headers` - Named character vector of response headers (optional)
+#'   - `headers` - Response headers as a named character vector, e.g.
+#'     `c("Content-Type" = "application/json")` (optional)
 #'   - `body` - Response body (character or raw)
-#' @param method HTTP method to match (e.g., "GET", "POST", "PUT", "DELETE").
-#'   Use NULL to match any method.
-#' @param tree \[default FALSE\] Logical, if TRUE matches path as prefix.
+#' @param method \[default "GET"\] HTTP method to match (e.g., "GET", "POST",
+#'   "PUT", "DELETE"). Use `"*"` to match any method.
+#' @param prefix \[default FALSE\] Logical, if TRUE matches path as a prefix
+#'   (e.g., "/api" will match "/api/users", "/api/items", etc.).
 #'
 #' @return A handler object for use with [http_server()].
 #'
@@ -160,12 +162,12 @@ http_server <- function(url, handlers = list(), tls = NULL) {
 #' # Catch-all handler for a path prefix
 #' h3 <- handler("/static", function(req) {
 #'   # Serve static files under /static/*
-#' }, method = NULL, tree = TRUE)
+#' }, method = "*", prefix = TRUE)
 #'
 #' @export
 #'
-handler <- function(path, callback, method = "GET", tree = FALSE) {
-  list(type = 1L, path = path, callback = callback, method = method, tree = tree)
+handler <- function(path, callback, method = "GET", prefix = FALSE) {
+  list(type = 1L, path = path, callback = callback, method = method, prefix = prefix)
 }
 
 #' Create WebSocket Handler
@@ -236,7 +238,7 @@ handler_ws <- function(path, on_message, on_open = NULL, on_close = NULL,
 #'
 #' @param path URI path to match (e.g., "/favicon.ico").
 #' @param file Path to the file to serve.
-#' @param tree \[default FALSE\] Logical, if TRUE matches path as prefix.
+#' @param prefix \[default FALSE\] Logical, if TRUE matches path as a prefix.
 #'
 #' @return A handler object for use with [http_server()].
 #'
@@ -245,11 +247,11 @@ handler_ws <- function(path, on_message, on_open = NULL, on_close = NULL,
 #'
 #' @export
 #'
-handler_file <- function(path, file, tree = FALSE) {
+handler_file <- function(path, file, prefix = FALSE) {
   if (!file.exists(file))
     warning("file does not exist: ", file)
   list(type = 3L, path = path, file = normalizePath(file, mustWork = FALSE),
-       tree = tree)
+       prefix = prefix)
 }
 
 #' Create Static Directory Handler
@@ -264,7 +266,7 @@ handler_file <- function(path, file, tree = FALSE) {
 #' @return A handler object for use with [http_server()].
 #'
 #' @details
-#' Directory handlers automatically match all paths under the prefix (tree
+#' Directory handlers automatically match all paths under the prefix (prefix
 #' matching is implicit). The URI path is mapped to the filesystem:
 #'
 #' - Request to "/static/css/style.css" serves "directory/css/style.css"
@@ -295,7 +297,7 @@ handler_directory <- function(path, directory) {
 #' @param data Content to serve. Character data is converted to raw bytes.
 #' @param content_type MIME type (e.g., "text/plain", "application/json").
 #'   Defaults to "application/octet-stream" if NULL.
-#' @param tree \[default FALSE\] Logical, if TRUE matches path as prefix.
+#' @param prefix \[default FALSE\] Logical, if TRUE matches path as a prefix.
 #'
 #' @return A handler object for use with [http_server()].
 #'
@@ -307,9 +309,9 @@ handler_directory <- function(path, directory) {
 #'
 #' @export
 #'
-handler_inline <- function(path, data, content_type = NULL, tree = FALSE) {
+handler_inline <- function(path, data, content_type = NULL, prefix = FALSE) {
   list(type = 5L, path = path, data = data, content_type = content_type,
-       tree = tree)
+       prefix = prefix)
 }
 
 #' Create HTTP Redirect Handler
@@ -326,7 +328,7 @@ handler_inline <- function(path, data, content_type = NULL, tree = FALSE) {
 #'   - 303 - See Other
 #'   - 307 - Temporary Redirect
 #'   - 308 - Permanent Redirect
-#' @param tree \[default FALSE\] Logical, if TRUE matches path as prefix.
+#' @param prefix \[default FALSE\] Logical, if TRUE matches path as a prefix.
 #'
 #' @return A handler object for use with [http_server()].
 #'
@@ -339,11 +341,11 @@ handler_inline <- function(path, data, content_type = NULL, tree = FALSE) {
 #'
 #' @export
 #'
-handler_redirect <- function(path, location, status = 302L, tree = FALSE) {
+handler_redirect <- function(path, location, status = 302L, prefix = FALSE) {
   status <- as.integer(status)
   if (!status %in% c(301L, 302L, 303L, 307L, 308L))
     stop("redirect status must be 301, 302, 303, 307, or 308")
-  list(type = 6L, path = path, location = location, status = status, tree = tree)
+  list(type = 6L, path = path, location = location, status = status, prefix = prefix)
 }
 
 #' @rdname close

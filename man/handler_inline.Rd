@@ -4,7 +4,7 @@
 \alias{handler_inline}
 \title{Create Inline Static Content Handler}
 \usage{
-handler_inline(path, data, content_type = NULL, tree = FALSE)
+handler_inline(path, data, content_type = NULL, prefix = FALSE)
 }
 \arguments{
 \item{path}{URI path to match (e.g., "/robots.txt").}
@@ -14,7 +14,7 @@ handler_inline(path, data, content_type = NULL, tree = FALSE)
 \item{content_type}{MIME type (e.g., "text/plain", "application/json").
 Defaults to "application/octet-stream" if NULL.}
 
-\item{tree}{[default FALSE] Logical, if TRUE matches path as prefix.}
+\item{prefix}{[default FALSE] Logical, if TRUE matches path as a prefix.}
 }
 \value{
 A handler object for use with \code{\link[=http_server]{http_server()}}.

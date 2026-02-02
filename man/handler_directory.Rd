@@ -20,7 +20,7 @@ Creates an HTTP handler that serves files from a directory tree. NNG handles
 MIME type detection automatically.
 }
 \details{
-Directory handlers automatically match all paths under the prefix (tree
+Directory handlers automatically match all paths under the prefix (prefix
 matching is implicit). The URI path is mapped to the filesystem:
 \itemize{
 \item Request to "/static/css/style.css" serves "directory/css/style.css"

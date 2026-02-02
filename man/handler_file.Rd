@@ -4,14 +4,14 @@
 \alias{handler_file}
 \title{Create Static File Handler}
 \usage{
-handler_file(path, file, tree = FALSE)
+handler_file(path, file, prefix = FALSE)
 }
 \arguments{
 \item{path}{URI path to match (e.g., "/favicon.ico").}
 
 \item{file}{Path to the file to serve.}
 
-\item{tree}{[default FALSE] Logical, if TRUE matches path as prefix.}
+\item{prefix}{[default FALSE] Logical, if TRUE matches path as a prefix.}
 }
 \value{
 A handler object for use with \code{\link[=http_server]{http_server()}}.

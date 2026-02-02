@@ -980,13 +980,20 @@ if (later && NOT_CRAN) {
     for (i in 1:10) later::run_now(0.1)
     reply <- recv(ws, block = 500, mode = "character")
     test_equal(reply, "hello")
+    test_error(ws_conn$send(123L), "`data` must be raw or character")
+    test_error(ws_conn$send(list(a = 1)), "`data` must be raw or character")
     test_zero(close(ws))
     for (i in 1:5) later::run_now(0.1)
     test_equal(msgs[[1]], "open")
     test_equal(msgs[[2]], "hello")
     test_equal(ws_conn$close(), 7L)
+    test_equal(ws_conn$send("after close"), 7L)
+    test_equal(ws_conn$send(charToRaw("raw after close")), 7L)
   }
   test_zero(srv$close())
+  test_error(http_server(url = "http://127.0.0.1:0", handlers = list(
+    handler_ws(paste0("/", strrep("x", 8180)), function(ws, data) ws$send(data))
+  )), "Invalid argument")
 }
 
 if (later && NOT_CRAN) {
@@ -1121,7 +1128,7 @@ if (later && NOT_CRAN) {
   test_error(multi_ws_srv$start(), "valid HTTP Server")
 }
 
-# Test static handlers, redirects, and tree parameter
+# Test static handlers, redirects, and prefix parameter
 if (later && NOT_CRAN) {
   test_class("list", suppressWarnings(handler_directory("/bad", "/nonexistent/directory")))
 
@@ -1134,17 +1141,17 @@ if (later && NOT_CRAN) {
     url = "http://127.0.0.1:0",
     handlers = list(
       handler_file("/single.txt", file.path(static_test_dir, "test.txt")),
-      handler_file("/tree-file", file.path(static_test_dir, "test.txt"), tree = TRUE),
+      handler_file("/tree-file", file.path(static_test_dir, "test.txt"), prefix = TRUE),
       handler_directory("/files", static_test_dir),
       handler_inline("/inline", "Inline content", content_type = "text/plain"),
-      handler_inline("/tree-inline", "tree inline", content_type = "text/plain", tree = TRUE),
+      handler_inline("/tree-inline", "tree inline", content_type = "text/plain", prefix = TRUE),
       handler_inline("/binary", as.raw(c(0x89, 0x50, 0x4e, 0x47))),
       handler_redirect("/r301", "/single.txt", status = 301L),
       handler_redirect("/r302", "/single.txt", status = 302L),
       handler_redirect("/r303", "/single.txt", status = 303L),
       handler_redirect("/r307", "/single.txt", status = 307L),
       handler_redirect("/r308", "/single.txt", status = 308L),
-      handler_redirect("/tree-redir", "/single.txt", status = 302L, tree = TRUE)
+      handler_redirect("/tree-redir", "/single.txt", status = 302L, prefix = TRUE)
     )
   ))
   test_zero(static_srv$start())
@@ -1192,13 +1199,13 @@ if (later && NOT_CRAN) {
   unlink(static_test_dir, recursive = TRUE)
 }
 
-# Test handler features: tree, method, raw body, default status
+# Test handler features: prefix, method, raw body, default status
 if (later && NOT_CRAN) {
   test_class("nanoServer", handler_srv <- http_server(
     url = "http://127.0.0.1:0",
     handlers = list(
-      handler("/api", function(req) list(status = 200L, body = paste("path:", req$uri)), tree = TRUE),
-      handler("/any", function(req) list(status = 200L, body = req$method), method = NULL),
+      handler("/api", function(req) list(status = 200L, body = paste("path:", req$uri)), prefix = TRUE),
+      handler("/any", function(req) list(status = 200L, body = req$method), method = "*"),
       handler("/put", function(req) list(status = 200L, body = "PUT OK"), method = "PUT"),
       handler("/delete", function(req) list(status = 200L, body = "DELETE OK"), method = "DELETE"),
       handler("/raw", function(req) list(status = 200L, body = charToRaw("raw response"))),

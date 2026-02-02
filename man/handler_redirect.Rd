@@ -4,7 +4,7 @@
 \alias{handler_redirect}
 \title{Create HTTP Redirect Handler}
 \usage{
-handler_redirect(path, location, status = 302L, tree = FALSE)
+handler_redirect(path, location, status = 302L, prefix = FALSE)
 }
 \arguments{
 \item{path}{URI path to match (e.g., "/old-page").}
@@ -21,7 +21,7 @@ absolute (e.g., "https://example.com/page").}
 \item 308 - Permanent Redirect
 }}
 
-\item{tree}{[default FALSE] Logical, if TRUE matches path as prefix.}
+\item{prefix}{[default FALSE] Logical, if TRUE matches path as a prefix.}
 }
 \value{
 A handler object for use with \code{\link[=http_server]{http_server()}}.

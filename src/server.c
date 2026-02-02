@@ -594,15 +594,16 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
       const int type = NANO_INTEGER(get_list_element(h, "type"));
       SEXP path_elem = get_list_element(h, "path");
       const char *path = CHAR(STRING_ELT(path_elem, 0));
-      SEXP tree_elem = get_list_element(h, "tree");
+      SEXP tree_elem = get_list_element(h, "prefix");
       const int tree = (tree_elem != R_NilValue) ? NANO_INTEGER(tree_elem) : 0;
 
       switch (type) {
       case 1: {
         // Dynamic callback handler
         SEXP method_elem = get_list_element(h, "method");
-        const char *method = (method_elem != R_NilValue && TYPEOF(method_elem) == STRSXP) ?
-                             CHAR(STRING_ELT(method_elem, 0)) : NULL;
+        const char *method = CHAR(STRING_ELT(method_elem, 0));
+        if (method[0] == '*' && method[1] == '\0')
+          method = NULL;
 
         if ((xc = nng_http_handler_alloc(&srv->handlers[i].handler, path, http_handler_cb)))
           goto fail;
