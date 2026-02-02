@@ -407,8 +407,11 @@ static void ws_recv_cb(void *arg) {
       nng_msg_free(msgp);
     }
 
-    if (ws_conn_is_open(conn))
+    nano_http_server *srv = conn->handler->server;
+    nng_mtx_lock(srv->mtx);
+    if (conn->state == WS_STATE_OPEN)
       nng_stream_recv(conn->stream, conn->recv_aio);
+    nng_mtx_unlock(srv->mtx);
 
   } else {
     ws_conn_close(conn);
@@ -462,7 +465,11 @@ static void ws_invoke_onopen(void *arg) {
     UNPROTECT(1);
   }
 
-  nng_stream_recv(conn->stream, conn->recv_aio);
+  nano_http_server *srv = info->server;
+  nng_mtx_lock(srv->mtx);
+  if (conn->state == WS_STATE_OPEN)
+    nng_stream_recv(conn->stream, conn->recv_aio);
+  nng_mtx_unlock(srv->mtx);
 
 }
 
