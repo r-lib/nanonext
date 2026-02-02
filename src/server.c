@@ -465,6 +465,10 @@ static void ws_invoke_onopen(void *arg) {
     UNPROTECT(1);
   }
 
+  // on_open callback may have closed connection e.g. if not authorized
+  if (R_ExternalPtrAddr(conn->xptr) == NULL)
+    return;
+
   nano_http_server *srv = info->server;
   nng_mtx_lock(srv->mtx);
   if (conn->state == WS_STATE_OPEN)

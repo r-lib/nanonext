@@ -990,6 +990,20 @@ if (later && NOT_CRAN) {
 }
 
 if (later && NOT_CRAN) {
+  auth_srv <- http_server(
+    url = "http://127.0.0.1:0",
+    handlers = list(handler_ws("/ws", function(ws, data) ws$send(data), on_open = function(ws) ws$close()))
+  )
+  test_zero(auth_srv$start())
+  ws <- tryCatch(stream(dial = paste0(sub("^http", "ws", auth_srv$url), "/ws")), error = identity)
+  if (is_nano(ws)) {
+    for (i in 1:5) later::run_now(0.1)
+    close(ws)
+  }
+  test_zero(auth_srv$close())
+}
+
+if (later && NOT_CRAN) {
   gc_srv <- http_server(
     url = "http://127.0.0.1:0",
     handlers = list(
