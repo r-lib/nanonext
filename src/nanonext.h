@@ -24,6 +24,11 @@
 #ifdef NANONEXT_HTTP
 #include <nng/supplemental/http/http.h>
 #include "nng_structs.h"
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
 
 typedef struct nano_handle_s {
   nng_url *url;
