@@ -5,7 +5,7 @@
 #' Creates a server that can handle HTTP requests and WebSocket connections.
 #'
 #' @param url URL to listen on (e.g., "http://127.0.0.1:8080").
-#' @param handlers List of handlers created with [handler()], [handler_ws()], etc.
+#' @param handlers A handler or list of handlers created with [handler()], [handler_ws()], etc.
 #' @param tls TLS configuration for HTTPS/WSS, created via [tls_config()].
 #'
 #' @return A nanoServer object with methods:
@@ -95,6 +95,8 @@
 #' @export
 #'
 http_server <- function(url, handlers = list(), tls = NULL) {
+  if (is.integer(handlers$type))
+    handlers <- list(handlers)
   srv <- .Call(rnng_http_server_create, url, handlers, tls)
   # Add method attributes for $start(), $close() access
   attr(srv, "start") <- function() {

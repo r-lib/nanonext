@@ -9,7 +9,7 @@ http_server(url, handlers = list(), tls = NULL)
 \arguments{
 \item{url}{URL to listen on (e.g., "http://127.0.0.1:8080").}
 
-\item{handlers}{List of handlers created with \code{\link[=handler]{handler()}}, \code{\link[=handler_ws]{handler_ws()}}, etc.}
+\item{handlers}{A handler or list of handlers created with \code{\link[=handler]{handler()}}, \code{\link[=handler_ws]{handler_ws()}}, etc.}
 
 \item{tls}{TLS configuration for HTTPS/WSS, created via \code{\link[=tls_config]{tls_config()}}.}
 }
