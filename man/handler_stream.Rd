@@ -37,20 +37,20 @@ transfer encoding responses.
 HTTP streaming uses chunked transfer encoding. The first \verb{$send()} triggers
 writing of HTTP headers. Headers cannot be modified after the first send.
 
-For SSE, set the Content-Type header and use \code{\link[=format_sse]{format_sse()}} to format events:
+For SSE, set the Content-Type header and use \code{\link[=format_sse]{format_sse()}} to format events.
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{conn$set_header("Content-Type", "text/event-stream")
-conn$set_header("Cache-Control", "no-cache")
-conn$send(format_sse(data = "Hello!"))
-}\if{html}{\out{</div>}}
+\strong{Important:} Use \verb{$send()} in \code{on_request} to send to the newly connected
+client. Use \verb{$broadcast()} from a separate trigger (e.g., a POST handler or
+timer) to send to all clients. Do not call \verb{$broadcast()} inside \code{on_request}
+as it would broadcast on every new connection.
 }
 \section{Connection Object}{
 
 The \code{conn} object passed to callbacks has these methods:
 \itemize{
-\item \code{conn$send(data)}: Send data chunk to this connection. Character or raw.
-\item \code{conn$broadcast(data)}: Send data to all connections on this handler.
-Returns integer vector of results (0 = success).
+\item \code{conn$send(data)}: Send data chunk to this connection only.
+\item \code{conn$broadcast(data)}: Send data to all connections on this handler
+(including this one). Returns integer vector of results (0 = success).
 \item \code{conn$close()}: Close the connection (sends terminal chunk).
 \item \code{conn$set_status(code)}: Set HTTP status code (before first send).
 \item \code{conn$set_header(name, value)}: Set response header (before first send).
@@ -67,15 +67,24 @@ h <- handler_stream("/events", function(conn, req) {
   conn$close()
 })
 
-# Chat-style broadcast: each message goes to all other clients
-h <- handler_stream("/chat",
-  on_request = function(conn, req) {
-    conn$set_header("Content-Type", "text/event-stream")
-    conn$send(format_sse(data = "connected"))
-    # When this client sends a message (via separate POST endpoint),
-    # broadcast to all other connected clients:
-    # conn$broadcast(format_sse(data = message))
-  }
+# Long-lived SSE with broadcast triggered by POST
+sse_conn <- NULL
+handlers <- list(
+  # SSE endpoint - clients connect here
+  handler_stream("/events",
+    on_request = function(conn, req) {
+      conn$set_header("Content-Type", "text/event-stream")
+      conn$set_header("Cache-Control", "no-cache")
+      sse_conn <<- conn
+      conn$send(format_sse(data = "connected"))
+    }
+  ),
+  # POST endpoint - triggers broadcast to all SSE clients
+  handler("/broadcast", function(req) {
+    if (!is.null(sse_conn))
+      sse_conn$broadcast(format_sse(data = rawToChar(req$body)))
+    list(status = 200L, body = "sent")
+  }, method = "POST")
 )
 
 }
