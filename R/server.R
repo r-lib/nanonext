@@ -205,20 +205,18 @@ handler <- function(path, callback, method = "GET", prefix = FALSE) {
 #' h <- handler_ws("/ws", function(ws, data) ws$send(data))
 #'
 #' # With connection tracking
-#' clients <- new.env()
+#' clients <- list()
 #' h <- handler_ws(
 #'   "/chat",
 #'   on_message = function(ws, data) {
 #'     # Broadcast to all
-#'     for (id in ls(clients)) {
-#'       clients[[id]]$send(data)
-#'     }
+#'     for (client in clients) client$send(data)
 #'   },
 #'   on_open = function(ws) {
 #'     clients[[as.character(ws$id)]] <<- ws
 #'   },
 #'   on_close = function(ws) {
-#'     rm(list = as.character(ws$id), envir = clients)
+#'     clients[[as.character(ws$id)]] <<- NULL
 #'   },
 #'   textframes = TRUE
 #' )
@@ -380,3 +378,142 @@ print.nanoWsConn <- function(x, ...) {
          id = attr(x, "id"),
          attr(x, name, exact = TRUE))
 }
+
+#' Create HTTP Streaming Handler
+#'
+#' Creates an HTTP streaming handler for Server-Sent Events (SSE) or chunked
+#' transfer encoding responses.
+#'
+#' @param path URI path to match (e.g., "/events").
+#' @param on_request Function called when a request arrives. Signature:
+#'   `function(conn, req)` where `conn` is the connection object and `req`
+#'   is a list with `method`, `uri`, `headers`, `body`.
+#' @param on_close \[default NULL\] Function called when the connection closes.
+#'   Signature: `function(conn)`
+#' @param method \[default NULL\] HTTP method to match. If NULL, matches any.
+#' @param prefix \[default FALSE\] Logical, if TRUE matches path as a prefix.
+#'
+#' @return A handler object for use with [http_server()].
+#'
+#' @section Connection Object:
+#' The `conn` object passed to callbacks has these methods:
+#'
+#' - `conn$send(data)`: Send data chunk to this connection. Character or raw.
+#' - `conn$broadcast(data)`: Send data to all connections on this handler.
+#'   Returns integer vector of results (0 = success).
+#' - `conn$close()`: Close the connection (sends terminal chunk).
+#' - `conn$set_status(code)`: Set HTTP status code (before first send).
+#' - `conn$set_header(name, value)`: Set response header (before first send).
+#' - `conn$id`: Unique connection identifier.
+#'
+#' @details
+#' HTTP streaming uses chunked transfer encoding. The first `$send()` triggers
+#' writing of HTTP headers. Headers cannot be modified after the first send.
+#'
+#' For SSE, set the Content-Type header and use [format_sse()] to format events:
+#'
+#' ```
+#' conn$set_header("Content-Type", "text/event-stream")
+#' conn$set_header("Cache-Control", "no-cache")
+#' conn$send(format_sse(data = "Hello!"))
+#' ```
+#'
+#' @seealso [format_sse()] for formatting SSE events.
+#'
+#' @examples
+#' # SSE endpoint that sends one event and closes
+#' h <- handler_stream("/events", function(conn, req) {
+#'   conn$set_header("Content-Type", "text/event-stream")
+#'   conn$set_header("Cache-Control", "no-cache")
+#'   conn$send(format_sse(data = "connected"))
+#'   conn$close()
+#' })
+#'
+#' # Chat-style broadcast: each message goes to all other clients
+#' h <- handler_stream("/chat",
+#'   on_request = function(conn, req) {
+#'     conn$set_header("Content-Type", "text/event-stream")
+#'     conn$send(format_sse(data = "connected"))
+#'     # When this client sends a message (via separate POST endpoint),
+#'     # broadcast to all other connected clients:
+#'     # conn$broadcast(format_sse(data = message))
+#'   }
+#' )
+#'
+#' @export
+#'
+handler_stream <- function(path, on_request, on_close = NULL,
+                           method = NULL, prefix = FALSE) {
+  list(type = 7L, path = path, on_request = on_request, on_close = on_close,
+       method = method, prefix = prefix)
+}
+
+#' Format Server-Sent Event
+#'
+#' Formats a message according to the SSE specification.
+#'
+#' @param data The data payload. Will be prefixed with "data: " on each line.
+#' @param event \[default NULL\] Optional event type (e.g., "message", "error").
+#' @param id \[default NULL\] Optional event ID for client reconnection.
+#' @param retry \[default NULL\] Optional retry interval in milliseconds.
+#'
+#' @return A character string formatted as an SSE message.
+#'
+#' @details
+#' SSE messages have this format:
+#'
+#' ```
+#' event: <event-type>
+#' id: <event-id>
+#' retry: <milliseconds>
+#' data: <data-line-1>
+#' data: <data-line-2>
+#'
+#' ```
+#'
+#' Each message ends with two newlines. Multi-line data is split and each
+#' line prefixed with "data: ".
+#'
+#' @examples
+#' format_sse(data = "Hello")
+#' #> "data: Hello\n\n"
+#'
+#' format_sse(data = "Hello", event = "greeting")
+#' #> "event: greeting\ndata: Hello\n\n"
+#'
+#' format_sse(data = "Line 1\nLine 2")
+#' #> "data: Line 1\ndata: Line 2\n\n"
+#'
+#' @export
+#'
+format_sse <- function(data, event = NULL, id = NULL, retry = NULL) {
+  parts <- character()
+  if (!is.null(event)) parts <- c(parts, paste0("event: ", event))
+  if (!is.null(id)) parts <- c(parts, paste0("id: ", id))
+  if (!is.null(retry)) parts <- c(parts, paste0("retry: ", as.integer(retry)))
+  lines <- strsplit(as.character(data), "\n", fixed = TRUE)[[1L]]
+  parts <- c(parts, paste0("data: ", lines))
+  paste0(paste(parts, collapse = "\n"), "\n\n")
+}
+
+#' @export
+#'
+print.nanoStreamConn <- function(x, ...) {
+  cat("< nanoStreamConn >\n")
+  cat(" - id:", attr(x, "id"), "\n")
+  invisible(x)
+}
+
+#' @export
+#'
+`$.nanoStreamConn` <- function(x, name) {
+  switch(name,
+         send = function(data) .Call(rnng_stream_conn_send, x, data),
+         broadcast = function(data) .Call(rnng_stream_conn_broadcast, x, data),
+         close = function() .Call(rnng_conn_close, x),
+         set_status = function(code) .Call(rnng_stream_conn_set_status, x, as.integer(code)),
+         set_header = function(name, value) .Call(rnng_stream_conn_set_header, x, name, value),
+         id = attr(x, "id"),
+         attr(x, name, exact = TRUE))
+}
+

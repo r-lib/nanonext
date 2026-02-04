@@ -26,7 +26,7 @@ SEXP nano_TlsSymbol;
 SEXP nano_UrlSymbol;
 SEXP nano_ValueSymbol;
 SEXP nano_HttpServerSymbol;
-SEXP nano_WsConnSymbol;
+SEXP nano_ConnSymbol;
 
 SEXP nano_aioFuncMsg;
 SEXP nano_aioFuncRes;
@@ -62,7 +62,7 @@ static void RegisterSymbols(void) {
   nano_UrlSymbol = Rf_install("url");
   nano_ValueSymbol = Rf_install("value");
   nano_HttpServerSymbol = Rf_install("httpServer");
-  nano_WsConnSymbol = Rf_install("wsConn");
+  nano_ConnSymbol = Rf_install("conn");
 }
 
 static void PreserveObjects(void) {
@@ -137,6 +137,7 @@ static const R_CallMethodDef callMethods[] = {
   {"rnng_http_server_close", (DL_FUNC) &rnng_http_server_close, 1},
   {"rnng_http_server_create", (DL_FUNC) &rnng_http_server_create, 3},
   {"rnng_http_server_start", (DL_FUNC) &rnng_http_server_start, 1},
+  {"rnng_http_server_stop", (DL_FUNC) &rnng_http_server_stop, 1},
   {"rnng_ip_addr", (DL_FUNC) &rnng_ip_addr, 0},
   {"rnng_is_error_value", (DL_FUNC) &rnng_is_error_value, 1},
   {"rnng_is_nul_byte", (DL_FUNC) &rnng_is_nul_byte, 1},
@@ -187,6 +188,11 @@ static const R_CallMethodDef callMethods[] = {
   {"rnng_write_stdout", (DL_FUNC) &rnng_write_stdout, 1},
   {"rnng_ws_close", (DL_FUNC) &rnng_ws_close, 1},
   {"rnng_ws_send", (DL_FUNC) &rnng_ws_send, 2},
+  {"rnng_conn_close", (DL_FUNC) &rnng_conn_close, 1},
+  {"rnng_stream_conn_send", (DL_FUNC) &rnng_stream_conn_send, 2},
+  {"rnng_stream_conn_set_header", (DL_FUNC) &rnng_stream_conn_set_header, 3},
+  {"rnng_stream_conn_set_status", (DL_FUNC) &rnng_stream_conn_set_status, 2},
+  {"rnng_stream_conn_broadcast", (DL_FUNC) &rnng_stream_conn_broadcast, 2},
   {NULL, NULL, 0}
 };
 

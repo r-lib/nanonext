@@ -893,6 +893,15 @@ fakeserver <- `class<-`("test", "nanoServer")
 test_error(close(fakeserver), "valid HTTP Server")
 test_class("list", suppressWarnings(handler_file("/bad", "/nonexistent/file.txt")))
 test_error(handler_redirect("/bad", "/good", status = 999L), "301, 302, 303, 307, or 308")
+fakestream_conn <- `class<-`("test", "nanoStreamConn")
+test_print(fakestream_conn)
+
+test_equal(format_sse("Hello"), "data: Hello\n\n")
+test_equal(format_sse("Hello", event = "msg"), "event: msg\ndata: Hello\n\n")
+test_equal(format_sse("Hello", id = "1"), "id: 1\ndata: Hello\n\n")
+test_equal(format_sse("Hello", retry = 1000), "retry: 1000\ndata: Hello\n\n")
+test_equal(format_sse("Line1\nLine2"), "data: Line1\ndata: Line2\n\n")
+test_equal(format_sse("test", event = "e", id = "2", retry = 500), "event: e\nid: 2\nretry: 500\ndata: test\n\n")
 
 if (later && NOT_CRAN) {
   test_error(http_server("http://127.0.0.1:0", handlers = list(list(type = 99L, path = "/"))), "Invalid argument")
@@ -1260,6 +1269,120 @@ if (later && NOT_CRAN) {
   test_equal(aio$status, 204L)
 
   test_zero(handler_srv$close())
+}
+
+if (later && NOT_CRAN) {
+  stream_conn <- NULL
+  stream_closed <- FALSE
+  test_class("nanoServer", sse_srv <- http_server(
+    url = "http://127.0.0.1:0",
+    handlers = list(
+      handler_stream(
+        "/events",
+        on_request = function(conn, req) {
+          stream_conn <<- conn
+          conn$set_status(200L)
+          conn$set_header("Content-Type", "text/event-stream")
+          conn$set_header("Cache-Control", "no-cache")
+          conn$send(format_sse(data = "connected"))
+        },
+        on_close = function(conn) {
+          stream_closed <<- TRUE
+        }
+      )
+    )
+  ))
+  test_zero(sse_srv$start())
+  base_url <- sse_srv$url
+  Sys.sleep(0.1)
+
+  sse_client <- tryCatch(stream(dial = paste0("tcp://", sub("^http://", "", base_url), "/events")), error = identity)
+  if (is_nano(sse_client)) {
+
+    http_req <- "GET /events HTTP/1.1\r\nHost: 127.0.0.1\r\nAccept: text/event-stream\r\n\r\n"
+    test_zero(send(sse_client, http_req, block = 500))
+    for (i in 1:10) later::run_now(0.1)
+
+    test_class("nanoStreamConn", stream_conn)
+    test_print(stream_conn)
+    test_type("integer", stream_conn$id)
+    test_type("closure", stream_conn$send)
+    test_type("closure", stream_conn$close)
+    test_type("closure", stream_conn$set_status)
+    test_type("closure", stream_conn$set_header)
+    test_null(stream_conn$nonexistent)
+
+    test_error(stream_conn$set_status(201L), "after headers have been sent")
+    test_error(stream_conn$set_header("X-Test", "value"), "after headers have been sent")
+
+    test_zero(stream_conn$send(format_sse(data = "update")))
+
+    test_error(stream_conn$send(123L), "`data` must be raw or character")
+    test_error(stream_conn$send(list()), "`data` must be raw or character")
+
+    test_zero(stream_conn$close())
+    for (i in 1:5) later::run_now(0.1)
+    test_true(stream_closed)
+
+    test_error(stream_conn$send("after close"), "valid connection")
+    test_class("errorValue", stream_conn$close())
+
+    close(sse_client)
+  }
+  test_zero(sse_srv$close())
+}
+
+if (later && NOT_CRAN) {
+  conns <- list()
+  test_class("nanoServer", broadcast_srv <- http_server(
+    url = "http://127.0.0.1:0",
+    handlers = list(
+      handler_stream(
+        "/notify",
+        on_request = function(conn, req) {
+          conn$set_header("Content-Type", "text/event-stream")
+          conns[[as.character(conn$id)]] <<- conn
+          conn$send(format_sse(data = "subscribed"))
+        }
+      )
+    )
+  ))
+  test_zero(broadcast_srv$start())
+  base_url <- broadcast_srv$url
+  Sys.sleep(0.1)
+
+  client1 <- tryCatch(stream(dial = paste0("tcp://", sub("^http://", "", base_url), "/notify")), error = identity)
+  client2 <- tryCatch(stream(dial = paste0("tcp://", sub("^http://", "", base_url), "/notify")), error = identity)
+  client3 <- tryCatch(stream(dial = paste0("tcp://", sub("^http://", "", base_url), "/notify")), error = identity)
+
+  if (is_nano(client1) && is_nano(client2) && is_nano(client3)) {
+    http_req <- "GET /notify HTTP/1.1\r\nHost: 127.0.0.1\r\nAccept: text/event-stream\r\n\r\n"
+    send(client1, http_req, block = 500)
+    send(client2, http_req, block = 500)
+    send(client3, http_req, block = 500)
+    for (i in 1:15) later::run_now(0.1)
+
+    test_equal(length(conns), 3L)
+
+    conn1 <- conns[[1L]]
+    test_type("closure", conn1$broadcast)
+    results <- conn1$broadcast(format_sse(data = "news"))
+    test_equal(length(results), 3L)
+    test_true(all(results == 0L))
+
+    test_error(conn1$broadcast(123L), "`data` must be raw or character")
+
+    results <- conn1$broadcast(charToRaw("raw broadcast"))
+    test_equal(length(results), 3L)
+    test_true(all(results == 0L))
+
+    close(client1)
+    close(client2)
+    close(client3)
+    for (i in 1:5) later::run_now(0.1)
+  }
+
+  test_zero(broadcast_srv$close())
 }
 
 if (!interactive() && NOT_CRAN) {
