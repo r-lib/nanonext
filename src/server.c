@@ -1041,13 +1041,11 @@ static void stream_handler_cb(nng_aio *aio) {
     return;
   }
 
-  // Initialize base fields
   sc->conn.type = NANO_CONN_HTTP_STREAM;
   sc->conn.handler = info;
   sc->conn.state = CONN_STATE_OPEN;
   sc->conn.xptr = R_NilValue;
 
-  // Initialize stream-specific fields
   sc->http = http_conn;
   sc->req = req;  // Store pointer - valid because we hijacked
   sc->status_code = 200;
@@ -1059,7 +1057,6 @@ static void stream_handler_cb(nng_aio *aio) {
     return;
   }
 
-  // Add to handler's connection list
   nano_conn *conn = &sc->conn;
   nng_mtx_lock(srv->mtx);
   conn->id = ++srv->conn_counter;
@@ -1083,7 +1080,6 @@ static void stream_invoke_onrequest(void *arg) {
     return;
   }
 
-  // Create external pointer for this connection
   SEXP xptr;
   PROTECT(xptr = R_MakeExternalPtr(conn, nano_ConnSymbol, R_NilValue));
   NANO_CLASS2(xptr, "nanoStreamConn", "nano");
@@ -1092,7 +1088,6 @@ static void stream_invoke_onrequest(void *arg) {
   conn->xptr = xptr;
   UNPROTECT(1);
 
-  // Build request list from stored request pointer
   nng_http_req *req = sc->req;
 
   const char *names[] = {"method", "uri", "headers", "body", ""};
@@ -1136,7 +1131,6 @@ static void stream_invoke_onrequest(void *arg) {
 
 }
 
-// Write HTTP response headers using NNG's response object API
 static int stream_write_headers(nano_stream_conn *sc) {
 
   nng_http_res *res;
@@ -1145,22 +1139,18 @@ static int stream_write_headers(nano_stream_conn *sc) {
   if ((xc = nng_http_res_alloc(&res)))
     return xc;
 
-  // Set status code
   if ((xc = nng_http_res_set_status(res, (uint16_t) sc->status_code)))
     goto cleanup;
 
-  // Set Transfer-Encoding: chunked
   if ((xc = nng_http_res_set_header(res, "Transfer-Encoding", "chunked")))
     goto cleanup;
 
-  // Set user-specified response headers
   for (int i = 0; i < sc->resp_header_count; i++) {
     if ((xc = nng_http_res_set_header(res, sc->resp_header_names[i],
                                       sc->resp_header_values[i])))
       goto cleanup;
   }
 
-  // Write response headers to connection
   nng_aio_set_timeout(sc->conn.send_aio, 5000);
   nng_http_conn_write_res(sc->http, res, sc->conn.send_aio);
   nng_aio_wait(sc->conn.send_aio);
@@ -1172,27 +1162,23 @@ cleanup:
 
 }
 
-// Write a single chunk in chunked transfer encoding format
 static int stream_write_chunk(nano_stream_conn *sc, const unsigned char *data,
                               size_t len) {
 
   // Format: hex_size + CRLF + data + CRLF
   char header[24];
-  int header_len = snprintf(header, sizeof(header), "%zx\r\n", len);
+  int header_len = snprintf(header, sizeof(header), "%" PRIxPTR "\r\n", (uintptr_t) len);
 
-  // Allocate buffer for chunk
   size_t chunk_len = (size_t) header_len + len + 2;
   unsigned char *chunk = malloc(chunk_len);
   if (chunk == NULL)
     return NNG_ENOMEM;
 
-  // Build chunk
   memcpy(chunk, header, (size_t) header_len);
   if (len > 0)
     memcpy(chunk + header_len, data, len);
   memcpy(chunk + header_len + len, "\r\n", 2);
 
-  // Set up iov and write
   nng_iov iov = {
     .iov_buf = chunk,
     .iov_len = chunk_len
@@ -1213,7 +1199,6 @@ static int stream_write_chunk(nano_stream_conn *sc, const unsigned char *data,
 
 }
 
-// Write the terminal chunk to properly end chunked encoding
 static int stream_write_terminator(nano_stream_conn *sc) {
 
   static const char terminator[] = "0\r\n\r\n";
@@ -1233,7 +1218,6 @@ static int stream_write_terminator(nano_stream_conn *sc) {
 
 }
 
-// R-callable: Send data on HTTP stream connection
 SEXP rnng_stream_conn_send(SEXP xptr, SEXP data) {
 
   if (NANO_PTR_CHECK(xptr, nano_ConnSymbol))
@@ -1275,7 +1259,6 @@ SEXP rnng_stream_conn_send(SEXP xptr, SEXP data) {
 
 }
 
-// R-callable: Set HTTP status code
 SEXP rnng_stream_conn_set_status(SEXP xptr, SEXP code) {
 
   if (NANO_PTR_CHECK(xptr, nano_ConnSymbol))
@@ -1290,12 +1273,11 @@ SEXP rnng_stream_conn_set_status(SEXP xptr, SEXP code) {
   if (sc->headers_sent)
     Rf_error("cannot set status after headers have been sent");
 
-  sc->status_code = Rf_asInteger(code);
+  sc->status_code = nano_integer(code);
   return nano_success;
 
 }
 
-// R-callable: Set HTTP response header
 SEXP rnng_stream_conn_set_header(SEXP xptr, SEXP name, SEXP value) {
 
   if (NANO_PTR_CHECK(xptr, nano_ConnSymbol))
@@ -1313,7 +1295,6 @@ SEXP rnng_stream_conn_set_header(SEXP xptr, SEXP name, SEXP value) {
   const char *hdr_name = NANO_STRING(name);
   const char *hdr_value = NANO_STRING(value);
 
-  // Grow arrays if needed
   if (sc->resp_header_count >= sc->resp_header_capacity) {
     int new_cap = sc->resp_header_capacity == 0 ? 8 : sc->resp_header_capacity * 2;
     char **new_names = realloc(sc->resp_header_names, new_cap * sizeof(char *));
@@ -1328,7 +1309,6 @@ SEXP rnng_stream_conn_set_header(SEXP xptr, SEXP name, SEXP value) {
     sc->resp_header_capacity = new_cap;
   }
 
-  // Add header
   sc->resp_header_names[sc->resp_header_count] = strdup(hdr_name);
   sc->resp_header_values[sc->resp_header_count] = strdup(hdr_value);
   if (sc->resp_header_names[sc->resp_header_count] == NULL ||
@@ -1340,7 +1320,6 @@ SEXP rnng_stream_conn_set_header(SEXP xptr, SEXP name, SEXP value) {
 
 }
 
-// R-callable: Generic connection close (works for both WebSocket and HTTP stream)
 SEXP rnng_conn_close(SEXP xptr) {
 
   if (NANO_PTR_CHECK(xptr, nano_ConnSymbol))
@@ -1348,7 +1327,6 @@ SEXP rnng_conn_close(SEXP xptr) {
 
   nano_conn *conn = (nano_conn *) NANO_PTR(xptr);
 
-  // For HTTP stream, send terminal chunk if headers were sent
   if (conn->type == NANO_CONN_HTTP_STREAM) {
     nano_stream_conn *sc = (nano_stream_conn *) conn;
     if (conn_is_open(conn) && sc->headers_sent)
@@ -1360,7 +1338,6 @@ SEXP rnng_conn_close(SEXP xptr) {
 
 }
 
-// R-callable: Broadcast to all peer connections on the same handler
 SEXP rnng_stream_conn_broadcast(SEXP xptr, SEXP data) {
 
   if (NANO_PTR_CHECK(xptr, nano_ConnSymbol))
@@ -1374,7 +1351,6 @@ SEXP rnng_stream_conn_broadcast(SEXP xptr, SEXP data) {
   if (handler == NULL)
     return Rf_allocVector(INTSXP, 0);
 
-  // Validate and parse data
   unsigned char *buf;
   size_t len;
   switch (TYPEOF(data)) {
@@ -1390,7 +1366,6 @@ SEXP rnng_stream_conn_broadcast(SEXP xptr, SEXP data) {
     Rf_error("`data` must be raw or character");
   }
 
-  // Count all open HTTP stream connections on this handler
   int n = 0;
   for (nano_conn *c = handler->conns; c != NULL; c = c->next)
     if (c->type == NANO_CONN_HTTP_STREAM && conn_is_open(c))
@@ -1401,7 +1376,7 @@ SEXP rnng_stream_conn_broadcast(SEXP xptr, SEXP data) {
 
   // Format chunk once: hex_size + CRLF + data + CRLF
   char header[24];
-  int header_len = snprintf(header, sizeof(header), "%zx\r\n", len);
+  int header_len = snprintf(header, sizeof(header), "%" PRIxPTR "\r\n", (uintptr_t) len);
   size_t chunk_len = (size_t) header_len + len + 2;
   unsigned char *chunk = malloc(chunk_len);
   if (chunk == NULL)
@@ -1490,24 +1465,19 @@ SEXP rnng_stream_conn_broadcast(SEXP xptr, SEXP data) {
     nng_aio_free(aios[i]);
   }
 
-  // Build result vector
-  SEXP result = PROTECT(Rf_allocVector(INTSXP, n));
-  int *rp = INTEGER(result);
-  for (int j = 0; j < n; j++)
-    rp[j] = results[j];
+  SEXP result = Rf_allocVector(INTSXP, n);
+  memcpy(NANO_DATAPTR(result), results, (size_t) (n * sizeof(int)));
 
   free(chunk);
   free(aios);
   free(iovs);
   free(conns);
   free(results);
-
-  UNPROTECT(1);
+  
   return result;
 
 }
 
-// R-callable: Stop HTTP server
 SEXP rnng_http_server_stop(SEXP xptr) {
 
   if (NANO_PTR_CHECK(xptr, nano_HttpServerSymbol))
