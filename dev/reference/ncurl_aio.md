@@ -53,7 +53,8 @@ ncurl_aio(
 
   (optional) a character vector specifying the response headers to
   return e.g. `c("date", "server")`. These are case-insensitive and will
-  return NULL if not present. A non-character vector will be ignored.
+  return NULL if not present. Specify `TRUE` to return all response
+  headers. A non-character vector will be ignored (other than `TRUE`).
 
 - timeout:
 
@@ -76,8 +77,9 @@ The following elements may be accessed:
   [`status_code()`](https://nanonext.r-lib.org/dev/reference/status_code.md)
   for a translation of the meaning.
 
-- `$headers` - named list of response headers supplied in `response`, or
-  NULL otherwise. If the status code is within the 300 range, i.e. a
+- `$headers` - named list of response headers (all headers if
+  `response = TRUE`, or those specified in `response`, or NULL
+  otherwise). If the status code is within the 300 range, i.e. a
   redirect, the response header 'Location' is automatically appended to
   return the redirect address.
 
@@ -119,7 +121,7 @@ nc$status
 #> [1] 200
 nc$headers
 #> $date
-#> [1] "Thu, 22 Jan 2026 12:08:55 GMT"
+#> [1] "Wed, 04 Feb 2026 10:23:31 GMT"
 #> 
 #> $server
 #> [1] "cloudflare"

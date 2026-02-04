@@ -60,7 +60,8 @@ ncurl(
 
   (optional) a character vector specifying the response headers to
   return e.g. `c("date", "server")`. These are case-insensitive and will
-  return NULL if not present. A non-character vector will be ignored.
+  return NULL if not present. Specify `TRUE` to return all response
+  headers. A non-character vector will be ignored (other than `TRUE`).
 
 - timeout:
 
@@ -82,8 +83,9 @@ Named list of 3 elements:
   [`status_code()`](https://nanonext.r-lib.org/dev/reference/status_code.md)
   for a translation of the meaning.
 
-- `$headers` - named list of response headers supplied in `response`, or
-  NULL otherwise. If the status code is within the 300 range, i.e. a
+- `$headers` - named list of response headers (all headers if
+  `response = TRUE`, or those specified in `response`, or NULL
+  otherwise). If the status code is within the 300 range, i.e. a
   redirect, the response header 'Location' is automatically appended to
   return the redirect address.
 
@@ -114,7 +116,7 @@ ncurl(
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Thu, 22 Jan 2026 12:08:54 GMT"
+#> [1] "Wed, 04 Feb 2026 10:23:29 GMT"
 #> 
 #> $headers$`content-type`
 #> [1] "application/json; charset=utf-8"
@@ -128,6 +130,52 @@ ncurl(
 #>  [89] 64 2d 70 72 6f 74 6f 22 3a 22 68 74 74 70 73 22 7d 2c 22 75 72 6c
 #> [111] 22 3a 22 68 74 74 70 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63 68
 #> [133] 6f 2e 63 6f 6d 2f 67 65 74 22 7d
+#> 
+ncurl(
+  "https://postman-echo.com/get",
+  response = TRUE,
+  timeout = 1200L
+)
+#> $status
+#> [1] 200
+#> 
+#> $headers
+#> $headers$Date
+#> [1] "Wed, 04 Feb 2026 10:23:30 GMT"
+#> 
+#> $headers$`Content-Type`
+#> [1] "application/json; charset=utf-8"
+#> 
+#> $headers$`Content-Length`
+#> [1] "143"
+#> 
+#> $headers$Connection
+#> [1] "close"
+#> 
+#> $headers$`CF-RAY`
+#> [1] "9c8973f519a24855-SEA"
+#> 
+#> $headers$etag
+#> [1] "W/\"8f-7zN8nSad8A9WlFJjKQZB04z5nHE\""
+#> 
+#> $headers$vary
+#> [1] "Accept-Encoding"
+#> 
+#> $headers$`Set-Cookie`
+#> [1] "sails.sid=s%3AdlJhkdKiu-qX2ugYNpSKE8fZ4hpRVSrW.3xsCGXhilFZywdtqHvBrjI2DB5sn%2B8Kq9jGiU5mBDjA; Path=/; HttpOnly, __cf_bm=ujJsmtiTOeXwJSoUM635trl1FfzTbYhY1Az.owCtsGo-1770200610-1.0.1.1-xSBhk8cRPR9jlfYiGnJqws5F5x8ji0eYJyVO2WFn7IX3yhBQCeXyN_dulsxWZSagggO.roNjdRmvBDm2fQAO9vpjGubzaYZb.muHq0H0G64; path=/; expires=Wed, 04-Feb-26 10:53:30 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=y4dB2EJFPoHUzez79cmjEneY1OGahbHD8qq2bFelhGc-1770200610205-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
+#> 
+#> $headers$`x-envoy-upstream-service-time`
+#> [1] "5"
+#> 
+#> $headers$`cf-cache-status`
+#> [1] "DYNAMIC"
+#> 
+#> $headers$Server
+#> [1] "cloudflare"
+#> 
+#> 
+#> $data
+#> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"
 #> 
 ncurl(
   "https://postman-echo.com/put",

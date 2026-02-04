@@ -42,11 +42,16 @@
 <h2 class="pkg-version" data-toc-text="development version" id="nanonext-development-version">nanonext (development version)<a class="anchor" aria-label="anchor" href="#nanonext-development-version"></a></h2>
 <div class="section level5">
 <h5 id="new-features-development-version">New Features<a class="anchor" aria-label="anchor" href="#new-features-development-version"></a></h5>
-<ul><li>Adds <code><a href="../reference/race_aio.html">race_aio()</a></code> to wait for and return the index of the first resolved Aio in a list of Aios.</li>
+<ul><li>Adds <code><a href="../reference/http_server.html">http_server()</a></code> for creating HTTP and WebSocket servers supporting dynamic handlers, static file serving, redirects, and TLS/SSL.</li>
+<li>Adds handler functions for use with <code><a href="../reference/http_server.html">http_server()</a></code>: <code><a href="../reference/handler.html">handler()</a></code> for dynamic responses, <code><a href="../reference/handler_ws.html">handler_ws()</a></code> for WebSocket connections, <code><a href="../reference/handler_file.html">handler_file()</a></code> and <code><a href="../reference/handler_directory.html">handler_directory()</a></code> for static content, <code><a href="../reference/handler_redirect.html">handler_redirect()</a></code> for redirects, and <code><a href="../reference/handler_inline.html">handler_inline()</a></code> for fixed responses.</li>
+<li>
+<code><a href="../reference/ncurl.html">ncurl()</a></code> and variants now accept <code>response = TRUE</code> to return all response headers.</li>
+<li>Adds <code><a href="../reference/race_aio.html">race_aio()</a></code> to wait for and return the index of the first resolved Aio in a list of Aios.</li>
 </ul></div>
 <div class="section level5">
 <h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
-<ul><li>
+<ul><li>Closing an already closed stream now returns ‘errorValue’ 7 | Object closed rather than error.</li>
+<li>
 <code><a href="../reference/random.html">random()</a></code> now only accepts ‘n’ between 1 and 1024. Supplying 0 will error (<a href="https://github.com/r-lib/nanonext/issues/238" class="external-link">#238</a>).</li>
 <li>Fixes a potential crash when <code><a href="../reference/random.html">random()</a></code> or <code><a href="../reference/write_cert.html">write_cert()</a></code> is called in a fresh session before any other TLS-related functions have been called, and nanonext has been compiled against a system Mbed TLS with PSA crypto enabled. (<a href="https://github.com/r-lib/nanonext/issues/242" class="external-link">#242</a>).</li>
 <li>Fixes a potential crash when a serialization hook errors (<a href="https://github.com/r-lib/nanonext/issues/225" class="external-link">#225</a>).</li>

@@ -23,6 +23,13 @@
 <url><loc>https://nanonext.r-lib.org/dev/reference/dot-read_header.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/dev/reference/dot-unresolved.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/dev/reference/grapes-twiddle-greater-than-grapes.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/dev/reference/handler.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/dev/reference/handler_directory.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/dev/reference/handler_file.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/dev/reference/handler_inline.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/dev/reference/handler_redirect.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/dev/reference/handler_ws.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/dev/reference/http_server.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/dev/reference/index.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/dev/reference/ip_addr.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/dev/reference/is_aio.html</loc></url>

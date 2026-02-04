@@ -14,6 +14,7 @@
   [`close(`*`<nanoDialer>`*`)`](https://nanonext.r-lib.org/dev/reference/close.md)
   [`close(`*`<nanoListener>`*`)`](https://nanonext.r-lib.org/dev/reference/close.md)
   [`close(`*`<ncurlSession>`*`)`](https://nanonext.r-lib.org/dev/reference/close.md)
+  [`close(`*`<nanoServer>`*`)`](https://nanonext.r-lib.org/dev/reference/close.md)
   [`close(`*`<nanoSocket>`*`)`](https://nanonext.r-lib.org/dev/reference/close.md)
   [`close(`*`<nanoStream>`*`)`](https://nanonext.r-lib.org/dev/reference/close.md)
   : Close Connection
@@ -37,6 +38,20 @@
   : Technical Utility: Open Context
 - [`` `%~>%` ``](https://nanonext.r-lib.org/dev/reference/grapes-twiddle-greater-than-grapes.md)
   : Signal Forwarder
+- [`handler()`](https://nanonext.r-lib.org/dev/reference/handler.md) :
+  Create HTTP Handler
+- [`handler_directory()`](https://nanonext.r-lib.org/dev/reference/handler_directory.md)
+  : Create Static Directory Handler
+- [`handler_file()`](https://nanonext.r-lib.org/dev/reference/handler_file.md)
+  : Create Static File Handler
+- [`handler_inline()`](https://nanonext.r-lib.org/dev/reference/handler_inline.md)
+  : Create Inline Static Content Handler
+- [`handler_redirect()`](https://nanonext.r-lib.org/dev/reference/handler_redirect.md)
+  : Create HTTP Redirect Handler
+- [`handler_ws()`](https://nanonext.r-lib.org/dev/reference/handler_ws.md)
+  : Create WebSocket Handler
+- [`http_server()`](https://nanonext.r-lib.org/dev/reference/http_server.md)
+  : Create HTTP/WebSocket Server
 - [`ip_addr()`](https://nanonext.r-lib.org/dev/reference/ip_addr.md) :
   IP Address
 - [`is_aio()`](https://nanonext.r-lib.org/dev/reference/is_aio.md)

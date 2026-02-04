@@ -5,12 +5,34 @@
 ##### New Features
 
 - Adds
+  [`http_server()`](https://nanonext.r-lib.org/dev/reference/http_server.md)
+  for creating HTTP and WebSocket servers supporting dynamic handlers,
+  static file serving, redirects, and TLS/SSL.
+- Adds handler functions for use with
+  [`http_server()`](https://nanonext.r-lib.org/dev/reference/http_server.md):
+  [`handler()`](https://nanonext.r-lib.org/dev/reference/handler.md) for
+  dynamic responses,
+  [`handler_ws()`](https://nanonext.r-lib.org/dev/reference/handler_ws.md)
+  for WebSocket connections,
+  [`handler_file()`](https://nanonext.r-lib.org/dev/reference/handler_file.md)
+  and
+  [`handler_directory()`](https://nanonext.r-lib.org/dev/reference/handler_directory.md)
+  for static content,
+  [`handler_redirect()`](https://nanonext.r-lib.org/dev/reference/handler_redirect.md)
+  for redirects, and
+  [`handler_inline()`](https://nanonext.r-lib.org/dev/reference/handler_inline.md)
+  for fixed responses.
+- [`ncurl()`](https://nanonext.r-lib.org/dev/reference/ncurl.md) and
+  variants now accept `response = TRUE` to return all response headers.
+- Adds
   [`race_aio()`](https://nanonext.r-lib.org/dev/reference/race_aio.md)
   to wait for and return the index of the first resolved Aio in a list
   of Aios.
 
 ##### Updates
 
+- Closing an already closed stream now returns ‘errorValue’ 7 \| Object
+  closed rather than error.
 - [`random()`](https://nanonext.r-lib.org/dev/reference/random.md) now
   only accepts ‘n’ between 1 and 1024. Supplying 0 will error
   ([\#238](https://github.com/r-lib/nanonext/issues/238)).

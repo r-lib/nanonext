@@ -58,7 +58,8 @@ transact(session)
 
   (optional) a character vector specifying the response headers to
   return e.g. `c("date", "server")`. These are case-insensitive and will
-  return NULL if not present. A non-character vector will be ignored.
+  return NULL if not present. Specify `TRUE` to return all response
+  headers. A non-character vector will be ignored (other than `TRUE`).
 
 - timeout:
 
@@ -87,10 +88,9 @@ For `transact`: a named list of 3 elements:
   [`status_code()`](https://nanonext.r-lib.org/dev/reference/status_code.md)
   for a translation of the meaning.
 
-- `$headers` - named list of response headers (if specified in the
-  session), or NULL otherwise. If the status code is within the 300
-  range, i.e. a redirect, the response header 'Location' is
-  automatically appended to return the redirect address.
+- `$headers` - named list of response headers (all headers if
+  `response = TRUE` was specified for the session, those specified in
+  `response`, or NULL otherwise).
 
 - `$data` - the response body as a character string (if `convert = TRUE`
   was specified for the session), which may be further parsed as html,
@@ -121,7 +121,7 @@ if (is_ncurl_session(s)) transact(s)
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Thu, 22 Jan 2026 12:08:55 GMT"
+#> [1] "Wed, 04 Feb 2026 10:23:32 GMT"
 #> 
 #> 
 #> $data

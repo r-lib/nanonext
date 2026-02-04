@@ -93,7 +93,8 @@ format.</p></dd>
 <dt id="arg-response">response<a class="anchor" aria-label="anchor" href="#arg-response"></a></dt>
 <dd><p>(optional) a character vector specifying the response headers
 to return e.g. <code>c("date", "server")</code>. These are case-insensitive and
-will return NULL if not present. A non-character vector will be ignored.</p></dd>
+will return NULL if not present. Specify <code>TRUE</code> to return all response
+headers. A non-character vector will be ignored (other than <code>TRUE</code>).</p></dd>
 
 
 <dt id="arg-timeout">timeout<a class="anchor" aria-label="anchor" href="#arg-timeout"></a></dt>
@@ -112,10 +113,11 @@ certificates are not validated.</p></dd>
     <p>An 'ncurlAio' (object of class 'ncurlAio' and 'recvAio') (invisibly).
 The following elements may be accessed:</p><ul><li><p><code>$status</code> - integer HTTP repsonse status code (200 - OK).
 Use <code><a href="status_code.html">status_code()</a></code> for a translation of the meaning.</p></li>
-<li><p><code>$headers</code> - named list of response headers supplied in <code>response</code>,
-or NULL otherwise. If the status code is within the 300 range, i.e. a
-redirect, the response header 'Location' is automatically appended to
-return the redirect address.</p></li>
+<li><p><code>$headers</code> - named list of response headers (all headers if
+<code>response = TRUE</code>, or those specified in <code>response</code>, or NULL otherwise).
+If the status code is within the 300 range, i.e. a redirect, the response
+header 'Location' is automatically appended to return the redirect
+address.</p></li>
 <li><p><code>$data</code> - the response body, as a character string if
 <code>convert = TRUE</code> (may be further parsed as html, json, xml etc. as
 required), or a raw byte vector if FALSE (use <code><a href="https://rdrr.io/r/base/readBin.html" class="external-link">writeBin()</a></code> to save as a
@@ -151,7 +153,7 @@ persistent connections.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 200</span>
 <span class="r-in"><span><span class="va">nc</span><span class="op">$</span><span class="va">headers</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $date</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Thu, 22 Jan 2026 12:08:55 GMT"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Wed, 04 Feb 2026 10:23:31 GMT"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $server</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "cloudflare"</span>
