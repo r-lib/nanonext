@@ -2,10 +2,14 @@
 
 #### New Features
 
+* Adds `http_server()` for creating HTTP and WebSocket servers supporting dynamic handlers, static file serving, redirects, and TLS/SSL.
+* Adds handler functions for use with `http_server()`: `handler()` for dynamic responses, `handler_ws()` for WebSocket connections, `handler_file()` and `handler_directory()` for static content, `handler_redirect()` for redirects, and `handler_inline()` for fixed responses. 
+* `ncurl()` and variants now accept `response = TRUE` to return all response headers.
 * Adds `race_aio()` to wait for and return the index of the first resolved Aio in a list of Aios.
 
 #### Updates
 
+* Closing an already closed stream now returns 'errorValue' 7 | Object closed rather than error.
 * `random()` now only accepts 'n' between 1 and 1024. Supplying 0 will error (#238).
 * Fixes a potential crash when `random()` or `write_cert()` is called in a fresh session before any other TLS-related functions have been called, and nanonext has been compiled against a system Mbed TLS with PSA crypto enabled. (#242).
 * Fixes a potential crash when a serialization hook errors (#225).

@@ -23,6 +23,12 @@
 
 #ifdef NANONEXT_HTTP
 #include <nng/supplemental/http/http.h>
+#include "nng_structs.h"
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
 
 typedef struct nano_handle_s {
   nng_url *url;
@@ -144,6 +150,7 @@ extern int R_interrupts_pending;
   SET_STRING_ELT(klass, 0, Rf_mkChar(cls1));                   \
   SET_STRING_ELT(klass, 1, Rf_mkChar(cls2))
 #define NANO_ENSURE_ALLOC(x) if (x == NULL) { xc = 2; goto failmem; }
+#define NANO_URL_MAX 8192
 
 typedef union nano_opt_u {
   char *str;
@@ -162,6 +169,7 @@ typedef struct nano_stream_s {
   } endpoint;
   nng_tls_config *tls;
   int textframes;
+  int msgmode;
   enum {
     NANO_STREAM_DIALER,
     NANO_STREAM_LISTENER
@@ -243,6 +251,81 @@ typedef enum nano_list_op {
   SHUTDOWN
 } nano_list_op;
 
+#ifdef NANONEXT_HTTP
+
+typedef struct nano_ws_conn_s nano_ws_conn;
+typedef struct nano_http_server_s nano_http_server;
+typedef struct nano_http_handler_info_s nano_http_handler_info;
+typedef struct nano_http_request_s nano_http_request;
+
+typedef enum {
+  WS_STATE_OPEN,      // Connection active, can send/receive
+  WS_STATE_CLOSING,   // Close initiated, waiting for cleanup
+  WS_STATE_CLOSED     // Fully closed, safe to free
+} ws_conn_state;
+
+typedef struct nano_ws_conn_s {
+  nng_stream *stream;               // WebSocket stream (framing automatic)
+  nng_aio *recv_aio;                // For async receive (msg mode)
+  nng_aio *send_aio;                // For async send (msg mode)
+  nano_http_handler_info *handler;  // Back-reference to handler
+  nano_ws_conn *next;               // Linked list
+  nano_ws_conn *prev;               // Doubly-linked for O(1) removal
+  SEXP xptr;                        // R external pointer (nanoWsConn object)
+  int id;                           // Unique connection ID
+  ws_conn_state state;              // Connection state (protected by server->mtx)
+  int onclose_scheduled;            // Prevents duplicate on_close callbacks
+} nano_ws_conn;
+
+typedef struct nano_http_handler_info_s {
+  nng_http_handler *handler;        // NNG HTTP handler (NULL for WS)
+  SEXP callback;                    // HTTP callback or WS on_message
+  nano_http_server *server;         // Back-reference
+  // WebSocket handler fields (all NULL/0 for non-WS handlers):
+  nng_stream_listener *ws_listener; // WebSocket listener
+  nng_aio *ws_accept_aio;           // Accept AIO for this WS handler
+  nano_ws_conn *ws_conns;           // Linked list of connections
+  SEXP on_open;                     // R callback for connection open
+  SEXP on_close;                    // R callback for connection close
+  int textframes;                   // Text frame mode
+} nano_http_handler_info;
+
+typedef struct nano_http_request_s {
+  nng_aio *aio;                     // The HTTP AIO to complete
+  nng_http_req *req;                // The HTTP request (valid until aio finished)
+  SEXP callback;                    // R callback function
+  nano_http_server *server;         // Back-reference to server
+  nano_http_request *next;          // Linked list for tracking
+  nano_http_request *prev;
+  int cancelled;                    // Set when server stops (protected by server->mtx)
+} nano_http_request;
+
+typedef enum {
+  SERVER_CREATED,   // Server created but not started
+  SERVER_STARTED,   // Server running
+  SERVER_STOPPED    // Server stopped
+} nano_server_state;
+
+typedef struct nano_http_server_s {
+  nng_http_server *server;          // NNG HTTP server
+  nng_tls_config *tls;              // TLS configuration
+  nano_http_handler_info *handlers; // Array of handler info
+  int handler_count;                // Number of handlers
+  nano_http_request *pending_reqs;  // Linked list of pending HTTP requests
+  nng_mtx *mtx;                     // Mutex for thread safety
+  int ws_conn_counter;              // Server-wide unique connection ID counter
+  nano_server_state state;          // Server lifecycle state
+  SEXP xptr;                        // R external pointer for this server
+  SEXP prot;                        // Pairlist for GC protection of callbacks
+} nano_http_server;
+
+typedef struct ws_message_s {
+  nano_ws_conn *conn;
+  nng_msg *msg;
+} ws_message;
+
+#endif
+
 extern void (*eln2)(void (*)(void *), void *, double, int);
 
 extern SEXP nano_AioSymbol;
@@ -266,6 +349,8 @@ extern SEXP nano_StreamSymbol;
 extern SEXP nano_TlsSymbol;
 extern SEXP nano_UrlSymbol;
 extern SEXP nano_ValueSymbol;
+extern SEXP nano_HttpServerSymbol;
+extern SEXP nano_WsConnSymbol;
 
 extern SEXP nano_aioFuncMsg;
 extern SEXP nano_aioFuncRes;
@@ -330,6 +415,10 @@ SEXP nano_aio_http_status(SEXP);
 void pipe_cb_signal(nng_pipe, nng_pipe_ev, void *);
 void tls_finalizer(SEXP);
 
+void nano_load_later(void);
+SEXP nano_PreserveObject(const SEXP);
+void nano_ReleaseObject(SEXP);
+
 void nano_list_do(nano_list_op, nano_aio *);
 void nano_thread_shutdown(void);
 
@@ -365,6 +454,9 @@ SEXP rnng_fini(void);
 SEXP rnng_fini_priors(void);
 SEXP rnng_get_opt(SEXP, SEXP);
 SEXP rnng_header_read(SEXP);
+SEXP rnng_http_server_close(SEXP);
+SEXP rnng_http_server_create(SEXP, SEXP, SEXP);
+SEXP rnng_http_server_start(SEXP);
 SEXP rnng_ip_addr(void);
 SEXP rnng_is_error_value(SEXP);
 SEXP rnng_is_nul_byte(SEXP);
@@ -414,5 +506,7 @@ SEXP rnng_version(void);
 SEXP rnng_wait_thread_create(SEXP);
 SEXP rnng_write_cert(SEXP, SEXP);
 SEXP rnng_write_stdout(SEXP);
+SEXP rnng_ws_close(SEXP);
+SEXP rnng_ws_send(SEXP, SEXP);
 
 #endif

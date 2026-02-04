@@ -406,24 +406,36 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
     nano_stream *nst = (nano_stream *) NANO_PTR(con);
     nng_stream *sp = nst->stream;
     nng_aio *aiop = NULL;
-    nng_iov iov = {
-      .iov_buf = buf.buf,
-      .iov_len = buf.cur - nst->textframes
-    };
 
     if ((xc = nng_aio_alloc(&aiop, NULL, NULL)))
       goto fail;
 
-    if ((xc = nng_aio_set_iov(aiop, 1u, &iov))) {
-      nng_aio_free(aiop);
-      goto fail;
+    if (nst->msgmode) {
+      nng_msg *msgp;
+      const size_t xlen = buf.cur - nst->textframes;
+      if ((xc = nng_msg_alloc(&msgp, xlen))) {
+        nng_aio_free(aiop);
+        goto fail;
+      }
+      memcpy(nng_msg_body(msgp), buf.buf, xlen);
+      nng_aio_set_msg(aiop, msgp);
+    } else {
+      nng_iov iov = {
+        .iov_buf = buf.buf,
+        .iov_len = buf.cur - nst->textframes
+      };
+      if ((xc = nng_aio_set_iov(aiop, 1u, &iov))) {
+        nng_aio_free(aiop);
+        goto fail;
+      }
     }
 
     nng_aio_set_timeout(aiop, flags ? flags : (NANO_INTEGER(block) != 0) * NNG_DURATION_DEFAULT);
     nng_stream_send(sp, aiop);
     NANO_FREE(buf);
     nng_aio_wait(aiop);
-    xc = nng_aio_result(aiop);
+    if ((xc = nng_aio_result(aiop)) && nst->msgmode)
+      nng_msg_free(nng_aio_get_msg(aiop));
     nng_aio_free(aiop);
 
   } else {
@@ -523,36 +535,52 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
   } else if (!NANO_PTR_CHECK(con, nano_StreamSymbol)) {
 
     const int mod = nano_matcharg(mode) == 1 ? 2 : nano_matcharg(mode);
-    const size_t xlen = (size_t) nano_integer(bytes);
-    nng_stream **sp = (nng_stream **) NANO_PTR(con);
+    nano_stream *nst = (nano_stream *) NANO_PTR(con);
+    nng_stream *sp = nst->stream;
     nng_aio *aiop = NULL;
 
-    buf = malloc(xlen);
-    NANO_ENSURE_ALLOC(buf);
-    nng_iov iov = {
-      .iov_buf = buf,
-      .iov_len = xlen
-    };
-
-    if ((xc = nng_aio_alloc(&aiop, NULL, NULL)) ||
-        (xc = nng_aio_set_iov(aiop, 1u, &iov))) {
-      nng_aio_free(aiop);
+    if ((xc = nng_aio_alloc(&aiop, NULL, NULL)))
       goto fail;
-    }
 
-    nng_aio_set_timeout(aiop, flags ? flags : (NANO_INTEGER(block) != 0) * NNG_DURATION_DEFAULT);
-    nng_stream_recv(*sp, aiop);
-
-    nng_aio_wait(aiop);
-    if ((xc = nng_aio_result(aiop))) {
+    if (nst->msgmode) {
+      nng_msg *msgp;
+      nng_aio_set_timeout(aiop, flags ? flags : (NANO_INTEGER(block) != 0) * NNG_DURATION_DEFAULT);
+      nng_stream_recv(sp, aiop);
+      nng_aio_wait(aiop);
+      if ((xc = nng_aio_result(aiop))) {
+        nng_aio_free(aiop);
+        goto fail;
+      }
+      msgp = nng_aio_get_msg(aiop);
       nng_aio_free(aiop);
-      goto fail;
+      buf = nng_msg_body(msgp);
+      sz = nng_msg_len(msgp);
+      res = nano_decode(buf, sz, mod, NANO_PROT(con));
+      nng_msg_free(msgp);
+    } else {
+      const size_t xlen = (size_t) nano_integer(bytes);
+      buf = malloc(xlen);
+      NANO_ENSURE_ALLOC(buf);
+      nng_iov iov = {
+        .iov_buf = buf,
+        .iov_len = xlen
+      };
+      if ((xc = nng_aio_set_iov(aiop, 1u, &iov))) {
+        nng_aio_free(aiop);
+        goto fail;
+      }
+      nng_aio_set_timeout(aiop, flags ? flags : (NANO_INTEGER(block) != 0) * NNG_DURATION_DEFAULT);
+      nng_stream_recv(sp, aiop);
+      nng_aio_wait(aiop);
+      if ((xc = nng_aio_result(aiop))) {
+        nng_aio_free(aiop);
+        goto fail;
+      }
+      sz = nng_aio_count(aiop);
+      nng_aio_free(aiop);
+      res = nano_decode(buf, sz, mod, NANO_PROT(con));
+      free(buf);
     }
-
-    sz = nng_aio_count(aiop);
-    nng_aio_free(aiop);
-    res = nano_decode(buf, sz, mod, NANO_PROT(con));
-    free(buf);
 
   } else {
     Rf_error("`con` is not a valid Socket, Context or Stream");

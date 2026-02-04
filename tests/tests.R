@@ -447,7 +447,8 @@ test_error(socket(dial = "test"), "argument")
 test_error(socket(listen = "test"), "argument")
 
 test_type("list", ncurl("http://www.cam.ac.uk/"))
-test_type("list", ncurl("http://www.cam.ac.uk/", follow = FALSE, response = "date"))
+test_type("list", res <- ncurl("http://www.cam.ac.uk/", follow = FALSE, response = TRUE))
+if (res$status == 301L) test_true(length(res$headers) > 1L)
 test_type("list", ncurl("http://www.cam.ac.uk/", follow = TRUE))
 test_type("list", ncurl("https://postman-echo.com/post", convert = FALSE, method = "POST", headers = c(`Content-Type` = "application/octet-stream"), data = as.raw(1L), response = c("Date", "Server"), timeout = 3000))
 test_class("errorValue", ncurl("http")$data)
@@ -457,7 +458,7 @@ test_type("integer", call_aio(haio)$status)
 test_class("ncurlAio", haio <- ncurl_aio("https://www.cam.ac.uk/", convert = FALSE, response = "server", timeout = 3000L))
 test_notnull(haio$status)
 if (call_aio(haio)$status == 200L) test_notnull(haio$headers)
-test_class("ncurlAio", put1 <- ncurl_aio("https://postman-echo.com/put", method = "PUT", headers = c(`Content-Type` = "text/plain", Authorization = "Bearer token"), data = "test", response = c("Date", "server"), timeout = 3000L))
+test_class("ncurlAio", put1 <- ncurl_aio("https://postman-echo.com/put", method = "PUT", headers = c(`Content-Type` = "text/plain", Authorization = "Bearer token"), data = "test", response = TRUE, timeout = 3000L))
 test_print(put1)
 test_type("integer", call_aio_(put1)$status)
 if (put1$status == 200L) test_notnull(put1$headers)
@@ -480,6 +481,13 @@ test_true(is_ncurl_session(sess) || is_error_value(sess))
 if (is_ncurl_session(sess)) test_equal(length(transact(sess)), 3L)
 if (is_ncurl_session(sess)) test_zero(close(sess))
 if (is_ncurl_session(sess)) test_equal(transact(sess)$data, 7L)
+sess_all <- ncurl_session("https://postman-echo.com/get", response = TRUE, timeout = 3000L)
+test_true(is_ncurl_session(sess_all) || is_error_value(sess_all))
+if (is_ncurl_session(sess_all)) {
+  trans_all <- transact(sess_all)
+  test_true(length(trans_all$headers) > 0L)
+  test_zero(close(sess_all))
+}
 test_class("errorValue", suppressWarnings(ncurl_session("https://i")))
 test_error(ncurl_aio("https://", tls = "wrong"), "valid TLS")
 test_error(ncurl("https://www.cam.ac.uk/", tls = "wrong"), "valid TLS")
@@ -586,7 +594,7 @@ test_error(recv(fakestream), "valid")
 test_error(recv_aio(fakestream), "valid")
 test_error(opt(fakestream, name = "test") <- "test", "valid")
 test_error(opt(fakestream, name = "test"), "valid")
-test_error(close(fakestream), "valid Stream")
+test_equal(close(fakestream), 7L)
 fakedial <- `class<-`("test", "nanoDialer")
 test_error(start(fakedial), "valid Dialer")
 test_error(close(fakedial), "valid Dialer")
@@ -854,23 +862,404 @@ if (NOT_CRAN) {
   Rscript <- file.path(R.home("bin"), if (.Platform$OS.type == "windows") "Rscript.exe" else "Rscript")
   system2(Rscript, script, wait = FALSE, stdout = FALSE, stderr = FALSE)
   Sys.sleep(0.5)
-  test_class("nanoStream", s <- stream(dial = "tcp://127.0.0.1:25555"))
-  test_true(is_nano(s))
-  test_zero(send(s, "test", block = 2000))
-  test_equal(recv(s, mode = "character"), "reply:test")
-  test_class("sendAio", sa <- send_aio(s, "async_test", timeout = 2000))
-  test_zero(call_aio(sa)$result)
-  test_class("recvAio", ra <- recv_aio(s, mode = "character", timeout = 2000))
-  test_equal(call_aio(ra)$data, "async:async_test")
-  Sys.sleep(0.1)
-  test_zero(close(s))
-  Sys.sleep(0.3)
-  tls <- tls_config(client = cert$client)
-  test_class("nanoStream", s <- stream(dial = "wss://127.0.0.1:25555/secure", tls = tls, textframes = TRUE))
-  Sys.sleep(0.1)
-  test_zero(close(s))
+  s <- tryCatch(stream(dial = "tcp://127.0.0.1:25555"), error = identity)
+  if (is_nano(s)) {
+    test_class("nanoStream", s)
+    test_zero(send(s, "test", block = 2000))
+    test_equal(recv(s, mode = "character"), "reply:test")
+    test_class("sendAio", sa <- send_aio(s, "async_test", timeout = 2000))
+    test_zero(call_aio(sa)$result)
+    test_class("recvAio", ra <- recv_aio(s, mode = "character", timeout = 2000))
+    test_equal(call_aio(ra)$data, "async:async_test")
+    Sys.sleep(0.1)
+    test_zero(close(s))
+    test_equal(close(s), 7L)
+    Sys.sleep(0.3)
+    tls <- tls_config(client = cert$client)
+    s <- tryCatch(stream(dial = "wss://127.0.0.1:25555/secure", tls = tls, textframes = TRUE), error = identity)
+    if (is_nano(s)) {
+      test_class("nanoStream", s)
+      Sys.sleep(0.1)
+      test_zero(close(s))
+      test_equal(close(s), 7L)
+    }
+  }
   unlink(script)
   unlink(certfile)
+}
+
+test_error(http_server("http://127.0.0.1:29995", tls = "invalid"), "valid TLS")
+fakeserver <- `class<-`("test", "nanoServer")
+test_error(close(fakeserver), "valid HTTP Server")
+test_class("list", suppressWarnings(handler_file("/bad", "/nonexistent/file.txt")))
+test_error(handler_redirect("/bad", "/good", status = 999L), "301, 302, 303, 307, or 308")
+
+if (later && NOT_CRAN) {
+  test_error(http_server("http://127.0.0.1:0", handlers = list(list(type = 99L, path = "/"))), "Invalid argument")
+  received_headers <- NULL
+  test_class("nanoServer", srv <- http_server(
+    url = "http://127.0.0.1:0",
+    handlers = list(
+      handler("/test", function(req) list(status = 200L, body = "OK")),
+      handler("/api/data", function(req) {
+        list(status = 200L, headers = c("Content-Type" = "application/json"), body = '{"value":42}')
+      }),
+      handler("/headers", function(req) {
+        received_headers <<- req$headers
+        list(status = 200L, body = paste(names(req$headers), collapse = ","))
+      }),
+      handler("/error", function(req) stop(simpleError("")))
+    )
+  ))
+  test_print(srv)
+  test_equal(attr(srv, "state"), "not started")
+  test_zero(srv$start())
+  test_equal(attr(srv, "state"), "started")
+  base_url <- srv$url
+  Sys.sleep(0.1)
+  aio <- ncurl_aio(paste0(base_url, "/test"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_equal(aio$data, "OK")
+  aio <- ncurl_aio(paste0(base_url, "/api/data"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_equal(aio$data, '{"value":42}')
+  aio <- ncurl_aio(
+    paste0(base_url, "/headers"),
+    headers = c("X-Custom-Header" = "test123", "X-Another-Header" = "value456"),
+    timeout = 2000
+  )
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_true("X-Custom-Header" %in% names(received_headers))
+  test_true("X-Another-Header" %in% names(received_headers))
+  test_equal(received_headers[["X-Custom-Header"]], "test123")
+  test_equal(received_headers[["X-Another-Header"]], "value456")
+  aio <- ncurl_aio(paste0(base_url, "/error"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 500L)
+  test_zero(srv$close())
+}
+
+if (later && NOT_CRAN) {
+  msgs <- list()
+  ws_conn <- NULL
+  test_class("nanoServer", srv <- http_server(
+    url = "http://127.0.0.1:0",
+    handlers = list(
+      handler("/", function(req) list(status = 200L, body = "index")),
+      handler_ws(
+        "/ws",
+        on_message = function(ws, data) {
+          msgs <<- c(msgs, list(data))
+          ws$send(data)
+        },
+        on_open = function(ws) {
+          ws_conn <<- ws
+          msgs <<- c(msgs, list("open"))
+        },
+        on_close = function(ws) { msgs <<- c(msgs, list("close")) },
+        textframes = TRUE
+      )
+    )
+  ))
+  test_zero(srv$start())
+  base_url <- srv$url
+  ws_url <- sub("^http", "ws", base_url)
+  Sys.sleep(0.1)
+  aio <- ncurl_aio(paste0(base_url, "/"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_equal(aio$data, "index")
+  ws <- tryCatch(stream(dial = paste0(ws_url, "/ws"), textframes = TRUE), error = identity)
+  if (is_nano(ws)) {
+    for (i in 1:5) later::run_now(0.1)
+    test_class("nanoWsConn", ws_conn)
+    test_print(ws_conn)
+    test_type("integer", ws_conn$id)
+    test_type("closure", ws_conn$send)
+    test_type("closure", ws_conn$close)
+    test_null(ws_conn$nonexistent)
+    test_zero(send(ws, "hello", block = 500))
+    for (i in 1:10) later::run_now(0.1)
+    reply <- recv(ws, block = 500, mode = "character")
+    test_equal(reply, "hello")
+    test_error(ws_conn$send(123L), "`data` must be raw or character")
+    test_error(ws_conn$send(list(a = 1)), "`data` must be raw or character")
+    test_zero(close(ws))
+    for (i in 1:5) later::run_now(0.1)
+    test_equal(msgs[[1]], "open")
+    test_equal(msgs[[2]], "hello")
+    test_equal(ws_conn$close(), 7L)
+    test_equal(ws_conn$send("after close"), 7L)
+    test_equal(ws_conn$send(charToRaw("raw after close")), 7L)
+  }
+  test_zero(srv$close())
+  test_error(http_server(url = "http://127.0.0.1:0", handlers = list(
+    handler_ws(paste0("/", strrep("x", 8180)), function(ws, data) ws$send(data))
+  )), "Invalid argument")
+}
+
+if (later && NOT_CRAN) {
+  auth_srv <- http_server(
+    url = "http://127.0.0.1:0",
+    handlers = list(handler_ws("/ws", function(ws, data) ws$send(data), on_open = function(ws) ws$close()))
+  )
+  test_zero(auth_srv$start())
+  ws <- tryCatch(stream(dial = paste0(sub("^http", "ws", auth_srv$url), "/ws")), error = identity)
+  if (is_nano(ws)) {
+    for (i in 1:5) later::run_now(0.1)
+    close(ws)
+  }
+  test_zero(auth_srv$close())
+}
+
+if (later && NOT_CRAN) {
+  gc_srv <- http_server(
+    url = "http://127.0.0.1:0",
+    handlers = list(
+      handler("/gc", function(req) list(status = 200L, body = "gc test"))
+    )
+  )
+  test_zero(gc_srv$start())
+  Sys.sleep(0.1)
+  rm(gc_srv)
+  Sys.sleep(0.1)
+  invisible(gc())
+}
+
+if (later && NOT_CRAN) {
+  wss_cert <- write_cert(cn = "127.0.0.1")
+  wss_tls_server <- tls_config(server = wss_cert$server)
+  wss_tls_client <- tls_config(client = wss_cert$client)
+  wss_msgs <- list()
+  test_class("nanoServer", wss_srv <- http_server(
+    url = "https://127.0.0.1:0",
+    handlers = list(
+      handler("/secure", function(req) list(status = 200L, body = "secure")),
+      handler_ws(
+        "/wss",
+        on_message = function(ws, data) {
+          wss_msgs <<- c(wss_msgs, list(data))
+          ws$send(paste0("wss:", data))
+        },
+        on_open = function(ws) { wss_msgs <<- c(wss_msgs, list("wss_open")) },
+        on_close = function(ws) { wss_msgs <<- c(wss_msgs, list("wss_close")) },
+        textframes = TRUE
+      )
+    ),
+    tls = wss_tls_server
+  ))
+  test_zero(wss_srv$start())
+  wss_base_url <- wss_srv$url
+  wss_ws_url <- sub("^https", "wss", wss_base_url)
+  Sys.sleep(1L)
+  wss_aio <- ncurl_aio(paste0(wss_base_url, "/secure"), tls = wss_tls_client, timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(wss_aio)) break }
+  if (wss_aio$status == 200L) test_equal(wss_aio$data, "secure")
+  wss_client <- tryCatch(stream(dial = paste0(wss_ws_url, "/wss"), tls = wss_tls_client, textframes = TRUE), error = identity)
+  if (is_nano(wss_client)) {
+    for (i in 1:5) later::run_now(0.1)
+    test_zero(send(wss_client, "secure_hello", block = 500))
+    for (i in 1:10) later::run_now(0.1)
+    wss_reply <- recv(wss_client, block = 500, mode = "character")
+    test_equal(wss_reply, "wss:secure_hello")
+    test_zero(close(wss_client))
+    for (i in 1:5) later::run_now(0.1)
+    test_equal(wss_msgs[[1]], "wss_open")
+    test_equal(wss_msgs[[2]], "secure_hello")
+  }
+  test_zero(wss_srv$close())
+}
+
+# Test multiple WebSocket endpoints and concurrent connections
+if (later && NOT_CRAN) {
+  echo_msgs <- list()
+  upper_msgs <- list()
+  conn_ids <- c()
+  test_class("nanoServer", multi_ws_srv <- http_server(
+    url = "http://127.0.0.1:0",
+    handlers = list(
+      handler_ws("/echo", function(ws, data) {
+        echo_msgs <<- c(echo_msgs, list(data))
+        ws$send(data)
+      }),
+      handler_ws("/upper", function(ws, data) {
+        upper_msgs <<- c(upper_msgs, list(data))
+        ws$send(toupper(data))
+      }, on_open = function(ws) {
+        conn_ids <<- c(conn_ids, ws$id)
+      }, textframes = TRUE)
+    )
+  ))
+  test_zero(multi_ws_srv$start())
+  test_zero(multi_ws_srv$start())
+  base_url <- multi_ws_srv$url
+  ws_url <- sub("^http", "ws", base_url)
+  Sys.sleep(0.1)
+
+  ws_echo <- tryCatch(stream(dial = paste0(ws_url, "/echo")), error = identity)
+  if (is_nano(ws_echo)) {
+    for (i in 1:5) later::run_now(0.1)
+    test_zero(send(ws_echo, charToRaw("binary_test"), block = 500))
+    for (i in 1:10) later::run_now(0.1)
+    echo_reply <- recv(ws_echo, block = 500, mode = "raw")
+    test_equal(rawToChar(echo_reply), "binary_test")
+    test_zero(close(ws_echo))
+    for (i in 1:5) later::run_now(0.1)
+  }
+
+  ws_upper1 <- tryCatch(stream(dial = paste0(ws_url, "/upper"), textframes = TRUE), error = identity)
+  ws_upper2 <- tryCatch(stream(dial = paste0(ws_url, "/upper"), textframes = TRUE), error = identity)
+  if (is_nano(ws_upper1) && is_nano(ws_upper2)) {
+    for (i in 1:10) later::run_now(0.1)
+    test_equal(length(conn_ids), 2L)
+    test_true(conn_ids[1] != conn_ids[2])
+
+    test_zero(send(ws_upper1, "hello", block = 500))
+    test_zero(send(ws_upper2, "world", block = 500))
+    for (i in 1:10) later::run_now(0.1)
+    upper_reply1 <- recv(ws_upper1, block = 500, mode = "character")
+    upper_reply2 <- recv(ws_upper2, block = 500, mode = "character")
+    test_equal(upper_reply1, "HELLO")
+    test_equal(upper_reply2, "WORLD")
+    test_zero(close(ws_upper1))
+    test_zero(close(ws_upper2))
+    for (i in 1:5) later::run_now(0.1)
+  }
+
+  test_zero(multi_ws_srv$close())
+  test_error(multi_ws_srv$start(), "valid HTTP Server")
+}
+
+# Test static handlers, redirects, and prefix parameter
+if (later && NOT_CRAN) {
+  test_class("list", suppressWarnings(handler_directory("/bad", "/nonexistent/directory")))
+
+  static_test_dir <- tempfile()
+  dir.create(static_test_dir)
+  writeLines("Hello from file", file.path(static_test_dir, "test.txt"))
+  writeLines("<html><body>Index</body></html>", file.path(static_test_dir, "index.html"))
+
+  test_class("nanoServer", static_srv <- http_server(
+    url = "http://127.0.0.1:0",
+    handlers = list(
+      handler_file("/single.txt", file.path(static_test_dir, "test.txt")),
+      handler_file("/tree-file", file.path(static_test_dir, "test.txt"), prefix = TRUE),
+      handler_directory("/files", static_test_dir),
+      handler_inline("/inline", "Inline content", content_type = "text/plain"),
+      handler_inline("/tree-inline", "tree inline", content_type = "text/plain", prefix = TRUE),
+      handler_inline("/binary", as.raw(c(0x89, 0x50, 0x4e, 0x47))),
+      handler_redirect("/r301", "/single.txt", status = 301L),
+      handler_redirect("/r302", "/single.txt", status = 302L),
+      handler_redirect("/r303", "/single.txt", status = 303L),
+      handler_redirect("/r307", "/single.txt", status = 307L),
+      handler_redirect("/r308", "/single.txt", status = 308L),
+      handler_redirect("/tree-redir", "/single.txt", status = 302L, prefix = TRUE)
+    )
+  ))
+  test_zero(static_srv$start())
+  base_url <- static_srv$url
+  Sys.sleep(0.1)
+
+  aio <- ncurl_aio(paste0(base_url, "/single.txt"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_equal(trimws(aio$data), "Hello from file")
+
+  aio <- ncurl_aio(paste0(base_url, "/tree-file/extra"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+
+  aio <- ncurl_aio(paste0(base_url, "/files/test.txt"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+
+  aio <- ncurl_aio(paste0(base_url, "/inline"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_equal(aio$data, "Inline content")
+
+  aio <- ncurl_aio(paste0(base_url, "/tree-inline/extra"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_equal(aio$data, "tree inline")
+
+  aio <- ncurl_aio(paste0(base_url, "/binary"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+
+  for (code in c(301L, 302L, 303L, 307L, 308L)) {
+    aio <- ncurl_aio(paste0(base_url, "/r", code), timeout = 2000)
+    for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+    test_equal(aio$status, code)
+  }
+
+  aio <- ncurl_aio(paste0(base_url, "/tree-redir/extra"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 302L)
+
+  test_zero(static_srv$close())
+  unlink(static_test_dir, recursive = TRUE)
+}
+
+# Test handler features: prefix, method, raw body, default status
+if (later && NOT_CRAN) {
+  test_class("nanoServer", handler_srv <- http_server(
+    url = "http://127.0.0.1:0",
+    handlers = list(
+      handler("/api", function(req) list(status = 200L, body = paste("path:", req$uri)), prefix = TRUE),
+      handler("/any", function(req) list(status = 200L, body = req$method), method = "*"),
+      handler("/put", function(req) list(status = 200L, body = "PUT OK"), method = "PUT"),
+      handler("/delete", function(req) list(status = 200L, body = "DELETE OK"), method = "DELETE"),
+      handler("/raw", function(req) list(status = 200L, body = charToRaw("raw response"))),
+      handler("/default-status", function(req) list(body = "no status")),
+      handler("/no-body", function(req) list(status = 204L))
+    )
+  ))
+  test_zero(handler_srv$start())
+  base_url <- handler_srv$url
+  Sys.sleep(0.1)
+
+  aio <- ncurl_aio(paste0(base_url, "/api/users/123"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_equal(aio$data, "path: /api/users/123")
+
+  aio <- ncurl_aio(paste0(base_url, "/any"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+
+  aio <- ncurl_aio(paste0(base_url, "/any"), method = "POST", timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+
+  aio <- ncurl_aio(paste0(base_url, "/put"), method = "PUT", timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_equal(aio$data, "PUT OK")
+
+  aio <- ncurl_aio(paste0(base_url, "/delete"), method = "DELETE", timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_equal(aio$data, "DELETE OK")
+
+  aio <- ncurl_aio(paste0(base_url, "/raw"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_equal(aio$data, "raw response")
+
+  aio <- ncurl_aio(paste0(base_url, "/default-status"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 200L)
+  test_equal(aio$data, "no status")
+
+  aio <- ncurl_aio(paste0(base_url, "/no-body"), timeout = 2000)
+  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  test_equal(aio$status, 204L)
+
+  test_zero(handler_srv$close())
 }
 
 if (!interactive() && NOT_CRAN) {

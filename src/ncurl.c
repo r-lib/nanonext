@@ -5,6 +5,33 @@
 
 // internals -------------------------------------------------------------------
 
+// Helper to build named list of all response headers
+static SEXP build_all_headers(nng_http_res *res) {
+  int count = 0;
+  for (nano_http_header_s *h = nano_http_header_first(res); h != NULL;
+       h = nano_http_header_next(res, h))
+    count++;
+
+  if (count == 0)
+    return R_NilValue;
+
+  SEXP rvec, rnames;
+  PROTECT(rvec = Rf_allocVector(VECSXP, count));
+  rnames = Rf_allocVector(STRSXP, count);
+  Rf_namesgets(rvec, rnames);
+
+  int i = 0;
+  for (nano_http_header_s *h = nano_http_header_first(res); h != NULL;
+       h = nano_http_header_next(res, h)) {
+    SET_STRING_ELT(rnames, i, Rf_mkChar(h->name));
+    SET_VECTOR_ELT(rvec, i, Rf_mkString(h->value));
+    i++;
+  }
+
+  UNPROTECT(1);
+  return rvec;
+}
+
 static SEXP mk_error_haio(const int xc, SEXP env) {
 
   SEXP err = PROTECT(Rf_ScalarInteger(xc));
@@ -140,34 +167,39 @@ static inline SEXP create_aio_http(SEXP env, nano_aio *haio, int typ) {
   nano_handle *handle = (nano_handle *) haio->next;
 
   PROTECT(response = Rf_findVarInFrame(env, nano_ResponseSymbol));
+  const int all_resp = response != R_NilValue && TYPEOF(response) == LGLSXP && LOGICAL(response)[0] == 1;
   int chk_resp = response != R_NilValue && TYPEOF(response) == STRSXP;
   const uint16_t code = nng_http_res_get_status(handle->res), relo = code >= 300 && code < 400;
   Rf_defineVar(nano_ResultSymbol, Rf_ScalarInteger(code), env);
 
-  if (relo) {
+  if (all_resp) {
+    rvec = build_all_headers(handle->res);
+  } else {
+    if (relo) {
+      if (chk_resp) {
+        const R_xlen_t rlen = XLENGTH(response);
+        PROTECT(response = Rf_xlengthgets(response, rlen + 1));
+        SET_STRING_ELT(response, rlen, Rf_mkChar("Location"));
+      } else {
+        PROTECT(response = Rf_mkString("Location"));
+        chk_resp = 1;
+      }
+    }
+
     if (chk_resp) {
       const R_xlen_t rlen = XLENGTH(response);
-      PROTECT(response = Rf_xlengthgets(response, rlen + 1));
-      SET_STRING_ELT(response, rlen, Rf_mkChar("Location"));
+      PROTECT(rvec = Rf_allocVector(VECSXP, rlen));
+      Rf_namesgets(rvec, response);
+      for (R_xlen_t i = 0; i < rlen; i++) {
+        const char *r = nng_http_res_get_header(handle->res, NANO_STR_N(response, i));
+        SET_VECTOR_ELT(rvec, i, r == NULL ? R_NilValue : Rf_mkString(r));
+      }
+      UNPROTECT(1);
     } else {
-      PROTECT(response = Rf_mkString("Location"));
-      chk_resp = 1;
+      rvec = R_NilValue;
     }
+    if (relo) UNPROTECT(1);
   }
-
-  if (chk_resp) {
-    const R_xlen_t rlen = XLENGTH(response);
-    PROTECT(rvec = Rf_allocVector(VECSXP, rlen));
-    Rf_namesgets(rvec, response);
-    for (R_xlen_t i = 0; i < rlen; i++) {
-      const char *r = nng_http_res_get_header(handle->res, NANO_STR_N(response, i));
-      SET_VECTOR_ELT(rvec, i, r == NULL ? R_NilValue : Rf_mkString(r));
-    }
-    UNPROTECT(1);
-  } else {
-    rvec = R_NilValue;
-  }
-  if (relo) UNPROTECT(1);
   UNPROTECT(1);
   Rf_defineVar(nano_ProtocolSymbol, rvec, env);
 
@@ -237,6 +269,7 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
     Rf_error("`tls` is not a valid TLS Configuration");
+  const int all_resp = response != R_NilValue && TYPEOF(response) == LGLSXP && LOGICAL(response)[0] == 1;
   int chk_resp = response != R_NilValue && TYPEOF(response) == STRSXP;
 
   nng_url *url = NULL;
@@ -338,31 +371,36 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
 
   SET_VECTOR_ELT(out, 0, Rf_ScalarInteger(code));
 
-  if (relo) {
+  if (all_resp) {
+    rvec = build_all_headers(res);
+    SET_VECTOR_ELT(out, 1, rvec);
+  } else {
+    if (relo) {
+      if (chk_resp) {
+        const R_xlen_t rlen = XLENGTH(response);
+        PROTECT(response = Rf_xlengthgets(response, rlen + 1));
+        SET_STRING_ELT(response, rlen, Rf_mkChar("Location"));
+      } else {
+        PROTECT(response = Rf_mkString("Location"));
+        chk_resp = 1;
+      }
+    }
+
     if (chk_resp) {
       const R_xlen_t rlen = XLENGTH(response);
-      PROTECT(response = Rf_xlengthgets(response, rlen + 1));
-      SET_STRING_ELT(response, rlen, Rf_mkChar("Location"));
+      rvec = Rf_allocVector(VECSXP, rlen);
+      SET_VECTOR_ELT(out, 1, rvec);
+      Rf_namesgets(rvec, response);
+      for (R_xlen_t i = 0; i < rlen; i++) {
+        const char *r = nng_http_res_get_header(res, NANO_STR_N(response, i));
+        SET_VECTOR_ELT(rvec, i, r == NULL ? R_NilValue : Rf_mkString(r));
+      }
     } else {
-      PROTECT(response = Rf_mkString("Location"));
-      chk_resp = 1;
+      rvec = R_NilValue;
+      SET_VECTOR_ELT(out, 1, rvec);
     }
+    if (relo) UNPROTECT(1);
   }
-
-  if (chk_resp) {
-    const R_xlen_t rlen = XLENGTH(response);
-    rvec = Rf_allocVector(VECSXP, rlen);
-    SET_VECTOR_ELT(out, 1, rvec);
-    Rf_namesgets(rvec, response);
-    for (R_xlen_t i = 0; i < rlen; i++) {
-      const char *r = nng_http_res_get_header(res, NANO_STR_N(response, i));
-      SET_VECTOR_ELT(rvec, i, r == NULL ? R_NilValue : Rf_mkString(r));
-    }
-  } else {
-    rvec = R_NilValue;
-    SET_VECTOR_ELT(out, 1, rvec);
-  }
-  if (relo) UNPROTECT(1);
 
   nng_http_res_get_data(res, &dat, &sz);
 
@@ -603,7 +641,9 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
   nng_http_conn *conn = nng_aio_get_output(haio->aio, 0);
   haio->data = conn;
 
-  PROTECT(sess = R_MakeExternalPtr(haio, nano_StatusSymbol, (response != R_NilValue && TYPEOF(response) == STRSXP) ? response : R_NilValue));
+  int store_resp = response != R_NilValue &&
+    (TYPEOF(response) == STRSXP || (TYPEOF(response) == LGLSXP && LOGICAL(response)[0] == 1));
+  PROTECT(sess = R_MakeExternalPtr(haio, nano_StatusSymbol, store_resp ? response : R_NilValue));
   R_RegisterCFinalizerEx(sess, session_finalizer, TRUE);
   Rf_classgets(sess, Rf_mkString("ncurlSession"));
 
@@ -656,7 +696,10 @@ SEXP rnng_ncurl_transact(SEXP session) {
   SET_VECTOR_ELT(out, 0, Rf_ScalarInteger(code));
 
   response = NANO_PROT(session);
-  if (response != R_NilValue) {
+  if (response != R_NilValue && TYPEOF(response) == LGLSXP && LOGICAL(response)[0] == 1) {
+    rvec = build_all_headers(handle->res);
+    SET_VECTOR_ELT(out, 1, rvec);
+  } else if (response != R_NilValue && TYPEOF(response) == STRSXP) {
     const R_xlen_t rlen = XLENGTH(response);
     rvec = Rf_allocVector(VECSXP, rlen);
     SET_VECTOR_ELT(out, 1, rvec);

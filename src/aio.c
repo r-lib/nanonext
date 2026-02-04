@@ -756,18 +756,34 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
 
     saio = calloc(1, sizeof(nano_aio));
     NANO_ENSURE_ALLOC(saio);
-    saio->type = IOV_SENDAIO;
-    saio->data = malloc(buf.cur);
-    NANO_ENSURE_ALLOC(saio->data);
-    memcpy(saio->data, buf.buf, buf.cur);
-    nng_iov iov = {
-      .iov_buf = saio->data,
-      .iov_len = buf.cur - nst->textframes
-    };
 
-    if ((xc = nng_aio_alloc(&saio->aio, isaio_complete, saio)) ||
-        (xc = nng_aio_set_iov(saio->aio, 1u, &iov)))
-      goto fail;
+    if (nst->msgmode) {
+      nng_msg *msg;
+      const size_t xlen = buf.cur - nst->textframes;
+      saio->type = SENDAIO;
+      if ((xc = nng_msg_alloc(&msg, xlen)))
+        goto fail;
+      memcpy(nng_msg_body(msg), buf.buf, xlen);
+
+      if ((xc = nng_aio_alloc(&saio->aio, saio_complete, saio))) {
+        nng_msg_free(msg);
+        goto fail;
+      }
+      nng_aio_set_msg(saio->aio, msg);
+    } else {
+      saio->type = IOV_SENDAIO;
+      saio->data = malloc(buf.cur);
+      NANO_ENSURE_ALLOC(saio->data);
+      memcpy(saio->data, buf.buf, buf.cur);
+      nng_iov iov = {
+        .iov_buf = saio->data,
+        .iov_len = buf.cur - nst->textframes
+      };
+
+      if ((xc = nng_aio_alloc(&saio->aio, isaio_complete, saio)) ||
+          (xc = nng_aio_set_iov(saio->aio, 1u, &iov)))
+        goto fail;
+    }
 
     nng_aio_set_timeout(saio->aio, dur);
     nng_stream_send(sp, saio->aio);
@@ -832,30 +848,37 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
   } else if (!NANO_PTR_CHECK(con, nano_StreamSymbol)) {
 
     const uint8_t mod = (uint8_t) (nano_matcharg(mode) == 1 ? 2 : nano_matcharg(mode));
-    const size_t xlen = (size_t) nano_integer(bytes);
-    nng_stream **sp = (nng_stream **) NANO_PTR(con);
+    nano_stream *nst = (nano_stream *) NANO_PTR(con);
+    nng_stream *sp = nst->stream;
 
     raio = calloc(1, sizeof(nano_aio));
     NANO_ENSURE_ALLOC(raio);
     raio->next = ncv;
-    raio->type = signal ? IOV_RECVAIOS : IOV_RECVAIO;
     raio->mode = mod;
-    raio->data = malloc(xlen);
-    NANO_ENSURE_ALLOC(raio->data);
-    nng_iov iov = {
-      .iov_buf = raio->data,
-      .iov_len = xlen
-    };
 
-    if ((xc = nng_aio_alloc(&raio->aio, iraio_complete, raio)) ||
-        (xc = nng_aio_set_iov(raio->aio, 1u, &iov)))
-      goto fail;
+    if (nst->msgmode) {
+      raio->type = signal ? RECVAIOS : RECVAIO;
+      if ((xc = nng_aio_alloc(&raio->aio, raio_complete, raio)))
+        goto fail;
+    } else {
+      const size_t xlen = (size_t) nano_integer(bytes);
+      raio->type = signal ? IOV_RECVAIOS : IOV_RECVAIO;
+      raio->data = malloc(xlen);
+      NANO_ENSURE_ALLOC(raio->data);
+      nng_iov iov = {
+        .iov_buf = raio->data,
+        .iov_len = xlen
+      };
+      if ((xc = nng_aio_alloc(&raio->aio, iraio_complete, raio)) ||
+          (xc = nng_aio_set_iov(raio->aio, 1u, &iov)))
+        goto fail;
+    }
 
     nng_aio_set_timeout(raio->aio, dur);
-    nng_stream_recv(*sp, raio->aio);
+    nng_stream_recv(sp, raio->aio);
 
     PROTECT(aio = R_MakeExternalPtr(raio, nano_AioSymbol, R_NilValue));
-    R_RegisterCFinalizerEx(aio, iaio_finalizer, TRUE);
+    R_RegisterCFinalizerEx(aio, nst->msgmode ? raio_finalizer : iaio_finalizer, TRUE);
 
   } else {
     Rf_error("`con` is not a valid Socket, Context or Stream");
