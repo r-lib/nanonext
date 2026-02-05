@@ -42,6 +42,11 @@ Set an appropriate \code{Content-Type} header for your streaming format:
 \item Plain text: \code{text/plain}
 }
 
+\strong{SSE Reconnection:} When an SSE client reconnects after a disconnect, it
+sends a \code{Last-Event-ID} header containing the last event ID it received.
+Access this via \code{req$headers["Last-Event-ID"]} in \code{on_request} to resume
+the event stream from the correct position.
+
 \strong{Important:} Use \verb{$send()} in \code{on_request} to send to the newly connected
 client. Use \verb{$broadcast()} from a separate trigger (e.g., a POST handler or
 timer) to send to all clients. Do not call \verb{$broadcast()} inside \code{on_request}
@@ -68,12 +73,13 @@ h <- handler_stream("/stream", function(conn, req) {
   conn$send('{"status":"connected"}\n')
 })
 
-# SSE endpoint
+# SSE endpoint with reconnection support
 h <- handler_stream("/events", function(conn, req) {
   conn$set_header("Content-Type", "text/event-stream")
   conn$set_header("Cache-Control", "no-cache")
-  conn$send(format_sse(data = "connected"))
-  conn$close()
+  last_id <- req$headers["Last-Event-ID"]
+  # Resume from last_id if client is reconnecting
+  conn$send(format_sse(data = "connected", id = "1"))
 })
 
 # Long-lived streaming with broadcast triggered by POST

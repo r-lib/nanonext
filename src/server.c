@@ -136,23 +136,24 @@ static void http_server_stop(nano_http_server *srv) {
     if (srv->handlers[i].listener != NULL) {
       nng_aio_stop(srv->handlers[i].accept_aio);
       nng_stream_listener_close(srv->handlers[i].listener);
+    }
 
-      nng_mtx_lock(srv->mtx);
-      for (nano_conn *conn = srv->handlers[i].conns; conn != NULL; conn = conn->next) {
-        conn_close_locked(conn);
-        if (!conn->onclose_scheduled) {
-          conn->onclose_scheduled = 1;
-          later2(conn_invoke_onclose, conn);
-        }
+    // Schedule on_close for all connections (WebSocket and HTTP streaming)
+    nng_mtx_lock(srv->mtx);
+    for (nano_conn *conn = srv->handlers[i].conns; conn != NULL; conn = conn->next) {
+      conn_close_locked(conn);
+      if (!conn->onclose_scheduled) {
+        conn->onclose_scheduled = 1;
+        later2(conn_invoke_onclose, conn);
       }
-      nng_mtx_unlock(srv->mtx);
+    }
+    nng_mtx_unlock(srv->mtx);
 
-      // Wait for WebSocket receive AIOs
-      for (nano_conn *conn = srv->handlers[i].conns; conn != NULL; conn = conn->next) {
-        if (conn->type == NANO_CONN_WEBSOCKET) {
-          nano_ws_conn *ws = (nano_ws_conn *) conn;
-          nng_aio_wait(ws->recv_aio);
-        }
+    // Wait for WebSocket receive AIOs
+    for (nano_conn *conn = srv->handlers[i].conns; conn != NULL; conn = conn->next) {
+      if (conn->type == NANO_CONN_WEBSOCKET) {
+        nano_ws_conn *ws = (nano_ws_conn *) conn;
+        nng_aio_wait(ws->recv_aio);
       }
     }
   }
@@ -217,13 +218,6 @@ static void http_server_finalizer(SEXP xptr) {
   if (srv->state == SERVER_STARTED) {
     srv->state = SERVER_STOPPED;
     http_server_stop(srv);
-  }
-
-  // Suppress callbacks during shutdown - on_close won't fire for connections closed by server stop
-  for (int i = 0; i < srv->handler_count; i++) {
-    srv->handlers[i].callback = R_NilValue;
-    srv->handlers[i].on_open = R_NilValue;
-    srv->handlers[i].on_close = R_NilValue;
   }
 
   // Schedule deferred cleanup - runs after all pending later2 callbacks due to FIFO ordering

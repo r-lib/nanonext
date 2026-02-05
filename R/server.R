@@ -419,6 +419,11 @@ print.nanoWsConn <- function(x, ...) {
 #' - SSE: `text/event-stream` (see [format_sse()])
 #' - Plain text: `text/plain`
 #'
+#' **SSE Reconnection:** When an SSE client reconnects after a disconnect, it
+#' sends a `Last-Event-ID` header containing the last event ID it received.
+#' Access this via `req$headers["Last-Event-ID"]` in `on_request` to resume
+#' the event stream from the correct position.
+#'
 #' **Important:** Use `$send()` in `on_request` to send to the newly connected
 #' client. Use `$broadcast()` from a separate trigger (e.g., a POST handler or
 #' timer) to send to all clients. Do not call `$broadcast()` inside `on_request`
@@ -433,12 +438,13 @@ print.nanoWsConn <- function(x, ...) {
 #'   conn$send('{"status":"connected"}\n')
 #' })
 #'
-#' # SSE endpoint
+#' # SSE endpoint with reconnection support
 #' h <- handler_stream("/events", function(conn, req) {
 #'   conn$set_header("Content-Type", "text/event-stream")
 #'   conn$set_header("Cache-Control", "no-cache")
-#'   conn$send(format_sse(data = "connected"))
-#'   conn$close()
+#'   last_id <- req$headers["Last-Event-ID"]
+#'   # Resume from last_id if client is reconnecting
+#'   conn$send(format_sse(data = "connected", id = "1"))
 #' })
 #'
 #' # Long-lived streaming with broadcast triggered by POST

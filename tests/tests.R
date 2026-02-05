@@ -1087,6 +1087,7 @@ if (later && NOT_CRAN) {
   echo_msgs <- list()
   upper_msgs <- list()
   conn_ids <- c()
+  ws_shutdown_closed <- 0L
   test_class("nanoServer", multi_ws_srv <- http_server(
     url = "http://127.0.0.1:0",
     handlers = list(
@@ -1099,6 +1100,8 @@ if (later && NOT_CRAN) {
         ws$send(toupper(data))
       }, on_open = function(ws) {
         conn_ids <<- c(conn_ids, ws$id)
+      }, on_close = function(ws) {
+        ws_shutdown_closed <<- ws_shutdown_closed + 1L
       }, textframes = TRUE)
     )
   ))
@@ -1133,12 +1136,17 @@ if (later && NOT_CRAN) {
     upper_reply2 <- recv(ws_upper2, block = 500, mode = "character")
     test_equal(upper_reply1, "HELLO")
     test_equal(upper_reply2, "WORLD")
-    test_zero(close(ws_upper1))
-    test_zero(close(ws_upper2))
-    later::run_now(1)
-  }
 
-  test_zero(multi_ws_srv$close())
+    test_equal(ws_shutdown_closed, 0L)
+    test_zero(multi_ws_srv$close())
+    while (ws_shutdown_closed < 2L) later::run_now(1)
+    test_equal(ws_shutdown_closed, 2L)
+
+    close(ws_upper1)
+    close(ws_upper2)
+  } else {
+    multi_ws_srv$close()
+  }
   test_error(multi_ws_srv$start(), "valid HTTP Server")
 }
 
@@ -1334,6 +1342,7 @@ if (later && NOT_CRAN) {
 
 if (later && NOT_CRAN) {
   conns <- list()
+  shutdown_closed <- 0L
   test_class("nanoServer", broadcast_srv <- http_server(
     url = "http://127.0.0.1:0",
     handlers = list(
@@ -1343,6 +1352,9 @@ if (later && NOT_CRAN) {
           conn$set_header("Content-Type", "text/event-stream")
           conns[[as.character(conn$id)]] <<- conn
           conn$send(format_sse(data = "subscribed"))
+        },
+        on_close = function(conn) {
+          shutdown_closed <<- shutdown_closed + 1L
         }
       )
     )
@@ -1376,13 +1388,17 @@ if (later && NOT_CRAN) {
     test_equal(length(results), 3L)
     test_true(all(results == 0L))
 
+    test_equal(shutdown_closed, 0L)
+    test_zero(broadcast_srv$close())
+    while (shutdown_closed < 3L) later::run_now(1)
+    test_equal(shutdown_closed, 3L)
+
     close(client1)
     close(client2)
     close(client3)
-    for (i in 1:5) later::run_now(0.1)
+  } else {
+    broadcast_srv$close()
   }
-
-  test_zero(broadcast_srv$close())
 }
 
 if (later && NOT_CRAN) {
