@@ -1341,67 +1341,6 @@ if (later && NOT_CRAN) {
 }
 
 if (later && NOT_CRAN) {
-  conns <- list()
-  shutdown_closed <- 0L
-  test_class("nanoServer", broadcast_srv <- http_server(
-    url = "http://127.0.0.1:0",
-    handlers = list(
-      handler_stream(
-        "/notify",
-        on_request = function(conn, req) {
-          conn$set_header("Content-Type", "text/event-stream")
-          conns[[as.character(conn$id)]] <<- conn
-          conn$send(format_sse(data = "subscribed"))
-        },
-        on_close = function(conn) {
-          shutdown_closed <<- shutdown_closed + 1L
-        }
-      )
-    )
-  ))
-  test_zero(broadcast_srv$start())
-  base_url <- broadcast_srv$url
-  Sys.sleep(0.1)
-
-  client1 <- tryCatch(stream(dial = paste0("tcp://", sub("^http://", "", base_url), "/notify")), error = identity)
-  client2 <- tryCatch(stream(dial = paste0("tcp://", sub("^http://", "", base_url), "/notify")), error = identity)
-  client3 <- tryCatch(stream(dial = paste0("tcp://", sub("^http://", "", base_url), "/notify")), error = identity)
-
-  if (is_nano(client1) && is_nano(client2) && is_nano(client3)) {
-    http_req <- "GET /notify HTTP/1.1\r\nHost: 127.0.0.1\r\nAccept: text/event-stream\r\n\r\n"
-    send(client1, http_req, block = 500)
-    send(client2, http_req, block = 500)
-    send(client3, http_req, block = 500)
-    while (length(conns) < 3L) later::run_now(1)
-
-    test_equal(length(conns), 3L)
-
-    conn1 <- conns[[1L]]
-    test_type("closure", conn1$broadcast)
-    results <- conn1$broadcast(format_sse(data = "news"))
-    test_equal(length(results), 3L)
-    test_true(all(results == 0L))
-
-    test_error(conn1$broadcast(123L), "`data` must be raw or character")
-
-    results <- conn1$broadcast(charToRaw("raw broadcast"))
-    test_equal(length(results), 3L)
-    test_true(all(results == 0L))
-
-    test_equal(shutdown_closed, 0L)
-    test_zero(broadcast_srv$close())
-    while (shutdown_closed < 3L) later::run_now(1)
-    test_equal(shutdown_closed, 3L)
-
-    close(client1)
-    close(client2)
-    close(client3)
-  } else {
-    broadcast_srv$close()
-  }
-}
-
-if (later && NOT_CRAN) {
   received_methods <- character()
   test_class("nanoServer", method_srv <- http_server(
     url = "http://127.0.0.1:0",

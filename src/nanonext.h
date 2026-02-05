@@ -545,6 +545,5 @@ SEXP rnng_conn_close(SEXP);
 SEXP rnng_stream_conn_send(SEXP, SEXP);
 SEXP rnng_stream_conn_set_header(SEXP, SEXP, SEXP);
 SEXP rnng_stream_conn_set_status(SEXP, SEXP);
-SEXP rnng_stream_conn_broadcast(SEXP, SEXP);
 
 #endif

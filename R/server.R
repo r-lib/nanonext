@@ -400,9 +400,7 @@ print.nanoWsConn <- function(x, ...) {
 #' @section Connection Object:
 #' The `conn` object passed to callbacks has these methods:
 #'
-#' - `conn$send(data)`: Send data chunk to this connection only.
-#' - `conn$broadcast(data)`: Send data to all connections on this handler
-#'   (including this one). Returns integer vector of results (0 = success).
+#' - `conn$send(data)`: Send data chunk to client.
 #' - `conn$close()`: Close the connection (sends terminal chunk).
 #' - `conn$set_status(code)`: Set HTTP status code (before first send).
 #' - `conn$set_header(name, value)`: Set response header (before first send).
@@ -424,10 +422,8 @@ print.nanoWsConn <- function(x, ...) {
 #' Access this via `req$headers["Last-Event-ID"]` in `on_request` to resume
 #' the event stream from the correct position.
 #'
-#' **Important:** Use `$send()` in `on_request` to send to the newly connected
-#' client. Use `$broadcast()` from a separate trigger (e.g., a POST handler or
-#' timer) to send to all clients. Do not call `$broadcast()` inside `on_request`
-#' as it would broadcast on every new connection.
+#' To broadcast to multiple clients, store connection objects in a list and
+#' iterate over them (e.g., `lapply(conns, function(c) c$send(data))`).
 #'
 #' @seealso [format_sse()] for formatting Server-Sent Events.
 #'
@@ -448,19 +444,22 @@ print.nanoWsConn <- function(x, ...) {
 #' })
 #'
 #' # Long-lived streaming with broadcast triggered by POST
-#' stream_conn <- NULL
+#' conns <- list()
 #' handlers <- list(
 #'   handler_stream("/stream",
 #'     on_request = function(conn, req) {
 #'       conn$set_header("Content-Type", "application/x-ndjson")
-#'       stream_conn <<- conn
+#'       conns[[as.character(conn$id)]] <<- conn
 #'       conn$send('{"status":"connected"}\n')
+#'     },
+#'     on_close = function(conn) {
+#'       conns[[as.character(conn$id)]] <<- NULL
 #'     }
 #'   ),
 #'   # POST endpoint triggers broadcast to all streaming clients
 #'   handler("/broadcast", function(req) {
-#'     if (!is.null(stream_conn))
-#'       stream_conn$broadcast(paste0('{"msg":"', rawToChar(req$body), '"}\n'))
+#'     msg <- paste0('{"msg":"', rawToChar(req$body), '"}\n')
+#'     lapply(conns, function(c) c$send(msg))
 #'     list(status = 200L, body = "sent")
 #'   }, method = "POST")
 #' )
@@ -555,7 +554,6 @@ print.nanoStreamConn <- function(x, ...) {
 `$.nanoStreamConn` <- function(x, name) {
   switch(name,
          send = function(data) .Call(rnng_stream_conn_send, x, data),
-         broadcast = function(data) .Call(rnng_stream_conn_broadcast, x, data),
          close = function() .Call(rnng_conn_close, x),
          set_status = function(code) .Call(rnng_stream_conn_set_status, x, as.integer(code)),
          set_header = function(name, value) .Call(rnng_stream_conn_set_header, x, name, value),
