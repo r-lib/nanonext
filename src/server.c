@@ -1145,7 +1145,6 @@ static int stream_write_headers(nano_stream_conn *sc) {
       goto cleanup;
   }
 
-  nng_aio_set_timeout(sc->conn.send_aio, 5000);
   nng_http_conn_write_res(sc->http, res, sc->conn.send_aio);
   nng_aio_wait(sc->conn.send_aio);
   xc = nng_aio_result(sc->conn.send_aio);
@@ -1183,7 +1182,6 @@ static int stream_write_chunk(nano_stream_conn *sc, const unsigned char *data,
     return xc;
   }
 
-  nng_aio_set_timeout(sc->conn.send_aio, 30000);
   nng_http_conn_write_all(sc->http, sc->conn.send_aio);
   nng_aio_wait(sc->conn.send_aio);
   xc = nng_aio_result(sc->conn.send_aio);
@@ -1205,7 +1203,6 @@ static int stream_write_terminator(nano_stream_conn *sc) {
   if ((xc = nng_aio_set_iov(sc->conn.send_aio, 1, &iov)))
     return xc;
 
-  nng_aio_set_timeout(sc->conn.send_aio, 5000);
   nng_http_conn_write_all(sc->http, sc->conn.send_aio);
   nng_aio_wait(sc->conn.send_aio);
   return nng_aio_result(sc->conn.send_aio);
@@ -1445,7 +1442,6 @@ SEXP rnng_stream_conn_broadcast(SEXP xptr, SEXP data) {
       continue;
     }
 
-    nng_aio_set_timeout(aios[i], 30000);
     nng_http_conn_write_all(conns[i]->http, aios[i]);
   }
 
