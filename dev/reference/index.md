@@ -36,6 +36,8 @@
   Address from a Socket
 - [`.context()`](https://nanonext.r-lib.org/dev/reference/dot-context.md)
   : Technical Utility: Open Context
+- [`format_sse()`](https://nanonext.r-lib.org/dev/reference/format_sse.md)
+  : Format Server-Sent Event
 - [`` `%~>%` ``](https://nanonext.r-lib.org/dev/reference/grapes-twiddle-greater-than-grapes.md)
   : Signal Forwarder
 - [`handler()`](https://nanonext.r-lib.org/dev/reference/handler.md) :
@@ -48,6 +50,8 @@
   : Create Inline Static Content Handler
 - [`handler_redirect()`](https://nanonext.r-lib.org/dev/reference/handler_redirect.md)
   : Create HTTP Redirect Handler
+- [`handler_stream()`](https://nanonext.r-lib.org/dev/reference/handler_stream.md)
+  : Create HTTP Streaming Handler
 - [`handler_ws()`](https://nanonext.r-lib.org/dev/reference/handler_ws.md)
   : Create WebSocket Handler
 - [`http_server()`](https://nanonext.r-lib.org/dev/reference/http_server.md)

@@ -72,20 +72,18 @@ methods:
 h <- handler_ws("/ws", function(ws, data) ws$send(data))
 
 # With connection tracking
-clients <- new.env()
+clients <- list()
 h <- handler_ws(
   "/chat",
   on_message = function(ws, data) {
     # Broadcast to all
-    for (id in ls(clients)) {
-      clients[[id]]$send(data)
-    }
+    for (client in clients) client$send(data)
   },
   on_open = function(ws) {
     clients[[as.character(ws$id)]] <<- ws
   },
   on_close = function(ws) {
-    rm(list = as.character(ws$id), envir = clients)
+    clients[[as.character(ws$id)]] <<- NULL
   },
   textframes = TRUE
 )
