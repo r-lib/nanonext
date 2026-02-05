@@ -253,41 +253,73 @@ typedef enum nano_list_op {
 
 #ifdef NANONEXT_HTTP
 
+// Forward declarations
+typedef struct nano_conn_s nano_conn;
 typedef struct nano_ws_conn_s nano_ws_conn;
+typedef struct nano_stream_conn_s nano_stream_conn;
 typedef struct nano_http_server_s nano_http_server;
 typedef struct nano_http_handler_info_s nano_http_handler_info;
 typedef struct nano_http_request_s nano_http_request;
 
+// Connection type discriminator
 typedef enum {
-  WS_STATE_OPEN,      // Connection active, can send/receive
-  WS_STATE_CLOSING,   // Close initiated, waiting for cleanup
-  WS_STATE_CLOSED     // Fully closed, safe to free
-} ws_conn_state;
+  NANO_CONN_WEBSOCKET,
+  NANO_CONN_HTTP_STREAM
+} nano_conn_type;
 
-typedef struct nano_ws_conn_s {
-  nng_stream *stream;               // WebSocket stream (framing automatic)
-  nng_aio *recv_aio;                // For async receive (msg mode)
-  nng_aio *send_aio;                // For async send (msg mode)
+// Connection state machine (prevents races between R and NNG threads)
+typedef enum {
+  CONN_STATE_OPEN,      // Connection active, can send/receive
+  CONN_STATE_CLOSING,   // Close initiated, waiting for cleanup
+  CONN_STATE_CLOSED     // Fully closed, safe to free
+} nano_conn_state;
+
+// Base connection structure - common fields for linked list and lifecycle
+typedef struct nano_conn_s {
+  nano_conn_type type;              // Connection type (for dispatch)
+  nng_aio *send_aio;                // For async send (both types)
   nano_http_handler_info *handler;  // Back-reference to handler
-  nano_ws_conn *next;               // Linked list
-  nano_ws_conn *prev;               // Doubly-linked for O(1) removal
-  SEXP xptr;                        // R external pointer (nanoWsConn object)
-  int id;                           // Unique connection ID
-  ws_conn_state state;              // Connection state (protected by server->mtx)
+  struct nano_conn_s *next;         // Linked list
+  struct nano_conn_s *prev;         // Doubly-linked for O(1) removal
+  SEXP xptr;                        // R external pointer
+  int id;                           // Unique connection ID (server-wide)
+  nano_conn_state state;            // Connection state
   int onclose_scheduled;            // Prevents duplicate on_close callbacks
+} nano_conn;
+
+// WebSocket connection (embeds base as first member)
+typedef struct nano_ws_conn_s {
+  nano_conn conn;                   // Base - MUST be first member
+  nng_stream *stream;               // WebSocket stream with automatic framing
+  nng_aio *recv_aio;                // For async receive loop
 } nano_ws_conn;
 
+// HTTP streaming connection (embeds base as first member)
+typedef struct nano_stream_conn_s {
+  nano_conn conn;                   // Base - MUST be first member
+  nng_http_conn *http;              // Hijacked HTTP connection
+  nng_http_req *req;                // Request pointer (valid because hijacked)
+  // Response state (set before first send)
+  char **resp_header_names;
+  char **resp_header_values;
+  int resp_header_count;
+  int resp_header_capacity;
+  int status_code;                  // Default 200
+  int headers_sent;                 // Whether HTTP headers written
+} nano_stream_conn;
+
+// HTTP handler info (links NNG handler to R callback)
 typedef struct nano_http_handler_info_s {
   nng_http_handler *handler;        // NNG HTTP handler (NULL for WS)
-  SEXP callback;                    // HTTP callback or WS on_message
+  SEXP callback;                    // HTTP callback or WS on_message or stream on_request
   nano_http_server *server;         // Back-reference
-  // WebSocket handler fields (all NULL/0 for non-WS handlers):
-  nng_stream_listener *ws_listener; // WebSocket listener
-  nng_aio *ws_accept_aio;           // Accept AIO for this WS handler
-  nano_ws_conn *ws_conns;           // Linked list of connections
-  SEXP on_open;                     // R callback for connection open
-  SEXP on_close;                    // R callback for connection close
-  int textframes;                   // Text frame mode
+  // Long-lived connection handler fields:
+  nng_stream_listener *listener;    // WebSocket listener (NULL for HTTP stream)
+  nng_aio *accept_aio;              // Accept AIO for WS handler
+  nano_conn *conns;                 // Linked list of connections (WS or HTTP stream)
+  SEXP on_open;                     // R callback: WS open or stream request
+  SEXP on_close;                    // R callback: connection close
+  int textframes;                   // WS: text frame mode
 } nano_http_handler_info;
 
 typedef struct nano_http_request_s {
@@ -313,7 +345,7 @@ typedef struct nano_http_server_s {
   int handler_count;                // Number of handlers
   nano_http_request *pending_reqs;  // Linked list of pending HTTP requests
   nng_mtx *mtx;                     // Mutex for thread safety
-  int ws_conn_counter;              // Server-wide unique connection ID counter
+  int conn_counter;                 // Server-wide unique connection ID counter
   nano_server_state state;          // Server lifecycle state
   SEXP xptr;                        // R external pointer for this server
   SEXP prot;                        // Pairlist for GC protection of callbacks
@@ -350,7 +382,7 @@ extern SEXP nano_TlsSymbol;
 extern SEXP nano_UrlSymbol;
 extern SEXP nano_ValueSymbol;
 extern SEXP nano_HttpServerSymbol;
-extern SEXP nano_WsConnSymbol;
+extern SEXP nano_ConnSymbol;
 
 extern SEXP nano_aioFuncMsg;
 extern SEXP nano_aioFuncRes;
@@ -457,6 +489,7 @@ SEXP rnng_header_read(SEXP);
 SEXP rnng_http_server_close(SEXP);
 SEXP rnng_http_server_create(SEXP, SEXP, SEXP);
 SEXP rnng_http_server_start(SEXP);
+SEXP rnng_http_server_stop(SEXP);
 SEXP rnng_ip_addr(void);
 SEXP rnng_is_error_value(SEXP);
 SEXP rnng_is_nul_byte(SEXP);
@@ -508,5 +541,9 @@ SEXP rnng_write_cert(SEXP, SEXP);
 SEXP rnng_write_stdout(SEXP);
 SEXP rnng_ws_close(SEXP);
 SEXP rnng_ws_send(SEXP, SEXP);
+SEXP rnng_conn_close(SEXP);
+SEXP rnng_stream_conn_send(SEXP, SEXP);
+SEXP rnng_stream_conn_set_header(SEXP, SEXP, SEXP);
+SEXP rnng_stream_conn_set_status(SEXP, SEXP);
 
 #endif

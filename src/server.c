@@ -22,6 +22,30 @@
   (node)->next = (node)->prev = NULL; \
 } while (0)
 
+#define SEXP_TO_BUF(data, buf, len) do { \
+  switch (TYPEOF(data)) { \
+  case RAWSXP: \
+    (buf) = (unsigned char *) DATAPTR_RO(data); \
+    (len) = (size_t) XLENGTH(data); \
+    break; \
+  case STRSXP: \
+    (buf) = (unsigned char *) NANO_STRING(data); \
+    (len) = strlen((const char *) (buf)); \
+    break; \
+  default: \
+    Rf_error("`data` must be raw or character"); \
+  } \
+} while (0)
+
+#define STREAM_CONN_CHECK(xptr, sc) do { \
+  if (NANO_PTR_CHECK(xptr, nano_ConnSymbol)) \
+    Rf_error("`conn` is not a valid connection"); \
+  nano_conn *conn_ = (nano_conn *) NANO_PTR(xptr); \
+  if (conn_->type != NANO_CONN_HTTP_STREAM) \
+    Rf_error("`conn` is not an HTTP stream connection"); \
+  (sc) = (nano_stream_conn *) conn_; \
+} while (0)
+
 static inline void prot_add(SEXP prot, SEXP obj) {
   SETCDR(prot, Rf_cons(obj, CDR(prot)));
 }
@@ -52,16 +76,23 @@ static void http_invoke_callback(void *);
 static int http_request_unlink(nano_http_request *);
 static void http_cancel_pending_requests(nano_http_server *);
 static void ws_accept_cb(void *);
-static int ws_conn_close_locked(nano_ws_conn *);
-static void ws_conn_close(nano_ws_conn *);
+static int conn_close_locked(nano_conn *);
+static void conn_close(nano_conn *);
 static void ws_recv_cb(void *);
-static void ws_conn_cleanup(nano_ws_conn *);
+static void conn_cleanup(nano_conn *);
 static void ws_invoke_onopen(void *);
 static void ws_invoke_onmessage(void *);
-static void ws_invoke_onclose(void *);
+static void conn_invoke_onclose(void *);
 static void http_server_finalizer(SEXP);
 static void http_server_stop(nano_http_server *);
 static void http_server_cleanup(void *);
+static SEXP make_request_list(nng_http_req *);
+// HTTP streaming functions
+static void stream_handler_cb(nng_aio *);
+static void stream_invoke_onrequest(void *);
+static int stream_write_headers(nano_stream_conn *);
+static int stream_write_chunk(nano_stream_conn *, const unsigned char *, size_t);
+static int stream_write_terminator(nano_stream_conn *);
 
 // On NNG threads --------------------------------------------------------------
 
@@ -127,28 +158,71 @@ static void http_server_stop(nano_http_server *srv) {
   http_cancel_pending_requests(srv);
 
   for (int i = 0; i < srv->handler_count; i++) {
-    if (srv->handlers[i].ws_listener != NULL) {
-      nng_aio_stop(srv->handlers[i].ws_accept_aio);
-      nng_stream_listener_close(srv->handlers[i].ws_listener);
+    if (srv->handlers[i].listener != NULL) {
+      nng_aio_stop(srv->handlers[i].accept_aio);
+      nng_stream_listener_close(srv->handlers[i].listener);
+    }
 
-      nng_mtx_lock(srv->mtx);
-      for (nano_ws_conn *conn = srv->handlers[i].ws_conns; conn != NULL; conn = conn->next) {
-        ws_conn_close_locked(conn);
-        if (!conn->onclose_scheduled) {
-          conn->onclose_scheduled = 1;
-          later2(ws_invoke_onclose, conn);
-        }
+    // Schedule on_close for all connections (WebSocket and HTTP streaming)
+    nng_mtx_lock(srv->mtx);
+    for (nano_conn *conn = srv->handlers[i].conns; conn != NULL; conn = conn->next) {
+      conn_close_locked(conn);
+      if (!conn->onclose_scheduled) {
+        conn->onclose_scheduled = 1;
+        later2(conn_invoke_onclose, conn);
       }
-      nng_mtx_unlock(srv->mtx);
+    }
+    nng_mtx_unlock(srv->mtx);
 
-      for (nano_ws_conn *conn = srv->handlers[i].ws_conns; conn != NULL; conn = conn->next)
-        nng_aio_wait(conn->recv_aio);
+    // Wait for WebSocket receive AIOs
+    for (nano_conn *conn = srv->handlers[i].conns; conn != NULL; conn = conn->next) {
+      if (conn->type == NANO_CONN_WEBSOCKET) {
+        nano_ws_conn *ws = (nano_ws_conn *) conn;
+        nng_aio_wait(ws->recv_aio);
+      }
     }
   }
 
 }
 
 // On R main thread ------------------------------------------------------------
+
+static SEXP make_request_list(nng_http_req *req) {
+
+  const char *names[] = {"method", "uri", "headers", "body", ""};
+  SEXP request, headers, hdr_names, body;
+  PROTECT(request = Rf_mkNamed(VECSXP, names));
+  SET_VECTOR_ELT(request, 0, Rf_mkString(nng_http_req_get_method(req)));
+  SET_VECTOR_ELT(request, 1, Rf_mkString(nng_http_req_get_uri(req)));
+
+  int header_count = 0;
+  for (nano_http_header_s *hdr = nano_http_header_first(req); hdr != NULL;
+       hdr = nano_http_header_next(req, hdr))
+    header_count++;
+
+  headers = Rf_allocVector(STRSXP, header_count);
+  SET_VECTOR_ELT(request, 2, headers);
+  hdr_names = Rf_allocVector(STRSXP, header_count);
+  Rf_namesgets(headers, hdr_names);
+  int i = 0;
+  for (nano_http_header_s *hdr = nano_http_header_first(req); hdr != NULL;
+       hdr = nano_http_header_next(req, hdr), i++) {
+    SET_STRING_ELT(headers, i, Rf_mkChar(hdr->value));
+    SET_STRING_ELT(hdr_names, i, Rf_mkChar(hdr->name));
+  }
+
+  void *body_data;
+  size_t body_len;
+  nng_http_req_get_data(req, &body_data, &body_len);
+  body = Rf_allocVector(RAWSXP, body_len);
+  SET_VECTOR_ELT(request, 3, body);
+  if (body_len)
+    memcpy(NANO_DATAPTR(body), body_data, body_len);
+
+  UNPROTECT(1);
+  return request;
+
+}
 
 static void http_server_cleanup(void *arg) {
 
@@ -158,22 +232,33 @@ static void http_server_cleanup(void *arg) {
     if (srv->handlers[i].handler != NULL)
       nng_http_server_del_handler(srv->server, srv->handlers[i].handler);
 
-    if (srv->handlers[i].ws_listener != NULL) {
-      nng_stream_listener_free(srv->handlers[i].ws_listener);
-      nng_aio_free(srv->handlers[i].ws_accept_aio);
+    if (srv->handlers[i].listener != NULL) {
+      nng_stream_listener_free(srv->handlers[i].listener);
+      nng_aio_free(srv->handlers[i].accept_aio);
+    }
 
-      // Free any connections not cleaned up by callbacks (shouldn't normally happen)
-      nano_ws_conn *conn = srv->handlers[i].ws_conns;
-      while (conn != NULL) {
-        nano_ws_conn *next = conn->next;
-        if (conn->xptr != R_NilValue)
-          R_ClearExternalPtr(conn->xptr);
-        nng_stream_free(conn->stream);
-        nng_aio_free(conn->recv_aio);
-        nng_aio_free(conn->send_aio);
-        free(conn);
-        conn = next;
+    // Free any connections not cleaned up by callbacks (shouldn't normally happen)
+    nano_conn *conn = srv->handlers[i].conns;
+    while (conn != NULL) {
+      nano_conn *next = conn->next;
+      if (conn->xptr != R_NilValue)
+        R_ClearExternalPtr(conn->xptr);
+      if (conn->type == NANO_CONN_WEBSOCKET) {
+        nano_ws_conn *ws = (nano_ws_conn *) conn;
+        nng_stream_free(ws->stream);
+        nng_aio_free(ws->recv_aio);
+      } else {
+        nano_stream_conn *sc = (nano_stream_conn *) conn;
+        for (int j = 0; j < sc->resp_header_count; j++) {
+          free(sc->resp_header_names[j]);
+          free(sc->resp_header_values[j]);
+        }
+        free(sc->resp_header_names);
+        free(sc->resp_header_values);
       }
+      nng_aio_free(conn->send_aio);
+      free(conn);
+      conn = next;
     }
   }
   free(srv->handlers);
@@ -197,13 +282,6 @@ static void http_server_finalizer(SEXP xptr) {
     http_server_stop(srv);
   }
 
-  // Suppress callbacks during shutdown - on_close won't fire for connections closed by server stop
-  for (int i = 0; i < srv->handler_count; i++) {
-    srv->handlers[i].callback = R_NilValue;
-    srv->handlers[i].on_open = R_NilValue;
-    srv->handlers[i].on_close = R_NilValue;
-  }
-
   // Schedule deferred cleanup - runs after all pending later2 callbacks due to FIFO ordering
   later2(http_server_cleanup, srv);
 
@@ -219,39 +297,8 @@ static void http_invoke_callback(void *arg) {
     return;
   }
 
-  nng_http_req *req = r->req;
-
-  const char *names[] = {"method", "uri", "headers", "body", ""};
-  SEXP req_list;
-  PROTECT(req_list = Rf_mkNamed(VECSXP, names));
-  SET_VECTOR_ELT(req_list, 0, Rf_mkString(nng_http_req_get_method(req)));
-  SET_VECTOR_ELT(req_list, 1, Rf_mkString(nng_http_req_get_uri(req)));
-
-  int header_count = 0;
-  for (nano_http_header_s *hdr = nano_http_header_first(req); hdr != NULL;
-       hdr = nano_http_header_next(req, hdr))
-    header_count++;
-  
-  SEXP headers = Rf_allocVector(STRSXP, header_count);
-  SET_VECTOR_ELT(req_list, 2, headers);
-  SEXP hdr_names = Rf_allocVector(STRSXP, header_count);
-  Rf_namesgets(headers, hdr_names);
-  int i = 0;
-  for (nano_http_header_s *hdr = nano_http_header_first(req); hdr != NULL;
-       hdr = nano_http_header_next(req, hdr), i++) {
-    SET_STRING_ELT(headers, i, Rf_mkChar(hdr->value));
-    SET_STRING_ELT(hdr_names, i, Rf_mkChar(hdr->name));
-  }
-
-  void *body_data;
-  size_t body_len;
-  nng_http_req_get_data(req, &body_data, &body_len);
-  SEXP body = Rf_allocVector(RAWSXP, body_len);
-  SET_VECTOR_ELT(req_list, 3, body);
-  if (body_len)
-    memcpy(NANO_DATAPTR(body), body_data, body_len);
-
-  SEXP call;
+  SEXP req_list, call;
+  PROTECT(req_list = make_request_list(r->req));
   PROTECT(call = Rf_lang2(r->callback, req_list));
   int err;
   SEXP result = R_tryEval(call, R_GlobalEnv, &err);
@@ -314,121 +361,138 @@ static void ws_accept_cb(void *arg) {
 
   nano_http_handler_info *info = (nano_http_handler_info *) arg;
   nano_http_server *srv = info->server;
-  const int xc = nng_aio_result(info->ws_accept_aio);
+  const int xc = nng_aio_result(info->accept_aio);
 
   if (xc == 0) {
-    nng_stream *stream = nng_aio_get_output(info->ws_accept_aio, 0);
+    nng_stream *stream = nng_aio_get_output(info->accept_aio, 0);
 
-    nano_ws_conn *conn = calloc(1, sizeof(nano_ws_conn));
-    if (conn == NULL) {
+    nano_ws_conn *ws = calloc(1, sizeof(nano_ws_conn));
+    if (ws == NULL) {
       nng_stream_free(stream);
       goto next;
     }
-    conn->stream = stream;
-    conn->handler = info;
-    conn->state = WS_STATE_OPEN;
-    conn->xptr = R_NilValue;
 
-    if (nng_aio_alloc(&conn->recv_aio, ws_recv_cb, conn) ||
-        nng_aio_alloc(&conn->send_aio, NULL, NULL)) {
-      nng_aio_free(conn->recv_aio);
+    // Initialize base fields
+    ws->conn.type = NANO_CONN_WEBSOCKET;
+    ws->conn.handler = info;
+    ws->conn.state = CONN_STATE_OPEN;
+    ws->conn.xptr = R_NilValue;
+
+    // Initialize WebSocket-specific fields
+    ws->stream = stream;
+
+    if (nng_aio_alloc(&ws->recv_aio, ws_recv_cb, ws) ||
+        nng_aio_alloc(&ws->conn.send_aio, NULL, NULL)) {
+      nng_aio_free(ws->recv_aio);
       nng_stream_free(stream);
-      free(conn);
+      free(ws);
       goto next;
     }
 
+    // Add to handler's connection list via base pointer
+    nano_conn *conn = &ws->conn;
     nng_mtx_lock(srv->mtx);
-    conn->id = ++srv->ws_conn_counter;
-    DL_PREPEND(info->ws_conns, conn);
+    conn->id = ++srv->conn_counter;
+    DL_PREPEND(info->conns, conn);
     nng_mtx_unlock(srv->mtx);
 
-    later2(ws_invoke_onopen, conn);
+    later2(ws_invoke_onopen, ws);
   }
 
   next:
   if (srv->state != SERVER_STOPPED) {
-    nng_stream_listener_accept(info->ws_listener, info->ws_accept_aio);
+    nng_stream_listener_accept(info->listener, info->accept_aio);
   }
 
 }
 
-static inline int ws_conn_is_open(nano_ws_conn *conn) {
+static inline int conn_is_open(nano_conn *conn) {
 
   nano_http_server *srv = conn->handler->server;
   nng_mtx_lock(srv->mtx);
-  const int is_open = conn->state == WS_STATE_OPEN;
+  const int is_open = conn->state == CONN_STATE_OPEN;
   nng_mtx_unlock(srv->mtx);
   return is_open;
 
 }
 
 // Caller must hold srv->mtx
-static int ws_conn_close_locked(nano_ws_conn *conn) {
+static int conn_close_locked(nano_conn *conn) {
 
-  if (conn->state != WS_STATE_OPEN)
+  if (conn->state != CONN_STATE_OPEN)
     return 0;
 
-  conn->state = WS_STATE_CLOSING;
-  nng_aio_cancel(conn->recv_aio);
+  conn->state = CONN_STATE_CLOSING;
+
+  // Cancel common AIO
   nng_aio_cancel(conn->send_aio);
-  nng_stream_close(conn->stream);
+
+  // Type-specific close
+  if (conn->type == NANO_CONN_WEBSOCKET) {
+    nano_ws_conn *ws = (nano_ws_conn *) conn;
+    nng_aio_cancel(ws->recv_aio);
+    nng_stream_close(ws->stream);
+  } else {
+    nano_stream_conn *sc = (nano_stream_conn *) conn;
+    nng_http_conn_close(sc->http);
+  }
   return 1;
 
 }
 
-static void ws_conn_close(nano_ws_conn *conn) {
+static void conn_close(nano_conn *conn) {
 
   nano_http_server *srv = conn->handler->server;
   nng_mtx_lock(srv->mtx);
-  ws_conn_close_locked(conn);
+  conn_close_locked(conn);
   const int scheduled = conn->onclose_scheduled;
   conn->onclose_scheduled = 1;
   nng_mtx_unlock(srv->mtx);
 
   if (!scheduled)
-    later2(ws_invoke_onclose, conn);
+    later2(conn_invoke_onclose, conn);
 
 }
 
 static void ws_recv_cb(void *arg) {
 
-  nano_ws_conn *conn = (nano_ws_conn *) arg;
-  const int xc = nng_aio_result(conn->recv_aio);
+  nano_ws_conn *ws = (nano_ws_conn *) arg;
+  const int xc = nng_aio_result(ws->recv_aio);
 
   if (xc == 0) {
-    nng_msg *msgp = nng_aio_get_msg(conn->recv_aio);
+    nng_msg *msgp = nng_aio_get_msg(ws->recv_aio);
 
     ws_message *msg = malloc(sizeof(ws_message));
     if (msg != NULL) {
-      msg->conn = conn;
+      msg->conn = ws;
       msg->msg = msgp;
       later2(ws_invoke_onmessage, msg);
     } else {
       nng_msg_free(msgp);
     }
 
-    nano_http_server *srv = conn->handler->server;
+    nano_http_server *srv = ws->conn.handler->server;
     nng_mtx_lock(srv->mtx);
-    if (conn->state == WS_STATE_OPEN)
-      nng_stream_recv(conn->stream, conn->recv_aio);
+    if (ws->conn.state == CONN_STATE_OPEN)
+      nng_stream_recv(ws->stream, ws->recv_aio);
     nng_mtx_unlock(srv->mtx);
 
   } else {
-    ws_conn_close(conn);
+    conn_close(&ws->conn);
   }
 
 }
 
-static void ws_conn_cleanup(nano_ws_conn *conn) {
+static void conn_cleanup(nano_conn *conn) {
 
   nano_http_handler_info *info = conn->handler;
   nano_http_server *srv = info->server;
 
   nng_mtx_lock(srv->mtx);
-  DL_REMOVE(info->ws_conns, conn);
+  DL_REMOVE(info->conns, conn);
   nng_mtx_unlock(srv->mtx);
 
-  conn->state = WS_STATE_CLOSED;
+  conn->state = CONN_STATE_CLOSED;
 
   if (conn->xptr != R_NilValue) {
     prot_remove(srv->prot, conn->xptr);
@@ -436,8 +500,21 @@ static void ws_conn_cleanup(nano_ws_conn *conn) {
     conn->xptr = R_NilValue;
   }
 
-  nng_stream_free(conn->stream);
-  nng_aio_free(conn->recv_aio);
+  // Type-specific cleanup
+  if (conn->type == NANO_CONN_WEBSOCKET) {
+    nano_ws_conn *ws = (nano_ws_conn *) conn;
+    nng_stream_free(ws->stream);
+    nng_aio_free(ws->recv_aio);
+  } else {
+    nano_stream_conn *sc = (nano_stream_conn *) conn;
+    for (int i = 0; i < sc->resp_header_count; i++) {
+      free(sc->resp_header_names[i]);
+      free(sc->resp_header_values[i]);
+    }
+    free(sc->resp_header_names);
+    free(sc->resp_header_values);
+  }
+
   nng_aio_free(conn->send_aio);
   free(conn);
 
@@ -445,34 +522,34 @@ static void ws_conn_cleanup(nano_ws_conn *conn) {
 
 static void ws_invoke_onopen(void *arg) {
 
-  nano_ws_conn *conn = (nano_ws_conn *) arg;
-  if (!ws_conn_is_open(conn))
+  nano_ws_conn *ws = (nano_ws_conn *) arg;
+  if (!conn_is_open(&ws->conn))
     return;
-  nano_http_handler_info *info = conn->handler;
+  nano_http_handler_info *info = ws->conn.handler;
 
   SEXP xptr;
-  PROTECT(xptr = R_MakeExternalPtr(conn, nano_WsConnSymbol, R_NilValue));
+  PROTECT(xptr = R_MakeExternalPtr(ws, nano_ConnSymbol, R_NilValue));
   NANO_CLASS2(xptr, "nanoWsConn", "nano");
-  Rf_setAttrib(xptr, nano_IdSymbol, Rf_ScalarInteger(conn->id));
+  Rf_setAttrib(xptr, nano_IdSymbol, Rf_ScalarInteger(ws->conn.id));
   prot_add(info->server->prot, xptr);
-  conn->xptr = xptr;
+  ws->conn.xptr = xptr;
   UNPROTECT(1);
 
   if (info->on_open != R_NilValue) {
     SEXP call;
-    PROTECT(call = Rf_lang2(info->on_open, conn->xptr));
+    PROTECT(call = Rf_lang2(info->on_open, ws->conn.xptr));
     R_tryEval(call, R_GlobalEnv, NULL);
     UNPROTECT(1);
   }
 
   // on_open callback may have closed connection e.g. if not authorized
-  if (R_ExternalPtrAddr(conn->xptr) == NULL)
+  if (R_ExternalPtrAddr(ws->conn.xptr) == NULL)
     return;
 
   nano_http_server *srv = info->server;
   nng_mtx_lock(srv->mtx);
-  if (conn->state == WS_STATE_OPEN)
-    nng_stream_recv(conn->stream, conn->recv_aio);
+  if (ws->conn.state == CONN_STATE_OPEN)
+    nng_stream_recv(ws->stream, ws->recv_aio);
   nng_mtx_unlock(srv->mtx);
 
 }
@@ -480,13 +557,13 @@ static void ws_invoke_onopen(void *arg) {
 static void ws_invoke_onmessage(void *arg) {
 
   ws_message *wsmsg = (ws_message *) arg;
-  nano_ws_conn *conn = wsmsg->conn;
-  if (!ws_conn_is_open(conn)) {
+  nano_ws_conn *ws = wsmsg->conn;
+  if (!conn_is_open(&ws->conn)) {
     nng_msg_free(wsmsg->msg);
     free(wsmsg);
     return;
   }
-  nano_http_handler_info *info = conn->handler;
+  nano_http_handler_info *info = ws->conn.handler;
 
   const size_t len = nng_msg_len(wsmsg->msg);
   unsigned char *buf = nng_msg_body(wsmsg->msg);
@@ -501,7 +578,7 @@ static void ws_invoke_onmessage(void *arg) {
 
   if (info->callback != R_NilValue) {
     SEXP call;
-    PROTECT(call = Rf_lang3(info->callback, conn->xptr, data));
+    PROTECT(call = Rf_lang3(info->callback, ws->conn.xptr, data));
     R_tryEval(call, R_GlobalEnv, NULL);
     UNPROTECT(1);
   }
@@ -512,19 +589,19 @@ static void ws_invoke_onmessage(void *arg) {
 
 }
 
-static void ws_invoke_onclose(void *arg) {
+static void conn_invoke_onclose(void *arg) {
 
-  nano_ws_conn *conn = (nano_ws_conn *) arg;
+  nano_conn *conn = (nano_conn *) arg;
   nano_http_handler_info *info = conn->handler;
 
-  if (info->on_close != R_NilValue) {
+  if (info->on_close != R_NilValue && conn->xptr != R_NilValue) {
     SEXP call;
     PROTECT(call = Rf_lang2(info->on_close, conn->xptr));
     R_tryEval(call, R_GlobalEnv, NULL);
     UNPROTECT(1);
   }
 
-  ws_conn_cleanup(conn);
+  conn_cleanup(conn);
 
 }
 
@@ -641,20 +718,20 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
         char ws_url[ws_url_len];
         snprintf(ws_url, ws_url_len, "%s://%s:%s%s", scheme, up->u_hostname, up->u_port, path);
 
-        if ((xc = nng_stream_listener_alloc(&srv->handlers[i].ws_listener, ws_url)) ||
-            (xc = nng_stream_listener_set_bool(srv->handlers[i].ws_listener, "ws:msgmode", true)))
+        if ((xc = nng_stream_listener_alloc(&srv->handlers[i].listener, ws_url)) ||
+            (xc = nng_stream_listener_set_bool(srv->handlers[i].listener, "ws:msgmode", true)))
           goto fail;
 
         if (textframes) {
-          if ((xc = nng_stream_listener_set_bool(srv->handlers[i].ws_listener, "ws:recv-text", true)) ||
-              (xc = nng_stream_listener_set_bool(srv->handlers[i].ws_listener, "ws:send-text", true)))
+          if ((xc = nng_stream_listener_set_bool(srv->handlers[i].listener, "ws:recv-text", true)) ||
+              (xc = nng_stream_listener_set_bool(srv->handlers[i].listener, "ws:send-text", true)))
             goto fail;
 
           srv->handlers[i].textframes = 1;
         }
 
         if (srv->tls != NULL) {
-          nng_stream_listener_set_ptr(srv->handlers[i].ws_listener, NNG_OPT_TLS_CONFIG, srv->tls);
+          nng_stream_listener_set_ptr(srv->handlers[i].listener, NNG_OPT_TLS_CONFIG, srv->tls);
         }
 
         SEXP on_message = get_list_element(h, "on_message");
@@ -673,7 +750,7 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
 
         srv->handlers[i].server = srv;
 
-        if ((xc = nng_aio_alloc(&srv->handlers[i].ws_accept_aio, ws_accept_cb, &srv->handlers[i])))
+        if ((xc = nng_aio_alloc(&srv->handlers[i].accept_aio, ws_accept_cb, &srv->handlers[i])))
           goto fail;
 
         handlers_added++;
@@ -763,6 +840,39 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
         handlers_added++;
         break;
       }
+      case 7: {
+        // HTTP streaming handler
+        SEXP on_request = get_list_element(h, "on_request");
+        SEXP on_close = get_list_element(h, "on_close");
+        SEXP method_elem = get_list_element(h, "method");
+        const char *method = CHAR(STRING_ELT(method_elem, 0));
+        if (method[0] == '*' && method[1] == '\0')
+          method = NULL;
+
+        if ((xc = nng_http_handler_alloc(&srv->handlers[i].handler, path, stream_handler_cb)))
+          goto fail;
+        if ((xc = nng_http_handler_set_method(srv->handlers[i].handler, method)))
+          goto fail;
+        if (tree && (xc = nng_http_handler_set_tree(srv->handlers[i].handler)))
+          goto fail;
+
+        srv->handlers[i].callback = on_request;
+        prot_add(prot, on_request);
+
+        if (on_close != R_NilValue) {
+          srv->handlers[i].on_close = on_close;
+          prot_add(prot, on_close);
+        }
+
+        srv->handlers[i].server = srv;
+        nng_http_handler_set_data(srv->handlers[i].handler, &srv->handlers[i], NULL);
+
+        if ((xc = nng_http_server_add_handler(srv->server, srv->handlers[i].handler)))
+          goto fail;
+
+        handlers_added++;
+        break;
+      }
       default:
         xc = NNG_EINVAL;
         goto fail;
@@ -790,18 +900,18 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
   for (int i = 0; i < handlers_added; i++) {
     if (srv->handlers[i].handler != NULL)
       nng_http_server_del_handler(srv->server, srv->handlers[i].handler);
-    if (srv->handlers[i].ws_listener != NULL)
-      nng_stream_listener_free(srv->handlers[i].ws_listener);
-    if (srv->handlers[i].ws_accept_aio != NULL)
-      nng_aio_free(srv->handlers[i].ws_accept_aio);
+    if (srv->handlers[i].listener != NULL)
+      nng_stream_listener_free(srv->handlers[i].listener);
+    if (srv->handlers[i].accept_aio != NULL)
+      nng_aio_free(srv->handlers[i].accept_aio);
   }
   if (hinfo != NULL && handlers_added < handler_count) {
     if (srv->handlers[handlers_added].handler != NULL)
       nng_http_handler_free(srv->handlers[handlers_added].handler);
-    if (srv->handlers[handlers_added].ws_listener != NULL)
-      nng_stream_listener_free(srv->handlers[handlers_added].ws_listener);
-    if (srv->handlers[handlers_added].ws_accept_aio != NULL)
-      nng_aio_free(srv->handlers[handlers_added].ws_accept_aio);
+    if (srv->handlers[handlers_added].listener != NULL)
+      nng_stream_listener_free(srv->handlers[handlers_added].listener);
+    if (srv->handlers[handlers_added].accept_aio != NULL)
+      nng_aio_free(srv->handlers[handlers_added].accept_aio);
   }
   if (srv->server != NULL) nng_http_server_release(srv->server);
   if (srv->mtx != NULL) nng_mtx_free(srv->mtx);
@@ -831,10 +941,10 @@ SEXP rnng_http_server_start(SEXP xptr) {
     ERROR_OUT(xc);
 
   for (int i = 0; i < srv->handler_count; i++) {
-    if (srv->handlers[i].ws_listener != NULL) {
-      if ((xc = nng_stream_listener_listen(srv->handlers[i].ws_listener)))
+    if (srv->handlers[i].listener != NULL) {
+      if ((xc = nng_stream_listener_listen(srv->handlers[i].listener)))
         goto fail;
-      nng_stream_listener_accept(srv->handlers[i].ws_listener, srv->handlers[i].ws_accept_aio);
+      nng_stream_listener_accept(srv->handlers[i].listener, srv->handlers[i].accept_aio);
     }
   }
 
@@ -855,8 +965,8 @@ SEXP rnng_http_server_start(SEXP xptr) {
 
   fail:
   for (int j = 0; j < srv->handler_count; j++) {
-    if (srv->handlers[j].ws_listener != NULL)
-      nng_stream_listener_close(srv->handlers[j].ws_listener);
+    if (srv->handlers[j].listener != NULL)
+      nng_stream_listener_close(srv->handlers[j].listener);
   }
   nng_http_server_stop(srv->server);
   ERROR_OUT(xc);
@@ -878,25 +988,14 @@ SEXP rnng_http_server_close(SEXP xptr) {
 
 SEXP rnng_ws_send(SEXP xptr, SEXP data) {
 
-  if (NANO_PTR_CHECK(xptr, nano_WsConnSymbol))
+  if (NANO_PTR_CHECK(xptr, nano_ConnSymbol))
     return mk_error(NNG_ECLOSED);
 
-  nano_ws_conn *conn = (nano_ws_conn *) NANO_PTR(xptr);
+  nano_ws_conn *ws = (nano_ws_conn *) NANO_PTR(xptr);
 
   unsigned char *buf;
   size_t len;
-  switch (TYPEOF(data)) {
-  case RAWSXP:
-    buf = (unsigned char *) DATAPTR_RO(data);
-    len = (size_t) XLENGTH(data);
-    break;
-  case STRSXP:
-    buf = (unsigned char *) NANO_STRING(data);
-    len = strlen((char *) buf);
-    break;
-  default:
-    Rf_error("`data` must be raw or character");
-  }
+  SEXP_TO_BUF(data, buf, len);
 
   nng_msg *msgp = NULL;
   int xc;
@@ -905,12 +1004,12 @@ SEXP rnng_ws_send(SEXP xptr, SEXP data) {
 
   memcpy(nng_msg_body(msgp), buf, len);
 
-  nng_aio_set_msg(conn->send_aio, msgp);
-  nng_stream_send(conn->stream, conn->send_aio);
-  nng_aio_wait(conn->send_aio);
+  nng_aio_set_msg(ws->conn.send_aio, msgp);
+  nng_stream_send(ws->stream, ws->conn.send_aio);
+  nng_aio_wait(ws->conn.send_aio);
 
-  if ((xc = nng_aio_result(conn->send_aio))) {
-    nng_msg_free(nng_aio_get_msg(conn->send_aio));
+  if ((xc = nng_aio_result(ws->conn.send_aio))) {
+    nng_msg_free(nng_aio_get_msg(ws->conn.send_aio));
     return mk_error(xc);
   }
 
@@ -920,12 +1019,290 @@ SEXP rnng_ws_send(SEXP xptr, SEXP data) {
 
 SEXP rnng_ws_close(SEXP xptr) {
 
-  if (NANO_PTR_CHECK(xptr, nano_WsConnSymbol))
+  if (NANO_PTR_CHECK(xptr, nano_ConnSymbol))
     return mk_error(NNG_ECLOSED);
 
-  nano_ws_conn *conn = (nano_ws_conn *) NANO_PTR(xptr);
-  ws_conn_close(conn);
+  nano_ws_conn *ws = (nano_ws_conn *) NANO_PTR(xptr);
+  conn_close(&ws->conn);
 
+  return nano_success;
+
+}
+
+// HTTP Streaming functions ----------------------------------------------------
+
+static void stream_handler_cb(nng_aio *aio) {
+
+  nng_http_req *req = nng_aio_get_input(aio, 0);
+  nng_http_handler *h = nng_aio_get_input(aio, 1);
+  nng_http_conn *http_conn = nng_aio_get_input(aio, 2);
+
+  nano_http_handler_info *info = nng_http_handler_get_data(h);
+  nano_http_server *srv = info->server;
+
+  if (srv->state == SERVER_STOPPED) {
+    nng_aio_finish(aio, NNG_ECANCELED);
+    return;
+  }
+
+  // Hijack the connection - this means we own it now
+  nng_http_hijack(http_conn);
+
+  nano_stream_conn *sc = calloc(1, sizeof(nano_stream_conn));
+  if (sc == NULL) {
+    nng_http_conn_close(http_conn);
+    nng_aio_finish(aio, 0);
+    return;
+  }
+
+  sc->conn.type = NANO_CONN_HTTP_STREAM;
+  sc->conn.handler = info;
+  sc->conn.state = CONN_STATE_OPEN;
+  sc->conn.xptr = R_NilValue;
+
+  sc->http = http_conn;
+  sc->req = req;  // Store pointer - valid because we hijacked
+  sc->status_code = 200;
+
+  if (nng_aio_alloc(&sc->conn.send_aio, NULL, NULL)) {
+    nng_http_conn_close(http_conn);
+    free(sc);
+    nng_aio_finish(aio, 0);
+    return;
+  }
+
+  nano_conn *conn = &sc->conn;
+  nng_mtx_lock(srv->mtx);
+  conn->id = ++srv->conn_counter;
+  DL_PREPEND(info->conns, conn);
+  nng_mtx_unlock(srv->mtx);
+
+  later2(stream_invoke_onrequest, conn);
+  nng_aio_finish(aio, 0);
+
+}
+
+static void stream_invoke_onrequest(void *arg) {
+
+  nano_conn *conn = (nano_conn *) arg;
+  nano_stream_conn *sc = (nano_stream_conn *) conn;
+  nano_http_handler_info *info = conn->handler;
+  nano_http_server *srv = info->server;
+
+  if (!conn_is_open(conn)) {
+    conn_cleanup(conn);
+    return;
+  }
+
+  SEXP xptr;
+  PROTECT(xptr = R_MakeExternalPtr(conn, nano_ConnSymbol, R_NilValue));
+  NANO_CLASS2(xptr, "nanoStreamConn", "nano");
+  Rf_setAttrib(xptr, nano_IdSymbol, Rf_ScalarInteger(conn->id));
+  prot_add(srv->prot, xptr);
+  conn->xptr = xptr;
+  UNPROTECT(1);
+
+  if (info->callback != R_NilValue) {
+    SEXP request, call;
+    PROTECT(request = make_request_list(sc->req));
+    PROTECT(call = Rf_lang3(info->callback, conn->xptr, request));
+    R_tryEval(call, R_GlobalEnv, NULL);
+    UNPROTECT(2);
+  }
+
+}
+
+static int stream_write_headers(nano_stream_conn *sc) {
+
+  nng_http_res *res;
+  int xc;
+
+  if ((xc = nng_http_res_alloc(&res)))
+    return xc;
+
+  if ((xc = nng_http_res_set_status(res, (uint16_t) sc->status_code)))
+    goto cleanup;
+
+  if ((xc = nng_http_res_set_header(res, "Transfer-Encoding", "chunked")))
+    goto cleanup;
+
+  for (int i = 0; i < sc->resp_header_count; i++) {
+    if ((xc = nng_http_res_set_header(res, sc->resp_header_names[i],
+                                      sc->resp_header_values[i])))
+      goto cleanup;
+  }
+
+  nng_http_conn_write_res(sc->http, res, sc->conn.send_aio);
+  nng_aio_wait(sc->conn.send_aio);
+  xc = nng_aio_result(sc->conn.send_aio);
+
+cleanup:
+  nng_http_res_free(res);
+  return xc;
+
+}
+
+static int stream_write_chunk(nano_stream_conn *sc, const unsigned char *data,
+                              size_t len) {
+
+  // Format: hex_size + CRLF + data + CRLF
+  char header[24];
+  int header_len = snprintf(header, sizeof(header), "%" PRIxPTR "\r\n", (uintptr_t) len);
+
+  size_t chunk_len = (size_t) header_len + len + 2;
+  unsigned char *chunk = malloc(chunk_len);
+  if (chunk == NULL)
+    return NNG_ENOMEM;
+
+  memcpy(chunk, header, (size_t) header_len);
+  if (len > 0)
+    memcpy(chunk + header_len, data, len);
+  memcpy(chunk + header_len + len, "\r\n", 2);
+
+  nng_iov iov = {
+    .iov_buf = chunk,
+    .iov_len = chunk_len
+  };
+  int xc;
+  if ((xc = nng_aio_set_iov(sc->conn.send_aio, 1, &iov))) {
+    free(chunk);
+    return xc;
+  }
+
+  nng_http_conn_write_all(sc->http, sc->conn.send_aio);
+  nng_aio_wait(sc->conn.send_aio);
+  xc = nng_aio_result(sc->conn.send_aio);
+
+  free(chunk);
+  return xc;
+
+}
+
+static int stream_write_terminator(nano_stream_conn *sc) {
+
+  static const char terminator[] = "0\r\n\r\n";
+
+  nng_iov iov = {
+    .iov_buf = (void *) terminator,
+    .iov_len = 5
+  };
+  int xc;
+  if ((xc = nng_aio_set_iov(sc->conn.send_aio, 1, &iov)))
+    return xc;
+
+  nng_http_conn_write_all(sc->http, sc->conn.send_aio);
+  nng_aio_wait(sc->conn.send_aio);
+  return nng_aio_result(sc->conn.send_aio);
+
+}
+
+SEXP rnng_stream_conn_send(SEXP xptr, SEXP data) {
+
+  nano_stream_conn *sc;
+  STREAM_CONN_CHECK(xptr, sc);
+
+  unsigned char *buf;
+  size_t len;
+  SEXP_TO_BUF(data, buf, len);
+
+  int xc;
+
+  if (!sc->headers_sent) {
+    if ((xc = stream_write_headers(sc)))
+      return mk_error(xc);
+    sc->headers_sent = 1;
+  }
+
+  if ((xc = stream_write_chunk(sc, buf, len)))
+    return mk_error(xc);
+
+  return nano_success;
+
+}
+
+SEXP rnng_stream_conn_set_status(SEXP xptr, SEXP code) {
+
+  nano_stream_conn *sc;
+  STREAM_CONN_CHECK(xptr, sc);
+
+  if (sc->headers_sent)
+    Rf_error("cannot set status after headers have been sent");
+
+  sc->status_code = nano_integer(code);
+  return nano_success;
+
+}
+
+SEXP rnng_stream_conn_set_header(SEXP xptr, SEXP name, SEXP value) {
+
+  nano_stream_conn *sc;
+  STREAM_CONN_CHECK(xptr, sc);
+
+  if (sc->headers_sent)
+    Rf_error("cannot set header after headers have been sent");
+
+  const char *hdr_name = NANO_STRING(name);
+  const char *hdr_value = NANO_STRING(value);
+
+  if (sc->resp_header_count >= sc->resp_header_capacity) {
+    int new_cap = sc->resp_header_capacity == 0 ? 8 : sc->resp_header_capacity * 2;
+    char **new_names = realloc(sc->resp_header_names, new_cap * sizeof(char *));
+    char **new_values = realloc(sc->resp_header_values, new_cap * sizeof(char *));
+    if (new_names == NULL || new_values == NULL) {
+      free(new_names);
+      free(new_values);
+      Rf_error("memory allocation failed");
+    }
+    sc->resp_header_names = new_names;
+    sc->resp_header_values = new_values;
+    sc->resp_header_capacity = new_cap;
+  }
+
+  sc->resp_header_names[sc->resp_header_count] = strdup(hdr_name);
+  sc->resp_header_values[sc->resp_header_count] = strdup(hdr_value);
+  if (sc->resp_header_names[sc->resp_header_count] == NULL ||
+      sc->resp_header_values[sc->resp_header_count] == NULL)
+    Rf_error("memory allocation failed");
+
+  sc->resp_header_count++;
+  return nano_success;
+
+}
+
+SEXP rnng_conn_close(SEXP xptr) {
+
+  if (NANO_PTR_CHECK(xptr, nano_ConnSymbol))
+    return mk_error(NNG_ECLOSED);
+
+  nano_conn *conn = (nano_conn *) NANO_PTR(xptr);
+
+  if (conn->type == NANO_CONN_HTTP_STREAM) {
+    nano_stream_conn *sc = (nano_stream_conn *) conn;
+    if (conn_is_open(conn) && sc->headers_sent)
+      stream_write_terminator(sc);
+  }
+
+  conn_close(conn);
+  return nano_success;
+
+}
+
+SEXP rnng_http_server_stop(SEXP xptr) {
+
+  if (NANO_PTR_CHECK(xptr, nano_HttpServerSymbol))
+    Rf_error("`server` is not a valid HTTP Server");
+
+  nano_http_server *srv = (nano_http_server *) NANO_PTR(xptr);
+
+  if (srv->state == SERVER_STOPPED)
+    return nano_success;
+
+  if (srv->state == SERVER_STARTED) {
+    srv->state = SERVER_STOPPED;
+    http_server_stop(srv);
+  }
+
+  Rf_setAttrib(xptr, nano_StateSymbol, Rf_mkString("stopped"));
   return nano_success;
 
 }
