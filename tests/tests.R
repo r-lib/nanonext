@@ -978,12 +978,12 @@ if (later && NOT_CRAN) {
   ws_url <- sub("^http", "ws", base_url)
   Sys.sleep(0.1)
   aio <- ncurl_aio(paste0(base_url, "/"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
   test_equal(aio$data, "index")
   ws <- tryCatch(stream(dial = paste0(ws_url, "/ws"), textframes = TRUE), error = identity)
   if (is_nano(ws)) {
-    for (i in 1:5) later::run_now(0.1)
+    while (is.null(ws_conn)) later::run_now(1)
     test_class("nanoWsConn", ws_conn)
     test_print(ws_conn)
     test_type("integer", ws_conn$id)
@@ -991,7 +991,7 @@ if (later && NOT_CRAN) {
     test_type("closure", ws_conn$close)
     test_null(ws_conn$nonexistent)
     test_zero(send(ws, "hello", block = 500))
-    for (i in 1:10) later::run_now(0.1)
+    while (length(msgs) < 2L) later::run_now(1)
     reply <- recv(ws, block = 500, mode = "character")
     test_equal(reply, "hello")
     test_error(ws_conn$send(123L), "`data` must be raw or character")
@@ -1018,7 +1018,7 @@ if (later && NOT_CRAN) {
   test_zero(auth_srv$start())
   ws <- tryCatch(stream(dial = paste0(sub("^http", "ws", auth_srv$url), "/ws")), error = identity)
   if (is_nano(ws)) {
-    for (i in 1:5) later::run_now(0.1)
+    later::run_now(1)
     close(ws)
   }
   test_zero(auth_srv$close())
@@ -1065,17 +1065,17 @@ if (later && NOT_CRAN) {
   wss_ws_url <- sub("^https", "wss", wss_base_url)
   Sys.sleep(1L)
   wss_aio <- ncurl_aio(paste0(wss_base_url, "/secure"), tls = wss_tls_client, timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(wss_aio)) break }
+  while (unresolved(wss_aio)) later::run_now(1)
   if (wss_aio$status == 200L) test_equal(wss_aio$data, "secure")
   wss_client <- tryCatch(stream(dial = paste0(wss_ws_url, "/wss"), tls = wss_tls_client, textframes = TRUE), error = identity)
   if (is_nano(wss_client)) {
-    for (i in 1:5) later::run_now(0.1)
+    while (length(wss_msgs) < 1L) later::run_now(1)
     test_zero(send(wss_client, "secure_hello", block = 500))
-    for (i in 1:10) later::run_now(0.1)
+    while (length(wss_msgs) < 2L) later::run_now(1)
     wss_reply <- recv(wss_client, block = 500, mode = "character")
     test_equal(wss_reply, "wss:secure_hello")
     test_zero(close(wss_client))
-    for (i in 1:5) later::run_now(0.1)
+    later::run_now(1)
     test_equal(wss_msgs[[1]], "wss_open")
     test_equal(wss_msgs[[2]], "secure_hello")
   }
@@ -1110,32 +1110,32 @@ if (later && NOT_CRAN) {
 
   ws_echo <- tryCatch(stream(dial = paste0(ws_url, "/echo")), error = identity)
   if (is_nano(ws_echo)) {
-    for (i in 1:5) later::run_now(0.1)
+    later::run_now(1)
     test_zero(send(ws_echo, charToRaw("binary_test"), block = 500))
-    for (i in 1:10) later::run_now(0.1)
+    while (length(echo_msgs) < 1L) later::run_now(1)
     echo_reply <- recv(ws_echo, block = 500, mode = "raw")
     test_equal(rawToChar(echo_reply), "binary_test")
     test_zero(close(ws_echo))
-    for (i in 1:5) later::run_now(0.1)
+    later::run_now(1)
   }
 
   ws_upper1 <- tryCatch(stream(dial = paste0(ws_url, "/upper"), textframes = TRUE), error = identity)
   ws_upper2 <- tryCatch(stream(dial = paste0(ws_url, "/upper"), textframes = TRUE), error = identity)
   if (is_nano(ws_upper1) && is_nano(ws_upper2)) {
-    for (i in 1:10) later::run_now(0.1)
+    while (length(conn_ids) < 2L) later::run_now(1)
     test_equal(length(conn_ids), 2L)
     test_true(conn_ids[1] != conn_ids[2])
 
     test_zero(send(ws_upper1, "hello", block = 500))
     test_zero(send(ws_upper2, "world", block = 500))
-    for (i in 1:10) later::run_now(0.1)
+    while (length(upper_msgs) < 2L) later::run_now(1)
     upper_reply1 <- recv(ws_upper1, block = 500, mode = "character")
     upper_reply2 <- recv(ws_upper2, block = 500, mode = "character")
     test_equal(upper_reply1, "HELLO")
     test_equal(upper_reply2, "WORLD")
     test_zero(close(ws_upper1))
     test_zero(close(ws_upper2))
-    for (i in 1:5) later::run_now(0.1)
+    later::run_now(1)
   }
 
   test_zero(multi_ws_srv$close())
@@ -1301,7 +1301,7 @@ if (later && NOT_CRAN) {
 
     http_req <- "GET /events HTTP/1.1\r\nHost: 127.0.0.1\r\nAccept: text/event-stream\r\n\r\n"
     test_zero(send(sse_client, http_req, block = 500))
-    for (i in 1:10) later::run_now(0.1)
+    while (is.null(stream_conn)) later::run_now(1)
 
     test_class("nanoStreamConn", stream_conn)
     test_print(stream_conn)
@@ -1321,7 +1321,7 @@ if (later && NOT_CRAN) {
     test_error(stream_conn$send(list()), "`data` must be raw or character")
 
     test_zero(stream_conn$close())
-    for (i in 1:5) later::run_now(0.1)
+    while (!stream_closed) later::run_now(1)
     test_true(stream_closed)
 
     test_error(stream_conn$send("after close"), "valid connection")
@@ -1360,7 +1360,7 @@ if (later && NOT_CRAN) {
     send(client1, http_req, block = 500)
     send(client2, http_req, block = 500)
     send(client3, http_req, block = 500)
-    for (i in 1:15) later::run_now(0.1)
+    while (length(conns) < 3L) later::run_now(1)
 
     test_equal(length(conns), 3L)
 
@@ -1406,11 +1406,11 @@ if (later && NOT_CRAN) {
   Sys.sleep(0.1)
 
   get_aio <- ncurl_aio(paste0(base_url, "/stream"))
-  for (i in 1:10) later::run_now(0.1)
+  while (unresolved(get_aio)) later::run_now(1)
   test_equal(call_aio(get_aio)$status, 200L)
 
   post_aio <- ncurl_aio(paste0(base_url, "/stream"), method = "POST", data = "test")
-  for (i in 1:10) later::run_now(0.1)
+  while (unresolved(post_aio)) later::run_now(1)
   test_equal(call_aio(post_aio)$status, 200L)
 
   test_true("GET" %in% received_methods)
