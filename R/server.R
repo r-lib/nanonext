@@ -381,16 +381,18 @@ print.nanoWsConn <- function(x, ...) {
 
 #' Create HTTP Streaming Handler
 #'
-#' Creates an HTTP streaming handler for Server-Sent Events (SSE) or chunked
-#' transfer encoding responses.
+#' Creates an HTTP streaming handler using chunked transfer encoding. Supports
+#' any streaming HTTP protocol including Server-Sent Events (SSE), newline-
+#' delimited JSON (NDJSON), and custom streaming formats.
 #'
-#' @param path URI path to match (e.g., "/events").
+#' @param path URI path to match (e.g., "/stream").
 #' @param on_request Function called when a request arrives. Signature:
 #'   `function(conn, req)` where `conn` is the connection object and `req`
 #'   is a list with `method`, `uri`, `headers`, `body`.
 #' @param on_close \[default NULL\] Function called when the connection closes.
 #'   Signature: `function(conn)`
-#' @param method \[default NULL\] HTTP method to match. If NULL, matches any.
+#' @param method \[default "*"\] HTTP method to match (e.g., "GET", "POST").
+#'   Use `"*"` to match any method.
 #' @param prefix \[default FALSE\] Logical, if TRUE matches path as a prefix.
 #'
 #' @return A handler object for use with [http_server()].
@@ -407,20 +409,31 @@ print.nanoWsConn <- function(x, ...) {
 #' - `conn$id`: Unique connection identifier.
 #'
 #' @details
-#' HTTP streaming uses chunked transfer encoding. The first `$send()` triggers
-#' writing of HTTP headers. Headers cannot be modified after the first send.
+#' HTTP streaming uses chunked transfer encoding (RFC 9112). The first
+#' `$send()` triggers writing of HTTP headers with `Transfer-Encoding: chunked`.
+#' Headers cannot be modified after the first send.
 #'
-#' For SSE, set the Content-Type header and use [format_sse()] to format events.
+#' Set an appropriate `Content-Type` header for your streaming format:
+#' - NDJSON: `application/x-ndjson`
+#' - JSON stream: `application/stream+json`
+#' - SSE: `text/event-stream` (see [format_sse()])
+#' - Plain text: `text/plain`
 #'
 #' **Important:** Use `$send()` in `on_request` to send to the newly connected
 #' client. Use `$broadcast()` from a separate trigger (e.g., a POST handler or
 #' timer) to send to all clients. Do not call `$broadcast()` inside `on_request`
 #' as it would broadcast on every new connection.
 #'
-#' @seealso [format_sse()] for formatting SSE events.
+#' @seealso [format_sse()] for formatting Server-Sent Events.
 #'
 #' @examples
-#' # SSE endpoint that sends one event and closes
+#' # NDJSON streaming endpoint
+#' h <- handler_stream("/stream", function(conn, req) {
+#'   conn$set_header("Content-Type", "application/x-ndjson")
+#'   conn$send('{"status":"connected"}\n')
+#' })
+#'
+#' # SSE endpoint
 #' h <- handler_stream("/events", function(conn, req) {
 #'   conn$set_header("Content-Type", "text/event-stream")
 #'   conn$set_header("Cache-Control", "no-cache")
@@ -428,22 +441,20 @@ print.nanoWsConn <- function(x, ...) {
 #'   conn$close()
 #' })
 #'
-#' # Long-lived SSE with broadcast triggered by POST
-#' sse_conn <- NULL
+#' # Long-lived streaming with broadcast triggered by POST
+#' stream_conn <- NULL
 #' handlers <- list(
-#'   # SSE endpoint - clients connect here
-#'   handler_stream("/events",
+#'   handler_stream("/stream",
 #'     on_request = function(conn, req) {
-#'       conn$set_header("Content-Type", "text/event-stream")
-#'       conn$set_header("Cache-Control", "no-cache")
-#'       sse_conn <<- conn
-#'       conn$send(format_sse(data = "connected"))
+#'       conn$set_header("Content-Type", "application/x-ndjson")
+#'       stream_conn <<- conn
+#'       conn$send('{"status":"connected"}\n')
 #'     }
 #'   ),
-#'   # POST endpoint - triggers broadcast to all SSE clients
+#'   # POST endpoint triggers broadcast to all streaming clients
 #'   handler("/broadcast", function(req) {
-#'     if (!is.null(sse_conn))
-#'       sse_conn$broadcast(format_sse(data = rawToChar(req$body)))
+#'     if (!is.null(stream_conn))
+#'       stream_conn$broadcast(paste0('{"msg":"', rawToChar(req$body), '"}\n'))
 #'     list(status = 200L, body = "sent")
 #'   }, method = "POST")
 #' )
@@ -451,23 +462,29 @@ print.nanoWsConn <- function(x, ...) {
 #' @export
 #'
 handler_stream <- function(path, on_request, on_close = NULL,
-                           method = NULL, prefix = FALSE) {
+                           method = "*", prefix = FALSE) {
   list(type = 7L, path = path, on_request = on_request, on_close = on_close,
        method = method, prefix = prefix)
 }
 
 #' Format Server-Sent Event
 #'
-#' Formats a message according to the SSE specification.
+#' Helper function to format messages according to the Server-Sent Events (SSE)
+#' specification. Use with [handler_stream()] to create SSE endpoints.
 #'
 #' @param data The data payload. Will be prefixed with "data: " on each line.
 #' @param event \[default NULL\] Optional event type (e.g., "message", "error").
 #' @param id \[default NULL\] Optional event ID for client reconnection.
 #' @param retry \[default NULL\] Optional retry interval in milliseconds.
 #'
-#' @return A character string formatted as an SSE message.
+#' @return A character string formatted as an SSE message, ready to pass to
+#'   `conn$send()`.
 #'
 #' @details
+#' Server-Sent Events is a W3C standard for server-to-client streaming over
+#' HTTP, supported natively by browsers via the `EventSource` API. SSE is
+#' commonly used for real-time updates, notifications, and LLM token streaming.
+#'
 #' SSE messages have this format:
 #'
 #' ```
@@ -482,6 +499,13 @@ handler_stream <- function(path, on_request, on_close = NULL,
 #' Each message ends with two newlines. Multi-line data is split and each
 #' line prefixed with "data: ".
 #'
+#' When using SSE with [handler_stream()], set the appropriate headers:
+#' - `Content-Type: text/event-stream`
+#' - `Cache-Control: no-cache`
+#' - `X-Accel-Buffering: no` (prevents proxy buffering)
+#'
+#' @seealso [handler_stream()] for creating streaming HTTP endpoints.
+#'
 #' @examples
 #' format_sse(data = "Hello")
 #' #> "data: Hello\n\n"
@@ -491,6 +515,14 @@ handler_stream <- function(path, on_request, on_close = NULL,
 #'
 #' format_sse(data = "Line 1\nLine 2")
 #' #> "data: Line 1\ndata: Line 2\n\n"
+#'
+#' # Typical SSE endpoint setup
+#' h <- handler_stream("/events", function(conn, req) {
+#'   conn$set_header("Content-Type", "text/event-stream")
+#'   conn$set_header("Cache-Control", "no-cache")
+#'   conn$set_header("X-Accel-Buffering", "no")
+#'   conn$send(format_sse(data = "connected", id = "1"))
+#' })
 #'
 #' @export
 #'

@@ -4,16 +4,10 @@
 \alias{handler_stream}
 \title{Create HTTP Streaming Handler}
 \usage{
-handler_stream(
-  path,
-  on_request,
-  on_close = NULL,
-  method = NULL,
-  prefix = FALSE
-)
+handler_stream(path, on_request, on_close = NULL, method = "*", prefix = FALSE)
 }
 \arguments{
-\item{path}{URI path to match (e.g., "/events").}
+\item{path}{URI path to match (e.g., "/stream").}
 
 \item{on_request}{Function called when a request arrives. Signature:
 \verb{function(conn, req)} where \code{conn} is the connection object and \code{req}
@@ -22,7 +16,8 @@ is a list with \code{method}, \code{uri}, \code{headers}, \code{body}.}
 \item{on_close}{[default NULL] Function called when the connection closes.
 Signature: \verb{function(conn)}}
 
-\item{method}{[default NULL] HTTP method to match. If NULL, matches any.}
+\item{method}{[default "*"] HTTP method to match (e.g., "GET", "POST").
+Use \code{"*"} to match any method.}
 
 \item{prefix}{[default FALSE] Logical, if TRUE matches path as a prefix.}
 }
@@ -30,14 +25,22 @@ Signature: \verb{function(conn)}}
 A handler object for use with \code{\link[=http_server]{http_server()}}.
 }
 \description{
-Creates an HTTP streaming handler for Server-Sent Events (SSE) or chunked
-transfer encoding responses.
+Creates an HTTP streaming handler using chunked transfer encoding. Supports
+any streaming HTTP protocol including Server-Sent Events (SSE), newline-
+delimited JSON (NDJSON), and custom streaming formats.
 }
 \details{
-HTTP streaming uses chunked transfer encoding. The first \verb{$send()} triggers
-writing of HTTP headers. Headers cannot be modified after the first send.
+HTTP streaming uses chunked transfer encoding (RFC 9112). The first
+\verb{$send()} triggers writing of HTTP headers with \code{Transfer-Encoding: chunked}.
+Headers cannot be modified after the first send.
 
-For SSE, set the Content-Type header and use \code{\link[=format_sse]{format_sse()}} to format events.
+Set an appropriate \code{Content-Type} header for your streaming format:
+\itemize{
+\item NDJSON: \code{application/x-ndjson}
+\item JSON stream: \code{application/stream+json}
+\item SSE: \code{text/event-stream} (see \code{\link[=format_sse]{format_sse()}})
+\item Plain text: \code{text/plain}
+}
 
 \strong{Important:} Use \verb{$send()} in \code{on_request} to send to the newly connected
 client. Use \verb{$broadcast()} from a separate trigger (e.g., a POST handler or
@@ -59,7 +62,13 @@ The \code{conn} object passed to callbacks has these methods:
 }
 
 \examples{
-# SSE endpoint that sends one event and closes
+# NDJSON streaming endpoint
+h <- handler_stream("/stream", function(conn, req) {
+  conn$set_header("Content-Type", "application/x-ndjson")
+  conn$send('{"status":"connected"}\n')
+})
+
+# SSE endpoint
 h <- handler_stream("/events", function(conn, req) {
   conn$set_header("Content-Type", "text/event-stream")
   conn$set_header("Cache-Control", "no-cache")
@@ -67,27 +76,25 @@ h <- handler_stream("/events", function(conn, req) {
   conn$close()
 })
 
-# Long-lived SSE with broadcast triggered by POST
-sse_conn <- NULL
+# Long-lived streaming with broadcast triggered by POST
+stream_conn <- NULL
 handlers <- list(
-  # SSE endpoint - clients connect here
-  handler_stream("/events",
+  handler_stream("/stream",
     on_request = function(conn, req) {
-      conn$set_header("Content-Type", "text/event-stream")
-      conn$set_header("Cache-Control", "no-cache")
-      sse_conn <<- conn
-      conn$send(format_sse(data = "connected"))
+      conn$set_header("Content-Type", "application/x-ndjson")
+      stream_conn <<- conn
+      conn$send('{"status":"connected"}\n')
     }
   ),
-  # POST endpoint - triggers broadcast to all SSE clients
+  # POST endpoint triggers broadcast to all streaming clients
   handler("/broadcast", function(req) {
-    if (!is.null(sse_conn))
-      sse_conn$broadcast(format_sse(data = rawToChar(req$body)))
+    if (!is.null(stream_conn))
+      stream_conn$broadcast(paste0('{"msg":"', rawToChar(req$body), '"}\n'))
     list(status = 200L, body = "sent")
   }, method = "POST")
 )
 
 }
 \seealso{
-\code{\link[=format_sse]{format_sse()}} for formatting SSE events.
+\code{\link[=format_sse]{format_sse()}} for formatting Server-Sent Events.
 }

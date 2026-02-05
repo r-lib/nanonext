@@ -16,12 +16,18 @@ format_sse(data, event = NULL, id = NULL, retry = NULL)
 \item{retry}{[default NULL] Optional retry interval in milliseconds.}
 }
 \value{
-A character string formatted as an SSE message.
+A character string formatted as an SSE message, ready to pass to
+\code{conn$send()}.
 }
 \description{
-Formats a message according to the SSE specification.
+Helper function to format messages according to the Server-Sent Events (SSE)
+specification. Use with \code{\link[=handler_stream]{handler_stream()}} to create SSE endpoints.
 }
 \details{
+Server-Sent Events is a W3C standard for server-to-client streaming over
+HTTP, supported natively by browsers via the \code{EventSource} API. SSE is
+commonly used for real-time updates, notifications, and LLM token streaming.
+
 SSE messages have this format:
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{event: <event-type>
@@ -34,6 +40,13 @@ data: <data-line-2>
 
 Each message ends with two newlines. Multi-line data is split and each
 line prefixed with "data: ".
+
+When using SSE with \code{\link[=handler_stream]{handler_stream()}}, set the appropriate headers:
+\itemize{
+\item \code{Content-Type: text/event-stream}
+\item \code{Cache-Control: no-cache}
+\item \code{X-Accel-Buffering: no} (prevents proxy buffering)
+}
 }
 \examples{
 format_sse(data = "Hello")
@@ -45,4 +58,15 @@ format_sse(data = "Hello", event = "greeting")
 format_sse(data = "Line 1\nLine 2")
 #> "data: Line 1\ndata: Line 2\n\n"
 
+# Typical SSE endpoint setup
+h <- handler_stream("/events", function(conn, req) {
+  conn$set_header("Content-Type", "text/event-stream")
+  conn$set_header("Cache-Control", "no-cache")
+  conn$set_header("X-Accel-Buffering", "no")
+  conn$send(format_sse(data = "connected", id = "1"))
+})
+
+}
+\seealso{
+\code{\link[=handler_stream]{handler_stream()}} for creating streaming HTTP endpoints.
 }

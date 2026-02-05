@@ -820,13 +820,13 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
         SEXP on_request = get_list_element(h, "on_request");
         SEXP on_close = get_list_element(h, "on_close");
         SEXP method_elem = get_list_element(h, "method");
-        const char *method = (method_elem != R_NilValue && TYPEOF(method_elem) == STRSXP) ?
-                             CHAR(STRING_ELT(method_elem, 0)) : NULL;
+        const char *method = CHAR(STRING_ELT(method_elem, 0));
+        if (method[0] == '*' && method[1] == '\0')
+          method = NULL;
 
         if ((xc = nng_http_handler_alloc(&srv->handlers[i].handler, path, stream_handler_cb)))
           goto fail;
-        if (method != NULL &&
-            (xc = nng_http_handler_set_method(srv->handlers[i].handler, method)))
+        if ((xc = nng_http_handler_set_method(srv->handlers[i].handler, method)))
           goto fail;
         if (tree && (xc = nng_http_handler_set_tree(srv->handlers[i].handler)))
           goto fail;

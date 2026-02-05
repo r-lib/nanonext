@@ -1385,6 +1385,40 @@ if (later && NOT_CRAN) {
   test_zero(broadcast_srv$close())
 }
 
+if (later && NOT_CRAN) {
+  received_methods <- character()
+  test_class("nanoServer", method_srv <- http_server(
+    url = "http://127.0.0.1:0",
+    handlers = list(
+      handler_stream(
+        "/stream",
+        on_request = function(conn, req) {
+          received_methods <<- c(received_methods, req$method)
+          conn$set_header("Content-Type", "text/plain")
+          conn$send(paste0("method:", req$method))
+          conn$close()
+        }
+      )
+    )
+  ))
+  test_zero(method_srv$start())
+  base_url <- method_srv$url
+  Sys.sleep(0.1)
+
+  get_aio <- ncurl_aio(paste0(base_url, "/stream"))
+  for (i in 1:10) later::run_now(0.1)
+  test_equal(call_aio(get_aio)$status, 200L)
+
+  post_aio <- ncurl_aio(paste0(base_url, "/stream"), method = "POST", data = "test")
+  for (i in 1:10) later::run_now(0.1)
+  test_equal(call_aio(post_aio)$status, 200L)
+
+  test_true("GET" %in% received_methods)
+  test_true("POST" %in% received_methods)
+
+  test_zero(method_srv$close())
+}
+
 if (!interactive() && NOT_CRAN) {
   test_class("conditionVariable", cv <- cv())
   f <- file("stdin", open = "r")
