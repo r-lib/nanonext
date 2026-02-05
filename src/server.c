@@ -22,6 +22,30 @@
   (node)->next = (node)->prev = NULL; \
 } while (0)
 
+#define SEXP_TO_BUF(data, buf, len) do { \
+  switch (TYPEOF(data)) { \
+  case RAWSXP: \
+    (buf) = (unsigned char *) DATAPTR_RO(data); \
+    (len) = (size_t) XLENGTH(data); \
+    break; \
+  case STRSXP: \
+    (buf) = (unsigned char *) NANO_STRING(data); \
+    (len) = strlen((const char *) (buf)); \
+    break; \
+  default: \
+    Rf_error("`data` must be raw or character"); \
+  } \
+} while (0)
+
+#define STREAM_CONN_CHECK(xptr, sc) do { \
+  if (NANO_PTR_CHECK(xptr, nano_ConnSymbol)) \
+    Rf_error("`conn` is not a valid connection"); \
+  nano_conn *conn_ = (nano_conn *) NANO_PTR(xptr); \
+  if (conn_->type != NANO_CONN_HTTP_STREAM) \
+    Rf_error("`conn` is not an HTTP stream connection"); \
+  (sc) = (nano_stream_conn *) conn_; \
+} while (0)
+
 static inline void prot_add(SEXP prot, SEXP obj) {
   SETCDR(prot, Rf_cons(obj, CDR(prot)));
 }
@@ -62,6 +86,7 @@ static void conn_invoke_onclose(void *);
 static void http_server_finalizer(SEXP);
 static void http_server_stop(nano_http_server *);
 static void http_server_cleanup(void *);
+static SEXP make_request_list(nng_http_req *);
 // HTTP streaming functions
 static void stream_handler_cb(nng_aio *);
 static void stream_invoke_onrequest(void *);
@@ -162,6 +187,43 @@ static void http_server_stop(nano_http_server *srv) {
 
 // On R main thread ------------------------------------------------------------
 
+static SEXP make_request_list(nng_http_req *req) {
+
+  const char *names[] = {"method", "uri", "headers", "body", ""};
+  SEXP request, headers, hdr_names, body;
+  PROTECT(request = Rf_mkNamed(VECSXP, names));
+  SET_VECTOR_ELT(request, 0, Rf_mkString(nng_http_req_get_method(req)));
+  SET_VECTOR_ELT(request, 1, Rf_mkString(nng_http_req_get_uri(req)));
+
+  int header_count = 0;
+  for (nano_http_header_s *hdr = nano_http_header_first(req); hdr != NULL;
+       hdr = nano_http_header_next(req, hdr))
+    header_count++;
+
+  headers = Rf_allocVector(STRSXP, header_count);
+  SET_VECTOR_ELT(request, 2, headers);
+  hdr_names = Rf_allocVector(STRSXP, header_count);
+  Rf_namesgets(headers, hdr_names);
+  int i = 0;
+  for (nano_http_header_s *hdr = nano_http_header_first(req); hdr != NULL;
+       hdr = nano_http_header_next(req, hdr), i++) {
+    SET_STRING_ELT(headers, i, Rf_mkChar(hdr->value));
+    SET_STRING_ELT(hdr_names, i, Rf_mkChar(hdr->name));
+  }
+
+  void *body_data;
+  size_t body_len;
+  nng_http_req_get_data(req, &body_data, &body_len);
+  body = Rf_allocVector(RAWSXP, body_len);
+  SET_VECTOR_ELT(request, 3, body);
+  if (body_len)
+    memcpy(NANO_DATAPTR(body), body_data, body_len);
+
+  UNPROTECT(1);
+  return request;
+
+}
+
 static void http_server_cleanup(void *arg) {
 
   nano_http_server *srv = (nano_http_server *) arg;
@@ -235,39 +297,8 @@ static void http_invoke_callback(void *arg) {
     return;
   }
 
-  nng_http_req *req = r->req;
-
-  const char *names[] = {"method", "uri", "headers", "body", ""};
-  SEXP req_list;
-  PROTECT(req_list = Rf_mkNamed(VECSXP, names));
-  SET_VECTOR_ELT(req_list, 0, Rf_mkString(nng_http_req_get_method(req)));
-  SET_VECTOR_ELT(req_list, 1, Rf_mkString(nng_http_req_get_uri(req)));
-
-  int header_count = 0;
-  for (nano_http_header_s *hdr = nano_http_header_first(req); hdr != NULL;
-       hdr = nano_http_header_next(req, hdr))
-    header_count++;
-  
-  SEXP headers = Rf_allocVector(STRSXP, header_count);
-  SET_VECTOR_ELT(req_list, 2, headers);
-  SEXP hdr_names = Rf_allocVector(STRSXP, header_count);
-  Rf_namesgets(headers, hdr_names);
-  int i = 0;
-  for (nano_http_header_s *hdr = nano_http_header_first(req); hdr != NULL;
-       hdr = nano_http_header_next(req, hdr), i++) {
-    SET_STRING_ELT(headers, i, Rf_mkChar(hdr->value));
-    SET_STRING_ELT(hdr_names, i, Rf_mkChar(hdr->name));
-  }
-
-  void *body_data;
-  size_t body_len;
-  nng_http_req_get_data(req, &body_data, &body_len);
-  SEXP body = Rf_allocVector(RAWSXP, body_len);
-  SET_VECTOR_ELT(req_list, 3, body);
-  if (body_len)
-    memcpy(NANO_DATAPTR(body), body_data, body_len);
-
-  SEXP call;
+  SEXP req_list, call;
+  PROTECT(req_list = make_request_list(r->req));
   PROTECT(call = Rf_lang2(r->callback, req_list));
   int err;
   SEXP result = R_tryEval(call, R_GlobalEnv, &err);
@@ -964,18 +995,7 @@ SEXP rnng_ws_send(SEXP xptr, SEXP data) {
 
   unsigned char *buf;
   size_t len;
-  switch (TYPEOF(data)) {
-  case RAWSXP:
-    buf = (unsigned char *) DATAPTR_RO(data);
-    len = (size_t) XLENGTH(data);
-    break;
-  case STRSXP:
-    buf = (unsigned char *) NANO_STRING(data);
-    len = strlen((char *) buf);
-    break;
-  default:
-    Rf_error("`data` must be raw or character");
-  }
+  SEXP_TO_BUF(data, buf, len);
 
   nng_msg *msgp = NULL;
   int xc;
@@ -1082,46 +1102,13 @@ static void stream_invoke_onrequest(void *arg) {
   conn->xptr = xptr;
   UNPROTECT(1);
 
-  nng_http_req *req = sc->req;
-
-  const char *names[] = {"method", "uri", "headers", "body", ""};
-  SEXP request;
-  PROTECT(request = Rf_mkNamed(VECSXP, names));
-  SET_VECTOR_ELT(request, 0, Rf_mkString(nng_http_req_get_method(req)));
-  SET_VECTOR_ELT(request, 1, Rf_mkString(nng_http_req_get_uri(req)));
-
-  int header_count = 0;
-  for (nano_http_header_s *hdr = nano_http_header_first(req); hdr != NULL;
-       hdr = nano_http_header_next(req, hdr))
-    header_count++;
-
-  SEXP headers = Rf_allocVector(STRSXP, header_count);
-  SET_VECTOR_ELT(request, 2, headers);
-  SEXP hdr_names = Rf_allocVector(STRSXP, header_count);
-  Rf_namesgets(headers, hdr_names);
-  int i = 0;
-  for (nano_http_header_s *hdr = nano_http_header_first(req); hdr != NULL;
-       hdr = nano_http_header_next(req, hdr), i++) {
-    SET_STRING_ELT(headers, i, Rf_mkChar(hdr->value));
-    SET_STRING_ELT(hdr_names, i, Rf_mkChar(hdr->name));
-  }
-
-  void *body_data;
-  size_t body_len;
-  nng_http_req_get_data(req, &body_data, &body_len);
-  SEXP body = Rf_allocVector(RAWSXP, body_len);
-  SET_VECTOR_ELT(request, 3, body);
-  if (body_len)
-    memcpy(NANO_DATAPTR(body), body_data, body_len);
-
   if (info->callback != R_NilValue) {
-    SEXP call;
+    SEXP request, call;
+    PROTECT(request = make_request_list(sc->req));
     PROTECT(call = Rf_lang3(info->callback, conn->xptr, request));
     R_tryEval(call, R_GlobalEnv, NULL);
-    UNPROTECT(1);
+    UNPROTECT(2);
   }
-
-  UNPROTECT(1);
 
 }
 
@@ -1211,29 +1198,12 @@ static int stream_write_terminator(nano_stream_conn *sc) {
 
 SEXP rnng_stream_conn_send(SEXP xptr, SEXP data) {
 
-  if (NANO_PTR_CHECK(xptr, nano_ConnSymbol))
-    Rf_error("`conn` is not a valid connection");
-
-  nano_conn *conn = (nano_conn *) NANO_PTR(xptr);
-  if (conn->type != NANO_CONN_HTTP_STREAM)
-    Rf_error("`conn` is not an HTTP stream connection");
-
-  nano_stream_conn *sc = (nano_stream_conn *) conn;
+  nano_stream_conn *sc;
+  STREAM_CONN_CHECK(xptr, sc);
 
   unsigned char *buf;
   size_t len;
-  switch (TYPEOF(data)) {
-  case RAWSXP:
-    buf = (unsigned char *) DATAPTR_RO(data);
-    len = (size_t) XLENGTH(data);
-    break;
-  case STRSXP:
-    buf = (unsigned char *) NANO_STRING(data);
-    len = strlen((const char *) buf);
-    break;
-  default:
-    Rf_error("`data` must be raw or character");
-  }
+  SEXP_TO_BUF(data, buf, len);
 
   int xc;
 
@@ -1252,14 +1222,8 @@ SEXP rnng_stream_conn_send(SEXP xptr, SEXP data) {
 
 SEXP rnng_stream_conn_set_status(SEXP xptr, SEXP code) {
 
-  if (NANO_PTR_CHECK(xptr, nano_ConnSymbol))
-    Rf_error("`conn` is not a valid connection");
-
-  nano_conn *conn = (nano_conn *) NANO_PTR(xptr);
-  if (conn->type != NANO_CONN_HTTP_STREAM)
-    Rf_error("`conn` is not an HTTP stream connection");
-
-  nano_stream_conn *sc = (nano_stream_conn *) conn;
+  nano_stream_conn *sc;
+  STREAM_CONN_CHECK(xptr, sc);
 
   if (sc->headers_sent)
     Rf_error("cannot set status after headers have been sent");
@@ -1271,14 +1235,8 @@ SEXP rnng_stream_conn_set_status(SEXP xptr, SEXP code) {
 
 SEXP rnng_stream_conn_set_header(SEXP xptr, SEXP name, SEXP value) {
 
-  if (NANO_PTR_CHECK(xptr, nano_ConnSymbol))
-    Rf_error("`conn` is not a valid connection");
-
-  nano_conn *conn = (nano_conn *) NANO_PTR(xptr);
-  if (conn->type != NANO_CONN_HTTP_STREAM)
-    Rf_error("`conn` is not an HTTP stream connection");
-
-  nano_stream_conn *sc = (nano_stream_conn *) conn;
+  nano_stream_conn *sc;
+  STREAM_CONN_CHECK(xptr, sc);
 
   if (sc->headers_sent)
     Rf_error("cannot set header after headers have been sent");
