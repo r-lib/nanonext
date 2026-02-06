@@ -1,102 +1,95 @@
 # nanonext
 
-R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. NNG is a
-socket library for reliable, high-performance messaging over in-process,
-IPC, TCP, WebSocket and secure TLS transports. Implements ‘Scalability
-Protocols’, a standard for common communications patterns including
-publish/subscribe, request/reply and service discovery.
-
-As its own threaded concurrency framework, provides a toolkit for
-asynchronous programming and distributed computing. Intuitive ‘aio’
-objects resolve automatically when asynchronous operations complete, and
-synchronisation primitives allow R to wait upon events signalled by
-concurrent threads.
-
-Designed for performance and reliability, nanonext is a lightweight
-wrapper around the NNG C library, and is itself implemented almost
+R binding for [NNG (Nanomsg Next Gen)](https://nng.nanomsg.org/), a
+high-performance messaging library. Lightweight, implemented almost
 entirely in C.
 
-Provides the interface for code and processes to communicate with each
-other - receive data generated in Python, perform analysis in R, and
-send results to a C++ program – on the same computer or across networks
-spanning the globe.
+- **Scalability protocols** - pub/sub, req/rep, push/pull,
+  surveyor/respondent, bus, pair
+- **Multiple transports** - TCP, IPC, WebSocket, TLS, in-process
+- **Async I/O** - non-blocking operations with auto-resolving ‘aio’
+  objects
+- **Cross-language** - exchange data with Python, C++, Go, Rust
+- **Web utilities** - HTTP client/server, WebSocket, streaming (SSE,
+  NDJSON)
 
-Implemented scalability protocols:
+### Quick Start
 
-- Bus (mesh networks)
-- Pair (two-way radio)
-- Poly (one-to-one of many)
-- Push/Pull (one-way pipeline)
-- Publisher/Subscriber (topics & broadcast)
-- Request/Reply (RPC)
-- Surveyor/Respondent (voting & service discovery)
+``` r
+library(nanonext)
 
-Supported transports:
+# Open sockets
+s1 <- socket("req", listen = "ipc:///tmp/nanonext")
+s2 <- socket("rep", dial = "ipc:///tmp/nanonext")
 
-- inproc (intra-process)
-- IPC (inter-process)
-- TCP (IPv4 or IPv6)
-- WebSocket
-- TLS (over TCP and WebSocket)
+# Send
+s1 |> send("hello world")
+#> [1] 0
 
-Development of the TLS implementation was generously supported by the
-![R
-Consortium](https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp)
-.
+# Receive on the other
+s2 |> recv()
+#> [1] "hello world"
 
-### Capabilities
+close(s1)
+close(s2)
+```
 
-#### Asynchronous I/O
+### Async I/O
 
-Non-blocking operations with ‘aio’ objects that resolve automatically
-upon completion. Combined with condition variables, enables true
-event-driven programming in R without polling.
+Non-blocking operations that resolve automatically:
 
-#### Cross-language Messaging
+``` r
+s1 <- socket("rep", listen = "tcp://127.0.0.1:5556")
+s2 <- socket("req", dial = "tcp://127.0.0.1:5556")
 
-Exchange data with Python, C++, Go, Rust, and other languages via NNG’s
-portable wire format. Build polyglot distributed systems where each
-component uses the best tool for the job.
+# Sender
+s2 |> send("async request")
+#> [1] 0
 
-#### HTTP/WebSocket Server
+# Async operations return immediately
+aio <- recv_aio(s1)
+aio
+#> < recvAio | $data >
 
-Build HTTP servers in R with dynamic request handlers, WebSocket
-support, and streaming (Server-Sent Events, NDJSON) for real-time
-applications.
+# Retrieve result when ready
+aio$data
+#> [1] "async request"
 
-#### Async HTTP Client
+close(s1)
+close(s2)
+```
 
-High-performance HTTP(S) client with
-[`ncurl()`](https://nanonext.r-lib.org/reference/ncurl.md), supporting
-async requests, persistent sessions, and all standard HTTP methods.
+### HTTP Client
+
+``` r
+ncurl("https://postman-echo.com/get")
+#> $status
+#> [1] 200
+#> 
+#> $headers
+#> NULL
+#> 
+#> $data
+#> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"
+```
 
 ### Documentation
 
-- [Quick Reference](https://nanonext.r-lib.org/articles/nanonext.html) -
-  cheatsheet
-- [Messaging and Async
-  I/O](https://nanonext.r-lib.org/articles/v01-messaging.html) -
-  cross-language exchange, async operations, synchronisation
-- [Scalability
-  Protocols](https://nanonext.r-lib.org/articles/v02-protocols.html) -
-  request/reply, pub/sub, surveyor/respondent
-- [Configuration and
-  Security](https://nanonext.r-lib.org/articles/v03-configuration.html) -
-  TLS, options, serialization
-- [Web Utilities](https://nanonext.r-lib.org/articles/v04-web.html) -
-  HTTP client/server, WebSocket, streaming
+| Guide                                                                       | Topics                                 |
+|:----------------------------------------------------------------------------|:---------------------------------------|
+| [Quick Reference](https://nanonext.r-lib.org/articles/nanonext.html)        | Cheatsheet                             |
+| [Messaging](https://nanonext.r-lib.org/articles/v01-messaging.html)         | Cross-language, async, synchronisation |
+| [Protocols](https://nanonext.r-lib.org/articles/v02-protocols.html)         | req/rep, pub/sub, surveyor/respondent  |
+| [Configuration](https://nanonext.r-lib.org/articles/v03-configuration.html) | TLS, options, serialization            |
+| [Web Utilities](https://nanonext.r-lib.org/articles/v04-web.html)           | HTTP, WebSocket, streaming             |
 
 ### Installation
 
-Install the latest release from CRAN:
-
 ``` r
+# CRAN
 install.packages("nanonext")
-```
 
-Or the current development version from R-universe:
-
-``` r
+# Development version
 install.packages("nanonext", repos = "https://r-lib.r-universe.dev")
 ```
 
@@ -104,70 +97,50 @@ install.packages("nanonext", repos = "https://r-lib.r-universe.dev")
 
 #### Linux / Mac / Solaris
 
-Installation from source requires ‘libnng’ \>= v1.9.0 and ‘libmbedtls’
-\>= 2.5.0 (suitable installations are automatically detected), or else
-‘cmake’ to compile ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.5 included
-within the package sources.
+Requires ‘libnng’ \>= v1.9.0 and ‘libmbedtls’ \>= 2.5.0, or ‘cmake’ to
+compile bundled libraries (libnng v1.11.0, libmbedtls v3.6.5).
 
-**It is recommended for optimal performance and stability to let the
-package automatically compile bundled versions of ‘libmbedtls’ and
-‘libnng’ during installation.** To ensure the libraries are compiled
-from source even if system installations are present, set the
-`NANONEXT_LIBS` environment variable prior to installation e.g. by
-`Sys.setenv(NANONEXT_LIBS = 1)`.
+**Recommended:** Let the package compile bundled libraries for optimal
+performance:
 
-As system libraries, ‘libnng’ is available as libnng-dev (deb) or
-nng-devel (rpm), and ‘libmbedtls’ as libmbedtls-dev (deb) or
-libmbedtls-devel (rpm). The `INCLUDE_DIR` and `LIB_DIR` environment
-variables may be set prior to package installation to specify a custom
-location for ‘libmbedtls’ or ‘libnng’ other than the standard filesystem
-locations.
+``` r
+Sys.setenv(NANONEXT_LIBS = 1)
+install.packages("nanonext")
+```
 
-*Solaris: requires a more recent version of ‘cmake’ than available on
-OpenCSW - refer to the ‘cmake’ website for the latest source file.*
+System packages: libnng-dev / nng-devel, libmbedtls-dev /
+libmbedtls-devel. Set `INCLUDE_DIR` and `LIB_DIR` for custom locations.
 
 #### Windows
 
-On Windows, ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.5 will be compiled
-from the package sources during installation and hence requires the
-‘Rtools’ toolchain.
-
-For R \>= 4.2 using the ‘Rtools42’ or newer toolchains, the prerequisite
-‘cmake’ is included. For previous R versions using ‘Rtools40’ or
-earlier, it may be necessary to separately install a version of ‘cmake’
-in Windows and ensure that it is added to your system’s `PATH`.
-
-### Acknowledgements
-
-- [Garrett D’Amore](https://github.com/gdamore), author of the NNG
-  library, for generous advice and for implementing a feature request
-  specifically for a more efficient ‘aio’ implementation in `nanonext`.
-- The [R Consortium](https://r-consortium.org/) for funding the
-  development of the secure TLS capabilities in the package, and [Henrik
-  Bengtsson](https://github.com/HenrikBengtsson) and [Will
-  Landau](https://github.com/wlandau/)’s roles in making this possible.
-- [Joe Cheng](https://github.com/jcheng5/) for prototyping the
-  integration of `nanonext` with `later` to support the next generation
-  of completely event-driven ‘promises’.
-- [Luke Tierney](https://github.com/ltierney/) (R Core) and [Mike
-  Cheng](https://github.com/coolbutuseless) for meticulous documentation
-  of the R serialization mechanism, which led to the package’s own
-  implementation of a low-level interface to R serialization.
-- [Travers Ching](https://github.com/traversc) for a novel idea in
-  extending the original custom serialization support in the package.
-- [Jeroen Ooms](https://github.com/jeroen) - for his ‘Anticonf (tm)’
-  configure script, on which our original ‘configure’ was based,
-  although much modified since.
+Requires Rtools. For R \>= 4.2, cmake is included. Earlier versions need
+cmake installed separately and added to PATH.
 
 ### Links
 
-- [nanonext](https://nanonext.r-lib.org/)
-- [CRAN HPC Task
-  View](https://cran.r-project.org/view=HighPerformanceComputing)
-- [CRAN Web Technologies Task
-  View](https://cran.r-project.org/view=WebTechnologies)
-- [NNG](https://nng.nanomsg.org/)
-- [Mbed TLS](https://www.trustedfirmware.org/projects/mbed-tls/)
+[Documentation](https://nanonext.r-lib.org/) \|
+[NNG](https://nng.nanomsg.org/) \| [Mbed
+TLS](https://www.trustedfirmware.org/projects/mbed-tls/) \| [CRAN HPC
+Task View](https://cran.r-project.org/view=HighPerformanceComputing) \|
+[CRAN Web Technologies](https://cran.r-project.org/view=WebTechnologies)
+
+### Acknowledgements
+
+- [Garrett D’Amore](https://github.com/gdamore) (NNG author) for advice
+  and implementing features for nanonext
+- [R Consortium](https://r-consortium.org/) for funding TLS development,
+  with support from [Henrik
+  Bengtsson](https://github.com/HenrikBengtsson) and [Will
+  Landau](https://github.com/wlandau/)
+- [Joe Cheng](https://github.com/jcheng5/) for prototyping event-driven
+  promises integration
+- [Luke Tierney](https://github.com/ltierney/) and [Mike
+  Cheng](https://github.com/coolbutuseless) for R serialization
+  documentation
+- [Travers Ching](https://github.com/traversc) for novel ideas on custom
+  serialization
+- [Jeroen Ooms](https://github.com/jeroen) for the Anticonf configure
+  script
 
 –
 

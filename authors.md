@@ -18,7 +18,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/r-lib/nanonext/blob/dev/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/r-lib/nanonext/blob/release/DESCRIPTION)
 
 Gao C (2026). *nanonext: NNG (Nanomsg Next Gen) Lightweight Messaging
 Library*. R package version 1.7.2, <https://nanonext.r-lib.org>.
