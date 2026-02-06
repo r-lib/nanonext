@@ -26,7 +26,6 @@ static int nano_fail_mode(SEXP mode) {
 
 }
 
-
 // finalizers ------------------------------------------------------------------
 
 static void context_finalizer(SEXP xptr) {
