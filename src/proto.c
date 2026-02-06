@@ -337,6 +337,9 @@ static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls) {
     goto fail;
 
   nst->stream = nng_aio_get_output(aiop, 0);
+  
+  nng_aio_free(aiop);
+  nng_url_free(up);
 
   PROTECT(sl = R_MakeExternalPtr(nst, nano_StreamSymbol, R_NilValue));
   R_RegisterCFinalizerEx(sl, stream_finalizer, TRUE);
@@ -344,15 +347,7 @@ static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls) {
   NANO_CLASS2(sl, "nanoStream", "nano");
   Rf_setAttrib(sl, R_ModeSymbol, Rf_mkString(nst->textframes ? "listener text frames" : "listener"));
   Rf_setAttrib(sl, nano_StateSymbol, Rf_mkString("opened"));
-  if (up->u_port != NULL && up->u_port[0] == '0' && up->u_port[1] == '\0') {
-    int port;
-    if (nng_stream_listener_get_int(nst->endpoint.list, NNG_OPT_TCP_BOUND_PORT, &port) == 0)
-      url = nano_url_with_port(up, port);
-  }
   Rf_setAttrib(sl, nano_UrlSymbol, url);
-
-  nng_aio_free(aiop);
-  nng_url_free(up);
 
   UNPROTECT(1);
   return sl;
