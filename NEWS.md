@@ -2,8 +2,12 @@
 
 #### New Features
 
-* Adds `http_server()` for creating HTTP and WebSocket servers supporting dynamic handlers, static file serving, redirects, and TLS/SSL.
-* Adds handler functions for use with `http_server()`: `handler()` for dynamic responses, `handler_ws()` for WebSocket connections, `handler_file()` and `handler_directory()` for static content, `handler_redirect()` for redirects, and `handler_inline()` for fixed responses. 
+* Adds `http_server()` for creating HTTP and WebSocket servers with TLS/SSL support.
+* Adds `handler()` for dynamic HTTP request handling with custom callbacks.
+* Adds `handler_ws()` for WebSocket connections with `on_message`, `on_open`, and `on_close` callbacks.
+* Adds `handler_stream()` for HTTP streaming using chunked transfer encoding, supporting Server-Sent Events (SSE), NDJSON, and custom streaming formats.
+* Adds `format_sse()` helper for formatting Server-Sent Events messages.
+* Adds static content handlers: `handler_file()` and `handler_directory()` for serving files, `handler_inline()` for in-memory content, and `handler_redirect()` for HTTP redirects. 
 * `ncurl()` and variants now accept `response = TRUE` to return all response headers.
 * Adds `race_aio()` to wait for and return the index of the first resolved Aio in a list of Aios.
 
