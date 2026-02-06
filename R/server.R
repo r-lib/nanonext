@@ -98,15 +98,8 @@ http_server <- function(url, handlers = list(), tls = NULL) {
   if (is.integer(handlers$type))
     handlers <- list(handlers)
   srv <- .Call(rnng_http_server_create, url, handlers, tls)
-  # Add method attributes for $start(), $close() access
   attr(srv, "start") <- function() {
-    res <- .Call(rnng_http_server_start, srv)
-    if (length(res) == 2L) {
-      attr(srv, "url") <- sub("(?<=:)0(?![^/])", res[2L], attr(srv, "url"), perl = TRUE)
-      res <- res[1L]
-    }
-    if (res == 0L) attr(srv, "state") <- "started"
-    invisible(res)
+    invisible(.Call(rnng_http_server_start, srv))
   }
   attr(srv, "close") <- function() {
     res <- .Call(rnng_http_server_close, srv)

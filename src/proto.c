@@ -331,6 +331,12 @@ static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls) {
   if ((xc = nng_stream_listener_listen(nst->endpoint.list)))
     goto fail;
 
+  if (up->u_port != NULL && up->u_port[0] == '0' && up->u_port[1] == '\0') {
+    int port;
+    if (nng_stream_listener_get_int(nst->endpoint.list, NNG_OPT_TCP_BOUND_PORT, &port) == 0)
+      url = nano_url_with_port(up, port);
+  }
+
   nng_stream_listener_accept(nst->endpoint.list, aiop);
   nng_aio_wait(aiop);
   if ((xc = nng_aio_result(aiop)))

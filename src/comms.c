@@ -26,6 +26,7 @@ static int nano_fail_mode(SEXP mode) {
 
 }
 
+
 // finalizers ------------------------------------------------------------------
 
 static void context_finalizer(SEXP xptr) {
@@ -246,6 +247,17 @@ SEXP rnng_listen(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
 
   NANO_CLASS2(listener, "nanoListener", "nano");
   Rf_setAttrib(listener, nano_IdSymbol, Rf_ScalarInteger(nng_listener_id(*lp)));
+  if (start) {
+    nng_url *up;
+    if (nng_url_parse(&up, ur) == 0) {
+      if (up->u_port != NULL && up->u_port[0] == '0' && up->u_port[1] == '\0') {
+        int port;
+        if (nng_listener_get_int(*lp, NNG_OPT_TCP_BOUND_PORT, &port) == 0)
+          url = nano_url_with_port(up, port);
+      }
+      nng_url_free(up);
+    }
+  }
   Rf_setAttrib(listener, nano_UrlSymbol, url);
   Rf_setAttrib(listener, nano_StateSymbol, Rf_mkString(start ? "started" : "not started"));
   Rf_setAttrib(listener, nano_SocketSymbol, Rf_ScalarInteger(nng_socket_id(*sock)));
@@ -298,6 +310,16 @@ SEXP rnng_listener_start(SEXP listener) {
   if (xc)
     ERROR_RET(xc);
 
+  SEXP url = Rf_getAttrib(listener, nano_UrlSymbol);
+  nng_url *up;
+  if (nng_url_parse(&up, CHAR(STRING_ELT(url, 0))) == 0) {
+    if (up->u_port != NULL && up->u_port[0] == '0' && up->u_port[1] == '\0') {
+      int port;
+      if (nng_listener_get_int(*list, NNG_OPT_TCP_BOUND_PORT, &port) == 0)
+        Rf_setAttrib(listener, nano_UrlSymbol, nano_url_with_port(up, port));
+    }
+    nng_url_free(up);
+  }
   Rf_setAttrib(listener, nano_StateSymbol, Rf_mkString("started"));
   return nano_success;
 
