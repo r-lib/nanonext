@@ -59,6 +59,7 @@ context <- function(socket) .Call(rnng_ctx_open, socket)
 #'
 #' @return An external pointer.
 #'
+#' @keywords internal
 #' @export
 #'
 .context <- function(socket) .Call(rnng_ctx_create, socket)
