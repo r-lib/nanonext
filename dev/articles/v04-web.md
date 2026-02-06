@@ -1,0 +1,535 @@
+# nanonext - Web Utilities
+
+``` r
+library(nanonext)
+```
+
+nanonext provides high-performance HTTP/WebSocket client and server
+capabilities built on NNG.
+
+### 1. HTTP Client
+
+#### ncurl: Basic Requests
+
+[`ncurl()`](https://nanonext.r-lib.org/dev/reference/ncurl.md) is a
+minimalist HTTP(S) client. Basic usage requires only a URL.
+
+``` r
+ncurl("https://postman-echo.com/get")
+#> $status
+#> [1] 200
+#> 
+#> $headers
+#> NULL
+#> 
+#> $data
+#> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"
+```
+
+Advanced usage supports all HTTP methods (POST, PUT, DELETE, etc.),
+custom headers, and request bodies.
+
+``` r
+ncurl("https://postman-echo.com/post",
+      method = "POST",
+      headers = c(`Content-Type` = "application/json", Authorization = "Bearer APIKEY"),
+      data = '{"key": "value"}',
+      response = "date")
+#> $status
+#> [1] 200
+#> 
+#> $headers
+#> $headers$date
+#> [1] "Fri, 06 Feb 2026 11:40:34 GMT"
+#> 
+#> 
+#> $data
+#> [1] "{\"args\":{},\"data\":{\"key\":\"value\"},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\",\"content-type\":\"application/json\",\"authorization\":\"Bearer APIKEY\",\"content-length\":\"16\"},\"json\":{\"key\":\"value\"},\"url\":\"https://postman-echo.com/post\"}"
+```
+
+Specify `response = TRUE` to return all response headers.
+
+``` r
+ncurl("https://postman-echo.com/get",
+      response = TRUE)
+#> $status
+#> [1] 200
+#> 
+#> $headers
+#> $headers$Date
+#> [1] "Fri, 06 Feb 2026 11:40:35 GMT"
+#> 
+#> $headers$`Content-Type`
+#> [1] "application/json; charset=utf-8"
+#> 
+#> $headers$`Content-Length`
+#> [1] "143"
+#> 
+#> $headers$Connection
+#> [1] "close"
+#> 
+#> $headers$`CF-RAY`
+#> [1] "9c9a5f9f49da1991-LHR"
+#> 
+#> $headers$etag
+#> [1] "W/\"8f-7zN8nSad8A9WlFJjKQZB04z5nHE\""
+#> 
+#> $headers$vary
+#> [1] "Accept-Encoding"
+#> 
+#> $headers$`Set-Cookie`
+#> [1] "sails.sid=s%3AG3rHD5JFh7xQGUWN5uKuZy_VAx8K3jK4.Xri5sb2DFpVzmoUSCvFw94mJ43QzXCamX%2BwID26YXto; Path=/; HttpOnly, __cf_bm=H5EueP1cHEOyPVaqT8oVWyH_uv7aytH6JhNh2rCG404-1770378035-1.0.1.1-ANKBTHHSsgxGVLTOHVCJzq.UIh0IiDdIxmhIzLvqpME_Ro11PPGcm5s2JmnC5Z48xSIlvWQSu7a91nUWgqBuK7vSnj95x_c7DcOnlVeZxYk; path=/; expires=Fri, 06-Feb-26 12:10:35 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=QGAx0msEdEdqhBGVmwTk7S6xsOpPf_hffh1Lj7mR0PY-1770378035182-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
+#> 
+#> $headers$`x-envoy-upstream-service-time`
+#> [1] "5"
+#> 
+#> $headers$`cf-cache-status`
+#> [1] "DYNAMIC"
+#> 
+#> $headers$Server
+#> [1] "cloudflare"
+#> 
+#> 
+#> $data
+#> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"
+```
+
+#### ncurl_aio: Async Requests
+
+[`ncurl_aio()`](https://nanonext.r-lib.org/dev/reference/ncurl_aio.md)
+performs asynchronous requests, returning immediately with an ‘ncurlAio’
+object that resolves when the response arrives.
+
+``` r
+res <- ncurl_aio("https://postman-echo.com/post",
+                 method = "POST",
+                 headers = c(`Content-Type` = "application/json"),
+                 data = '{"async": true}',
+                 response = "date")
+res
+#> < ncurlAio | $status $headers $data >
+
+call_aio(res)$headers
+#> $date
+#> [1] "Fri, 06 Feb 2026 11:40:35 GMT"
+
+res$status
+#> [1] 200
+
+res$data
+#> [1] "{\"args\":{},\"data\":{\"async\":true},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"content-type\":\"application/json\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\",\"content-length\":\"15\"},\"json\":{\"async\":true},\"url\":\"https://postman-echo.com/post\"}"
+```
+
+##### Promises Integration
+
+‘ncurlAio’ objects work anywhere that accepts a ‘promise’ from the
+promises package, including Shiny ExtendedTask.
+
+``` r
+library(promises)
+
+p <- ncurl_aio("https://postman-echo.com/get") |> then(\(x) cat(x$data))
+is.promise(p)
+#> [1] TRUE
+```
+
+#### ncurl_session: Persistent Connections
+
+[`ncurl_session()`](https://nanonext.r-lib.org/dev/reference/ncurl_session.md)
+creates a reusable connection for efficient repeated requests to an API
+endpoint. Use
+[`transact()`](https://nanonext.r-lib.org/dev/reference/ncurl_session.md)
+to send requests over the session.
+
+``` r
+sess <- ncurl_session("https://postman-echo.com/get",
+                      convert = FALSE,
+                      headers = c(`Content-Type` = "application/json"),
+                      response = c("Date", "Content-Type"))
+sess
+#> < ncurlSession > - transact() to return data
+
+transact(sess)
+#> $status
+#> [1] 200
+#> 
+#> $headers
+#> $headers$Date
+#> [1] "Fri, 06 Feb 2026 11:40:35 GMT"
+#> 
+#> $headers$`Content-Type`
+#> [1] "application/json; charset=utf-8"
+#> 
+#> 
+#> $data
+#>   [1] 7b 22 61 72 67 73 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b 22 68 6f 73 74 22 3a 22 70 6f
+#>  [33] 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 61 63 63 65 70 74 2d 65 6e 63 6f 64 69 6e 67
+#>  [65] 22 3a 22 67 7a 69 70 2c 20 62 72 22 2c 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 72 6f 74 6f 22
+#>  [97] 3a 22 68 74 74 70 73 22 2c 22 63 6f 6e 74 65 6e 74 2d 74 79 70 65 22 3a 22 61 70 70 6c 69 63 61
+#> [129] 74 69 6f 6e 2f 6a 73 6f 6e 22 7d 2c 22 75 72 6c 22 3a 22 68 74 74 70 73 3a 2f 2f 70 6f 73 74 6d
+#> [161] 61 6e 2d 65 63 68 6f 2e 63 6f 6d 2f 67 65 74 22 7d
+
+close(sess)
+```
+
+### 2. WebSocket Client
+
+[`stream()`](https://nanonext.r-lib.org/dev/reference/stream.md)
+provides a low-level byte stream interface for communicating with
+WebSocket servers and other non-NNG endpoints.
+
+Use `textframes = TRUE` for servers that expect text frames (most
+WebSocket servers).
+
+``` r
+s <- stream(dial = "wss://echo.websocket.org/", textframes = TRUE)
+s
+#> < nanoStream >
+#>  - mode: dialer text frames
+#>  - state: opened
+#>  - url: wss://echo.websocket.org/
+```
+
+[`send()`](https://nanonext.r-lib.org/dev/reference/send.md) and
+[`recv()`](https://nanonext.r-lib.org/dev/reference/recv.md), along with
+their async counterparts
+[`send_aio()`](https://nanonext.r-lib.org/dev/reference/send_aio.md) and
+[`recv_aio()`](https://nanonext.r-lib.org/dev/reference/recv_aio.md),
+work on Streams just like Sockets.
+
+``` r
+s |> recv()
+#> [1] "Request served by 4d896d95b55478"
+
+s |> send("hello websocket")
+#> [1] 0
+
+s |> recv()
+#> [1] "hello websocket"
+
+s |> recv_aio() -> r
+
+s |> send("async message")
+#> [1] 0
+
+r[]
+#> [1] "async message"
+
+close(s)
+```
+
+### 3. HTTP Server
+
+[`http_server()`](https://nanonext.r-lib.org/dev/reference/http_server.md)
+creates servers that handle HTTP requests and WebSocket connections
+using NNG’s high-performance architecture.
+
+``` r
+server <- http_server(
+  url = "http://127.0.0.1:8080",
+  handlers = list(
+    handler("/", function(req) {
+      list(status = 200L, body = "Hello from nanonext!")
+    }),
+    handler("/api/data", function(req) {
+      list(
+        status = 200L,
+        headers = c("Content-Type" = "application/json"),
+        body = '{"value": 42}'
+      )
+    }, method = "GET")
+  )
+)
+server$start()
+# Process requests: repeat later::run_now(Inf)
+server$close()
+```
+
+#### Request Handlers
+
+[`handler()`](https://nanonext.r-lib.org/dev/reference/handler.md)
+creates HTTP route handlers. The callback receives a request list with
+`method`, `uri`, `headers`, and `body`, and returns a response list with
+`status`, optional `headers`, and `body`.
+
+``` r
+# GET endpoint
+h1 <- handler("/hello", function(req) {
+  list(status = 200L, body = "Hello!")
+})
+
+# POST endpoint echoing the request body
+h2 <- handler("/echo", function(req) {
+  list(status = 200L, body = req$body)
+}, method = "POST")
+
+# Catch-all for any method under a path prefix
+h3 <- handler("/api", function(req) {
+  list(
+    status = 200L,
+    headers = c("Content-Type" = "application/json"),
+    body = sprintf('{"method":"%s","uri":"%s"}', req$method, req$uri)
+  )
+}, method = "*", prefix = TRUE)
+```
+
+#### Static Content Handlers
+
+nanonext provides specialized handlers for serving static content.
+
+``` r
+# Serve a single file
+h_file <- handler_file("/favicon.ico", "path/to/favicon.ico")
+
+# Serve a directory tree (automatic MIME type detection)
+h_dir <- handler_directory("/static", "www/assets")
+
+# Serve inline content
+h_inline <- handler_inline("/robots.txt", "User-agent: *\nDisallow:",
+                           content_type = "text/plain")
+
+# Redirect requests
+h_redirect <- handler_redirect("/old-page", "/new-page", status = 301L)
+```
+
+### 4. WebSocket Server
+
+[`handler_ws()`](https://nanonext.r-lib.org/dev/reference/handler_ws.md)
+creates WebSocket handlers that manage bidirectional connections. NNG
+handles the HTTP upgrade handshake and WebSocket framing automatically.
+
+``` r
+clients <- list()
+
+server <- http_server(
+  url = "http://127.0.0.1:8080",
+  handlers = list(
+    handler_ws(
+      "/chat",
+      on_message = function(ws, data) {
+        # Broadcast to all connected clients
+        for (client in clients) client$send(data)
+      },
+      on_open = function(ws) {
+        clients[[as.character(ws$id)]] <<- ws
+      },
+      on_close = function(ws) {
+        clients[[as.character(ws$id)]] <<- NULL
+      },
+      textframes = TRUE
+    )
+  )
+)
+server$start()
+```
+
+The `ws` connection object provides:
+
+- `ws$send(data)` - Send a message to the client
+- `ws$close()` - Close the connection
+- `ws$id` - Unique connection identifier
+
+### 5. HTTP Streaming
+
+[`handler_stream()`](https://nanonext.r-lib.org/dev/reference/handler_stream.md)
+enables HTTP streaming using chunked transfer encoding. This supports
+Server-Sent Events (SSE), newline-delimited JSON (NDJSON), and custom
+streaming formats.
+
+``` r
+conns <- list()
+
+server <- http_server(
+  url = "http://127.0.0.1:8080",
+  handlers = list(
+    # SSE endpoint
+    handler_stream("/events",
+      on_request = function(conn, req) {
+        conn$set_header("Content-Type", "text/event-stream")
+        conn$set_header("Cache-Control", "no-cache")
+        conns[[as.character(conn$id)]] <<- conn
+        conn$send(format_sse(data = "connected", id = "1"))
+      },
+      on_close = function(conn) {
+        conns[[as.character(conn$id)]] <<- NULL
+      }
+    ),
+    # Trigger broadcast via POST
+    handler("/broadcast", function(req) {
+      msg <- format_sse(data = rawToChar(req$body), event = "message")
+      lapply(conns, function(c) c$send(msg))
+      list(status = 200L, body = "sent")
+    }, method = "POST")
+  )
+)
+server$start()
+```
+
+#### Server-Sent Events
+
+[`format_sse()`](https://nanonext.r-lib.org/dev/reference/format_sse.md)
+formats messages according to the SSE specification for browser
+EventSource clients.
+
+``` r
+format_sse(data = "Hello")
+#> [1] "data: Hello\n\n"
+
+format_sse(data = "Update available", event = "notification", id = "42")
+#> [1] "event: notification\nid: 42\ndata: Update available\n\n"
+
+format_sse(data = "Line 1\nLine 2")
+#> [1] "data: Line 1\ndata: Line 2\n\n"
+```
+
+The streaming connection object provides:
+
+- `conn$send(data)` - Send a data chunk
+- `conn$close()` - Close the connection
+- `conn$set_status(code)` - Set HTTP status (before first send)
+- `conn$set_header(name, value)` - Set response header (before first
+  send)
+- `conn$id` - Unique connection identifier
+
+### 6. Secure Connections (TLS)
+
+All web utilities support TLS for secure HTTPS/WSS connections via
+[`tls_config()`](https://nanonext.r-lib.org/dev/reference/tls_config.md).
+
+``` r
+# Generate self-signed certificate for testing
+cert <- write_cert(cn = "127.0.0.1")
+
+# Server TLS configuration
+ser <- tls_config(server = cert$server)
+
+# Client TLS configuration
+cli <- tls_config(client = cert$client)
+```
+
+Use the configurations with servers and clients:
+
+``` r
+# HTTPS server
+server <- http_server(
+  url = "https://127.0.0.1:0",
+  handlers = list(
+    handler("/", function(req) list(status = 200L, body = "Secure!"))
+  ),
+  tls = ser
+)
+server$start()
+server
+#> < nanoServer >
+#>  - url: https://127.0.0.1:64230 
+#>  - state: started
+
+# HTTPS client request
+aio <- ncurl_aio(paste0(server$url, "/"), tls = cli)
+while (unresolved(aio)) later::run_now(1)
+#> {"args":{},"headers":{"host":"postman-echo.com","accept-encoding":"gzip, br","x-forwarded-proto":"https"},"url":"https://postman-echo.com/get"}
+aio$status
+#> [1] 200
+aio$data
+#> [1] "Secure!"
+
+server$close()
+```
+
+### 7. Complete Example: Shiny ExtendedTask
+
+This example demonstrates using
+[`ncurl_aio()`](https://nanonext.r-lib.org/dev/reference/ncurl_aio.md)
+with Shiny’s ExtendedTask for non-blocking HTTP requests.
+
+``` r
+library(shiny)
+library(bslib)
+library(nanonext)
+
+ui <- page_fluid(
+  p("The time is ", textOutput("current_time", inline = TRUE)),
+  hr(),
+  input_task_button("btn", "Fetch data"),
+
+  verbatimTextOutput("result")
+)
+
+server <- function(input, output, session) {
+  output$current_time <- renderText({
+    invalidateLater(1000)
+    format(Sys.time(), "%H:%M:%S %p")
+  })
+
+  task <- ExtendedTask$new(
+    function() ncurl_aio("https://postman-echo.com/get", response = TRUE)
+  ) |> bind_task_button("btn")
+
+  observeEvent(input$btn, task$invoke())
+  output$result <- renderPrint(task$result()$headers)
+}
+
+shinyApp(ui, server)
+```
+
+### 8. Complete Example: Chat Application
+
+This example demonstrates combining HTTP and WebSocket handlers for a
+simple chat application.
+
+``` r
+clients <- list()
+
+server <- http_server(
+  url = "http://127.0.0.1:8080",
+  handlers = list(
+    # Serve the chat page
+    handler("/", function(req) {
+      list(
+        status = 200L,
+        headers = c("Content-Type" = "text/html"),
+        body = '<!DOCTYPE html>
+<html>
+<body>
+  <div id="messages"></div>
+  <input id="msg" type="text">
+  <button onclick="send()">Send</button>
+  <script>
+    const ws = new WebSocket("ws://127.0.0.1:8080/ws");
+    ws.onmessage = (e) => {
+      document.getElementById("messages").innerHTML += "<p>" + e.data + "</p>";
+    };
+    function send() {
+      ws.send(document.getElementById("msg").value);
+      document.getElementById("msg").value = "";
+    }
+  </script>
+</body>
+</html>'
+      )
+    }),
+    # WebSocket endpoint for real-time messaging
+    handler_ws("/ws",
+      on_message = function(ws, data) {
+        # Broadcast to all clients
+        for (client in clients) {
+          client$send(data)
+        }
+      },
+      on_open = function(ws) {
+        clients[[as.character(ws$id)]] <<- ws
+      },
+      on_close = function(ws) {
+        clients[[as.character(ws$id)]] <<- NULL
+      },
+      textframes = TRUE
+    )
+  )
+)
+
+server$start()
+
+# The server runs non-blocking in the background via the 'later' event loop.
+
+# server$close()
+```

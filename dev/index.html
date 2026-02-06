@@ -46,7 +46,10 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/web.html">nanonext - Web Utilities</a></li>
+<li><a class="dropdown-item" href="articles/v01-messaging.html">nanonext - Messaging and Async I/O</a></li>
+    <li><a class="dropdown-item" href="articles/v02-protocols.html">nanonext - Scalability Protocols</a></li>
+    <li><a class="dropdown-item" href="articles/v03-configuration.html">nanonext - Configuration and Security</a></li>
+    <li><a class="dropdown-item" href="articles/v04-web.html">nanonext - Web Utilities</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -80,21 +83,18 @@
 <!-- badges: start -->
 
 <p>R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. NNG is a socket library for reliable, high-performance messaging over in-process, IPC, TCP, WebSocket and secure TLS transports. Implements ‘Scalability Protocols’, a standard for common communications patterns including publish/subscribe, request/reply and service discovery.</p>
-<p>As its own <a href="https://nanonext.r-lib.org/articles/nanonext.html#async-and-concurrency">threaded concurrency framework</a>, provides a toolkit for asynchronous programming and distributed computing. Intuitive ‘aio’ objects resolve automatically when asynchronous operations complete, and <a href="https://nanonext.r-lib.org/articles/nanonext.html#synchronisation-primitives">synchronisation primitives</a> allow R to wait upon events signalled by concurrent threads.</p>
+<p>As its own threaded concurrency framework, provides a toolkit for asynchronous programming and distributed computing. Intuitive ‘aio’ objects resolve automatically when asynchronous operations complete, and synchronisation primitives allow R to wait upon events signalled by concurrent threads.</p>
 <p>Designed for performance and reliability, nanonext is a lightweight wrapper around the NNG C library, and is itself implemented almost entirely in C.</p>
-<p>Provides the interface for code and processes to communicate with each other - <a href="https://nanonext.r-lib.org/articles/nanonext.html#cross-language-exchange">receive data generated in Python, perform analysis in R, and send results to a C++ program</a> – on the same computer or across networks spanning the globe.</p>
+<p>Provides the interface for code and processes to communicate with each other - receive data generated in Python, perform analysis in R, and send results to a C++ program – on the same computer or across networks spanning the globe.</p>
 <p>Implemented scalability protocols:</p>
 <ul>
 <li>Bus (mesh networks)</li>
 <li>Pair (two-way radio)</li>
 <li>Poly (one-to-one of many)</li>
 <li>Push/Pull (one-way pipeline)</li>
-<li>
-<a href="https://nanonext.r-lib.org/articles/nanonext.html#publisher-subscriber-model">Publisher/Subscriber</a> (topics &amp; broadcast)</li>
-<li>
-<a href="https://nanonext.r-lib.org/articles/nanonext.html#rpc-and-distributed-computing">Request/Reply</a> (RPC)</li>
-<li>
-<a href="https://nanonext.r-lib.org/articles/nanonext.html#surveyor-respondent-model">Surveyor/Respondent</a> (voting &amp; service discovery)</li>
+<li>Publisher/Subscriber (topics &amp; broadcast)</li>
+<li>Request/Reply (RPC)</li>
+<li>Surveyor/Respondent (voting &amp; service discovery)</li>
 </ul>
 <p>Supported transports:</p>
 <ul>
@@ -102,82 +102,57 @@
 <li>IPC (inter-process)</li>
 <li>TCP (IPv4 or IPv6)</li>
 <li>WebSocket</li>
-<li>
-<a href="https://nanonext.r-lib.org/articles/nanonext.html#tls-secure-connections">TLS</a> (over TCP and WebSocket)</li>
+<li>TLS (over TCP and WebSocket)</li>
 </ul>
 <p>Development of the TLS implementation was generously supported by the <img src="https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp" alt="R Consortium" width="100" height="22"> .</p>
-<p>Web utilities:</p>
+<div class="section level3">
+<h3 id="capabilities">Capabilities<a class="anchor" aria-label="anchor" href="#capabilities"></a>
+</h3>
+<div class="section level4">
+<h4 id="asynchronous-io">Asynchronous I/O<a class="anchor" aria-label="anchor" href="#asynchronous-io"></a>
+</h4>
+<p>Non-blocking operations with ‘aio’ objects that resolve automatically upon completion. Combined with condition variables, enables true event-driven programming in R without polling.</p>
+</div>
+<div class="section level4">
+<h4 id="cross-language-messaging">Cross-language Messaging<a class="anchor" aria-label="anchor" href="#cross-language-messaging"></a>
+</h4>
+<p>Exchange data with Python, C++, Go, Rust, and other languages via NNG’s portable wire format. Build polyglot distributed systems where each component uses the best tool for the job.</p>
+</div>
+<div class="section level4">
+<h4 id="httpwebsocket-server">HTTP/WebSocket Server<a class="anchor" aria-label="anchor" href="#httpwebsocket-server"></a>
+</h4>
+<p>Build HTTP servers in R with dynamic request handlers, WebSocket support, and streaming (Server-Sent Events, NDJSON) for real-time applications.</p>
+</div>
+<div class="section level4">
+<h4 id="async-http-client">Async HTTP Client<a class="anchor" aria-label="anchor" href="#async-http-client"></a>
+</h4>
+<p>High-performance HTTP(S) client with <code><a href="reference/ncurl.html">ncurl()</a></code>, supporting async requests, persistent sessions, and all standard HTTP methods.</p>
+</div>
+</div>
+<div class="section level3">
+<h3 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
+</h3>
 <ul>
 <li>
-<a href="https://nanonext.r-lib.org/articles/nanonext.html#ncurl-async-http-client">ncurl</a> - (async) http(s) client</li>
+<a href="https://nanonext.r-lib.org/articles/nanonext.html">Quick Reference</a> - cheatsheet</li>
 <li>
-<a href="https://nanonext.r-lib.org/articles/nanonext.html#stream-websocket-client">stream</a> - secure websockets client / generic low-level socket interface</li>
+<a href="https://nanonext.r-lib.org/articles/v01-messaging.html">Messaging and Async I/O</a> - cross-language exchange, async operations, synchronisation</li>
 <li>
-<code><a href="reference/ip_addr.html">ip_addr()</a></code> - for retrieving all local network IP addresses by interface</li>
+<a href="https://nanonext.r-lib.org/articles/v02-protocols.html">Scalability Protocols</a> - request/reply, pub/sub, surveyor/respondent</li>
 <li>
-<code><a href="reference/messenger.html">messenger()</a></code> - console-based instant messaging with authentication</li>
+<a href="https://nanonext.r-lib.org/articles/v03-configuration.html">Configuration and Security</a> - TLS, options, serialization</li>
+<li>
+<a href="https://nanonext.r-lib.org/articles/v04-web.html">Web Utilities</a> - HTTP client/server, WebSocket, streaming</li>
 </ul>
-<div class="section level3">
-<h3 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
-</h3>
-<p>nanonext offers 2 equivalent interfaces: a functional interface, and an object-oriented interface.</p>
-<div class="section level4">
-<h4 id="functional-interface">Functional Interface<a class="anchor" aria-label="anchor" href="#functional-interface"></a>
-</h4>
-<p>The primary object in the functional interface is the Socket. Use <code><a href="reference/socket.html">socket()</a></code> to create a socket and dial or listen at an address. The socket is then passed as the first argument of subsequent actions such as <code><a href="reference/send.html">send()</a></code> or <code><a href="reference/recv.html">recv()</a></code>.</p>
-<p><em>Example using Request/Reply (REQ/REP) protocol with inproc transport:</em> <br> (The inproc transport uses zero-copy where possible for a much faster solution than alternatives)</p>
-<p>Create sockets:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nanonext.r-lib.org">nanonext</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">socket1</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"req"</span>, listen <span class="op">=</span> <span class="st">"inproc://nanonext"</span><span class="op">)</span></span>
-<span><span class="va">socket2</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"rep"</span>, dial <span class="op">=</span> <span class="st">"inproc://nanonext"</span><span class="op">)</span></span></code></pre></div>
-<p>Send message from ‘socket1’:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/send.html">send</a></span><span class="op">(</span><span class="va">socket1</span>, <span class="st">"hello world!"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span></code></pre></div>
-<p>Receive message using ‘socket2’:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/recv.html">recv</a></span><span class="op">(</span><span class="va">socket2</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "hello world!"</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="object-oriented-interface">Object-oriented Interface<a class="anchor" aria-label="anchor" href="#object-oriented-interface"></a>
-</h4>
-<p>The primary object in the object-oriented interface is the nano object. Use <code><a href="reference/nano.html">nano()</a></code> to create a nano object which encapsulates a Socket and Dialer/Listener. Methods such as <code>$send()</code> or <code>$recv()</code> can then be accessed directly from the object.</p>
-<p><em>Example using Pipeline (Push/Pull) protocol with TCP/IP transport:</em></p>
-<p>Create nano objects:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nanonext.r-lib.org">nanonext</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">nano1</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nano.html">nano</a></span><span class="op">(</span><span class="st">"push"</span>, listen <span class="op">=</span> <span class="st">"tcp://127.0.0.1:5555"</span><span class="op">)</span></span>
-<span><span class="va">nano2</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nano.html">nano</a></span><span class="op">(</span><span class="st">"pull"</span>, dial <span class="op">=</span> <span class="st">"tcp://127.0.0.1:5555"</span><span class="op">)</span></span></code></pre></div>
-<p>Send message from ‘nano1’:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nano1</span><span class="op">$</span><span class="fu">send</span><span class="op">(</span><span class="st">"hello world!"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span></code></pre></div>
-<p>Receive message using ‘nano2’:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nano2</span><span class="op">$</span><span class="fu">recv</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "hello world!"</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level3">
-<h3 id="vignette">Vignette<a class="anchor" aria-label="anchor" href="#vignette"></a>
-</h3>
-<p>Please refer to the <a href="https://nanonext.r-lib.org/articles/nanonext.html">nanonext vignette</a> for full package functionality.</p>
-<p>This may be accessed within R by:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"nanonext"</span>, package <span class="op">=</span> <span class="st">"nanonext"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h3>
 <p>Install the latest release from CRAN:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"nanonext"</span><span class="op">)</span></span></code></pre></div>
 <p>Or the current development version from R-universe:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"nanonext"</span>, repos <span class="op">=</span> <span class="st">"https://r-lib.r-universe.dev"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -218,7 +193,13 @@
 <div class="section level3">
 <h3 id="links">Links<a class="anchor" aria-label="anchor" href="#links"></a>
 </h3>
-<p><a href="https://nanonext.r-lib.org/">nanonext</a> • <a href="https://cran.r-project.org/view=HighPerformanceComputing" class="external-link">CRAN HPC Task View</a> • <a href="https://cran.r-project.org/view=WebTechnologies" class="external-link">CRAN Web Technologies Task View</a> • <a href="https://nng.nanomsg.org/" class="external-link">NNG</a> • <a href="https://www.trustedfirmware.org/projects/mbed-tls/" class="external-link">Mbed TLS</a></p>
+<ul>
+<li><a href="https://nanonext.r-lib.org/">nanonext</a></li>
+<li><a href="https://cran.r-project.org/view=HighPerformanceComputing" class="external-link">CRAN HPC Task View</a></li>
+<li><a href="https://cran.r-project.org/view=WebTechnologies" class="external-link">CRAN Web Technologies Task View</a></li>
+<li><a href="https://nng.nanomsg.org/" class="external-link">NNG</a></li>
+<li><a href="https://www.trustedfirmware.org/projects/mbed-tls/" class="external-link">Mbed TLS</a></li>
+</ul>
 <p>–</p>
 <p>Please note that this project is released with a <a href="https://nanonext.r-lib.org/CODE_OF_CONDUCT.html">Contributor Code of Conduct</a>. By participating in this project you agree to abide by its terms.</p>
 </div>

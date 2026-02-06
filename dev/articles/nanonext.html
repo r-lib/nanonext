@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>nanonext - NNG Lightweight Messaging Library • nanonext</title>
+<title>nanonext - Quick Reference • nanonext</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
@@ -17,7 +17,7 @@
 <link href="../deps/Source_Code_Pro-0.4.10/font.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="nanonext - NNG Lightweight Messaging Library">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="nanonext - Quick Reference">
 <meta name="robots" content="noindex">
 <script src="https://cdn.jsdelivr.net/gh/posit-dev/supported-by-posit/js/badge.min.js" data-max-height="43" data-light-bg="#666f76" data-light-fg="#f9f9f9"></script><script defer data-domain="nanonext.r-lib.org,all.tidyverse.org" src="https://plausible.io/js/plausible.js"></script>
 </head>
@@ -43,7 +43,10 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/web.html">nanonext - Web Utilities</a></li>
+<li><a class="dropdown-item" href="../articles/v01-messaging.html">nanonext - Messaging and Async I/O</a></li>
+    <li><a class="dropdown-item" href="../articles/v02-protocols.html">nanonext - Scalability Protocols</a></li>
+    <li><a class="dropdown-item" href="../articles/v03-configuration.html">nanonext - Configuration and Security</a></li>
+    <li><a class="dropdown-item" href="../articles/v04-web.html">nanonext - Web Utilities</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -73,7 +76,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>nanonext - NNG Lightweight Messaging Library</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>nanonext - Quick Reference</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/main/vignettes/nanonext.Rmd" class="external-link"><code>vignettes/nanonext.Rmd</code></a></small>
@@ -82,453 +85,606 @@
 
     
     
-<div class="section level3">
-<h3 id="cross-language-exchange">1. Cross-language Exchange<a class="anchor" aria-label="anchor" href="#cross-language-exchange"></a>
-</h3>
-<p><code>nanonext</code> provides a fast, reliable data interface
-between different programming languages where NNG has an implementation,
-including C, C++, Java, Python, Go, and Rust.</p>
-<p>This messaging interface is lightweight, robust, and has limited
-points of failure. It enables:</p>
+<div class="section level2">
+<h2 id="core-concepts">Core Concepts<a class="anchor" aria-label="anchor" href="#core-concepts"></a>
+</h2>
+<p><strong>nanonext</strong> provides bindings to NNG (Nanomsg Next
+Gen), a high-performance messaging library for building distributed
+systems.</p>
+<p>This is a cheatsheet. Refer to the other vignettes for detailed
+introductions:</p>
 <ul>
-<li>Communication between processes in the same or different
-languages</li>
-<li>Distributed computing across networks or on the same machine</li>
-<li>Real-time data pipelines where computation times exceed data
-frequency</li>
-<li>Modular software design following Unix philosophy</li>
+<li>
+<a href="v01-messaging.html">Messaging and Async I/O</a> -
+cross-language exchange, async operations, synchronisation</li>
+<li>
+<a href="v02-protocols.html">Scalability Protocols</a> - req/rep,
+pub/sub, surveyor/respondent</li>
+<li>
+<a href="v03-configuration.html">Configuration and Security</a> -
+TLS, options, serialization, statistics</li>
+<li>
+<a href="v04-web.html">Web Utilities</a> - HTTP client/server,
+WebSocket, streaming</li>
 </ul>
-<p>The following example demonstrates numerical data exchange between R
-and Python (NumPy).</p>
-<p>Create socket in Python using the NNG binding ‘pynng’:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="im">import</span> pynng</span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>socket <span class="op">=</span> pynng.Pair0(listen<span class="op">=</span><span class="st">"ipc:///tmp/nanonext.socket"</span>)</span></code></pre></div>
-<p>Create nano object in R using <code>nanonext</code>, then send a
-vector of ‘doubles’, specifying mode as ‘raw’:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+</div>
+<div class="section level2">
+<h2 id="key-takeaways">Key Takeaways<a class="anchor" aria-label="anchor" href="#key-takeaways"></a>
+</h2>
+<ul>
+<li>
+<strong>Sockets</strong> connect via URLs using scalability
+protocols (req/rep, pub/sub, etc.)</li>
+<li>
+<strong>Transports</strong>: <code>inproc://</code> (in-process),
+<code>ipc://</code> (inter-process), <code>tcp://</code>,
+<code>ws://</code>, <code>wss://</code>, <code>tls+tcp://</code>
+</li>
+<li>
+<strong>Async I/O</strong>: <code><a href="../reference/send_aio.html">send_aio()</a></code> /
+<code><a href="../reference/recv_aio.html">recv_aio()</a></code> return immediately; access results via
+<code>$data</code> or <code>$result</code>
+</li>
+<li>
+<strong>Modes</strong>: <code>"serial"</code> (R objects),
+<code>"raw"</code> (bytes), <code>"double"</code>,
+<code>"integer"</code>, <code>"character"</code>, etc.</li>
+<li>
+<strong>Condition variables</strong>: <code><a href="../reference/cv.html">cv()</a></code> for
+zero-latency event synchronisation</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="sockets-and-connections">1. Sockets and Connections<a class="anchor" aria-label="anchor" href="#sockets-and-connections"></a>
+</h2>
+<div class="section level3">
+<h3 id="create-sockets">Create Sockets<a class="anchor" aria-label="anchor" href="#create-sockets"></a>
+</h3>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nanonext.r-lib.org">nanonext</a></span><span class="op">)</span></span>
-<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nano.html">nano</a></span><span class="op">(</span><span class="st">"pair"</span>, dial <span class="op">=</span> <span class="st">"ipc:///tmp/nanonext.socket"</span><span class="op">)</span></span>
-<span><span class="va">n</span><span class="op">$</span><span class="fu">send</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.1</span>, <span class="fl">2.2</span>, <span class="fl">3.3</span>, <span class="fl">4.4</span>, <span class="fl">5.5</span><span class="op">)</span>, mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span></code></pre></div>
-<p>Receive in Python as a NumPy array of ‘floats’, and send back to
-R:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>raw <span class="op">=</span> socket.recv()</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>array <span class="op">=</span> np.frombuffer(raw)</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="bu">print</span>(array)</span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; [1.1 2.2 3.3 4.4 5.5]</span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>msg <span class="op">=</span> array.tobytes()</span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>socket.send(msg)</span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a></span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>socket.close()</span></code></pre></div>
-<p>Receive in R, specifying the receive mode as ‘double’:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">n</span><span class="op">$</span><span class="fu">recv</span><span class="op">(</span>mode <span class="op">=</span> <span class="st">"double"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 1.1 2.2 3.3 4.4 5.5</span></span>
 <span></span>
+<span><span class="co"># Functional interface</span></span>
+<span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pair"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/listen.html">listen</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"tcp://127.0.0.1:5555"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/dial.html">dial</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"tcp://127.0.0.1:5555"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Object-oriented interface</span></span>
+<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nano.html">nano</a></span><span class="op">(</span><span class="st">"pair"</span>, listen <span class="op">=</span> <span class="st">"tcp://127.0.0.1:5555"</span><span class="op">)</span></span>
+<span><span class="va">n</span><span class="op">$</span><span class="fu">dial</span><span class="op">(</span><span class="st">"tcp://127.0.0.1:5556"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Close when done</span></span>
+<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
 <span><span class="va">n</span><span class="op">$</span><span class="fu">close</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="async-and-concurrency">2. Async and Concurrency<a class="anchor" aria-label="anchor" href="#async-and-concurrency"></a>
+<h3 id="protocols">Protocols<a class="anchor" aria-label="anchor" href="#protocols"></a>
 </h3>
-<p><code>nanonext</code> implements true async send and receive,
-leveraging NNG as a massively-scalable concurrency framework.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">s1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pair"</span>, listen <span class="op">=</span> <span class="st">"inproc://nano"</span><span class="op">)</span></span>
-<span><span class="va">s2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pair"</span>, dial <span class="op">=</span> <span class="st">"inproc://nano"</span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="../reference/send_aio.html">send_aio()</a></code> and <code><a href="../reference/recv_aio.html">recv_aio()</a></code> return
-immediately with an ‘Aio’ object that performs operations
-asynchronously. Aio objects return an unresolved value while the
-operation is ongoing, then automatically resolve once complete.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># async receive requested, but no messages waiting yet</span></span>
-<span><span class="va">msg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recv_aio.html">recv_aio</a></span><span class="op">(</span><span class="va">s2</span><span class="op">)</span></span>
-<span><span class="va">msg</span></span>
-<span><span class="co">#&gt; &lt; recvAio | $data &gt;</span></span>
-<span><span class="va">msg</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="co">#&gt; 'unresolved' logi NA</span></span></code></pre></div>
-<p>For ‘sendAio’ objects, the result is stored at <code>$result</code>.
-For ‘recvAio’ objects, the message is stored at <code>$data</code>.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/send_aio.html">send_aio</a></span><span class="op">(</span><span class="va">s1</span>, <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">1</span>, b <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">res</span></span>
-<span><span class="co">#&gt; &lt; sendAio | $result &gt;</span></span>
-<span><span class="va">res</span><span class="op">$</span><span class="va">result</span></span>
-<span><span class="co">#&gt; [1] 0</span></span></code></pre></div>
-<p><em>Note: 0 indicates successful send - the message has been accepted
-by the socket for sending but may still be buffered within the
-system.</em></p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># once a message is sent, the recvAio resolves automatically</span></span>
-<span><span class="va">msg</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="co">#&gt;   a b</span></span>
-<span><span class="co">#&gt; 1 1 2</span></span></code></pre></div>
-<p>Use <code><a href="../reference/unresolved.html">unresolved()</a></code> in control flow to perform actions
-before or after Aio resolution without blocking.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">msg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recv_aio.html">recv_aio</a></span><span class="op">(</span><span class="va">s2</span><span class="op">)</span></span>
+<table class="table">
+<thead><tr class="header">
+<th>Protocol</th>
+<th>Description</th>
+<th>Socket Types</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><strong>Pair</strong></td>
+<td>1-to-1 bidirectional</td>
+<td><code>"pair"</code></td>
+</tr>
+<tr class="even">
+<td><strong>Poly</strong></td>
+<td>Polyamorous pair</td>
+<td><code>"poly"</code></td>
+</tr>
+<tr class="odd">
+<td><strong>Pipeline</strong></td>
+<td>One-way data flow</td>
+<td>
+<code>"push"</code>, <code>"pull"</code>
+</td>
+</tr>
+<tr class="even">
+<td><strong>Req/Rep</strong></td>
+<td>RPC pattern</td>
+<td>
+<code>"req"</code>, <code>"rep"</code>
+</td>
+</tr>
+<tr class="odd">
+<td><strong>Pub/Sub</strong></td>
+<td>Broadcast/subscribe</td>
+<td>
+<code>"pub"</code>, <code>"sub"</code>
+</td>
+</tr>
+<tr class="even">
+<td><strong>Survey</strong></td>
+<td>Query all peers</td>
+<td>
+<code>"surveyor"</code>, <code>"respondent"</code>
+</td>
+</tr>
+<tr class="odd">
+<td><strong>Bus</strong></td>
+<td>Many-to-many mesh</td>
+<td><code>"bus"</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level3">
+<h3 id="transports">Transports<a class="anchor" aria-label="anchor" href="#transports"></a>
+</h3>
+<table class="table">
+<thead><tr class="header">
+<th>URL Scheme</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>inproc://name</code></td>
+<td>In-process (fastest, same process)</td>
+</tr>
+<tr class="even">
+<td><code>ipc:///path</code></td>
+<td>Inter-process (Unix socket / named pipe)</td>
+</tr>
+<tr class="odd">
+<td><code>tcp://host:port</code></td>
+<td>TCP/IP network</td>
+</tr>
+<tr class="even">
+<td><code>ws://host:port/path</code></td>
+<td>WebSocket</td>
+</tr>
+<tr class="odd">
+<td><code>wss://host:port/path</code></td>
+<td>WebSocket over TLS</td>
+</tr>
+<tr class="even">
+<td><code>tls+tcp://host:port</code></td>
+<td>TLS encrypted TCP</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section level2">
+<h2 id="send-and-receive">2. Send and Receive<a class="anchor" aria-label="anchor" href="#send-and-receive"></a>
+</h2>
+<div class="section level3">
+<h3 id="synchronous">Synchronous<a class="anchor" aria-label="anchor" href="#synchronous"></a>
+</h3>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Send R object (serialized)</span></span>
+<span><span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">1</span>, b <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># unresolved() checks resolution status</span></span>
+<span><span class="co"># Receive R object</span></span>
+<span><span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Send raw bytes (for cross-language exchange)</span></span>
+<span><span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.1</span>, <span class="fl">2.2</span>, <span class="fl">3.3</span><span class="op">)</span>, mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Receive as specific type</span></span>
+<span><span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span><span class="va">s</span>, mode <span class="op">=</span> <span class="st">"double"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span><span class="va">s</span>, mode <span class="op">=</span> <span class="st">"character"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span><span class="va">s</span>, mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="receive-modes">Receive Modes<a class="anchor" aria-label="anchor" href="#receive-modes"></a>
+</h3>
+<table class="table">
+<thead><tr class="header">
+<th>Mode</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>
+<code>"serial"</code> / <code>1</code>
+</td>
+<td>R serialization (default)</td>
+</tr>
+<tr class="even">
+<td>
+<code>"character"</code> / <code>2</code>
+</td>
+<td>Coerce to character</td>
+</tr>
+<tr class="odd">
+<td>
+<code>"complex"</code> / <code>3</code>
+</td>
+<td>Coerce to complex</td>
+</tr>
+<tr class="even">
+<td>
+<code>"double"</code> / <code>4</code>
+</td>
+<td>Coerce to double</td>
+</tr>
+<tr class="odd">
+<td>
+<code>"integer"</code> / <code>5</code>
+</td>
+<td>Coerce to integer</td>
+</tr>
+<tr class="even">
+<td>
+<code>"logical"</code> / <code>6</code>
+</td>
+<td>Coerce to logical</td>
+</tr>
+<tr class="odd">
+<td>
+<code>"numeric"</code> / <code>7</code>
+</td>
+<td>Coerce to numeric</td>
+</tr>
+<tr class="even">
+<td>
+<code>"raw"</code> / <code>8</code>
+</td>
+<td>Raw bytes</td>
+</tr>
+<tr class="odd">
+<td>
+<code>"string"</code> / <code>9</code>
+</td>
+<td>Fast option for length-1 character</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section level2">
+<h2 id="async-io">3. Async I/O<a class="anchor" aria-label="anchor" href="#async-io"></a>
+</h2>
+<div class="section level3">
+<h3 id="basic-async">Basic Async<a class="anchor" aria-label="anchor" href="#basic-async"></a>
+</h3>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Async send - returns immediately</span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/send_aio.html">send_aio</a></span><span class="op">(</span><span class="va">s</span>, <span class="va">data</span><span class="op">)</span></span>
+<span><span class="va">res</span><span class="op">$</span><span class="va">result</span>          <span class="co"># 0 = success, error code otherwise</span></span>
+<span></span>
+<span><span class="co"># Async receive - returns immediately</span></span>
+<span><span class="va">msg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recv_aio.html">recv_aio</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
+<span><span class="va">msg</span><span class="op">$</span><span class="va">data</span>            <span class="co"># Value when resolved, 'unresolved' NA otherwise</span></span>
+<span></span>
+<span><span class="co"># Check if resolved</span></span>
+<span><span class="fu"><a href="../reference/unresolved.html">unresolved</a></span><span class="op">(</span><span class="va">msg</span><span class="op">)</span>     <span class="co"># TRUE while pending</span></span>
+<span></span>
+<span><span class="co"># Wait for resolution</span></span>
+<span><span class="fu"><a href="../reference/call_aio.html">call_aio</a></span><span class="op">(</span><span class="va">msg</span><span class="op">)</span>       <span class="co"># Blocks, returns Aio object</span></span>
+<span><span class="fu"><a href="../reference/collect_aio.html">collect_aio</a></span><span class="op">(</span><span class="va">msg</span><span class="op">)</span>    <span class="co"># Blocks, returns value directly</span></span>
+<span><span class="va">msg</span><span class="op">[</span><span class="op">]</span>               <span class="co"># Blocks (user-interruptible), returns value</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="non-blocking-patterns">Non-blocking Patterns<a class="anchor" aria-label="anchor" href="#non-blocking-patterns"></a>
+</h3>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Poll while doing other work</span></span>
 <span><span class="kw">while</span> <span class="op">(</span><span class="fu"><a href="../reference/unresolved.html">unresolved</a></span><span class="op">(</span><span class="va">msg</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># perform other tasks while waiting</span></span>
-<span>  <span class="fu"><a href="../reference/send_aio.html">send_aio</a></span><span class="op">(</span><span class="va">s1</span>, <span class="st">"resolved"</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"unresolved"</span><span class="op">)</span></span>
+<span>  <span class="co"># do other tasks</span></span>
 <span><span class="op">}</span></span>
-<span><span class="co">#&gt; unresolved</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">msg</span><span class="op">$</span><span class="va">data</span></span>
 <span></span>
-<span><span class="co"># access resolved value</span></span>
-<span><span class="va">msg</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="co">#&gt; [1] "resolved"</span></span></code></pre></div>
-<p>Explicitly wait for completion with <code><a href="../reference/call_aio.html">call_aio()</a></code>
-(blocking).</p>
+<span><span class="co"># Multiple async operations</span></span>
+<span><span class="va">msg1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recv_aio.html">recv_aio</a></span><span class="op">(</span><span class="va">s1</span><span class="op">)</span></span>
+<span><span class="va">msg2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recv_aio.html">recv_aio</a></span><span class="op">(</span><span class="va">s2</span><span class="op">)</span></span>
+<span><span class="co"># Both run concurrently</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="condition-variables">4. Condition Variables<a class="anchor" aria-label="anchor" href="#condition-variables"></a>
+</h2>
+<div class="section level3">
+<h3 id="basics">Basics<a class="anchor" aria-label="anchor" href="#basics"></a>
+</h3>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Create condition variable</span></span>
+<span><span class="va">cv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cv.html">cv</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Check/signal</span></span>
+<span><span class="fu"><a href="../reference/cv.html">cv_value</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span>        <span class="co"># Get counter value</span></span>
+<span><span class="fu"><a href="../reference/cv.html">cv_signal</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span>       <span class="co"># Increment counter</span></span>
+<span><span class="fu"><a href="../reference/cv.html">cv_reset</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span>        <span class="co"># Reset to zero</span></span>
+<span></span>
+<span><span class="co"># Wait (blocks until counter &gt; 0, then decrements)</span></span>
+<span><span class="fu"><a href="../reference/cv.html">wait</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Wait with timeout (ms), returns FALSE on timeout</span></span>
+<span><span class="fu"><a href="../reference/cv.html">until</a></span><span class="op">(</span><span class="va">cv</span>, <span class="fl">1000</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="pipe-notifications">Pipe Notifications<a class="anchor" aria-label="anchor" href="#pipe-notifications"></a>
+</h3>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Signal on connection/disconnection</span></span>
+<span><span class="fu"><a href="../reference/pipe_notify.html">pipe_notify</a></span><span class="op">(</span><span class="va">socket</span>, cv <span class="op">=</span> <span class="va">cv</span>, add <span class="op">=</span> <span class="cn">TRUE</span>, remove <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Distinguish message vs disconnect with flag</span></span>
+<span><span class="fu"><a href="../reference/pipe_notify.html">pipe_notify</a></span><span class="op">(</span><span class="va">socket</span>, cv <span class="op">=</span> <span class="va">cv</span>, remove <span class="op">=</span> <span class="cn">TRUE</span>, flag <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recv_aio.html">recv_aio</a></span><span class="op">(</span><span class="va">socket</span>, cv <span class="op">=</span> <span class="va">cv</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/cv.html">wait</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span> <span class="op">||</span> <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"disconnected"</span><span class="op">)</span>  <span class="co"># FALSE = pipe event</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="async-with-cv">Async with CV<a class="anchor" aria-label="anchor" href="#async-with-cv"></a>
+</h3>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cv.html">cv</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">msg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recv_aio.html">recv_aio</a></span><span class="op">(</span><span class="va">s</span>, cv <span class="op">=</span> <span class="va">cv</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/cv.html">wait</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span>            <span class="co"># Wake on receive completion</span></span>
+<span><span class="va">msg</span><span class="op">$</span><span class="va">data</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="requestreply-rpc">5. Request/Reply (RPC)<a class="anchor" aria-label="anchor" href="#requestreply-rpc"></a>
+</h2>
+<div class="section level3">
+<h3 id="server">Server<a class="anchor" aria-label="anchor" href="#server"></a>
+</h3>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rep</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"rep"</span>, listen <span class="op">=</span> <span class="st">"tcp://127.0.0.1:5555"</span><span class="op">)</span></span>
+<span><span class="va">ctx</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/context.html">context</a></span><span class="op">(</span><span class="va">rep</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># reply() blocks, waiting for request</span></span>
+<span><span class="fu"><a href="../reference/reply.html">reply</a></span><span class="op">(</span><span class="va">ctx</span>, execute <span class="op">=</span> <span class="va">my_function</span>, send_mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">rep</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="client">Client<a class="anchor" aria-label="anchor" href="#client"></a>
+</h3>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">req</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"req"</span>, dial <span class="op">=</span> <span class="st">"tcp://127.0.0.1:5555"</span><span class="op">)</span></span>
+<span><span class="va">ctx</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/context.html">context</a></span><span class="op">(</span><span class="va">req</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># request() returns immediately</span></span>
+<span><span class="va">aio</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/request.html">request</a></span><span class="op">(</span><span class="va">ctx</span>, data <span class="op">=</span> <span class="va">args</span>, recv_mode <span class="op">=</span> <span class="st">"double"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Do other work while server processes...</span></span>
+<span></span>
+<span><span class="co"># Get result when needed</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">aio</span><span class="op">[</span><span class="op">]</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">req</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="pubsub">6. Pub/Sub<a class="anchor" aria-label="anchor" href="#pubsub"></a>
+</h2>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># wait for completion and return resolved Aio</span></span>
-<span><span class="fu"><a href="../reference/call_aio.html">call_aio</a></span><span class="op">(</span><span class="va">msg</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">pub</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pub"</span>, listen <span class="op">=</span> <span class="st">"inproc://pubsub"</span><span class="op">)</span></span>
+<span><span class="va">sub</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"sub"</span>, dial <span class="op">=</span> <span class="st">"inproc://pubsub"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># access resolved value (waiting if required):</span></span>
-<span><span class="fu"><a href="../reference/call_aio.html">call_aio</a></span><span class="op">(</span><span class="va">msg</span><span class="op">)</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="co">#&gt; [1] "resolved"</span></span>
+<span><span class="co"># Subscribe to topic (prefix matching)</span></span>
+<span><span class="fu"><a href="../reference/subscribe.html">subscribe</a></span><span class="op">(</span><span class="va">sub</span>, topic <span class="op">=</span> <span class="st">"news"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/subscribe.html">subscribe</a></span><span class="op">(</span><span class="va">sub</span>, topic <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>      <span class="co"># All topics</span></span>
 <span></span>
-<span><span class="co"># or directly:</span></span>
-<span><span class="fu"><a href="../reference/collect_aio.html">collect_aio</a></span><span class="op">(</span><span class="va">msg</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "resolved"</span></span>
+<span><span class="co"># Unsubscribe</span></span>
+<span><span class="fu"><a href="../reference/subscribe.html">unsubscribe</a></span><span class="op">(</span><span class="va">sub</span>, topic <span class="op">=</span> <span class="st">"news"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># or user-interruptible:</span></span>
-<span><span class="va">msg</span><span class="op">[</span><span class="op">]</span></span>
-<span><span class="co">#&gt; [1] "resolved"</span></span>
+<span><span class="co"># Publish (topic is message prefix)</span></span>
+<span><span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="va">pub</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"news"</span>, <span class="st">"headline"</span><span class="op">)</span>, mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">s1</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">s2</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="synchronisation-primitives">3. Synchronisation Primitives<a class="anchor" aria-label="anchor" href="#synchronisation-primitives"></a>
-</h3>
-<p><code>nanonext</code> implements cross-platform synchronisation
-primitives from the NNG library, enabling synchronisation between NNG
-events and the main R execution thread.</p>
-<p>Condition variables can signal events such as asynchronous receive
-completions and pipe events (connections established or dropped). Each
-condition variable has a value (counter) and flag (boolean). Signals
-increment the value; successful <code><a href="../reference/cv.html">wait()</a></code> or
-<code><a href="../reference/cv.html">until()</a></code> calls decrement it. A non-zero value allows waiting
-threads to continue.</p>
-<p>This approach is more efficient than polling - consuming no resources
-while waiting and synchronising with zero latency.</p>
-<p><strong>Example 1: Wait for connection</strong></p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sock</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pair"</span>, listen <span class="op">=</span> <span class="st">"inproc://nanopipe"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">cv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cv.html">cv</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/cv.html">cv_value</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/pipe_notify.html">pipe_notify</a></span><span class="op">(</span><span class="va">sock</span>, cv <span class="op">=</span> <span class="va">cv</span>, add <span class="op">=</span> <span class="cn">TRUE</span>, remove <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># wait(cv) would block until connection established</span></span>
-<span></span>
-<span><span class="co"># for illustration:</span></span>
-<span><span class="va">sock2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pair"</span>, dial <span class="op">=</span> <span class="st">"inproc://nanopipe"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/cv.html">cv_value</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span> <span class="co"># incremented when pipe created</span></span>
-<span><span class="co">#&gt; [1] 1</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/cv.html">wait</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span> <span class="co"># does not block as cv value is non-zero</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/cv.html">cv_value</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span> <span class="co"># decremented by wait()</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">sock2</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/cv.html">cv_value</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span> <span class="co"># incremented when pipe destroyed</span></span>
-<span><span class="co">#&gt; [1] 1</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">sock</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Example 2: Wait for message or disconnection</strong></p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sock</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pair"</span>, listen <span class="op">=</span> <span class="st">"inproc://nanosignal"</span><span class="op">)</span></span>
-<span><span class="va">sock2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pair"</span>, dial <span class="op">=</span> <span class="st">"inproc://nanosignal"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">cv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cv.html">cv</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/cv.html">cv_value</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/pipe_notify.html">pipe_notify</a></span><span class="op">(</span><span class="va">sock</span>, cv <span class="op">=</span> <span class="va">cv</span>, add <span class="op">=</span> <span class="cn">FALSE</span>, remove <span class="op">=</span> <span class="cn">TRUE</span>, flag <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="va">sock2</span>, <span class="st">"this message will wake waiting thread"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
-<span></span>
-<span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recv_aio.html">recv_aio</a></span><span class="op">(</span><span class="va">sock</span>, cv <span class="op">=</span> <span class="va">cv</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># wakes when async receive completes</span></span>
-<span><span class="fu"><a href="../reference/cv.html">wait</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span> <span class="op">||</span> <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"peer disconnected"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span></span>
-<span><span class="va">r</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="co">#&gt; [1] "this message will wake waiting thread"</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">sock</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">sock2</span><span class="op">)</span></span></code></pre></div>
-<p>When <code>flag = TRUE</code> is set for pipe notifications,
-<code><a href="../reference/cv.html">wait()</a></code> returns FALSE for pipe events (rather than TRUE for
-message events). This distinguishes between disconnections and
-successful receives, something not possible using
-<code><a href="../reference/call_aio.html">call_aio()</a></code> alone.</p>
-<p>This mechanism enables waiting simultaneously on multiple events
-while distinguishing between them. <code><a href="../reference/pipe_notify.html">pipe_notify()</a></code> can signal
-up to two condition variables per event for additional flexibility in
-concurrent applications.</p>
-</div>
-<div class="section level3">
-<h3 id="tls-secure-connections">4. TLS Secure Connections<a class="anchor" aria-label="anchor" href="#tls-secure-connections"></a>
-</h3>
-<p>Secure connections use NNG and Mbed TLS libraries. Enable them
-by:</p>
-<ol style="list-style-type: decimal">
-<li>Specifying a secure <code>tls+tcp://</code> or <code>wss://</code>
-URL</li>
-<li>Passing a TLS configuration object to the ‘tls’ argument of
-<code><a href="../reference/listen.html">listen()</a></code> or <code><a href="../reference/dial.html">dial()</a></code>
-</li>
-</ol>
-<p>Create TLS configurations with <code><a href="../reference/tls_config.html">tls_config()</a></code>: - Client
-configuration: requires PEM-encoded CA certificate to verify server
-identity - Server configuration: requires certificate and private
-key</p>
-<p>Certificates may be supplied as files or character vectors. Valid
-X.509 certificates from Certificate Authorities are supported.</p>
-<p>The convenience function <code><a href="../reference/write_cert.html">write_cert()</a></code> generates a
-4096-bit RSA key pair and self-signed X.509 certificate. The ‘cn’
-argument must match exactly the hostname/IP address of the URL (e.g.,
-use ‘127.0.0.1’ throughout, or ‘localhost’ throughout, not mixed).</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cert</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/write_cert.html">write_cert</a></span><span class="op">(</span>cn <span class="op">=</span> <span class="st">"127.0.0.1"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">cert</span><span class="op">)</span></span>
-<span><span class="co">#&gt; List of 2</span></span>
-<span><span class="co">#&gt;  $ server: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ "-----BEGIN RSA PRIVATE KEY-----\nMIIJKAIBAAKCAgEAuj+X3ggDy4flGdFn2MUROoyQWW3Hebae7yyiuSuk3On3f5vf\n7lCnZcMdFVR+"| __truncated__</span></span>
-<span><span class="co">#&gt;  $ client: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ ""</span></span>
-<span></span>
-<span><span class="va">ser</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tls_config.html">tls_config</a></span><span class="op">(</span>server <span class="op">=</span> <span class="va">cert</span><span class="op">$</span><span class="va">server</span><span class="op">)</span></span>
-<span><span class="va">ser</span></span>
-<span><span class="co">#&gt; &lt; TLS server config | auth mode: optional &gt;</span></span>
-<span></span>
-<span><span class="va">cli</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tls_config.html">tls_config</a></span><span class="op">(</span>client <span class="op">=</span> <span class="va">cert</span><span class="op">$</span><span class="va">client</span><span class="op">)</span></span>
-<span><span class="va">cli</span></span>
-<span><span class="co">#&gt; &lt; TLS client config | auth mode: required &gt;</span></span>
-<span></span>
-<span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span>listen <span class="op">=</span> <span class="st">"tls+tcp://127.0.0.1:5558"</span>, tls <span class="op">=</span> <span class="va">ser</span><span class="op">)</span></span>
-<span><span class="va">s1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span>dial <span class="op">=</span> <span class="st">"tls+tcp://127.0.0.1:5558"</span>, tls <span class="op">=</span> <span class="va">cli</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># secure TLS connection established</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">s1</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="request-reply-protocol">5. Request Reply Protocol<a class="anchor" aria-label="anchor" href="#request-reply-protocol"></a>
-</h3>
-<p><code>nanonext</code> implements remote procedure calls (RPC) using
-NNG’s req/rep protocol for distributed computing. Use this for
-computationally-expensive calculations or I/O-bound operations in
-separate server processes.</p>
-<p><strong>[S] Server process:</strong> <code><a href="../reference/reply.html">reply()</a></code> waits for a
-message, applies a function, and sends back the result. Started in a
-background ‘mirai’ process.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">mirai</span><span class="fu">::</span><span class="fu">mirai</span><span class="op">(</span><span class="op">{</span></span>
-<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nanonext.r-lib.org">nanonext</a></span><span class="op">)</span></span>
-<span>  <span class="va">rep</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"rep"</span>, listen <span class="op">=</span> <span class="st">"tcp://127.0.0.1:6556"</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="../reference/reply.html">reply</a></span><span class="op">(</span><span class="fu"><a href="../reference/context.html">context</a></span><span class="op">(</span><span class="va">rep</span><span class="op">)</span>, execute <span class="op">=</span> <span class="va">rnorm</span>, send_mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span> <span class="co"># linger period to flush system socket send</span></span>
-<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
-<p><strong>[C] Client process:</strong> <code><a href="../reference/request.html">request()</a></code> performs
-async send/receive, returning immediately with a <code>recvAio</code>
-object.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nanonext.r-lib.org">nanonext</a></span><span class="op">)</span></span>
-<span><span class="va">req</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"req"</span>, dial <span class="op">=</span> <span class="st">"tcp://127.0.0.1:6556"</span><span class="op">)</span></span>
-<span><span class="va">aio</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/request.html">request</a></span><span class="op">(</span><span class="fu"><a href="../reference/context.html">context</a></span><span class="op">(</span><span class="va">req</span><span class="op">)</span>, data <span class="op">=</span> <span class="fl">1e8</span>, recv_mode <span class="op">=</span> <span class="st">"double"</span><span class="op">)</span></span></code></pre></div>
-<p>The client can now run additional code while the server processes the
-request.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># do more...</span></span></code></pre></div>
-<p>When the result is needed, call the recvAio using
-<code><a href="../reference/call_aio.html">call_aio()</a></code> to retrieve the value at <code>$data</code>.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/call_aio.html">call_aio</a></span><span class="op">(</span><span class="va">aio</span><span class="op">)</span><span class="op">$</span><span class="va">data</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  num [1:100000000] -0.9122 0.0938 0.7333 0.1612 -0.2923 ...</span></span></code></pre></div>
-<p>Since <code><a href="../reference/call_aio.html">call_aio()</a></code> blocks, alternatively query
-<code>aio$data</code> directly, which returns ‘unresolved’ (logical NA)
-if incomplete.</p>
-<p>For server-side operations (e.g., writing to disk), calling or
-querying the value confirms completion and provides the function’s
-return value (typically NULL or an exit code).</p>
-<p>The <a href="https://doi.org/10.5281/zenodo.7912722" class="external-link"><code>mirai</code></a>
-package (<a href="https://mirai.r-lib.org/" class="external-link uri">https://mirai.r-lib.org/</a>) uses <code>nanonext</code> as
-the back-end to provide asynchronous execution of arbitrary R code using
-the RPC model.</p>
-</div>
-<div class="section level3">
-<h3 id="publisher-subscriber-protocol">6. Publisher Subscriber Protocol<a class="anchor" aria-label="anchor" href="#publisher-subscriber-protocol"></a>
-</h3>
-<p><code>nanonext</code> implements NNG’s pub/sub protocol. Subscribers
-can subscribe to one or multiple topics broadcast by a publisher.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pub</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pub"</span>, listen <span class="op">=</span> <span class="st">"inproc://nanobroadcast"</span><span class="op">)</span></span>
-<span><span class="va">sub</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"sub"</span>, dial <span class="op">=</span> <span class="st">"inproc://nanobroadcast"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">sub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/subscribe.html">subscribe</a></span><span class="op">(</span>topic <span class="op">=</span> <span class="st">"examples"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">pub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"examples"</span>, <span class="st">"this is an example"</span><span class="op">)</span>, mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
-<span><span class="va">sub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span>mode <span class="op">=</span> <span class="st">"character"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "examples"           "this is an example"</span></span>
-<span></span>
-<span><span class="va">pub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="st">"examples at the start of a single text message"</span>, mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
-<span><span class="va">sub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span>mode <span class="op">=</span> <span class="st">"character"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "examples at the start of a single text message"</span></span>
-<span></span>
-<span><span class="va">pub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"other"</span>, <span class="st">"this other topic will not be received"</span><span class="op">)</span>, mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
-<span><span class="va">sub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span>mode <span class="op">=</span> <span class="st">"character"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; 'errorValue' int 8 | Try again</span></span>
-<span></span>
-<span><span class="co"># specify NULL to subscribe to ALL topics</span></span>
-<span><span class="va">sub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/subscribe.html">subscribe</a></span><span class="op">(</span>topic <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
-<span><span class="va">pub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"newTopic"</span>, <span class="st">"this is a new topic"</span><span class="op">)</span>, mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
-<span><span class="va">sub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span><span class="st">"character"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "newTopic"            "this is a new topic"</span></span>
-<span></span>
-<span><span class="va">sub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/subscribe.html">unsubscribe</a></span><span class="op">(</span>topic <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
-<span><span class="va">pub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"newTopic"</span>, <span class="st">"this topic will now not be received"</span><span class="op">)</span>, mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
-<span><span class="va">sub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span><span class="st">"character"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; 'errorValue' int 8 | Try again</span></span>
-<span></span>
-<span><span class="co"># however the topics explicitly subscribed to are still received</span></span>
-<span><span class="va">pub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"examples will still be received"</span><span class="op">)</span>, mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
-<span><span class="va">sub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span>mode <span class="op">=</span> <span class="st">"character"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "examples will still be received"</span></span></code></pre></div>
-<p>The subscribed topic can be of any atomic type (not just character),
-allowing integer, double, logical, complex and raw vectors to be sent
-and received.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/subscribe.html">subscribe</a></span><span class="op">(</span>topic <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">pub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">20</span><span class="op">)</span>, mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
-<span><span class="va">sub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span>mode <span class="op">=</span> <span class="st">"double"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1]  1 10 10 20</span></span>
-<span><span class="va">pub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">20</span><span class="op">)</span>, mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
-<span><span class="va">sub</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span>mode <span class="op">=</span> <span class="st">"double"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; 'errorValue' int 8 | Try again</span></span>
+<span><span class="co"># Receive (includes topic)</span></span>
+<span><span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span><span class="va">sub</span>, mode <span class="op">=</span> <span class="st">"character"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">pub</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">sub</span><span class="op">)</span></span></code></pre></div>
 </div>
-<div class="section level3">
-<h3 id="surveyor-respondent-protocol">7. Surveyor Respondent Protocol<a class="anchor" aria-label="anchor" href="#surveyor-respondent-protocol"></a>
-</h3>
-<p>Useful for service discovery and similar applications. A surveyor
-broadcasts a survey to all respondents, who may reply within a timeout
-period. Late responses are discarded.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sur</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"surveyor"</span>, listen <span class="op">=</span> <span class="st">"inproc://nanoservice"</span><span class="op">)</span></span>
-<span><span class="va">res1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"respondent"</span>, dial <span class="op">=</span> <span class="st">"inproc://nanoservice"</span><span class="op">)</span></span>
-<span><span class="va">res2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"respondent"</span>, dial <span class="op">=</span> <span class="st">"inproc://nanoservice"</span><span class="op">)</span></span>
+<div class="section level2">
+<h2 id="surveyorrespondent">7. Surveyor/Respondent<a class="anchor" aria-label="anchor" href="#surveyorrespondent"></a>
+</h2>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sur</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"surveyor"</span>, listen <span class="op">=</span> <span class="st">"inproc://survey"</span><span class="op">)</span></span>
+<span><span class="va">res1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"respondent"</span>, dial <span class="op">=</span> <span class="st">"inproc://survey"</span><span class="op">)</span></span>
+<span><span class="va">res2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"respondent"</span>, dial <span class="op">=</span> <span class="st">"inproc://survey"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># sur sets a survey timeout, applying to this and subsequent surveys</span></span>
-<span><span class="va">sur</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/survey_time.html">survey_time</a></span><span class="op">(</span>value <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
+<span><span class="co"># Set survey timeout (ms)</span></span>
+<span><span class="fu"><a href="../reference/survey_time.html">survey_time</a></span><span class="op">(</span><span class="va">sur</span>, <span class="fl">500</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># sur sends a message and then requests 2 async receives</span></span>
-<span><span class="va">sur</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="st">"service check"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
-<span><span class="va">aio1</span> <span class="op">&lt;-</span> <span class="va">sur</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/recv_aio.html">recv_aio</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">aio2</span> <span class="op">&lt;-</span> <span class="va">sur</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/recv_aio.html">recv_aio</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co"># Broadcast survey</span></span>
+<span><span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="va">sur</span>, <span class="st">"ping"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># res1 receives the message and replies using an aio send function</span></span>
-<span><span class="va">res1</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "service check"</span></span>
-<span><span class="va">res1</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/send_aio.html">send_aio</a></span><span class="op">(</span><span class="st">"res1"</span><span class="op">)</span></span>
+<span><span class="co"># Collect responses (async)</span></span>
+<span><span class="va">aio1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recv_aio.html">recv_aio</a></span><span class="op">(</span><span class="va">sur</span><span class="op">)</span></span>
+<span><span class="va">aio2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recv_aio.html">recv_aio</a></span><span class="op">(</span><span class="va">sur</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># res2 receives the message but fails to reply</span></span>
-<span><span class="va">res2</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "service check"</span></span>
+<span><span class="co"># Respondents reply</span></span>
+<span><span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span><span class="va">res1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="va">res1</span>, <span class="st">"pong1"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># checking the aio - only the first will have resolved</span></span>
-<span><span class="va">aio1</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="co">#&gt; [1] "res1"</span></span>
-<span><span class="va">aio2</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="co">#&gt; 'unresolved' logi NA</span></span>
-<span></span>
-<span><span class="co"># after the survey expires, the second resolves into a timeout error</span></span>
+<span><span class="co"># Late/missing responses timeout (errorValue 5)</span></span>
 <span><span class="fu"><a href="../reference/msleep.html">msleep</a></span><span class="op">(</span><span class="fl">500</span><span class="op">)</span></span>
-<span><span class="va">aio2</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="co">#&gt; 'errorValue' int 5 | Timed out</span></span>
+<span><span class="va">aio2</span><span class="op">$</span><span class="va">data</span>           <span class="co"># errorValue if no response</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">sur</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">res1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">res2</span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="../reference/msleep.html">msleep()</a></code> is an uninterruptible sleep function (using
-NNG) that takes a time in milliseconds.</p>
-<p>The final value resolves to a timeout error (integer 5 classed as
-‘errorValue’). All error codes are classed as ‘errorValue’ for easy
-distinction from integer message values.</p>
+</div>
+<div class="section level2">
+<h2 id="tls-secure-connections">8. TLS Secure Connections<a class="anchor" aria-label="anchor" href="#tls-secure-connections"></a>
+</h2>
+<div class="section level3">
+<h3 id="self-signed-certificates">Self-signed Certificates<a class="anchor" aria-label="anchor" href="#self-signed-certificates"></a>
+</h3>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Generate certificate (cn must match URL host exactly)</span></span>
+<span><span class="va">cert</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/write_cert.html">write_cert</a></span><span class="op">(</span>cn <span class="op">=</span> <span class="st">"127.0.0.1"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Create TLS configs</span></span>
+<span><span class="va">server_tls</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tls_config.html">tls_config</a></span><span class="op">(</span>server <span class="op">=</span> <span class="va">cert</span><span class="op">$</span><span class="va">server</span><span class="op">)</span></span>
+<span><span class="va">client_tls</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tls_config.html">tls_config</a></span><span class="op">(</span>client <span class="op">=</span> <span class="va">cert</span><span class="op">$</span><span class="va">client</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Use with tls+tcp:// or wss://</span></span>
+<span><span class="va">s1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span>listen <span class="op">=</span> <span class="st">"tls+tcp://127.0.0.1:5555"</span>, tls <span class="op">=</span> <span class="va">server_tls</span><span class="op">)</span></span>
+<span><span class="va">s2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span>dial <span class="op">=</span> <span class="st">"tls+tcp://127.0.0.1:5555"</span>, tls <span class="op">=</span> <span class="va">client_tls</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="options-serialization-and-statistics">8. Options, Serialization and Statistics<a class="anchor" aria-label="anchor" href="#options-serialization-and-statistics"></a>
+<h3 id="ca-certificates">CA Certificates<a class="anchor" aria-label="anchor" href="#ca-certificates"></a>
 </h3>
-<p>Use <code><a href="../reference/opt.html">opt()</a></code> and <code><a href="../reference/opt.html">'opt&lt;-'()</a></code> to get and set
-options on Sockets, Contexts, Streams, Listeners, or Dialers. See
-function documentation for available options.</p>
-<p>To configure dialers or listeners after creation, specify
-<code>autostart = FALSE</code> (configuration cannot be changed after
-starting).</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span>listen <span class="op">=</span> <span class="st">"inproc://options"</span>, autostart <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Client with CA cert file</span></span>
+<span><span class="va">client_tls</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tls_config.html">tls_config</a></span><span class="op">(</span>client <span class="op">=</span> <span class="st">"/path/to/ca-cert.pem"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># no maximum message size</span></span>
+<span><span class="co"># Server with cert + key</span></span>
+<span><span class="va">server_tls</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tls_config.html">tls_config</a></span><span class="op">(</span>server <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"/path/to/cert.pem"</span>, <span class="st">"/path/to/key.pem"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="options-and-statistics">9. Options and Statistics<a class="anchor" aria-label="anchor" href="#options-and-statistics"></a>
+</h2>
+<div class="section level3">
+<h3 id="getset-options">Get/Set Options<a class="anchor" aria-label="anchor" href="#getset-options"></a>
+</h3>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Delayed start for configuration</span></span>
+<span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span>listen <span class="op">=</span> <span class="st">"tcp://127.0.0.1:5555"</span>, autostart <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Get option</span></span>
 <span><span class="fu"><a href="../reference/opt.html">opt</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">listener</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, <span class="st">"recv-size-max"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
 <span></span>
-<span><span class="co"># enforce maximum message size to protect against denial-of-service attacks</span></span>
+<span><span class="co"># Set option</span></span>
 <span><span class="fu"><a href="../reference/opt.html">opt</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">listener</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, <span class="st">"recv-size-max"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">8192L</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/opt.html">opt</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">listener</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, <span class="st">"recv-size-max"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 8192</span></span>
-<span></span>
+<span><span class="co"># Start after configuration</span></span>
 <span><span class="fu"><a href="../reference/start.html">start</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">listener</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
-<p>The special write-only option ‘serial’ sets a serialization
-configuration via <code><a href="../reference/serial_config.html">serial_config()</a></code>. This registers custom
-functions for serializing/unserializing reference objects using R’s
-‘refhook’ system, enabling transparent send/receive with mode ‘serial’.
-Configurations apply to the Socket and all Contexts created from it.</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">serial</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/serial_config.html">serial_config</a></span><span class="op">(</span><span class="st">"obj_class"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/serialize.html" class="external-link">serialize</a></span><span class="op">(</span><span class="va">x</span>, <span class="cn">NULL</span><span class="op">)</span>, <span class="va">unserialize</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/opt.html">opt</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"serial"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">serial</span></span>
+</div>
+<div class="section level3">
+<h3 id="common-options">Common Options<a class="anchor" aria-label="anchor" href="#common-options"></a>
+</h3>
+<table class="table">
+<thead><tr class="header">
+<th>Option</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>"recv-size-max"</code></td>
+<td>Max message size (0 = unlimited)</td>
+</tr>
+<tr class="even">
+<td><code>"send-timeout"</code></td>
+<td>Send timeout (ms)</td>
+</tr>
+<tr class="odd">
+<td><code>"recv-timeout"</code></td>
+<td>Receive timeout (ms)</td>
+</tr>
+<tr class="even">
+<td><code>"reconnect-time-min"</code></td>
+<td>Min reconnect interval (ms)</td>
+</tr>
+<tr class="odd">
+<td><code>"reconnect-time-max"</code></td>
+<td>Max reconnect interval (ms)</td>
+</tr>
+<tr class="even">
+<td><code>"req:resend-time"</code></td>
+<td>Request retry interval</td>
+</tr>
+<tr class="odd">
+<td><code>"sub:prefnew"</code></td>
+<td>Prefer newer messages</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level3">
+<h3 id="custom-serialization">Custom Serialization<a class="anchor" aria-label="anchor" href="#custom-serialization"></a>
+</h3>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Register custom serializer for a class</span></span>
+<span><span class="va">serial</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/serial_config.html">serial_config</a></span><span class="op">(</span></span>
+<span>  <span class="st">"class_name"</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/serialize.html" class="external-link">serialize</a></span><span class="op">(</span><span class="va">x</span>, <span class="cn">NULL</span><span class="op">)</span>,  <span class="co"># serialize</span></span>
+<span>  <span class="va">unserialize</span>                      <span class="co"># unserialize</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/opt.html">opt</a></span><span class="op">(</span><span class="va">socket</span>, <span class="st">"serial"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">serial</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="statistics">Statistics<a class="anchor" aria-label="anchor" href="#statistics"></a>
+</h3>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/stat.html">stat</a></span><span class="op">(</span><span class="va">socket</span>, <span class="st">"pipes"</span><span class="op">)</span>      <span class="co"># Active connections</span></span>
+<span><span class="fu"><a href="../reference/stat.html">stat</a></span><span class="op">(</span><span class="va">listener</span>, <span class="st">"accept"</span><span class="op">)</span>   <span class="co"># Connection attempts</span></span>
+<span><span class="fu"><a href="../reference/stat.html">stat</a></span><span class="op">(</span><span class="va">dialer</span>, <span class="st">"reject"</span><span class="op">)</span>     <span class="co"># Rejected connections</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="contexts">10. Contexts<a class="anchor" aria-label="anchor" href="#contexts"></a>
+</h2>
+<p>Contexts enable concurrent operations on a single socket (for
+req/rep, surveyor/respondent).</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"req"</span>, dial <span class="op">=</span> <span class="st">"tcp://127.0.0.1:5555"</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Create independent contexts</span></span>
+<span><span class="va">ctx1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/context.html">context</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
+<span><span class="va">ctx2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/context.html">context</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Concurrent requests</span></span>
+<span><span class="va">aio1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/request.html">request</a></span><span class="op">(</span><span class="va">ctx1</span>, <span class="va">data1</span><span class="op">)</span></span>
+<span><span class="va">aio2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/request.html">request</a></span><span class="op">(</span><span class="va">ctx2</span>, <span class="va">data2</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Close contexts (or they close with socket)</span></span>
+<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">ctx1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">ctx2</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span></code></pre></div>
-<p>Use <code><a href="../reference/stat.html">stat()</a></code> to access NNG’s statistics framework. Query
-Sockets, Listeners, or Dialers for statistics such as connection
-attempts and current connections. See function documentation for
-available statistics.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span>listen <span class="op">=</span> <span class="st">"inproc://stat"</span><span class="op">)</span></span>
+</div>
+<div class="section level2">
+<h2 id="cross-language-exchange">11. Cross-language Exchange<a class="anchor" aria-label="anchor" href="#cross-language-exchange"></a>
+</h2>
+<div class="section level3">
+<h3 id="r-to-python-numpy">R to Python (NumPy)<a class="anchor" aria-label="anchor" href="#r-to-python-numpy"></a>
+</h3>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># R: send raw doubles</span></span>
+<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nano.html">nano</a></span><span class="op">(</span><span class="st">"pair"</span>, dial <span class="op">=</span> <span class="st">"ipc:///tmp/nanonext"</span><span class="op">)</span></span>
+<span><span class="va">n</span><span class="op">$</span><span class="fu">send</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.1</span>, <span class="fl">2.2</span>, <span class="fl">3.3</span><span class="op">)</span>, mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">n</span><span class="op">$</span><span class="fu">recv</span><span class="op">(</span>mode <span class="op">=</span> <span class="st">"double"</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="co"># Python: receive as NumPy array</span></span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a><span class="im">import</span> pynng</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>socket <span class="op">=</span> pynng.Pair0(listen<span class="op">=</span><span class="st">"ipc:///tmp/nanonext"</span>)</span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a>array <span class="op">=</span> np.frombuffer(socket.recv())</span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a>socket.send(array.tobytes())</span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="error-handling">12. Error Handling<a class="anchor" aria-label="anchor" href="#error-handling"></a>
+</h2>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Errors return as 'errorValue' class</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span><span class="va">s</span>, block <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># no active connections (pipes)</span></span>
-<span><span class="fu"><a href="../reference/stat.html">stat</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"pipes"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="co"># Check for errors</span></span>
+<span><span class="fu"><a href="../reference/is_error_value.html">is_error_value</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">s1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span>dial <span class="op">=</span> <span class="st">"inproc://stat"</span><span class="op">)</span></span>
+<span><span class="co"># Error codes</span></span>
+<span><span class="co"># 5  = Timed out</span></span>
+<span><span class="co"># 6  = Connection refused</span></span>
+<span><span class="co"># 8  = Try again (non-blocking, no message)</span></span>
 <span></span>
-<span><span class="co"># one now that the dialer has connected</span></span>
-<span><span class="fu"><a href="../reference/stat.html">stat</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"pipes"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 1</span></span>
+<span><span class="co"># Get error message</span></span>
+<span><span class="fu"><a href="../reference/nng_error.html">nng_error</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span>        <span class="co"># "Timed out"</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="utilities">13. Utilities<a class="anchor" aria-label="anchor" href="#utilities"></a>
+</h2>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Sleep (uninterruptible, ms)</span></span>
+<span><span class="fu"><a href="../reference/msleep.html">msleep</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Random bytes</span></span>
+<span><span class="fu"><a href="../reference/random.html">random</a></span><span class="op">(</span><span class="fl">8</span><span class="op">)</span>                          <span class="co"># 8 random bytes as hex string</span></span>
+<span><span class="fu"><a href="../reference/random.html">random</a></span><span class="op">(</span><span class="fl">8</span>, convert <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>         <span class="co"># As raw vector</span></span>
+<span></span>
+<span><span class="co"># Parse URL</span></span>
+<span><span class="fu"><a href="../reference/parse_url.html">parse_url</a></span><span class="op">(</span><span class="st">"tcp://127.0.0.1:5555"</span><span class="op">)</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -6,22 +6,30 @@
 
 - Adds
   [`http_server()`](https://nanonext.r-lib.org/dev/reference/http_server.md)
-  for creating HTTP and WebSocket servers supporting dynamic handlers,
-  static file serving, redirects, and TLS/SSL.
-- Adds handler functions for use with
-  [`http_server()`](https://nanonext.r-lib.org/dev/reference/http_server.md):
+  for creating HTTP and WebSocket servers with TLS/SSL support.
+- Adds
   [`handler()`](https://nanonext.r-lib.org/dev/reference/handler.md) for
-  dynamic responses,
+  dynamic HTTP request handling with custom callbacks.
+- Adds
   [`handler_ws()`](https://nanonext.r-lib.org/dev/reference/handler_ws.md)
-  for WebSocket connections,
+  for WebSocket connections with `on_message`, `on_open`, and `on_close`
+  callbacks.
+- Adds
+  [`handler_stream()`](https://nanonext.r-lib.org/dev/reference/handler_stream.md)
+  for HTTP streaming using chunked transfer encoding, supporting
+  Server-Sent Events (SSE), NDJSON, and custom streaming formats.
+- Adds
+  [`format_sse()`](https://nanonext.r-lib.org/dev/reference/format_sse.md)
+  helper for formatting Server-Sent Events messages.
+- Adds static content handlers:
   [`handler_file()`](https://nanonext.r-lib.org/dev/reference/handler_file.md)
   and
   [`handler_directory()`](https://nanonext.r-lib.org/dev/reference/handler_directory.md)
-  for static content,
-  [`handler_redirect()`](https://nanonext.r-lib.org/dev/reference/handler_redirect.md)
-  for redirects, and
+  for serving files,
   [`handler_inline()`](https://nanonext.r-lib.org/dev/reference/handler_inline.md)
-  for fixed responses.
+  for in-memory content, and
+  [`handler_redirect()`](https://nanonext.r-lib.org/dev/reference/handler_redirect.md)
+  for HTTP redirects.
 - [`ncurl()`](https://nanonext.r-lib.org/dev/reference/ncurl.md) and
   variants now accept `response = TRUE` to return all response headers.
 - Adds

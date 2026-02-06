@@ -3,8 +3,11 @@ pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
   nanonext: nanonext.html
-  web: web.html
-last_built: 2026-02-06T00:22Z
+  v01-messaging: v01-messaging.html
+  v02-protocols: v02-protocols.html
+  v03-configuration: v03-configuration.html
+  v04-web: v04-web.html
+last_built: 2026-02-06T12:24Z
 urls:
   reference: https://nanonext.r-lib.org/reference
   article: https://nanonext.r-lib.org/articles

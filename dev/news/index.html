@@ -19,7 +19,10 @@
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/web.html">nanonext - Web Utilities</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/v01-messaging.html">nanonext - Messaging and Async I/O</a></li>
+    <li><a class="dropdown-item" href="../articles/v02-protocols.html">nanonext - Scalability Protocols</a></li>
+    <li><a class="dropdown-item" href="../articles/v03-configuration.html">nanonext - Configuration and Security</a></li>
+    <li><a class="dropdown-item" href="../articles/v04-web.html">nanonext - Web Utilities</a></li>
   </ul></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-news" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">News</button>
@@ -46,8 +49,12 @@
 <h2 class="pkg-version" data-toc-text="development version" id="nanonext-development-version">nanonext (development version)<a class="anchor" aria-label="anchor" href="#nanonext-development-version"></a></h2>
 <div class="section level5">
 <h5 id="new-features-development-version">New Features<a class="anchor" aria-label="anchor" href="#new-features-development-version"></a></h5>
-<ul><li>Adds <code><a href="../reference/http_server.html">http_server()</a></code> for creating HTTP and WebSocket servers supporting dynamic handlers, static file serving, redirects, and TLS/SSL.</li>
-<li>Adds handler functions for use with <code><a href="../reference/http_server.html">http_server()</a></code>: <code><a href="../reference/handler.html">handler()</a></code> for dynamic responses, <code><a href="../reference/handler_ws.html">handler_ws()</a></code> for WebSocket connections, <code><a href="../reference/handler_file.html">handler_file()</a></code> and <code><a href="../reference/handler_directory.html">handler_directory()</a></code> for static content, <code><a href="../reference/handler_redirect.html">handler_redirect()</a></code> for redirects, and <code><a href="../reference/handler_inline.html">handler_inline()</a></code> for fixed responses.</li>
+<ul><li>Adds <code><a href="../reference/http_server.html">http_server()</a></code> for creating HTTP and WebSocket servers with TLS/SSL support.</li>
+<li>Adds <code><a href="../reference/handler.html">handler()</a></code> for dynamic HTTP request handling with custom callbacks.</li>
+<li>Adds <code><a href="../reference/handler_ws.html">handler_ws()</a></code> for WebSocket connections with <code>on_message</code>, <code>on_open</code>, and <code>on_close</code> callbacks.</li>
+<li>Adds <code><a href="../reference/handler_stream.html">handler_stream()</a></code> for HTTP streaming using chunked transfer encoding, supporting Server-Sent Events (SSE), NDJSON, and custom streaming formats.</li>
+<li>Adds <code><a href="../reference/format_sse.html">format_sse()</a></code> helper for formatting Server-Sent Events messages.</li>
+<li>Adds static content handlers: <code><a href="../reference/handler_file.html">handler_file()</a></code> and <code><a href="../reference/handler_directory.html">handler_directory()</a></code> for serving files, <code><a href="../reference/handler_inline.html">handler_inline()</a></code> for in-memory content, and <code><a href="../reference/handler_redirect.html">handler_redirect()</a></code> for HTTP redirects.</li>
 <li>
 <code><a href="../reference/ncurl.html">ncurl()</a></code> and variants now accept <code>response = TRUE</code> to return all response headers.</li>
 <li>Adds <code><a href="../reference/race_aio.html">race_aio()</a></code> to wait for and return the index of the first resolved Aio in a list of Aios.</li>
