@@ -23,3 +23,4 @@ contexts such as \code{\link[=close]{close()}} will not work (use \code{\link[=r
 they function identically to a Context when passed to all messaging
 functions.
 }
+\keyword{internal}

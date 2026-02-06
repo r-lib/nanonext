@@ -9,9 +9,112 @@ template:
       <script defer data-domain="nanonext.r-lib.org,all.tidyverse.org" src="https://plausible.io/js/plausible.js"></script>
 
 reference:
-- contents:
+- title: Core
+  desc: Socket and nano object creation
+  contents:
   - nanonext-package
-  - matches("^[a-zA-Z]*")
+  - socket
+  - nano
+  - context
+  - dial
+  - listen
+  - start
+  - close
+  - protocols
+  - transports
+
+- title: Communication
+  desc: Send and receive operations
+  contents:
+  - send
+  - recv
+  - send_aio
+  - recv_aio
+  - request
+  - reply
+  - subscribe
+  - survey_time
+
+- title: Async I/O
+  desc: Asynchronous operations and promises
+  contents:
+  - call_aio
+  - collect_aio
+  - stop_aio
+  - stop_request
+  - race_aio
+  - unresolved
+  - is_aio
+  - as.promise.recvAio
+  - as.promise.ncurlAio
+
+- title: Synchronization
+  desc: Condition variables and pipe events
+  contents:
+  - cv
+  - "`%~>%`"
+  - pipe_notify
+  - pipe_id
+  - monitor
+
+- title: HTTP Client
+  desc: HTTP requests and sessions
+  contents:
+  - ncurl
+  - ncurl_aio
+  - ncurl_session
+  - status_code
+
+- title: WebSocket Client
+  desc: WebSocket and byte stream connections
+  contents:
+  - stream
+
+- title: HTTP/WebSocket Server
+  desc: Server creation and request handlers
+  contents:
+  - http_server
+  - handler
+  - handler_ws
+  - handler_stream
+  - handler_file
+  - handler_directory
+  - handler_inline
+  - handler_redirect
+  - format_sse
+
+- title: TLS
+  desc: Secure connections
+  contents:
+  - tls_config
+  - write_cert
+
+- title: Options and Statistics
+  desc: Configuration and monitoring
+  contents:
+  - opt
+  - stat
+
+- title: Serialization
+  desc: Custom serialization configuration
+  contents:
+  - serial_config
+
+- title: Utilities
+  desc: Helper functions
+  contents:
+  - parse_url
+  - nng_error
+  - nng_version
+  - is_error_value
+  - ip_addr
+  - random
+  - mclock
+  - msleep
+  - messenger
+  - reap
+  - read_stdin
+  - write_stdout
 authors:
   R Consortium:
     html: "<img src='https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp' alt='R Consortium' width='100' height='22' />"
