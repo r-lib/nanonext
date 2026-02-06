@@ -247,7 +247,7 @@ The convenience function `write_cert()` generates a 4096-bit RSA key pair and se
 cert <- write_cert(cn = "127.0.0.1")
 str(cert)
 #> List of 2
-#>  $ server: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ "-----BEGIN RSA PRIVATE KEY-----\nMIIJKAIBAAKCAgEAwupvOgQzC3RQVt95gOTaOsDQ72tAbDzhHHLk9JfABqqWNpyl\nL7Fw3Foh7Nb9"| __truncated__
+#>  $ server: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ "-----BEGIN RSA PRIVATE KEY-----\nMIIJKAIBAAKCAgEAuj+X3ggDy4flGdFn2MUROoyQWW3Hebae7yyiuSuk3On3f5vf\n7lCnZcMdFVR+"| __truncated__
 #>  $ client: chr [1:2] "-----BEGIN CERTIFICATE-----\nMIIFOTCCAyGgAwIBAgIBATANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQDDAkxMjcu\nMC4wLjExETAPBgNV"| __truncated__ ""
 
 ser <- tls_config(server = cert$server)
@@ -306,7 +306,7 @@ When the result is needed, call the recvAio using `call_aio()` to retrieve the v
 
 ``` r
 call_aio(aio)$data |> str()
-#>  num [1:100000000] -1.532 -1.493 0.499 0.478 -0.118 ...
+#>  num [1:100000000] -0.9122 0.0938 0.7333 0.1612 -0.2923 ...
 ```
 
 Since `call_aio()` blocks, alternatively query `aio$data` directly, which returns 'unresolved' (logical NA) if incomplete.
@@ -429,148 +429,7 @@ close(res2)
 
 The final value resolves to a timeout error (integer 5 classed as 'errorValue'). All error codes are classed as 'errorValue' for easy distinction from integer message values.
 
-### 8. ncurl: Async HTTP Client
-
-`ncurl()` is a minimalist http(s) client. `ncurl_aio()` performs async requests, returning immediately with an 'ncurlAio'.
-
-Basic usage requires only a URL and can follow redirects.
-
-
-``` r
-ncurl("https://postman-echo.com/get")
-#> $status
-#> [1] 200
-#> 
-#> $headers
-#> NULL
-#> 
-#> $data
-#> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"
-```
-
-Advanced usage supports additional HTTP methods (POST, PUT, etc.).
-
-
-``` r
-res <- ncurl_aio("https://postman-echo.com/post",
-                 method = "POST",
-                 headers = c(`Content-Type` = "application/json", Authorization = "Bearer APIKEY"),
-                 data = '{"key": "value"}',
-                 response = "date")
-res
-#> < ncurlAio | $status $headers $data >
-
-call_aio(res)$headers
-#> $date
-#> [1] "Tue, 02 Dec 2025 12:02:22 GMT"
-
-res$data
-#> [1] "{\"args\":{},\"data\":{\"key\":\"value\"},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\",\"content-type\":\"application/json\",\"authorization\":\"Bearer APIKEY\",\"content-length\":\"16\"},\"json\":{\"key\":\"value\"},\"url\":\"https://postman-echo.com/post\"}"
-```
-
-Provides a performant, lightweight method for REST API requests.
-
-##### ncurl Promises
-
-`ncurl_aio()` works anywhere that accepts a 'promise' from the promises package, including Shiny ExtendedTask.
-
-Promises resolve with a list of 'status', 'headers', and 'data', or reject with an error message (e.g., '15 | Address invalid').
-
-
-``` r
-library(promises)
-
-p <- ncurl_aio("https://postman-echo.com/get") |> then(\(x) cat(x$data))
-is.promise(p)
-#> [1] TRUE
-```
-##### ncurl Session
-
-`ncurl_session()` creates a reusable open connection for efficient repeated polling of an API endpoint. Use `transact()` to request data multiple times. This enables polling frequencies that exceed server connection limits (where permitted).
-
-Specify `convert = FALSE` to receive binary data as a raw vector for direct use with JSON parsers.
-
-
-``` r
-sess <- ncurl_session("https://postman-echo.com/get",
-                      convert = FALSE,
-                      headers = c(`Content-Type` = "application/json", Authorization = "Bearer APIKEY"),
-                      response = c("Date", "Content-Type"))
-sess
-#> < ncurlSession > - transact() to return data
-
-transact(sess)
-#> $status
-#> [1] 200
-#> 
-#> $headers
-#> $headers$Date
-#> [1] "Tue, 02 Dec 2025 12:02:22 GMT"
-#> 
-#> $headers$`Content-Type`
-#> [1] "application/json; charset=utf-8"
-#> 
-#> 
-#> $data
-#>   [1] 7b 22 61 72 67 73 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b 22 68 6f 73 74 22 3a
-#>  [30] 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 61 75 74 68 6f 72 69 7a 61
-#>  [59] 74 69 6f 6e 22 3a 22 42 65 61 72 65 72 20 41 50 49 4b 45 59 22 2c 22 61 63 63 65 70 74
-#>  [88] 2d 65 6e 63 6f 64 69 6e 67 22 3a 22 67 7a 69 70 2c 20 62 72 22 2c 22 78 2d 66 6f 72 77
-#> [117] 61 72 64 65 64 2d 70 72 6f 74 6f 22 3a 22 68 74 74 70 73 22 2c 22 63 6f 6e 74 65 6e 74
-#> [146] 2d 74 79 70 65 22 3a 22 61 70 70 6c 69 63 61 74 69 6f 6e 2f 6a 73 6f 6e 22 7d 2c 22 75
-#> [175] 72 6c 22 3a 22 68 74 74 70 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d
-#> [204] 2f 67 65 74 22 7d
-```
-
-### 9. stream: Websocket Client
-
-`stream()` exposes NNG's low-level byte stream interface for communicating with raw sockets, including arbitrary non-NNG endpoints.
-
-Use `textframes = TRUE` for websocket servers that use text frames instead of binary frames.
-
-
-``` r
-# connecting to an echo service
-s <- stream(dial = "wss://echo.websocket.org/", textframes = TRUE)
-s
-#> < nanoStream >
-#>  - mode: dialer text frames
-#>  - state: opened
-#>  - url: wss://echo.websocket.org/
-```
-
-`send()` and `recv()`, as well as their asynchronous counterparts `send_aio()` and `recv_aio()` can be used on Streams in the same way as Sockets. This affords a great deal of flexibility in ingesting and processing streaming data.
-
-
-``` r
-s |> recv()
-#> [1] "Request served by 4d896d95b55478"
-
-s |> send("initial message")
-#> [1] 0
-
-s |> recv()
-#> [1] "initial message"
-
-s |> recv_aio() -> r
-
-s |> send("async message")
-#> [1] 0
-
-s |> send("final message")
-#> [1] 0
-
-s |> recv()
-#> [1] "final message"
-
-r$data
-#> [1] "async message"
-
-close(s)
-
-```
-
-### 10. Options, Serialization and Statistics
+### 8. Options, Serialization and Statistics
 
 Use `opt()` and `'opt<-'()` to get and set options on Sockets, Contexts, Streams, Listeners, or Dialers. See function documentation for available options.
 
