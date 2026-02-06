@@ -6,23 +6,20 @@ IPC, TCP, WebSocket and secure TLS transports. Implements ‘Scalability
 Protocols’, a standard for common communications patterns including
 publish/subscribe, request/reply and service discovery.
 
-As its own [threaded concurrency
-framework](https://nanonext.r-lib.org/articles/nanonext.html#async-and-concurrency),
-provides a toolkit for asynchronous programming and distributed
-computing. Intuitive ‘aio’ objects resolve automatically when
-asynchronous operations complete, and [synchronisation
-primitives](https://nanonext.r-lib.org/articles/nanonext.html#synchronisation-primitives)
-allow R to wait upon events signalled by concurrent threads.
+As its own threaded concurrency framework, provides a toolkit for
+asynchronous programming and distributed computing. Intuitive ‘aio’
+objects resolve automatically when asynchronous operations complete, and
+synchronisation primitives allow R to wait upon events signalled by
+concurrent threads.
 
 Designed for performance and reliability, nanonext is a lightweight
 wrapper around the NNG C library, and is itself implemented almost
 entirely in C.
 
 Provides the interface for code and processes to communicate with each
-other - [receive data generated in Python, perform analysis in R, and
-send results to a C++
-program](https://nanonext.r-lib.org/articles/nanonext.html#cross-language-exchange)
-– on the same computer or across networks spanning the globe.
+other - receive data generated in Python, perform analysis in R, and
+send results to a C++ program – on the same computer or across networks
+spanning the globe.
 
 Implemented scalability protocols:
 
@@ -30,12 +27,9 @@ Implemented scalability protocols:
 - Pair (two-way radio)
 - Poly (one-to-one of many)
 - Push/Pull (one-way pipeline)
-- [Publisher/Subscriber](https://nanonext.r-lib.org/articles/nanonext.html#publisher-subscriber-model)
-  (topics & broadcast)
-- [Request/Reply](https://nanonext.r-lib.org/articles/nanonext.html#rpc-and-distributed-computing)
-  (RPC)
-- [Surveyor/Respondent](https://nanonext.r-lib.org/articles/nanonext.html#surveyor-respondent-model)
-  (voting & service discovery)
+- Publisher/Subscriber (topics & broadcast)
+- Request/Reply (RPC)
+- Surveyor/Respondent (voting & service discovery)
 
 Supported transports:
 
@@ -43,111 +37,54 @@ Supported transports:
 - IPC (inter-process)
 - TCP (IPv4 or IPv6)
 - WebSocket
-- [TLS](https://nanonext.r-lib.org/articles/nanonext.html#tls-secure-connections)
-  (over TCP and WebSocket)
+- TLS (over TCP and WebSocket)
 
 Development of the TLS implementation was generously supported by the
 ![R
 Consortium](https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp)
 .
 
-Web utilities:
+### Capabilities
 
-- [ncurl](https://nanonext.r-lib.org/articles/nanonext.html#ncurl-async-http-client) -
-  (async) http(s) client
-- [stream](https://nanonext.r-lib.org/articles/nanonext.html#stream-websocket-client) -
-  secure websockets client / generic low-level socket interface
-- [`ip_addr()`](https://nanonext.r-lib.org/reference/ip_addr.md) - for
-  retrieving all local network IP addresses by interface
-- [`messenger()`](https://nanonext.r-lib.org/reference/messenger.md) -
-  console-based instant messaging with authentication
+#### Asynchronous I/O
 
-### Quick Start
+Non-blocking operations with ‘aio’ objects that resolve automatically
+upon completion. Combined with condition variables, enables true
+event-driven programming in R without polling.
 
-nanonext offers 2 equivalent interfaces: a functional interface, and an
-object-oriented interface.
+#### Cross-language Messaging
 
-#### Functional Interface
+Exchange data with Python, C++, Go, Rust, and other languages via NNG’s
+portable wire format. Build polyglot distributed systems where each
+component uses the best tool for the job.
 
-The primary object in the functional interface is the Socket. Use
-[`socket()`](https://nanonext.r-lib.org/reference/socket.md) to create a
-socket and dial or listen at an address. The socket is then passed as
-the first argument of subsequent actions such as
-[`send()`](https://nanonext.r-lib.org/reference/send.md) or
-[`recv()`](https://nanonext.r-lib.org/reference/recv.md).
+#### HTTP/WebSocket Server
 
-*Example using Request/Reply (REQ/REP) protocol with inproc
-transport:*  
-(The inproc transport uses zero-copy where possible for a much faster
-solution than alternatives)
+Build HTTP servers in R with dynamic request handlers, WebSocket
+support, and streaming (Server-Sent Events, NDJSON) for real-time
+applications.
 
-Create sockets:
+#### Async HTTP Client
 
-``` r
-library(nanonext)
+High-performance HTTP(S) client with
+[`ncurl()`](https://nanonext.r-lib.org/reference/ncurl.md), supporting
+async requests, persistent sessions, and all standard HTTP methods.
 
-socket1 <- socket("req", listen = "inproc://nanonext")
-socket2 <- socket("rep", dial = "inproc://nanonext")
-```
+### Documentation
 
-Send message from ‘socket1’:
-
-``` r
-send(socket1, "hello world!")
-#> [1] 0
-```
-
-Receive message using ‘socket2’:
-
-``` r
-recv(socket2)
-#> [1] "hello world!"
-```
-
-#### Object-oriented Interface
-
-The primary object in the object-oriented interface is the nano object.
-Use [`nano()`](https://nanonext.r-lib.org/reference/nano.md) to create a
-nano object which encapsulates a Socket and Dialer/Listener. Methods
-such as `$send()` or `$recv()` can then be accessed directly from the
-object.
-
-*Example using Pipeline (Push/Pull) protocol with TCP/IP transport:*
-
-Create nano objects:
-
-``` r
-library(nanonext)
-
-nano1 <- nano("push", listen = "tcp://127.0.0.1:5555")
-nano2 <- nano("pull", dial = "tcp://127.0.0.1:5555")
-```
-
-Send message from ‘nano1’:
-
-``` r
-nano1$send("hello world!")
-#> [1] 0
-```
-
-Receive message using ‘nano2’:
-
-``` r
-nano2$recv()
-#> [1] "hello world!"
-```
-
-### Vignette
-
-Please refer to the [nanonext
-vignette](https://nanonext.r-lib.org/articles/nanonext.html) for full
-package functionality.
-
-This may be accessed within R by:
-
-``` r
-vignette("nanonext", package = "nanonext")
-```
+- [Quick Reference](https://nanonext.r-lib.org/articles/nanonext.html) -
+  cheatsheet
+- [Messaging and Async
+  I/O](https://nanonext.r-lib.org/articles/v01-messaging.html) -
+  cross-language exchange, async operations, synchronisation
+- [Scalability
+  Protocols](https://nanonext.r-lib.org/articles/v02-protocols.html) -
+  request/reply, pub/sub, surveyor/respondent
+- [Configuration and
+  Security](https://nanonext.r-lib.org/articles/v03-configuration.html) -
+  TLS, options, serialization
+- [Web Utilities](https://nanonext.r-lib.org/articles/v04-web.html) -
+  HTTP client/server, WebSocket, streaming
 
 ### Installation
 
@@ -169,7 +106,7 @@ install.packages("nanonext", repos = "https://r-lib.r-universe.dev")
 
 Installation from source requires ‘libnng’ \>= v1.9.0 and ‘libmbedtls’
 \>= 2.5.0 (suitable installations are automatically detected), or else
-‘cmake’ to compile ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.2 included
+‘cmake’ to compile ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.5 included
 within the package sources.
 
 **It is recommended for optimal performance and stability to let the
@@ -186,13 +123,12 @@ variables may be set prior to package installation to specify a custom
 location for ‘libmbedtls’ or ‘libnng’ other than the standard filesystem
 locations.
 
-*Additional requirements for Solaris: (i) the ‘xz’ package - available
-on OpenCSW, and (ii) a more recent version of ‘cmake’ than available on
+*Solaris: requires a more recent version of ‘cmake’ than available on
 OpenCSW - refer to the ‘cmake’ website for the latest source file.*
 
 #### Windows
 
-On Windows, ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.2 will be compiled
+On Windows, ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.5 will be compiled
 from the package sources during installation and hence requires the
 ‘Rtools’ toolchain.
 
@@ -225,12 +161,13 @@ in Windows and ensure that it is added to your system’s `PATH`.
 
 ### Links
 
-[nanonext](https://nanonext.r-lib.org/) • [CRAN HPC Task
-View](https://cran.r-project.org/view=HighPerformanceComputing) • [CRAN
-Web Technologies Task
-View](https://cran.r-project.org/view=WebTechnologies) •
-[NNG](https://nng.nanomsg.org/) • [Mbed
-TLS](https://www.trustedfirmware.org/projects/mbed-tls/)
+- [nanonext](https://nanonext.r-lib.org/)
+- [CRAN HPC Task
+  View](https://cran.r-project.org/view=HighPerformanceComputing)
+- [CRAN Web Technologies Task
+  View](https://cran.r-project.org/view=WebTechnologies)
+- [NNG](https://nng.nanomsg.org/)
+- [Mbed TLS](https://www.trustedfirmware.org/projects/mbed-tls/)
 
 –
 
@@ -240,28 +177,90 @@ participating in this project you agree to abide by its terms.
 
 # Package index
 
+## Core
+
+Socket and nano object creation
+
 - [`nanonext`](https://nanonext.r-lib.org/reference/nanonext-package.md)
   [`nanonext-package`](https://nanonext.r-lib.org/reference/nanonext-package.md)
   : nanonext: NNG (Nanomsg Next Gen) Lightweight Messaging Library
-- [`as.promise(`*`<ncurlAio>`*`)`](https://nanonext.r-lib.org/reference/as.promise.ncurlAio.md)
-  : Make ncurlAio Promise
-- [`as.promise(`*`<recvAio>`*`)`](https://nanonext.r-lib.org/reference/as.promise.recvAio.md)
-  : Make recvAio Promise
-- [`call_aio()`](https://nanonext.r-lib.org/reference/call_aio.md)
-  [`call_aio_()`](https://nanonext.r-lib.org/reference/call_aio.md) :
-  Call the Value of an Asynchronous Aio Operation
+- [`socket()`](https://nanonext.r-lib.org/reference/socket.md) : Open
+  Socket
+- [`nano()`](https://nanonext.r-lib.org/reference/nano.md) : Create Nano
+  Object
+- [`context()`](https://nanonext.r-lib.org/reference/context.md) : Open
+  Context
+- [`dial()`](https://nanonext.r-lib.org/reference/dial.md) : Dial an
+  Address from a Socket
+- [`listen()`](https://nanonext.r-lib.org/reference/listen.md) : Listen
+  to an Address from a Socket
+- [`start(`*`<nanoListener>`*`)`](https://nanonext.r-lib.org/reference/start.md)
+  [`start(`*`<nanoDialer>`*`)`](https://nanonext.r-lib.org/reference/start.md)
+  : Start Listener/Dialer
 - [`close(`*`<nanoContext>`*`)`](https://nanonext.r-lib.org/reference/close.md)
   [`close(`*`<nanoDialer>`*`)`](https://nanonext.r-lib.org/reference/close.md)
   [`close(`*`<nanoListener>`*`)`](https://nanonext.r-lib.org/reference/close.md)
   [`close(`*`<ncurlSession>`*`)`](https://nanonext.r-lib.org/reference/close.md)
+  [`close(`*`<nanoServer>`*`)`](https://nanonext.r-lib.org/reference/close.md)
   [`close(`*`<nanoSocket>`*`)`](https://nanonext.r-lib.org/reference/close.md)
   [`close(`*`<nanoStream>`*`)`](https://nanonext.r-lib.org/reference/close.md)
   : Close Connection
+- [`protocols`](https://nanonext.r-lib.org/reference/protocols.md) :
+  Protocols (Documentation)
+- [`transports`](https://nanonext.r-lib.org/reference/transports.md) :
+  Transports (Documentation)
+
+## Communication
+
+Send and receive operations
+
+- [`send()`](https://nanonext.r-lib.org/reference/send.md) : Send
+- [`recv()`](https://nanonext.r-lib.org/reference/recv.md) : Receive
+- [`send_aio()`](https://nanonext.r-lib.org/reference/send_aio.md) :
+  Send Async
+- [`recv_aio()`](https://nanonext.r-lib.org/reference/recv_aio.md) :
+  Receive Async
+- [`request()`](https://nanonext.r-lib.org/reference/request.md) :
+  Request over Context (RPC Client for Req/Rep Protocol)
+- [`reply()`](https://nanonext.r-lib.org/reference/reply.md) : Reply
+  over Context (RPC Server for Req/Rep Protocol)
+- [`subscribe()`](https://nanonext.r-lib.org/reference/subscribe.md)
+  [`unsubscribe()`](https://nanonext.r-lib.org/reference/subscribe.md) :
+  Subscribe / Unsubscribe Topic
+- [`survey_time()`](https://nanonext.r-lib.org/reference/survey_time.md)
+  : Set Survey Time
+
+## Async I/O
+
+Asynchronous operations and promises
+
+- [`call_aio()`](https://nanonext.r-lib.org/reference/call_aio.md)
+  [`call_aio_()`](https://nanonext.r-lib.org/reference/call_aio.md) :
+  Call the Value of an Asynchronous Aio Operation
 - [`collect_aio()`](https://nanonext.r-lib.org/reference/collect_aio.md)
   [`collect_aio_()`](https://nanonext.r-lib.org/reference/collect_aio.md)
   : Collect Data of an Aio or List of Aios
-- [`context()`](https://nanonext.r-lib.org/reference/context.md) : Open
-  Context
+- [`stop_aio()`](https://nanonext.r-lib.org/reference/stop_aio.md) :
+  Stop Asynchronous Aio Operation
+- [`stop_request()`](https://nanonext.r-lib.org/reference/stop_request.md)
+  : Stop Request Operation
+- [`race_aio()`](https://nanonext.r-lib.org/reference/race_aio.md) :
+  Race Aio
+- [`unresolved()`](https://nanonext.r-lib.org/reference/unresolved.md) :
+  Query if an Aio is Unresolved
+- [`is_aio()`](https://nanonext.r-lib.org/reference/is_aio.md)
+  [`is_nano()`](https://nanonext.r-lib.org/reference/is_aio.md)
+  [`is_ncurl_session()`](https://nanonext.r-lib.org/reference/is_aio.md)
+  : Validators
+- [`as.promise(`*`<recvAio>`*`)`](https://nanonext.r-lib.org/reference/as.promise.recvAio.md)
+  : Make recvAio Promise
+- [`as.promise(`*`<ncurlAio>`*`)`](https://nanonext.r-lib.org/reference/as.promise.ncurlAio.md)
+  : Make ncurlAio Promise
+
+## Synchronization
+
+Condition variables and pipe events
+
 - [`cv()`](https://nanonext.r-lib.org/reference/cv.md)
   [`wait()`](https://nanonext.r-lib.org/reference/cv.md)
   [`wait_()`](https://nanonext.r-lib.org/reference/cv.md)
@@ -271,98 +270,111 @@ participating in this project you agree to abide by its terms.
   [`cv_reset()`](https://nanonext.r-lib.org/reference/cv.md)
   [`cv_signal()`](https://nanonext.r-lib.org/reference/cv.md) :
   Condition Variables
-- [`dial()`](https://nanonext.r-lib.org/reference/dial.md) : Dial an
-  Address from a Socket
-- [`.context()`](https://nanonext.r-lib.org/reference/dot-context.md) :
-  Technical Utility: Open Context
 - [`` `%~>%` ``](https://nanonext.r-lib.org/reference/grapes-twiddle-greater-than-grapes.md)
   : Signal Forwarder
-- [`ip_addr()`](https://nanonext.r-lib.org/reference/ip_addr.md) : IP
-  Address
-- [`is_aio()`](https://nanonext.r-lib.org/reference/is_aio.md)
-  [`is_nano()`](https://nanonext.r-lib.org/reference/is_aio.md)
-  [`is_ncurl_session()`](https://nanonext.r-lib.org/reference/is_aio.md)
-  : Validators
-- [`is_error_value()`](https://nanonext.r-lib.org/reference/is_error_value.md)
-  [`is_nul_byte()`](https://nanonext.r-lib.org/reference/is_error_value.md)
-  : Error Validators
-- [`listen()`](https://nanonext.r-lib.org/reference/listen.md) : Listen
-  to an Address from a Socket
-- [`mclock()`](https://nanonext.r-lib.org/reference/mclock.md) : Clock
-  Utility
-- [`messenger()`](https://nanonext.r-lib.org/reference/messenger.md) :
-  Messenger
+- [`pipe_notify()`](https://nanonext.r-lib.org/reference/pipe_notify.md)
+  : Pipe Notify
+- [`pipe_id()`](https://nanonext.r-lib.org/reference/pipe_id.md) : Get
+  the Pipe ID of a recvAio
 - [`monitor()`](https://nanonext.r-lib.org/reference/monitor.md)
   [`read_monitor()`](https://nanonext.r-lib.org/reference/monitor.md) :
   Monitor a Socket for Pipe Changes
-- [`msleep()`](https://nanonext.r-lib.org/reference/msleep.md) : Sleep
-  Utility
-- [`nano()`](https://nanonext.r-lib.org/reference/nano.md) : Create Nano
-  Object
+
+## HTTP Client
+
+HTTP requests and sessions
+
 - [`ncurl()`](https://nanonext.r-lib.org/reference/ncurl.md) : ncurl
 - [`ncurl_aio()`](https://nanonext.r-lib.org/reference/ncurl_aio.md) :
   ncurl Async
 - [`ncurl_session()`](https://nanonext.r-lib.org/reference/ncurl_session.md)
   [`transact()`](https://nanonext.r-lib.org/reference/ncurl_session.md)
   : ncurl Session
+- [`status_code()`](https://nanonext.r-lib.org/reference/status_code.md)
+  : Translate HTTP Status Codes
+
+## WebSocket Client
+
+WebSocket and byte stream connections
+
+- [`stream()`](https://nanonext.r-lib.org/reference/stream.md) : Open
+  Stream
+
+## HTTP/WebSocket Server
+
+Server creation and request handlers
+
+- [`http_server()`](https://nanonext.r-lib.org/reference/http_server.md)
+  : Create HTTP/WebSocket Server
+- [`handler()`](https://nanonext.r-lib.org/reference/handler.md) :
+  Create HTTP Handler
+- [`handler_ws()`](https://nanonext.r-lib.org/reference/handler_ws.md) :
+  Create WebSocket Handler
+- [`handler_stream()`](https://nanonext.r-lib.org/reference/handler_stream.md)
+  : Create HTTP Streaming Handler
+- [`handler_file()`](https://nanonext.r-lib.org/reference/handler_file.md)
+  : Create Static File Handler
+- [`handler_directory()`](https://nanonext.r-lib.org/reference/handler_directory.md)
+  : Create Static Directory Handler
+- [`handler_inline()`](https://nanonext.r-lib.org/reference/handler_inline.md)
+  : Create Inline Static Content Handler
+- [`handler_redirect()`](https://nanonext.r-lib.org/reference/handler_redirect.md)
+  : Create HTTP Redirect Handler
+- [`format_sse()`](https://nanonext.r-lib.org/reference/format_sse.md) :
+  Format Server-Sent Event
+
+## TLS
+
+Secure connections
+
+- [`tls_config()`](https://nanonext.r-lib.org/reference/tls_config.md) :
+  Create TLS Configuration
+- [`write_cert()`](https://nanonext.r-lib.org/reference/write_cert.md) :
+  Generate Self-Signed Certificate and Key
+
+## Options and Statistics
+
+Configuration and monitoring
+
+- [`opt()`](https://nanonext.r-lib.org/reference/opt.md)
+  [`` `opt<-`() ``](https://nanonext.r-lib.org/reference/opt.md) : Get
+  and Set Options for a Socket, Context, Stream, Listener or Dialer
+- [`stat()`](https://nanonext.r-lib.org/reference/stat.md) : Get
+  Statistic for a Socket, Listener or Dialer
+
+## Serialization
+
+Custom serialization configuration
+
+- [`serial_config()`](https://nanonext.r-lib.org/reference/serial_config.md)
+  : Create Serialization Configuration
+
+## Utilities
+
+Helper functions
+
+- [`parse_url()`](https://nanonext.r-lib.org/reference/parse_url.md) :
+  Parse URL
 - [`nng_error()`](https://nanonext.r-lib.org/reference/nng_error.md) :
   Translate Error Codes
 - [`nng_version()`](https://nanonext.r-lib.org/reference/nng_version.md)
   : NNG Library Version
-- [`opt()`](https://nanonext.r-lib.org/reference/opt.md)
-  [`` `opt<-`() ``](https://nanonext.r-lib.org/reference/opt.md) : Get
-  and Set Options for a Socket, Context, Stream, Listener or Dialer
-- [`parse_url()`](https://nanonext.r-lib.org/reference/parse_url.md) :
-  Parse URL
-- [`pipe_id()`](https://nanonext.r-lib.org/reference/pipe_id.md) : Get
-  the Pipe ID of a recvAio
-- [`pipe_notify()`](https://nanonext.r-lib.org/reference/pipe_notify.md)
-  : Pipe Notify
-- [`protocols`](https://nanonext.r-lib.org/reference/protocols.md) :
-  Protocols (Documentation)
+- [`is_error_value()`](https://nanonext.r-lib.org/reference/is_error_value.md)
+  [`is_nul_byte()`](https://nanonext.r-lib.org/reference/is_error_value.md)
+  : Error Validators
+- [`ip_addr()`](https://nanonext.r-lib.org/reference/ip_addr.md) : IP
+  Address
 - [`random()`](https://nanonext.r-lib.org/reference/random.md) : Random
   Data Generation
+- [`mclock()`](https://nanonext.r-lib.org/reference/mclock.md) : Clock
+  Utility
+- [`msleep()`](https://nanonext.r-lib.org/reference/msleep.md) : Sleep
+  Utility
+- [`messenger()`](https://nanonext.r-lib.org/reference/messenger.md) :
+  Messenger
+- [`reap()`](https://nanonext.r-lib.org/reference/reap.md) : Reap
 - [`read_stdin()`](https://nanonext.r-lib.org/reference/read_stdin.md) :
   Read stdin
-- [`reap()`](https://nanonext.r-lib.org/reference/reap.md) : Reap
-- [`recv()`](https://nanonext.r-lib.org/reference/recv.md) : Receive
-- [`recv_aio()`](https://nanonext.r-lib.org/reference/recv_aio.md) :
-  Receive Async
-- [`reply()`](https://nanonext.r-lib.org/reference/reply.md) : Reply
-  over Context (RPC Server for Req/Rep Protocol)
-- [`request()`](https://nanonext.r-lib.org/reference/request.md) :
-  Request over Context (RPC Client for Req/Rep Protocol)
-- [`send()`](https://nanonext.r-lib.org/reference/send.md) : Send
-- [`send_aio()`](https://nanonext.r-lib.org/reference/send_aio.md) :
-  Send Async
-- [`serial_config()`](https://nanonext.r-lib.org/reference/serial_config.md)
-  : Create Serialization Configuration
-- [`socket()`](https://nanonext.r-lib.org/reference/socket.md) : Open
-  Socket
-- [`start(`*`<nanoListener>`*`)`](https://nanonext.r-lib.org/reference/start.md)
-  [`start(`*`<nanoDialer>`*`)`](https://nanonext.r-lib.org/reference/start.md)
-  : Start Listener/Dialer
-- [`stat()`](https://nanonext.r-lib.org/reference/stat.md) : Get
-  Statistic for a Socket, Listener or Dialer
-- [`status_code()`](https://nanonext.r-lib.org/reference/status_code.md)
-  : Translate HTTP Status Codes
-- [`stop_aio()`](https://nanonext.r-lib.org/reference/stop_aio.md) :
-  Stop Asynchronous Aio Operation
-- [`stream()`](https://nanonext.r-lib.org/reference/stream.md) : Open
-  Stream
-- [`subscribe()`](https://nanonext.r-lib.org/reference/subscribe.md)
-  [`unsubscribe()`](https://nanonext.r-lib.org/reference/subscribe.md) :
-  Subscribe / Unsubscribe Topic
-- [`survey_time()`](https://nanonext.r-lib.org/reference/survey_time.md)
-  : Set Survey Time
-- [`tls_config()`](https://nanonext.r-lib.org/reference/tls_config.md) :
-  Create TLS Configuration
-- [`transports`](https://nanonext.r-lib.org/reference/transports.md) :
-  Transports (Documentation)
-- [`unresolved()`](https://nanonext.r-lib.org/reference/unresolved.md) :
-  Query if an Aio is Unresolved
-- [`write_cert()`](https://nanonext.r-lib.org/reference/write_cert.md) :
-  Generate Self-Signed Certificate and Key
 - [`write_stdout()`](https://nanonext.r-lib.org/reference/write_stdout.md)
   : Write to Stdout
 
@@ -370,5 +382,13 @@ participating in this project you agree to abide by its terms.
 
 ### All vignettes
 
-- [nanonext - NNG Lightweight Messaging
-  Library](https://nanonext.r-lib.org/articles/nanonext.md):
+- [nanonext - Quick
+  Reference](https://nanonext.r-lib.org/articles/nanonext.md):
+- [nanonext - Messaging and Async
+  I/O](https://nanonext.r-lib.org/articles/v01-messaging.md):
+- [nanonext - Scalability
+  Protocols](https://nanonext.r-lib.org/articles/v02-protocols.md):
+- [nanonext - Configuration and
+  Security](https://nanonext.r-lib.org/articles/v03-configuration.md):
+- [nanonext - Web
+  Utilities](https://nanonext.r-lib.org/articles/v04-web.md):

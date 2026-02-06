@@ -24,6 +24,13 @@ connection."><meta property="og:image" content="https://nanonext.r-lib.org/logo.
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/nanonext.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/v01-messaging.html">nanonext - Messaging and Async I/O</a></li>
+    <li><a class="dropdown-item" href="../articles/v02-protocols.html">nanonext - Scalability Protocols</a></li>
+    <li><a class="dropdown-item" href="../articles/v03-configuration.html">nanonext - Configuration and Security</a></li>
+    <li><a class="dropdown-item" href="../articles/v04-web.html">nanonext - Web Utilities</a></li>
+  </ul></li>
+<li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-news" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">News</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-news"><li><h6 class="dropdown-header" data-toc-skip>Releases</h6></li>
     <li><a class="external-link dropdown-item" href="https://www.tidyverse.org/blog/2025/09/nanonext-1-7-0/">nanonext 1.7.0</a></li>
@@ -41,7 +48,7 @@ connection."><meta property="og:image" content="https://nanonext.r-lib.org/logo.
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>ncurl Session</h1>
-      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/release/R/ncurl.R" class="external-link"><code>R/ncurl.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/dev/R/ncurl.R" class="external-link"><code>R/ncurl.R</code></a></small>
       <div class="d-none name"><code>ncurl_session.Rd</code></div>
     </div>
 
@@ -104,7 +111,8 @@ format.</p></dd>
 <dt id="arg-response">response<a class="anchor" aria-label="anchor" href="#arg-response"></a></dt>
 <dd><p>(optional) a character vector specifying the response headers
 to return e.g. <code>c("date", "server")</code>. These are case-insensitive and
-will return NULL if not present. A non-character vector will be ignored.</p></dd>
+will return NULL if not present. Specify <code>TRUE</code> to return all response
+headers. A non-character vector will be ignored (other than <code>TRUE</code>).</p></dd>
 
 
 <dt id="arg-timeout">timeout<a class="anchor" aria-label="anchor" href="#arg-timeout"></a></dt>
@@ -128,10 +136,9 @@ certificates are not validated.</p></dd>
 an 'errorValue'.</p>
 <p>For <code>transact</code>: a named list of 3 elements:</p><ul><li><p><code>$status</code> - integer HTTP repsonse status code (200 - OK).
 Use <code><a href="status_code.html">status_code()</a></code> for a translation of the meaning.</p></li>
-<li><p><code>$headers</code> - named list of response headers (if specified in the
-session), or NULL otherwise. If the status code is within the 300 range,
-i.e. a redirect, the response header 'Location' is automatically appended
-to return the redirect address.</p></li>
+<li><p><code>$headers</code> - named list of response headers (all headers if
+<code>response = TRUE</code> was specified for the session, those specified in
+<code>response</code>, or NULL otherwise).</p></li>
 <li><p><code>$data</code> - the response body as a character string (if
 <code>convert = TRUE</code> was specified for the session), which may be further
 parsed as html, json, xml etc. as required, or else a raw byte vector,
@@ -158,7 +165,7 @@ asynchronous http requests.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$date</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Tue, 02 Dec 2025 12:10:20 GMT"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Fri, 06 Feb 2026 15:19:30 GMT"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $data</span>

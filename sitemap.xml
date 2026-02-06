@@ -1,10 +1,15 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://nanonext.r-lib.org/404.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/CLAUDE.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/CODE_OF_CONDUCT.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/LICENSE-text.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/LICENSE.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/articles/index.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/articles/nanonext.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/articles/v01-messaging.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/articles/v02-protocols.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/articles/v03-configuration.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/articles/v04-web.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/authors.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/index.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/news/index.html</loc></url>
@@ -18,10 +23,20 @@
 <url><loc>https://nanonext.r-lib.org/reference/dial.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/dot-advance.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/dot-context.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/reference/dot-dispatcher.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/dot-keep.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/dot-read_header.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/dot-unresolved.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/reference/format_sse.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/grapes-twiddle-greater-than-grapes.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/reference/handler.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/reference/handler_directory.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/reference/handler_file.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/reference/handler_inline.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/reference/handler_redirect.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/reference/handler_stream.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/reference/handler_ws.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/reference/http_server.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/index.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/ip_addr.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/is_aio.html</loc></url>
@@ -43,6 +58,7 @@
 <url><loc>https://nanonext.r-lib.org/reference/pipe_id.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/pipe_notify.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/protocols.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/reference/race_aio.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/random.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/read_stdin.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/reap.html</loc></url>

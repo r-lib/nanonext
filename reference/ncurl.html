@@ -18,6 +18,13 @@
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/nanonext.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/v01-messaging.html">nanonext - Messaging and Async I/O</a></li>
+    <li><a class="dropdown-item" href="../articles/v02-protocols.html">nanonext - Scalability Protocols</a></li>
+    <li><a class="dropdown-item" href="../articles/v03-configuration.html">nanonext - Configuration and Security</a></li>
+    <li><a class="dropdown-item" href="../articles/v04-web.html">nanonext - Web Utilities</a></li>
+  </ul></li>
+<li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-news" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">News</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-news"><li><h6 class="dropdown-header" data-toc-skip>Releases</h6></li>
     <li><a class="external-link dropdown-item" href="https://www.tidyverse.org/blog/2025/09/nanonext-1-7-0/">nanonext 1.7.0</a></li>
@@ -35,7 +42,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>ncurl</h1>
-      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/release/R/ncurl.R" class="external-link"><code>R/ncurl.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/dev/R/ncurl.R" class="external-link"><code>R/ncurl.R</code></a></small>
       <div class="d-none name"><code>ncurl.Rd</code></div>
     </div>
 
@@ -100,7 +107,8 @@ format.</p></dd>
 <dt id="arg-response">response<a class="anchor" aria-label="anchor" href="#arg-response"></a></dt>
 <dd><p>(optional) a character vector specifying the response headers
 to return e.g. <code>c("date", "server")</code>. These are case-insensitive and
-will return NULL if not present. A non-character vector will be ignored.</p></dd>
+will return NULL if not present. Specify <code>TRUE</code> to return all response
+headers. A non-character vector will be ignored (other than <code>TRUE</code>).</p></dd>
 
 
 <dt id="arg-timeout">timeout<a class="anchor" aria-label="anchor" href="#arg-timeout"></a></dt>
@@ -118,10 +126,11 @@ certificates are not validated.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Named list of 3 elements:</p><ul><li><p><code>$status</code> - integer HTTP repsonse status code (200 - OK).
 Use <code><a href="status_code.html">status_code()</a></code> for a translation of the meaning.</p></li>
-<li><p><code>$headers</code> - named list of response headers supplied in <code>response</code>,
-or NULL otherwise. If the status code is within the 300 range, i.e. a
-redirect, the response header 'Location' is automatically appended to
-return the redirect address.</p></li>
+<li><p><code>$headers</code> - named list of response headers (all headers if
+<code>response = TRUE</code>, or those specified in <code>response</code>, or NULL otherwise).
+If the status code is within the 300 range, i.e. a redirect, the response
+header 'Location' is automatically appended to return the redirect
+address.</p></li>
 <li><p><code>$data</code> - the response body, as a character string if
 <code>convert = TRUE</code> (may be further parsed as html, json, xml etc. as
 required), or a raw byte vector if FALSE (use <code><a href="https://rdrr.io/r/base/readBin.html" class="external-link">writeBin()</a></code> to save as a
@@ -146,7 +155,7 @@ persistent connections.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$date</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Tue, 02 Dec 2025 12:10:19 GMT"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Fri, 06 Feb 2026 15:19:28 GMT"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$`content-type`</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "application/json; charset=utf-8"</span>
@@ -160,6 +169,52 @@ persistent connections.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  [89] 64 2d 70 72 6f 74 6f 22 3a 22 68 74 74 70 73 22 7d 2c 22 75 72 6c</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [111] 22 3a 22 68 74 74 70 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63 68</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [133] 6f 2e 63 6f 6d 2f 67 65 74 22 7d</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span><span class="fu">ncurl</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="st">"https://postman-echo.com/get"</span>,</span></span>
+<span class="r-in"><span>  response <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  timeout <span class="op">=</span> <span class="fl">1200L</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $status</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 200</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $headers</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $headers$Date</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Fri, 06 Feb 2026 15:19:29 GMT"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $headers$`Content-Type`</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "application/json; charset=utf-8"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $headers$`Content-Length`</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "143"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $headers$Connection</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "close"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $headers$`CF-RAY`</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "9c9ba045dc18d4f9-SJC"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $headers$etag</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "W/\"8f-7zN8nSad8A9WlFJjKQZB04z5nHE\""</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $headers$vary</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Accept-Encoding"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $headers$`Set-Cookie`</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "sails.sid=s%3An-Xy50G8hDyUf13ATMCHvkO4ABDVOMUz.%2BE4LBelOPxN5F5mMHLcQzCu8mGsM%2FwM9onWpEeoFWks; Path=/; HttpOnly, __cf_bm=xTy1oNOMNMvau4zofUvivhWfwYeF6V9mWiUnbipHX6Q-1770391169-1.0.1.1-ftZ0Xqc8iQ4lSa8yqPGV.cz0XaO1tql2syHcYJUCpvrKTXw4dsD9Jt7cpsvt5.C3z7oxH1asrDwB26Rd5v5v6gIhcQePO5CL7q9qf8fVLtg; path=/; expires=Fri, 06-Feb-26 15:49:29 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=kTCQ9zA0DiqO9byIg2BDNA71aDBNvx_0WLMvtbgQ_yU-1770391169029-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $headers$`x-envoy-upstream-service-time`</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "5"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $headers$`cf-cache-status`</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "DYNAMIC"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $headers$Server</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "cloudflare"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $data</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu">ncurl</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="st">"https://postman-echo.com/put"</span>,</span></span>

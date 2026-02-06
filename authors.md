@@ -18,16 +18,15 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/r-lib/nanonext/blob/release/inst/CITATION)
+[`DESCRIPTION`](https://github.com/r-lib/nanonext/blob/dev/DESCRIPTION)
 
-Gao C (2025). *nanonext: NNG (Nanomsg Next Gen) Lightweight Messaging
-Library*. R package version 1.7.2,
-<https://doi.org/10.5281/zenodo.7903429>.
+Gao C (2026). *nanonext: NNG (Nanomsg Next Gen) Lightweight Messaging
+Library*. R package version 1.7.2, <https://nanonext.r-lib.org>.
 
     @Manual{,
       title = {nanonext: NNG (Nanomsg Next Gen) Lightweight Messaging Library},
       author = {Charlie Gao},
-      year = {2025},
+      year = {2026},
       note = {R package version 1.7.2},
-      url = {https://doi.org/10.5281/zenodo.7903429},
+      url = {https://nanonext.r-lib.org},
     }

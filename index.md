@@ -6,23 +6,20 @@ IPC, TCP, WebSocket and secure TLS transports. Implements ‘Scalability
 Protocols’, a standard for common communications patterns including
 publish/subscribe, request/reply and service discovery.
 
-As its own [threaded concurrency
-framework](https://nanonext.r-lib.org/articles/nanonext.html#async-and-concurrency),
-provides a toolkit for asynchronous programming and distributed
-computing. Intuitive ‘aio’ objects resolve automatically when
-asynchronous operations complete, and [synchronisation
-primitives](https://nanonext.r-lib.org/articles/nanonext.html#synchronisation-primitives)
-allow R to wait upon events signalled by concurrent threads.
+As its own threaded concurrency framework, provides a toolkit for
+asynchronous programming and distributed computing. Intuitive ‘aio’
+objects resolve automatically when asynchronous operations complete, and
+synchronisation primitives allow R to wait upon events signalled by
+concurrent threads.
 
 Designed for performance and reliability, nanonext is a lightweight
 wrapper around the NNG C library, and is itself implemented almost
 entirely in C.
 
 Provides the interface for code and processes to communicate with each
-other - [receive data generated in Python, perform analysis in R, and
-send results to a C++
-program](https://nanonext.r-lib.org/articles/nanonext.html#cross-language-exchange)
-– on the same computer or across networks spanning the globe.
+other - receive data generated in Python, perform analysis in R, and
+send results to a C++ program – on the same computer or across networks
+spanning the globe.
 
 Implemented scalability protocols:
 
@@ -30,12 +27,9 @@ Implemented scalability protocols:
 - Pair (two-way radio)
 - Poly (one-to-one of many)
 - Push/Pull (one-way pipeline)
-- [Publisher/Subscriber](https://nanonext.r-lib.org/articles/nanonext.html#publisher-subscriber-model)
-  (topics & broadcast)
-- [Request/Reply](https://nanonext.r-lib.org/articles/nanonext.html#rpc-and-distributed-computing)
-  (RPC)
-- [Surveyor/Respondent](https://nanonext.r-lib.org/articles/nanonext.html#surveyor-respondent-model)
-  (voting & service discovery)
+- Publisher/Subscriber (topics & broadcast)
+- Request/Reply (RPC)
+- Surveyor/Respondent (voting & service discovery)
 
 Supported transports:
 
@@ -43,111 +37,54 @@ Supported transports:
 - IPC (inter-process)
 - TCP (IPv4 or IPv6)
 - WebSocket
-- [TLS](https://nanonext.r-lib.org/articles/nanonext.html#tls-secure-connections)
-  (over TCP and WebSocket)
+- TLS (over TCP and WebSocket)
 
 Development of the TLS implementation was generously supported by the
 ![R
 Consortium](https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp)
 .
 
-Web utilities:
+### Capabilities
 
-- [ncurl](https://nanonext.r-lib.org/articles/nanonext.html#ncurl-async-http-client) -
-  (async) http(s) client
-- [stream](https://nanonext.r-lib.org/articles/nanonext.html#stream-websocket-client) -
-  secure websockets client / generic low-level socket interface
-- [`ip_addr()`](https://nanonext.r-lib.org/reference/ip_addr.md) - for
-  retrieving all local network IP addresses by interface
-- [`messenger()`](https://nanonext.r-lib.org/reference/messenger.md) -
-  console-based instant messaging with authentication
+#### Asynchronous I/O
 
-### Quick Start
+Non-blocking operations with ‘aio’ objects that resolve automatically
+upon completion. Combined with condition variables, enables true
+event-driven programming in R without polling.
 
-nanonext offers 2 equivalent interfaces: a functional interface, and an
-object-oriented interface.
+#### Cross-language Messaging
 
-#### Functional Interface
+Exchange data with Python, C++, Go, Rust, and other languages via NNG’s
+portable wire format. Build polyglot distributed systems where each
+component uses the best tool for the job.
 
-The primary object in the functional interface is the Socket. Use
-[`socket()`](https://nanonext.r-lib.org/reference/socket.md) to create a
-socket and dial or listen at an address. The socket is then passed as
-the first argument of subsequent actions such as
-[`send()`](https://nanonext.r-lib.org/reference/send.md) or
-[`recv()`](https://nanonext.r-lib.org/reference/recv.md).
+#### HTTP/WebSocket Server
 
-*Example using Request/Reply (REQ/REP) protocol with inproc
-transport:*  
-(The inproc transport uses zero-copy where possible for a much faster
-solution than alternatives)
+Build HTTP servers in R with dynamic request handlers, WebSocket
+support, and streaming (Server-Sent Events, NDJSON) for real-time
+applications.
 
-Create sockets:
+#### Async HTTP Client
 
-``` r
-library(nanonext)
+High-performance HTTP(S) client with
+[`ncurl()`](https://nanonext.r-lib.org/reference/ncurl.md), supporting
+async requests, persistent sessions, and all standard HTTP methods.
 
-socket1 <- socket("req", listen = "inproc://nanonext")
-socket2 <- socket("rep", dial = "inproc://nanonext")
-```
+### Documentation
 
-Send message from ‘socket1’:
-
-``` r
-send(socket1, "hello world!")
-#> [1] 0
-```
-
-Receive message using ‘socket2’:
-
-``` r
-recv(socket2)
-#> [1] "hello world!"
-```
-
-#### Object-oriented Interface
-
-The primary object in the object-oriented interface is the nano object.
-Use [`nano()`](https://nanonext.r-lib.org/reference/nano.md) to create a
-nano object which encapsulates a Socket and Dialer/Listener. Methods
-such as `$send()` or `$recv()` can then be accessed directly from the
-object.
-
-*Example using Pipeline (Push/Pull) protocol with TCP/IP transport:*
-
-Create nano objects:
-
-``` r
-library(nanonext)
-
-nano1 <- nano("push", listen = "tcp://127.0.0.1:5555")
-nano2 <- nano("pull", dial = "tcp://127.0.0.1:5555")
-```
-
-Send message from ‘nano1’:
-
-``` r
-nano1$send("hello world!")
-#> [1] 0
-```
-
-Receive message using ‘nano2’:
-
-``` r
-nano2$recv()
-#> [1] "hello world!"
-```
-
-### Vignette
-
-Please refer to the [nanonext
-vignette](https://nanonext.r-lib.org/articles/nanonext.html) for full
-package functionality.
-
-This may be accessed within R by:
-
-``` r
-vignette("nanonext", package = "nanonext")
-```
+- [Quick Reference](https://nanonext.r-lib.org/articles/nanonext.html) -
+  cheatsheet
+- [Messaging and Async
+  I/O](https://nanonext.r-lib.org/articles/v01-messaging.html) -
+  cross-language exchange, async operations, synchronisation
+- [Scalability
+  Protocols](https://nanonext.r-lib.org/articles/v02-protocols.html) -
+  request/reply, pub/sub, surveyor/respondent
+- [Configuration and
+  Security](https://nanonext.r-lib.org/articles/v03-configuration.html) -
+  TLS, options, serialization
+- [Web Utilities](https://nanonext.r-lib.org/articles/v04-web.html) -
+  HTTP client/server, WebSocket, streaming
 
 ### Installation
 
@@ -169,7 +106,7 @@ install.packages("nanonext", repos = "https://r-lib.r-universe.dev")
 
 Installation from source requires ‘libnng’ \>= v1.9.0 and ‘libmbedtls’
 \>= 2.5.0 (suitable installations are automatically detected), or else
-‘cmake’ to compile ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.2 included
+‘cmake’ to compile ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.5 included
 within the package sources.
 
 **It is recommended for optimal performance and stability to let the
@@ -186,13 +123,12 @@ variables may be set prior to package installation to specify a custom
 location for ‘libmbedtls’ or ‘libnng’ other than the standard filesystem
 locations.
 
-*Additional requirements for Solaris: (i) the ‘xz’ package - available
-on OpenCSW, and (ii) a more recent version of ‘cmake’ than available on
+*Solaris: requires a more recent version of ‘cmake’ than available on
 OpenCSW - refer to the ‘cmake’ website for the latest source file.*
 
 #### Windows
 
-On Windows, ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.2 will be compiled
+On Windows, ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.5 will be compiled
 from the package sources during installation and hence requires the
 ‘Rtools’ toolchain.
 
@@ -225,12 +161,13 @@ in Windows and ensure that it is added to your system’s `PATH`.
 
 ### Links
 
-[nanonext](https://nanonext.r-lib.org/) • [CRAN HPC Task
-View](https://cran.r-project.org/view=HighPerformanceComputing) • [CRAN
-Web Technologies Task
-View](https://cran.r-project.org/view=WebTechnologies) •
-[NNG](https://nng.nanomsg.org/) • [Mbed
-TLS](https://www.trustedfirmware.org/projects/mbed-tls/)
+- [nanonext](https://nanonext.r-lib.org/)
+- [CRAN HPC Task
+  View](https://cran.r-project.org/view=HighPerformanceComputing)
+- [CRAN Web Technologies Task
+  View](https://cran.r-project.org/view=WebTechnologies)
+- [NNG](https://nng.nanomsg.org/)
+- [Mbed TLS](https://www.trustedfirmware.org/projects/mbed-tls/)
 
 –
 

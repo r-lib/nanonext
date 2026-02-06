@@ -18,6 +18,9 @@ close(con, ...)
 # S3 method for class 'ncurlSession'
 close(con, ...)
 
+# S3 method for class 'nanoServer'
+close(con, ...)
+
 # S3 method for class 'nanoSocket'
 close(con, ...)
 

@@ -17,5 +17,5 @@ A character vector of length 2.
 
 ``` r
 nng_version()
-#> [1] "1.11.0"         "Mbed TLS 3.6.2"
+#> [1] "1.11.0"         "Mbed TLS 3.6.5"
 ```
