@@ -9,6 +9,7 @@
 * Adds `format_sse()` helper for formatting Server-Sent Events messages.
 * Adds static content handlers: `handler_file()` and `handler_directory()` for serving files, `handler_inline()` for in-memory content, and `handler_redirect()` for HTTP redirects. 
 * `ncurl()` and variants now accept `response = TRUE` to return all response headers.
+* Listeners now automatically resolve port `0` to the actual port assigned by the OS. The listener's `url` attribute is updated when the listener starts.
 * Adds `race_aio()` to wait for and return the index of the first resolved Aio in a list of Aios.
 
 #### Updates
