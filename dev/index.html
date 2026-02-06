@@ -82,78 +82,123 @@
 </div>
 <!-- badges: start -->
 
-<p>R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. NNG is a socket library for reliable, high-performance messaging over in-process, IPC, TCP, WebSocket and secure TLS transports. Implements ‘Scalability Protocols’, a standard for common communications patterns including publish/subscribe, request/reply and service discovery.</p>
-<p>As its own threaded concurrency framework, provides a toolkit for asynchronous programming and distributed computing. Intuitive ‘aio’ objects resolve automatically when asynchronous operations complete, and synchronisation primitives allow R to wait upon events signalled by concurrent threads.</p>
-<p>Designed for performance and reliability, nanonext is a lightweight wrapper around the NNG C library, and is itself implemented almost entirely in C.</p>
-<p>Provides the interface for code and processes to communicate with each other - receive data generated in Python, perform analysis in R, and send results to a C++ program – on the same computer or across networks spanning the globe.</p>
-<p>Implemented scalability protocols:</p>
+<p>R binding for <a href="https://nng.nanomsg.org/" class="external-link">NNG (Nanomsg Next Gen)</a>, a high-performance messaging library. Lightweight, implemented almost entirely in C.</p>
 <ul>
-<li>Bus (mesh networks)</li>
-<li>Pair (two-way radio)</li>
-<li>Poly (one-to-one of many)</li>
-<li>Push/Pull (one-way pipeline)</li>
-<li>Publisher/Subscriber (topics &amp; broadcast)</li>
-<li>Request/Reply (RPC)</li>
-<li>Surveyor/Respondent (voting &amp; service discovery)</li>
+<li>
+<strong>Scalability protocols</strong> - pub/sub, req/rep, push/pull, surveyor/respondent, bus, pair</li>
+<li>
+<strong>Multiple transports</strong> - TCP, IPC, WebSocket, TLS, in-process</li>
+<li>
+<strong>Async I/O</strong> - non-blocking operations with auto-resolving ‘aio’ objects</li>
+<li>
+<strong>Cross-language</strong> - exchange data with Python, C++, Go, Rust</li>
+<li>
+<strong>Web utilities</strong> - HTTP client/server, WebSocket, streaming (SSE, NDJSON)</li>
 </ul>
-<p>Supported transports:</p>
-<ul>
-<li>inproc (intra-process)</li>
-<li>IPC (inter-process)</li>
-<li>TCP (IPv4 or IPv6)</li>
-<li>WebSocket</li>
-<li>TLS (over TCP and WebSocket)</li>
-</ul>
-<p>Development of the TLS implementation was generously supported by the <img src="https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp" alt="R Consortium" width="100" height="22"> .</p>
 <div class="section level3">
-<h3 id="capabilities">Capabilities<a class="anchor" aria-label="anchor" href="#capabilities"></a>
+<h3 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h3>
-<div class="section level4">
-<h4 id="asynchronous-io">Asynchronous I/O<a class="anchor" aria-label="anchor" href="#asynchronous-io"></a>
-</h4>
-<p>Non-blocking operations with ‘aio’ objects that resolve automatically upon completion. Combined with condition variables, enables true event-driven programming in R without polling.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nanonext.r-lib.org">nanonext</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Open sockets</span></span>
+<span><span class="va">s1</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"req"</span>, listen <span class="op">=</span> <span class="st">"ipc:///tmp/nanonext"</span><span class="op">)</span></span>
+<span><span class="va">s2</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"rep"</span>, dial <span class="op">=</span> <span class="st">"ipc:///tmp/nanonext"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Send</span></span>
+<span><span class="va">s1</span> <span class="op">|&gt;</span> <span class="fu"><a href="reference/send.html">send</a></span><span class="op">(</span><span class="st">"hello world"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span></span>
+<span><span class="co"># Receive on the other</span></span>
+<span><span class="va">s2</span> <span class="op">|&gt;</span> <span class="fu"><a href="reference/recv.html">recv</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "hello world"</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/close.html">close</a></span><span class="op">(</span><span class="va">s1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/close.html">close</a></span><span class="op">(</span><span class="va">s2</span><span class="op">)</span></span></code></pre></div>
 </div>
-<div class="section level4">
-<h4 id="cross-language-messaging">Cross-language Messaging<a class="anchor" aria-label="anchor" href="#cross-language-messaging"></a>
-</h4>
-<p>Exchange data with Python, C++, Go, Rust, and other languages via NNG’s portable wire format. Build polyglot distributed systems where each component uses the best tool for the job.</p>
+<div class="section level3">
+<h3 id="async-io">Async I/O<a class="anchor" aria-label="anchor" href="#async-io"></a>
+</h3>
+<p>Non-blocking operations that resolve automatically:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">s1</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"rep"</span>, listen <span class="op">=</span> <span class="st">"tcp://127.0.0.1:5556"</span><span class="op">)</span></span>
+<span><span class="va">s2</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"req"</span>, dial <span class="op">=</span> <span class="st">"tcp://127.0.0.1:5556"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Sender</span></span>
+<span><span class="va">s2</span> <span class="op">|&gt;</span> <span class="fu"><a href="reference/send.html">send</a></span><span class="op">(</span><span class="st">"async request"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span></span>
+<span><span class="co"># Async operations return immediately</span></span>
+<span><span class="va">aio</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/recv_aio.html">recv_aio</a></span><span class="op">(</span><span class="va">s1</span><span class="op">)</span></span>
+<span><span class="va">aio</span></span>
+<span><span class="co">#&gt; &lt; recvAio | $data &gt;</span></span>
+<span></span>
+<span><span class="co"># Retrieve result when ready</span></span>
+<span><span class="va">aio</span><span class="op">$</span><span class="va">data</span></span>
+<span><span class="co">#&gt; [1] "async request"</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/close.html">close</a></span><span class="op">(</span><span class="va">s1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/close.html">close</a></span><span class="op">(</span><span class="va">s2</span><span class="op">)</span></span></code></pre></div>
 </div>
-<div class="section level4">
-<h4 id="httpwebsocket-server">HTTP/WebSocket Server<a class="anchor" aria-label="anchor" href="#httpwebsocket-server"></a>
-</h4>
-<p>Build HTTP servers in R with dynamic request handlers, WebSocket support, and streaming (Server-Sent Events, NDJSON) for real-time applications.</p>
-</div>
-<div class="section level4">
-<h4 id="async-http-client">Async HTTP Client<a class="anchor" aria-label="anchor" href="#async-http-client"></a>
-</h4>
-<p>High-performance HTTP(S) client with <code><a href="reference/ncurl.html">ncurl()</a></code>, supporting async requests, persistent sessions, and all standard HTTP methods.</p>
-</div>
+<div class="section level3">
+<h3 id="http-client">HTTP Client<a class="anchor" aria-label="anchor" href="#http-client"></a>
+</h3>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/ncurl.html">ncurl</a></span><span class="op">(</span><span class="st">"https://postman-echo.com/get"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $status</span></span>
+<span><span class="co">#&gt; [1] 200</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $headers</span></span>
+<span><span class="co">#&gt; NULL</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $data</span></span>
+<span><span class="co">#&gt; [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h3>
-<ul>
-<li>
-<a href="https://nanonext.r-lib.org/articles/nanonext.html">Quick Reference</a> - cheatsheet</li>
-<li>
-<a href="https://nanonext.r-lib.org/articles/v01-messaging.html">Messaging and Async I/O</a> - cross-language exchange, async operations, synchronisation</li>
-<li>
-<a href="https://nanonext.r-lib.org/articles/v02-protocols.html">Scalability Protocols</a> - request/reply, pub/sub, surveyor/respondent</li>
-<li>
-<a href="https://nanonext.r-lib.org/articles/v03-configuration.html">Configuration and Security</a> - TLS, options, serialization</li>
-<li>
-<a href="https://nanonext.r-lib.org/articles/v04-web.html">Web Utilities</a> - HTTP client/server, WebSocket, streaming</li>
-</ul>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Guide</th>
+<th align="left">Topics</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><a href="https://nanonext.r-lib.org/articles/nanonext.html">Quick Reference</a></td>
+<td align="left">Cheatsheet</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="https://nanonext.r-lib.org/articles/v01-messaging.html">Messaging</a></td>
+<td align="left">Cross-language, async, synchronisation</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="https://nanonext.r-lib.org/articles/v02-protocols.html">Protocols</a></td>
+<td align="left">req/rep, pub/sub, surveyor/respondent</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="https://nanonext.r-lib.org/articles/v03-configuration.html">Configuration</a></td>
+<td align="left">TLS, options, serialization</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="https://nanonext.r-lib.org/articles/v04-web.html">Web Utilities</a></td>
+<td align="left">HTTP, WebSocket, streaming</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section level3">
 <h3 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h3>
-<p>Install the latest release from CRAN:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"nanonext"</span><span class="op">)</span></span></code></pre></div>
-<p>Or the current development version from R-universe:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"nanonext"</span>, repos <span class="op">=</span> <span class="st">"https://r-lib.r-universe.dev"</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># CRAN</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"nanonext"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Development version</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"nanonext"</span>, repos <span class="op">=</span> <span class="st">"https://r-lib.r-universe.dev"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="building-from-source">Building from Source<a class="anchor" aria-label="anchor" href="#building-from-source"></a>
@@ -161,44 +206,41 @@
 <div class="section level4">
 <h4 id="linux--mac--solaris">Linux / Mac / Solaris<a class="anchor" aria-label="anchor" href="#linux--mac--solaris"></a>
 </h4>
-<p>Installation from source requires ‘libnng’ &gt;= v1.9.0 and ‘libmbedtls’ &gt;= 2.5.0 (suitable installations are automatically detected), or else ‘cmake’ to compile ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.5 included within the package sources.</p>
-<p><strong>It is recommended for optimal performance and stability to let the package automatically compile bundled versions of ‘libmbedtls’ and ‘libnng’ during installation.</strong> To ensure the libraries are compiled from source even if system installations are present, set the <code>NANONEXT_LIBS</code> environment variable prior to installation e.g. by <code>Sys.setenv(NANONEXT_LIBS = 1)</code>.</p>
-<p>As system libraries, ‘libnng’ is available as libnng-dev (deb) or nng-devel (rpm), and ‘libmbedtls’ as libmbedtls-dev (deb) or libmbedtls-devel (rpm). The <code>INCLUDE_DIR</code> and <code>LIB_DIR</code> environment variables may be set prior to package installation to specify a custom location for ‘libmbedtls’ or ‘libnng’ other than the standard filesystem locations.</p>
-<p><em>Solaris: requires a more recent version of ‘cmake’ than available on OpenCSW - refer to the ‘cmake’ website for the latest source file.</em></p>
+<p>Requires ‘libnng’ &gt;= v1.9.0 and ‘libmbedtls’ &gt;= 2.5.0, or ‘cmake’ to compile bundled libraries (libnng v1.11.0, libmbedtls v3.6.5).</p>
+<p><strong>Recommended:</strong> Let the package compile bundled libraries for optimal performance:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>NANONEXT_LIBS <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"nanonext"</span><span class="op">)</span></span></code></pre></div>
+<p>System packages: libnng-dev / nng-devel, libmbedtls-dev / libmbedtls-devel. Set <code>INCLUDE_DIR</code> and <code>LIB_DIR</code> for custom locations.</p>
 </div>
 <div class="section level4">
 <h4 id="windows">Windows<a class="anchor" aria-label="anchor" href="#windows"></a>
 </h4>
-<p>On Windows, ‘libnng’ v1.11.0 and ‘libmbedtls’ v3.6.5 will be compiled from the package sources during installation and hence requires the ‘Rtools’ toolchain.</p>
-<p>For R &gt;= 4.2 using the ‘Rtools42’ or newer toolchains, the prerequisite ‘cmake’ is included. For previous R versions using ‘Rtools40’ or earlier, it may be necessary to separately install a version of ‘cmake’ in Windows and ensure that it is added to your system’s <code>PATH</code>.</p>
+<p>Requires Rtools. For R &gt;= 4.2, cmake is included. Earlier versions need cmake installed separately and added to PATH.</p>
 </div>
+</div>
+<div class="section level3">
+<h3 id="links">Links<a class="anchor" aria-label="anchor" href="#links"></a>
+</h3>
+<p><a href="https://nanonext.r-lib.org/">Documentation</a> | <a href="https://nng.nanomsg.org/" class="external-link">NNG</a> | <a href="https://www.trustedfirmware.org/projects/mbed-tls/" class="external-link">Mbed TLS</a> | <a href="https://cran.r-project.org/view=HighPerformanceComputing" class="external-link">CRAN HPC Task View</a> | <a href="https://cran.r-project.org/view=WebTechnologies" class="external-link">CRAN Web Technologies</a></p>
 </div>
 <div class="section level3">
 <h3 id="acknowledgements">Acknowledgements<a class="anchor" aria-label="anchor" href="#acknowledgements"></a>
 </h3>
 <ul>
 <li>
-<a href="https://github.com/gdamore" class="external-link">Garrett D’Amore</a>, author of the NNG library, for generous advice and for implementing a feature request specifically for a more efficient ‘aio’ implementation in <code>nanonext</code>.</li>
-<li>The <a href="https://r-consortium.org/" class="external-link">R Consortium</a> for funding the development of the secure TLS capabilities in the package, and <a href="https://github.com/HenrikBengtsson" class="external-link">Henrik Bengtsson</a> and <a href="https://github.com/wlandau/" class="external-link">Will Landau</a>’s roles in making this possible.</li>
+<a href="https://github.com/gdamore" class="external-link">Garrett D’Amore</a> (NNG author) for advice and implementing features for nanonext</li>
 <li>
-<a href="https://github.com/jcheng5/" class="external-link">Joe Cheng</a> for prototyping the integration of <code>nanonext</code> with <code>later</code> to support the next generation of completely event-driven ‘promises’.</li>
+<a href="https://r-consortium.org/" class="external-link">R Consortium</a> for funding TLS development, with support from <a href="https://github.com/HenrikBengtsson" class="external-link">Henrik Bengtsson</a> and <a href="https://github.com/wlandau/" class="external-link">Will Landau</a>
+</li>
 <li>
-<a href="https://github.com/ltierney/" class="external-link">Luke Tierney</a> (R Core) and <a href="https://github.com/coolbutuseless" class="external-link">Mike Cheng</a> for meticulous documentation of the R serialization mechanism, which led to the package’s own implementation of a low-level interface to R serialization.</li>
+<a href="https://github.com/jcheng5/" class="external-link">Joe Cheng</a> for prototyping event-driven promises integration</li>
 <li>
-<a href="https://github.com/traversc" class="external-link">Travers Ching</a> for a novel idea in extending the original custom serialization support in the package.</li>
+<a href="https://github.com/ltierney/" class="external-link">Luke Tierney</a> and <a href="https://github.com/coolbutuseless" class="external-link">Mike Cheng</a> for R serialization documentation</li>
 <li>
-<a href="https://github.com/jeroen" class="external-link">Jeroen Ooms</a> - for his ‘Anticonf (tm)’ configure script, on which our original ‘configure’ was based, although much modified since.</li>
-</ul>
-</div>
-<div class="section level3">
-<h3 id="links">Links<a class="anchor" aria-label="anchor" href="#links"></a>
-</h3>
-<ul>
-<li><a href="https://nanonext.r-lib.org/">nanonext</a></li>
-<li><a href="https://cran.r-project.org/view=HighPerformanceComputing" class="external-link">CRAN HPC Task View</a></li>
-<li><a href="https://cran.r-project.org/view=WebTechnologies" class="external-link">CRAN Web Technologies Task View</a></li>
-<li><a href="https://nng.nanomsg.org/" class="external-link">NNG</a></li>
-<li><a href="https://www.trustedfirmware.org/projects/mbed-tls/" class="external-link">Mbed TLS</a></li>
+<a href="https://github.com/traversc" class="external-link">Travers Ching</a> for novel ideas on custom serialization</li>
+<li>
+<a href="https://github.com/jeroen" class="external-link">Jeroen Ooms</a> for the Anticonf configure script</li>
 </ul>
 <p>–</p>
 <p>Please note that this project is released with a <a href="https://nanonext.r-lib.org/CODE_OF_CONDUCT.html">Contributor Code of Conduct</a>. By participating in this project you agree to abide by its terms.</p>
