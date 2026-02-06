@@ -990,6 +990,12 @@ if (later && NOT_CRAN) {
   aio <- ncurl_aio(paste0(base_url, "/no-body"), timeout = 2000)
   while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 204L)
+  aio <- ncurl_aio(paste0(base_url, "/nonexistent"), timeout = 2000)
+  while (unresolved(aio)) later::run_now(1)
+  test_equal(aio$status, 404L)
+  aio <- ncurl_aio(paste0(base_url, "/put"), timeout = 2000)
+  while (unresolved(aio)) later::run_now(1)
+  test_equal(aio$status, 405L)
   test_zero(srv$close())
 }
 
