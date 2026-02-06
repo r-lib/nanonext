@@ -35,6 +35,7 @@ test_equal(n$recv(), 11L)
 test_class("nano", n$opt("recv-size-max", 8192))
 test_equal(n$opt("recv-size-max"), 8192L)
 test_class("nano", n$opt("recv-buffer", 8L))
+test_error(opt(n$socket, "recv-buffer") <- -1, "Incorrect type")
 test_class("nano", n$opt("req:resend-time", 0L))
 test_class("nano", n$opt("socket-name", "nano"))
 test_equal(n$opt("socket-name"), "nano")
@@ -428,6 +429,10 @@ test_class("nanoSocket", push <- socket(protocol = "push"))
 test_class("nanoSocket", pull <- socket(protocol = "pull"))
 test_class("nanoSocket", pair <- socket(protocol = "pair"))
 test_class("nano", bus)
+test_error(context(bus), "Not supported")
+test_error(context(push), "Not supported")
+test_error(context(pull), "Not supported")
+test_error(context(pair), "Not supported")
 test_equal(suppressWarnings(listen(bus, url = "test", fail = "warn")), 3L)
 test_error(listen(bus, url = "test", fail = "error"), "argument")
 test_equal(listen(bus, url = "test", fail = "none"), 3L)
@@ -438,6 +443,7 @@ test_error(listen(bus, url = "tls+tcp://localhost/:0", tls = "wrong"), "valid TL
 test_error(dial(bus, url = "tls+tcp://localhost/:0", tls = "wrong"), "valid TLS")
 test_zero(close(bus))
 test_equal(suppressWarnings(close(bus)), 7L)
+test_null(stat(bus, "pipes"))
 test_zero(close(push))
 test_zero(close(pull))
 test_zero(reap(pair))
@@ -934,11 +940,11 @@ if (later && NOT_CRAN) {
   base_url <- srv$url
   Sys.sleep(0.1)
   aio <- ncurl_aio(paste0(base_url, "/test"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
   test_equal(aio$data, "OK")
   aio <- ncurl_aio(paste0(base_url, "/api/data"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
   test_equal(aio$data, '{"value":42}')
   aio <- ncurl_aio(
@@ -946,44 +952,50 @@ if (later && NOT_CRAN) {
     headers = c("X-Custom-Header" = "test123", "X-Another-Header" = "value456"),
     timeout = 2000
   )
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
   test_true("X-Custom-Header" %in% names(received_headers))
   test_true("X-Another-Header" %in% names(received_headers))
   test_equal(received_headers[["X-Custom-Header"]], "test123")
   test_equal(received_headers[["X-Another-Header"]], "value456")
   aio <- ncurl_aio(paste0(base_url, "/error"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 500L)
   aio <- ncurl_aio(paste0(base_url, "/api/users/123"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
   test_equal(aio$data, "path: /api/users/123")
   aio <- ncurl_aio(paste0(base_url, "/any"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
   aio <- ncurl_aio(paste0(base_url, "/any"), method = "POST", timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
   aio <- ncurl_aio(paste0(base_url, "/put"), method = "PUT", timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
   test_equal(aio$data, "PUT OK")
   aio <- ncurl_aio(paste0(base_url, "/delete"), method = "DELETE", timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
   test_equal(aio$data, "DELETE OK")
   aio <- ncurl_aio(paste0(base_url, "/raw"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
   test_equal(aio$data, "raw response")
   aio <- ncurl_aio(paste0(base_url, "/default-status"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
   test_equal(aio$data, "no status")
   aio <- ncurl_aio(paste0(base_url, "/no-body"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 204L)
+  aio <- ncurl_aio(paste0(base_url, "/nonexistent"), timeout = 2000)
+  while (unresolved(aio)) later::run_now(1)
+  test_equal(aio$status, 404L)
+  aio <- ncurl_aio(paste0(base_url, "/put"), timeout = 2000)
+  while (unresolved(aio)) later::run_now(1)
+  test_equal(aio$status, 405L)
   test_zero(srv$close())
 }
 
@@ -1209,40 +1221,40 @@ if (later && NOT_CRAN) {
   Sys.sleep(0.1)
 
   aio <- ncurl_aio(paste0(base_url, "/single.txt"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
   test_equal(trimws(aio$data), "Hello from file")
 
   aio <- ncurl_aio(paste0(base_url, "/tree-file/extra"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
 
   aio <- ncurl_aio(paste0(base_url, "/files/test.txt"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
 
   aio <- ncurl_aio(paste0(base_url, "/inline"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
   test_equal(aio$data, "Inline content")
 
   aio <- ncurl_aio(paste0(base_url, "/tree-inline/extra"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
   test_equal(aio$data, "tree inline")
 
   aio <- ncurl_aio(paste0(base_url, "/binary"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 200L)
 
   for (code in c(301L, 302L, 303L, 307L, 308L)) {
     aio <- ncurl_aio(paste0(base_url, "/r", code), timeout = 2000)
-    for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+    while (unresolved(aio)) later::run_now(1)
     test_equal(aio$status, code)
   }
 
   aio <- ncurl_aio(paste0(base_url, "/tree-redir/extra"), timeout = 2000)
-  for (i in 1:20) { later::run_now(0.1); if (!unresolved(aio)) break }
+  while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 302L)
 
   test_zero(static_srv$close())
