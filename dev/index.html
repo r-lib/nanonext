@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>NNG (Nanomsg Next Gen) Lightweight Messaging Library • nanonext</title>
+<title>Lightweight Toolkit for Messaging, Concurrency and the Web • nanonext</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -17,9 +17,9 @@
 <link href="deps/Source_Code_Pro-0.4.10/font.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="NNG (Nanomsg Next Gen) Lightweight Messaging Library">
-<meta name="description" content="R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. NNG is a socket library for reliable, high-performance messaging over in-process, IPC, TCP, WebSocket and secure TLS transports. Implements Scalability Protocols, a standard for common communications patterns including publish/subscribe, request/reply and service discovery. As its own threaded concurrency framework, provides a toolkit for asynchronous programming and distributed computing. Intuitive aio objects resolve automatically when asynchronous operations complete, and synchronisation primitives allow R to wait upon events signalled by concurrent threads.">
-<meta property="og:description" content="R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. NNG is a socket library for reliable, high-performance messaging over in-process, IPC, TCP, WebSocket and secure TLS transports. Implements Scalability Protocols, a standard for common communications patterns including publish/subscribe, request/reply and service discovery. As its own threaded concurrency framework, provides a toolkit for asynchronous programming and distributed computing. Intuitive aio objects resolve automatically when asynchronous operations complete, and synchronisation primitives allow R to wait upon events signalled by concurrent threads.">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Lightweight Toolkit for Messaging, Concurrency and the Web">
+<meta name="description" content="R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. A toolkit for messaging, concurrency and the web. High-performance socket messaging over in-process, IPC, TCP, WebSocket and secure TLS transports implements Scalability Protocols, a standard for common communications patterns including publish/subscribe, request/reply and survey. A threaded concurrency framework with intuitive aio objects that resolve automatically upon completion of asynchronous operations, and synchronisation primitives that allow R to wait on events signalled by concurrent threads. A unified HTTP server hosting REST endpoints, WebSocket connections and streaming on a single port, with a built-in HTTP client.">
+<meta property="og:description" content="R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ. A toolkit for messaging, concurrency and the web. High-performance socket messaging over in-process, IPC, TCP, WebSocket and secure TLS transports implements Scalability Protocols, a standard for common communications patterns including publish/subscribe, request/reply and survey. A threaded concurrency framework with intuitive aio objects that resolve automatically upon completion of asynchronous operations, and synchronisation primitives that allow R to wait on events signalled by concurrent threads. A unified HTTP server hosting REST endpoints, WebSocket connections and streaming on a single port, with a built-in HTTP client.">
 <meta property="og:image" content="https://nanonext.r-lib.org/logo.png">
 <meta name="robots" content="noindex">
 <script src="https://cdn.jsdelivr.net/gh/posit-dev/supported-by-posit/js/badge.min.js" data-max-height="43" data-light-bg="#666f76" data-light-fg="#f9f9f9"></script><script defer data-domain="nanonext.r-lib.org,all.tidyverse.org" src="https://plausible.io/js/plausible.js"></script>
@@ -49,7 +49,7 @@
 <li><a class="dropdown-item" href="articles/v01-messaging.html">nanonext - Messaging and Async I/O</a></li>
     <li><a class="dropdown-item" href="articles/v02-protocols.html">nanonext - Scalability Protocols</a></li>
     <li><a class="dropdown-item" href="articles/v03-configuration.html">nanonext - Configuration and Security</a></li>
-    <li><a class="dropdown-item" href="articles/v04-web.html">nanonext - Web Utilities</a></li>
+    <li><a class="dropdown-item" href="articles/v04-web.html">nanonext - Web Toolkit</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -82,7 +82,7 @@
 </div>
 <!-- badges: start -->
 
-<p>R binding for <a href="https://nng.nanomsg.org/" class="external-link">NNG (Nanomsg Next Gen)</a>, a high-performance messaging library. Lightweight, implemented almost entirely in C.</p>
+<p>Fast, lightweight toolkit for messaging, concurrency, and the web in R. Built on <a href="https://nng.nanomsg.org/" class="external-link">NNG (Nanomsg Next Gen)</a> and implemented almost entirely in C.</p>
 <ul>
 <li>
 <strong>Scalability protocols</strong> - pub/sub, req/rep, push/pull, surveyor/respondent, bus, pair</li>
@@ -93,7 +93,7 @@
 <li>
 <strong>Cross-language</strong> - exchange data with Python, C++, Go, Rust</li>
 <li>
-<strong>Web utilities</strong> - HTTP client/server, WebSocket, streaming (SSE, NDJSON)</li>
+<strong>Web toolkit</strong> - unified HTTP, WebSocket, and streaming (SSE, NDJSON) on a single port</li>
 </ul>
 <div class="section level3">
 <h3 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
@@ -141,14 +141,14 @@
 <span><span class="fu"><a href="reference/close.html">close</a></span><span class="op">(</span><span class="va">s2</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="web-utilities">Web Utilities<a class="anchor" aria-label="anchor" href="#web-utilities"></a>
+<h3 id="web-toolkit">Web Toolkit<a class="anchor" aria-label="anchor" href="#web-toolkit"></a>
 </h3>
-<p>HTTP/WebSocket client and server, with streaming support for SSE and NDJSON. Mbed TLS for secure connections.</p>
+<p>One server, one port – HTTP endpoints, WebSocket connections, and streaming all coexist. Mbed TLS built in for HTTPS/WSS.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Generate certificates</span></span>
+<code class="sourceCode R"><span><span class="co"># Generate self-signed certificates</span></span>
 <span><span class="va">cert</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/write_cert.html">write_cert</a></span><span class="op">(</span>cn <span class="op">=</span> <span class="st">"127.0.0.1"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># HTTPS server</span></span>
+<span><span class="co"># HTTPS server (port 0 = auto-assign a free port)</span></span>
 <span><span class="va">server</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/http_server.html">http_server</a></span><span class="op">(</span></span>
 <span>  url <span class="op">=</span> <span class="st">"https://127.0.0.1:0"</span>,</span>
 <span>  handlers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -181,7 +181,7 @@
 <tbody>
 <tr class="odd">
 <td align="left"><a href="https://nanonext.r-lib.org/articles/nanonext.html">Quick Reference</a></td>
-<td align="left">Cheatsheet</td>
+<td align="left">At-a-glance API overview</td>
 </tr>
 <tr class="even">
 <td align="left"><a href="https://nanonext.r-lib.org/articles/v01-messaging.html">Messaging</a></td>
@@ -196,8 +196,8 @@
 <td align="left">TLS, options, serialization</td>
 </tr>
 <tr class="odd">
-<td align="left"><a href="https://nanonext.r-lib.org/articles/v04-web.html">Web Utilities</a></td>
-<td align="left">HTTP, WebSocket, streaming</td>
+<td align="left"><a href="https://nanonext.r-lib.org/articles/v04-web.html">Web Toolkit</a></td>
+<td align="left">HTTP client/server, WebSocket, streaming</td>
 </tr>
 </tbody>
 </table>

@@ -1,11 +1,12 @@
-# nanonext - Web Utilities
+# nanonext - Web Toolkit
 
 ``` r
 library(nanonext)
 ```
 
 nanonext provides high-performance HTTP/WebSocket client and server
-capabilities built on NNG.
+capabilities built on NNG’s networking stack with Mbed TLS for secure
+connections.
 
 ### 1. HTTP Client
 
@@ -40,7 +41,7 @@ ncurl("https://postman-echo.com/post",
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Sat, 07 Feb 2026 12:05:15 GMT"
+#> [1] "Sat, 07 Feb 2026 21:45:14 GMT"
 #> 
 #> 
 #> $data
@@ -57,7 +58,7 @@ ncurl("https://postman-echo.com/get",
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Sat, 07 Feb 2026 12:05:15 GMT"
+#> [1] "Sat, 07 Feb 2026 21:45:14 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -69,7 +70,7 @@ ncurl("https://postman-echo.com/get",
 #> [1] "close"
 #> 
 #> $headers$`CF-RAY`
-#> [1] "9ca2c123fc0fbd6e-LHR"
+#> [1] "9ca612b94e14c418-LHR"
 #> 
 #> $headers$etag
 #> [1] "W/\"8f-7zN8nSad8A9WlFJjKQZB04z5nHE\""
@@ -78,7 +79,7 @@ ncurl("https://postman-echo.com/get",
 #> [1] "Accept-Encoding"
 #> 
 #> $headers$`Set-Cookie`
-#> [1] "sails.sid=s%3Ae_mISpmL4XXcdYdcUlFrPQ6BDhNksO4D.il%2FhisOP0Vf1jhPbQP4EjDFI6I2nlcZgLIRsN421kCE; Path=/; HttpOnly, __cf_bm=Sc0wmYhgsovmfVH2Z9OShMZUgjiym.ocBonxFwBHn0k-1770465915-1.0.1.1-81eZgPyB8rhf51KT4QU.bCSoZepcryWCa552DCzsps7FhOslDjyXmAeEKHCf7oSNoHfjKyXwJVFKAkhh1q3VtPD2Uun8osRyKrCxBu64G0k; path=/; expires=Sat, 07-Feb-26 12:35:15 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=tGV0.l4C.tS29T.3Ixhi4s.ugthS5ZGMiTkcdP42x1A-1770465915624-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
+#> [1] "sails.sid=s%3AogmOGKo8RUCfdOfs0UZSk2jOy07OCLRD.ENB1Q7pguv8o1uNMdB1hoOs37vIFX1OcoPk8OjQqOd0; Path=/; HttpOnly, __cf_bm=ZaOl11cT5qZJ67fIOCUY2YxEoEVUCQCr.TWVTZj.hV8-1770500714-1.0.1.1-K5qy1j.OT.W3.3cdU3ANVRur7CwLu58y595Ab9J5exyprj9.b3zOwSqV9hvPetrKgQicpaB5xJd5BsJ08A1pAbJEPhsuOGfNx8msk9rVBaM; path=/; expires=Sat, 07-Feb-26 22:15:14 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=S3tS7jmQcgIp6LiV_Xv8K.YWPJ08h7O91A25Nx8cGD8-1770500714550-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
 #> 
 #> $headers$`x-envoy-upstream-service-time`
 #> [1] "5"
@@ -111,7 +112,7 @@ res
 
 call_aio(res)$headers
 #> $date
-#> [1] "Sat, 07 Feb 2026 12:05:15 GMT"
+#> [1] "Sat, 07 Feb 2026 21:45:14 GMT"
 
 res$status
 #> [1] 200
@@ -155,7 +156,7 @@ transact(sess)
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Sat, 07 Feb 2026 12:05:16 GMT"
+#> [1] "Sat, 07 Feb 2026 21:45:15 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -219,11 +220,21 @@ r[]
 close(s)
 ```
 
-### 3. HTTP Server
+### 3. Unified HTTP/WebSocket Server
 
 [`http_server()`](https://nanonext.r-lib.org/dev/reference/http_server.md)
-creates servers that handle HTTP requests and WebSocket connections
-using NNG’s high-performance architecture.
+creates a single server that can handle HTTP requests, WebSocket
+connections, and HTTP streaming, all on the same port.
+
+A single call to
+[`http_server()`](https://nanonext.r-lib.org/dev/reference/http_server.md)
+sets up one NNG server instance with a list of handlers. HTTP routes,
+WebSocket endpoints, streaming endpoints, and static file handlers all
+share the same underlying server – there is no need to run separate
+processes or bind additional ports. WebSocket clients connect via the
+standard HTTP upgrade mechanism, so a browser can load a page over HTTP
+and open a WebSocket connection to the same origin without any
+cross-origin configuration.
 
 ``` r
 server <- http_server(
@@ -246,7 +257,25 @@ server$start()
 server$close()
 ```
 
-#### Request Handlers
+Specifying port `0` in the URL lets the OS assign an available port. The
+actual port is reflected in `server$url` after `$start()`, making it
+easy to set up test servers without port conflicts.
+
+#### Handler Types
+
+All handler types can be freely mixed in a single server’s handler list:
+
+| Handler                                                                                | Purpose                                                      |
+|:---------------------------------------------------------------------------------------|:-------------------------------------------------------------|
+| [`handler()`](https://nanonext.r-lib.org/dev/reference/handler.md)                     | HTTP request/response with R callback                        |
+| [`handler_ws()`](https://nanonext.r-lib.org/dev/reference/handler_ws.md)               | WebSocket with `on_message`, `on_open`, `on_close` callbacks |
+| [`handler_stream()`](https://nanonext.r-lib.org/dev/reference/handler_stream.md)       | Chunked HTTP streaming (SSE, NDJSON, custom)                 |
+| [`handler_file()`](https://nanonext.r-lib.org/dev/reference/handler_file.md)           | Serve a single static file                                   |
+| [`handler_directory()`](https://nanonext.r-lib.org/dev/reference/handler_directory.md) | Serve a directory tree with automatic MIME types             |
+| [`handler_inline()`](https://nanonext.r-lib.org/dev/reference/handler_inline.md)       | Serve in-memory content                                      |
+| [`handler_redirect()`](https://nanonext.r-lib.org/dev/reference/handler_redirect.md)   | HTTP redirect                                                |
+
+#### HTTP Request Handlers
 
 [`handler()`](https://nanonext.r-lib.org/dev/reference/handler.md)
 creates HTTP route handlers. The callback receives a request list with
@@ -276,8 +305,6 @@ h3 <- handler("/api", function(req) {
 
 #### Static Content Handlers
 
-nanonext provides specialized handlers for serving static content.
-
 ``` r
 # Serve a single file
 h_file <- handler_file("/favicon.ico", "path/to/favicon.ico")
@@ -293,11 +320,14 @@ h_inline <- handler_inline("/robots.txt", "User-agent: *\nDisallow:",
 h_redirect <- handler_redirect("/old-page", "/new-page", status = 301L)
 ```
 
-### 4. WebSocket Server
+#### WebSocket Handlers
 
 [`handler_ws()`](https://nanonext.r-lib.org/dev/reference/handler_ws.md)
-creates WebSocket handlers that manage bidirectional connections. NNG
-handles the HTTP upgrade handshake and WebSocket framing automatically.
+creates WebSocket endpoints. NNG handles the HTTP upgrade handshake and
+all WebSocket framing (RFC 6455) automatically. Because WebSocket
+handlers share the same server as HTTP handlers, the browser can load a
+page and open a WebSocket to the same host and port with no additional
+setup.
 
 ``` r
 clients <- list()
@@ -328,14 +358,20 @@ The `ws` connection object provides:
 
 - `ws$send(data)` - Send a message to the client
 - `ws$close()` - Close the connection
-- `ws$id` - Unique connection identifier
+- `ws$id` - Unique integer connection identifier
 
-### 5. HTTP Streaming
+Multiple WebSocket endpoints can coexist on the same server, each with
+independent callbacks and connection tracking. Connection IDs are unique
+across the entire server, so they are safe to use as keys in a shared
+data structure spanning multiple handlers.
+
+#### HTTP Streaming Handlers
 
 [`handler_stream()`](https://nanonext.r-lib.org/dev/reference/handler_stream.md)
-enables HTTP streaming using chunked transfer encoding. This supports
+enables HTTP streaming using chunked transfer encoding, supporting
 Server-Sent Events (SSE), newline-delimited JSON (NDJSON), and custom
-streaming formats.
+streaming formats. Like WebSocket handlers, streaming endpoints share
+the same server as all other handlers.
 
 ``` r
 conns <- list()
@@ -370,7 +406,7 @@ server$start()
 
 [`format_sse()`](https://nanonext.r-lib.org/dev/reference/format_sse.md)
 formats messages according to the SSE specification for browser
-EventSource clients.
+`EventSource` clients.
 
 ``` r
 format_sse(data = "Hello")
@@ -392,9 +428,9 @@ The streaming connection object provides:
   send)
 - `conn$id` - Unique connection identifier
 
-### 6. Secure Connections (TLS)
+### 4. Secure Connections (TLS)
 
-All web utilities support TLS for secure HTTPS/WSS connections via
+All web functions support TLS for secure HTTPS/WSS connections via
 [`tls_config()`](https://nanonext.r-lib.org/dev/reference/tls_config.md).
 
 #### Public Internet HTTPS
@@ -448,7 +484,7 @@ server <- http_server(
 server$start()
 server
 #> < nanoServer >
-#>  - url: https://127.0.0.1:55198 
+#>  - url: https://127.0.0.1:52896 
 #>  - state: started
 
 # HTTPS client request
@@ -463,11 +499,20 @@ aio$data
 server$close()
 ```
 
-### 7. Complete Example: Shiny ExtendedTask
+### 5. Client Example: Shiny ExtendedTask
 
 This example demonstrates using
 [`ncurl_aio()`](https://nanonext.r-lib.org/dev/reference/ncurl_aio.md)
 with Shiny’s ExtendedTask for non-blocking HTTP requests.
+
+If your Shiny app calls an external API, a slow or unresponsive endpoint
+will block the R process and freeze the app for *all* users, not just
+the one who triggered the request.
+[`ncurl_aio()`](https://nanonext.r-lib.org/dev/reference/ncurl_aio.md)
+avoids this – it performs the HTTP call on a background thread and
+returns a promise, so the R process stays free to serve other sessions.
+It works anywhere that accepts a promise, including Shiny’s
+ExtendedTask:
 
 ``` r
 library(shiny)
@@ -499,64 +544,47 @@ server <- function(input, output, session) {
 shinyApp(ui, server)
 ```
 
-### 8. Complete Example: Chat Application
+### 6. Server Example: Quarto Site with Dynamic API
 
-This example demonstrates combining HTTP and WebSocket handlers for a
-simple chat application.
+This example shows how the unified server architecture makes it
+straightforward to combine HTTP or WebSocket handlers to serve different
+content over the same port.
+
+If you’ve rendered a Quarto website and want to serve it locally – but
+also expose a dynamic API endpoint alongside it, that’s possible with a
+single
+[`http_server()`](https://nanonext.r-lib.org/dev/reference/http_server.md)
+call:
 
 ``` r
-clients <- list()
+#| label: quartoplusapi
+#| eval: false
+library(nanonext)
 
 server <- http_server(
-  url = "http://127.0.0.1:8080",
+  url = "http://127.0.0.1:0",
   handlers = list(
-    # Serve the chat page
-    handler("/", function(req) {
+    # Serve your rendered Quarto site
+    handler_directory("/", "_site"),
+
+    # Add a prediction API endpoint
+    handler("/api/predict", function(req) {
+      input <- secretbase::jsondec(req$body)
+      pred <- predict(model, newdata = input)
       list(
         status = 200L,
-        headers = c("Content-Type" = "text/html"),
-        body = '<!DOCTYPE html>
-<html>
-<body>
-  <div id="messages"></div>
-  <input id="msg" type="text">
-  <button onclick="send()">Send</button>
-  <script>
-    const ws = new WebSocket("ws://127.0.0.1:8080/ws");
-    ws.onmessage = (e) => {
-      document.getElementById("messages").innerHTML += "<p>" + e.data + "</p>";
-    };
-    function send() {
-      ws.send(document.getElementById("msg").value);
-      document.getElementById("msg").value = "";
-    }
-  </script>
-</body>
-</html>'
+        headers = c("Content-Type" = "application/json"),
+        body = secretbase::jsonenc(list(prediction = pred))
       )
-    }),
-    # WebSocket endpoint for real-time messaging
-    handler_ws("/ws",
-      on_message = function(ws, data) {
-        # Broadcast to all clients
-        for (client in clients) {
-          client$send(data)
-        }
-      },
-      on_open = function(ws) {
-        clients[[as.character(ws$id)]] <<- ws
-      },
-      on_close = function(ws) {
-        clients[[as.character(ws$id)]] <<- NULL
-      },
-      textframes = TRUE
-    )
+    }, method = "POST")
   )
 )
 
 server$start()
-
-# The server runs non-blocking in the background via the 'later' event loop.
-
-# server$close()
+server$url
+# Browse to the URL to see your Quarto site with a live API behind it
 ```
+
+Static pages are served at native speed by NNG while the prediction
+endpoint is handled by R. Without requiring separate processes or ports,
+you can even add TLS with just a single argument.

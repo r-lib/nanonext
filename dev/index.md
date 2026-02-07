@@ -1,8 +1,8 @@
 # nanonext
 
-R binding for [NNG (Nanomsg Next Gen)](https://nng.nanomsg.org/), a
-high-performance messaging library. Lightweight, implemented almost
-entirely in C.
+Fast, lightweight toolkit for messaging, concurrency, and the web in R.
+Built on [NNG (Nanomsg Next Gen)](https://nng.nanomsg.org/) and
+implemented almost entirely in C.
 
 - **Scalability protocols** - pub/sub, req/rep, push/pull,
   surveyor/respondent, bus, pair
@@ -10,8 +10,8 @@ entirely in C.
 - **Async I/O** - non-blocking operations with auto-resolving ‘aio’
   objects
 - **Cross-language** - exchange data with Python, C++, Go, Rust
-- **Web utilities** - HTTP client/server, WebSocket, streaming (SSE,
-  NDJSON)
+- **Web toolkit** - unified HTTP, WebSocket, and streaming (SSE, NDJSON)
+  on a single port
 
 ### Quick Start
 
@@ -59,16 +59,16 @@ close(s1)
 close(s2)
 ```
 
-### Web Utilities
+### Web Toolkit
 
-HTTP/WebSocket client and server, with streaming support for SSE and
-NDJSON. Mbed TLS for secure connections.
+One server, one port – HTTP endpoints, WebSocket connections, and
+streaming all coexist. Mbed TLS built in for HTTPS/WSS.
 
 ``` r
-# Generate certificates
+# Generate self-signed certificates
 cert <- write_cert(cn = "127.0.0.1")
 
-# HTTPS server
+# HTTPS server (port 0 = auto-assign a free port)
 server <- http_server(
   url = "https://127.0.0.1:0",
   handlers = list(
@@ -89,13 +89,13 @@ server$close()
 
 ### Documentation
 
-| Guide                                                                       | Topics                                 |
-|:----------------------------------------------------------------------------|:---------------------------------------|
-| [Quick Reference](https://nanonext.r-lib.org/articles/nanonext.html)        | Cheatsheet                             |
-| [Messaging](https://nanonext.r-lib.org/articles/v01-messaging.html)         | Cross-language, async, synchronisation |
-| [Protocols](https://nanonext.r-lib.org/articles/v02-protocols.html)         | req/rep, pub/sub, surveyor/respondent  |
-| [Configuration](https://nanonext.r-lib.org/articles/v03-configuration.html) | TLS, options, serialization            |
-| [Web Utilities](https://nanonext.r-lib.org/articles/v04-web.html)           | HTTP, WebSocket, streaming             |
+| Guide                                                                       | Topics                                   |
+|:----------------------------------------------------------------------------|:-----------------------------------------|
+| [Quick Reference](https://nanonext.r-lib.org/articles/nanonext.html)        | At-a-glance API overview                 |
+| [Messaging](https://nanonext.r-lib.org/articles/v01-messaging.html)         | Cross-language, async, synchronisation   |
+| [Protocols](https://nanonext.r-lib.org/articles/v02-protocols.html)         | req/rep, pub/sub, surveyor/respondent    |
+| [Configuration](https://nanonext.r-lib.org/articles/v03-configuration.html) | TLS, options, serialization              |
+| [Web Toolkit](https://nanonext.r-lib.org/articles/v04-web.html)             | HTTP client/server, WebSocket, streaming |
 
 ### Installation
 

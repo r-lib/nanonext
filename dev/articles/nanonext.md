@@ -17,7 +17,7 @@ introductions:
 - [Configuration and
   Security](https://nanonext.r-lib.org/dev/articles/v03-configuration.md) -
   TLS, options, serialization, statistics
-- [Web Utilities](https://nanonext.r-lib.org/dev/articles/v04-web.md) -
+- [Web Toolkit](https://nanonext.r-lib.org/dev/articles/v04-web.md) -
   HTTP client/server, WebSocket, streaming
 
 ## Key Takeaways

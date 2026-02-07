@@ -11,4 +11,4 @@
 - [nanonext - Configuration and
   Security](https://nanonext.r-lib.org/dev/articles/v03-configuration.md):
 - [nanonext - Web
-  Utilities](https://nanonext.r-lib.org/dev/articles/v04-web.md):
+  Toolkit](https://nanonext.r-lib.org/dev/articles/v04-web.md):

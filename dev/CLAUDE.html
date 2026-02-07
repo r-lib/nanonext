@@ -22,7 +22,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="articles/v01-messaging.html">nanonext - Messaging and Async I/O</a></li>
     <li><a class="dropdown-item" href="articles/v02-protocols.html">nanonext - Scalability Protocols</a></li>
     <li><a class="dropdown-item" href="articles/v03-configuration.html">nanonext - Configuration and Security</a></li>
-    <li><a class="dropdown-item" href="articles/v04-web.html">nanonext - Web Utilities</a></li>
+    <li><a class="dropdown-item" href="articles/v04-web.html">nanonext - Web Toolkit</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-news" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">News</button>
@@ -50,13 +50,37 @@
 <p>This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.</p>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a></h2>
-<p><strong>nanonext</strong> is an R package providing a binding to NNG (Nanomsg Next Gen), a high-performance messaging library. The package is implemented almost entirely in C, wrapping the NNG C library to provide R interfaces for socket-based messaging, asynchronous I/O operations, and distributed computing primitives.</p>
+<p><strong>nanonext</strong> is an R package providing a binding to NNG (Nanomsg Next Gen), a high-performance messaging library. The package is implemented almost entirely in C, wrapping the NNG C library to provide R interfaces for socket-based messaging, asynchronous I/O operations, HTTP/WebSocket servers, and distributed computing primitives.</p>
+</div>
+<div class="section level2">
+<h2 id="common-development-commands">Common Development Commands<a class="anchor" aria-label="anchor" href="#common-development-commands"></a></h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Install package from source</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="ex">R</span> CMD INSTALL .</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co"># Build tarball then run full CRAN checks (tests + docs + examples)</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="ex">R</span> CMD build . <span class="kw">&amp;&amp;</span> <span class="ex">R</span> CMD check nanonext_<span class="pp">*</span>.tar.gz</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co"># Run tests only (uses custom minitest framework, not testthat)</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="ex">Rscript</span> tests/tests.R</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="co"># Build roxygen2 documentation</span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'devtools::document()'</span></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="co"># Precompile vignettes (must be done before R CMD build when vignettes change)</span></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a><span class="ex">Rscript</span> dev/vignettes/precompile.R</span></code></pre></div>
+<div class="section level3">
+<h3 id="compilation">Compilation<a class="anchor" aria-label="anchor" href="#compilation"></a></h3>
+<p>The configure script detects or compiles <code>libmbedtls</code> (&gt;= 2.5.0) and <code>libnng</code> (&gt;= 1.9.0), then generates <code>src/Makevars</code>. To force compilation of bundled libraries: <code>Sys.setenv(NANONEXT_LIBS = 1)</code>.</p>
+</div>
+<div class="section level3">
+<h3 id="testing">Testing<a class="anchor" aria-label="anchor" href="#testing"></a></h3>
+<p>Tests are in <code>tests/tests.R</code> using a custom minitest framework (defined at the top of the file). Available assertions: <code>test_true</code>, <code>test_false</code>, <code>test_null</code>, <code>test_zero</code>, <code>test_type</code>, <code>test_class</code>, <code>test_equal</code>, <code>test_identical</code>, <code>test_error(expr, containing = "substring")</code>, <code>test_print</code>. Some tests only run when <code>NOT_CRAN=true</code> or on specific platforms.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="core-architecture">Core Architecture<a class="anchor" aria-label="anchor" href="#core-architecture"></a></h2>
 <div class="section level3">
 <h3 id="dual-interface-design">Dual Interface Design<a class="anchor" aria-label="anchor" href="#dual-interface-design"></a></h3>
-<p>The package provides two equivalent interfaces:</p>
 <ol style="list-style-type: decimal"><li>
 <strong>Functional Interface</strong>: Socket objects passed as first argument to functions like <code><a href="reference/send.html">send()</a></code>, <code><a href="reference/recv.html">recv()</a></code>, <code><a href="reference/dial.html">dial()</a></code>, <code><a href="reference/listen.html">listen()</a></code>
 </li>
@@ -64,159 +88,71 @@
 <strong>Object-Oriented Interface</strong>: Nano objects with methods accessible via <code>$send()</code>, <code>$recv()</code>, etc.</li>
 </ol></div>
 <div class="section level3">
-<h3 id="key-c-source-files">Key C Source Files<a class="anchor" aria-label="anchor" href="#key-c-source-files"></a></h3>
-<ul><li>
-<code>src/nanonext.h</code> - Main header with type definitions, macros, and function declarations</li>
-<li>
-<code>src/core.c</code> - Core serialization/unserialization, hooks, and fundamental utilities</li>
-<li>
-<code>src/proto.c</code> - Protocol implementations (socket opening, option handling)</li>
-<li>
-<code>src/aio.c</code> - Asynchronous I/O operations and callbacks</li>
-<li>
-<code>src/comms.c</code> - Send/receive operations and data marshaling</li>
-<li>
-<code>src/sync.c</code> - Synchronization primitives (condition variables, mutexes)</li>
-<li>
-<code>src/thread.c</code> - Thread management and concurrent operations</li>
-<li>
-<code>src/ncurl.c</code> - HTTP client implementation</li>
-<li>
-<code>src/net.c</code> - Network utilities (IP address retrieval)</li>
-<li>
-<code>src/tls.c</code> - TLS configuration and certificate handling</li>
-<li>
-<code>src/utils.c</code> - Utility functions</li>
-<li>
-<code>src/init.c</code> - Package initialization and registration</li>
-</ul></div>
+<h3 id="c-source-organization">C Source Organization<a class="anchor" aria-label="anchor" href="#c-source-organization"></a></h3>
+<p>Each <code>.c</code> file defines a compilation unit guard macro (e.g., <code>NANONEXT_PROTOCOLS</code>, <code>NANONEXT_HTTP</code>, <code>NANONEXT_TLS</code>) that controls which headers are included via <code>src/nanonext.h</code>. The guard is defined in <code>src/Makevars.in</code> per-file.</p>
+<p>Key files: - <code>src/nanonext.h</code> - Main header: type definitions, macros, all C function declarations - <code>src/core.c</code> - Serialization/unserialization, refhook system - <code>src/proto.c</code> - Protocol implementations (socket opening, option handling) - <code>src/aio.c</code> - Async I/O operations, callbacks, <code><a href="reference/race_aio.html">race_aio()</a></code> - <code>src/comms.c</code> - Send/receive operations and data marshaling - <code>src/sync.c</code> - Synchronization primitives (condition variables, mutexes) - <code>src/thread.c</code> - Thread management, interruptible waits - <code>src/ncurl.c</code> - HTTP client (<code>ncurl</code>, <code>ncurl_aio</code>, <code>ncurl_session</code>) - <code>src/server.c</code> - HTTP/WebSocket server, streaming handlers - <code>src/dispatcher.c</code> - C-level task dispatcher (used by mirai package) - <code>src/tls.c</code> - TLS configuration and certificate generation - <code>src/init.c</code> - Package initialization, <code>.Call</code> registration, symbol definitions</p>
+</div>
 <div class="section level3">
-<h3 id="key-r-source-files">Key R Source Files<a class="anchor" aria-label="anchor" href="#key-r-source-files"></a></h3>
+<h3 id="r-source-organization">R Source Organization<a class="anchor" aria-label="anchor" href="#r-source-organization"></a></h3>
 <ul><li>
-<code>R/socket.R</code> - Socket creation and management (functional interface)</li>
+<code>R/socket.R</code> - Socket creation (functional interface)</li>
 <li>
 <code>R/nano.R</code> - Nano object creation (OO interface)</li>
 <li>
 <code>R/sendrecv.R</code> - Send/receive operations</li>
 <li>
-<code>R/aio.R</code> - Async I/O wrappers</li>
+<code>R/aio.R</code> - Async I/O wrappers (<code>send_aio</code>, <code>recv_aio</code>, <code>race_aio</code>, <code>collect_aio</code>)</li>
 <li>
-<code>R/context.R</code> - Context management for concurrent operations</li>
+<code>R/server.R</code> - HTTP/WebSocket server (<code>http_server</code>, <code>handler</code>, <code>handler_ws</code>, <code>handler_stream</code>, <code>format_sse</code>)</li>
 <li>
-<code>R/sync.R</code> - Synchronization primitives</li>
+<code>R/dispatcher.R</code> - C-level dispatcher entry point (internal, for mirai)</li>
 <li>
 <code>R/ncurl.R</code> - HTTP client functions</li>
 <li>
-<code>R/stream.R</code> - WebSocket and stream interfaces</li>
+<code>R/stream.R</code> - Low-level WebSocket/stream interfaces</li>
 <li>
-<code>R/tls.R</code> - TLS configuration</li>
+<code>R/tls.R</code> - TLS configuration and certificate generation</li>
+<li>
+<code>R/sync.R</code> - Synchronization primitives (<code>cv</code>, <code>wait</code>, <code>pipe_notify</code>)</li>
 </ul></div>
 <div class="section level3">
 <h3 id="external-dependencies">External Dependencies<a class="anchor" aria-label="anchor" href="#external-dependencies"></a></h3>
-<p>The package bundles and can compile: - <code>libnng</code> v1.11.0 (messaging library) - in <code>src/nng/</code> - <code>libmbedtls</code> v3.6.2 (TLS implementation) - in <code>src/mbedtls/</code></p>
-<p>These bundled libraries are compiled during installation if system libraries are not found or if <code>NANONEXT_LIBS=1</code> is set.</p>
+<p>Bundled in source: - <code>libnng</code> v1.11.0 (messaging library) - in <code>src/nng/</code> - <code>libmbedtls</code> v3.6.5 (TLS implementation) - in <code>src/mbedtls/</code></p>
+</div>
+<div class="section level3">
+<h3 id="thread-to-r-callback-pattern">Thread-to-R Callback Pattern<a class="anchor" aria-label="anchor" href="#thread-to-r-callback-pattern"></a></h3>
+<p>NNG callbacks run on background threads and cannot call R directly. The package uses the <code>later</code> package (lazily loaded) to schedule R callbacks on the main thread. The <code>eln2</code> function pointer (set by <code>nano_load_later()</code>) is the bridge. This pattern is used by: promise resolution, WebSocket <code>on_message</code>/<code>on_open</code>/<code>on_close</code> callbacks, HTTP streaming <code>on_request</code>/<code>on_close</code> callbacks.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="common-development-commands">Common Development Commands<a class="anchor" aria-label="anchor" href="#common-development-commands"></a></h2>
-<div class="section level3">
-<h3 id="building-and-testing">Building and Testing<a class="anchor" aria-label="anchor" href="#building-and-testing"></a></h3>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Install package from source</span></span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>R CMD INSTALL .</span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co"># Build package</span></span>
-<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>R CMD build .</span>
-<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a></span>
-<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co"># Check package (run all tests and CRAN checks)</span></span>
-<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>R CMD check nanonext_<span class="sc">*</span>.tar.gz</span>
-<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="co"># Run tests only</span></span>
-<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>Rscript tests<span class="sc">/</span>tests.R</span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="development-workflow">Development Workflow<a class="anchor" aria-label="anchor" href="#development-workflow"></a></h3>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># In R session - load package for development</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">load_all</span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Build documentation</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">document</span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Run tests</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">test</span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Check package</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">check</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="compilation">Compilation<a class="anchor" aria-label="anchor" href="#compilation"></a></h3>
-<p>The package uses a configure script (<code>configure</code>) that: 1. Detects or compiles <code>libmbedtls</code> (requires &gt;= 2.5.0) 2. Detects or compiles <code>libnng</code> (requires &gt;= 1.9.0) 3. Generates <code>src/Makevars</code> with appropriate flags</p>
-<p>For forced compilation of bundled libraries:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="ex">Sys.setenv</span><span class="er">(</span><span class="ex">NANONEXT_LIBS</span> = 1<span class="kw">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="testing-notes">Testing Notes<a class="anchor" aria-label="anchor" href="#testing-notes"></a></h3>
-<ul><li>Tests are in <code>tests/tests.R</code> using a minimal custom testing framework</li>
-<li>Tests cover: sockets, protocols, async I/O, serialization, HTTP client, TLS, streams, contexts</li>
-<li>Network-dependent tests may fail if external services are unavailable</li>
-<li>Some tests only run when <code>NOT_CRAN=true</code> or on specific platforms (Linux)</li>
-</ul></div>
-</div>
-<div class="section level2">
-<h2 id="key-concepts">Key Concepts<a class="anchor" aria-label="anchor" href="#key-concepts"></a></h2>
-<div class="section level3">
-<h3 id="protocols">Protocols<a class="anchor" aria-label="anchor" href="#protocols"></a></h3>
-<p>Implements scalability protocols: - <strong>Bus</strong> (mesh): <code>"bus"</code> - <strong>Pair</strong> (1-to-1): <code>"pair"</code> - <strong>Poly</strong> (polyamorous 1-to-1): <code>"poly"</code> - <strong>Pipeline</strong>: <code>"push"</code>, <code>"pull"</code> - <strong>Pub/Sub</strong>: <code>"pub"</code>, <code>"sub"</code> - <strong>Request/Reply</strong>: <code>"req"</code>, <code>"rep"</code> - <strong>Survey</strong>: <code>"surveyor"</code>, <code>"respondent"</code></p>
-</div>
-<div class="section level3">
-<h3 id="transports">Transports<a class="anchor" aria-label="anchor" href="#transports"></a></h3>
-<p>Supported URL schemes: - <code>inproc://</code> - in-process (zero-copy) - <code>ipc://</code> - inter-process - <code>tcp://</code> - TCP/IP - <code>ws://</code> - WebSocket - <code>wss://</code> - WebSocket over TLS - <code>tls+tcp://</code> - TLS over TCP</p>
-</div>
-<div class="section level3">
-<h3 id="async-io-aio">Async I/O (AIO)<a class="anchor" aria-label="anchor" href="#async-io-aio"></a></h3>
-<p>Async operations return “aio” objects that auto-resolve: - <code><a href="reference/send_aio.html">send_aio()</a></code>, <code><a href="reference/recv_aio.html">recv_aio()</a></code> - async send/receive - <code><a href="reference/request.html">request()</a></code> - async request/reply - <code><a href="reference/ncurl_aio.html">ncurl_aio()</a></code> - async HTTP - Objects have <code>$data</code>, <code>$result</code> fields - Use <code><a href="reference/call_aio.html">call_aio()</a></code> to wait/retrieve results - Use <code><a href="reference/unresolved.html">unresolved()</a></code> to check status</p>
-</div>
-<div class="section level3">
-<h3 id="serialization-modes">Serialization Modes<a class="anchor" aria-label="anchor" href="#serialization-modes"></a></h3>
-<p>Data can be sent in multiple modes: - <code>mode = "serial"</code> or <code>1</code> - R serialization (default, handles any R object) - <code>mode = "raw"</code> or <code>2</code> - raw bytes (for atomic vectors) - <code>mode = "string"</code> or <code>8</code> - character conversion - Various receive modes for type coercion</p>
-<p>Custom serialization supported via <code><a href="reference/serial_config.html">serial_config()</a></code> for specific object classes.</p>
-</div>
+<h2 id="key-implementation-details">Key Implementation Details<a class="anchor" aria-label="anchor" href="#key-implementation-details"></a></h2>
 <div class="section level3">
 <h3 id="object-system">Object System<a class="anchor" aria-label="anchor" href="#object-system"></a></h3>
-<p>The package uses R’s S3 object system with heavy use of external pointers tagged with specific symbols (defined in <code>src/init.c</code>): - <code>nano_SocketSymbol</code> - Socket objects - <code>nano_ContextSymbol</code> - Context objects - <code>nano_AioSymbol</code> - AIO objects - <code>nano_CvSymbol</code> - Condition variables - etc.</p>
-<p>External pointers are stored in pairlists with finalizers for automatic cleanup.</p>
+<p>S3 classes backed by external pointers tagged with symbols (defined in <code>src/init.c</code>, e.g. <code>nano_SocketSymbol</code>, <code>nano_CvSymbol</code>, <code>nano_HttpServerSymbol</code>). External pointers are stored in pairlists (CAR = pointer, CDR = protected data, TAG = type symbol). Finalizers handle C resource cleanup. The <code>nano_precious</code> environment prevents premature GC of R objects referenced by C code.</p>
 </div>
-</div>
-<div class="section level2">
-<h2 id="important-implementation-details">Important Implementation Details<a class="anchor" aria-label="anchor" href="#important-implementation-details"></a></h2>
 <div class="section level3">
 <h3 id="memory-management">Memory Management<a class="anchor" aria-label="anchor" href="#memory-management"></a></h3>
-<ul><li>C code uses <code>NANO_ALLOC</code>, <code>NANO_FREE</code> macros for buffer management</li>
-<li>R objects protected via <code>nano_precious</code> environment (prevents GC)</li>
-<li>Finalizers registered for cleanup of C resources</li>
-<li>Careful use of <code>PROTECT</code>/<code>UNPROTECT</code> in C code</li>
-</ul></div>
-<div class="section level3">
-<h3 id="thread-safety">Thread Safety<a class="anchor" aria-label="anchor" href="#thread-safety"></a></h3>
-<ul><li>Package implements its own threading via NNG’s platform layer</li>
-<li>Condition variables (<code><a href="reference/cv.html">cv()</a></code>) for cross-thread signaling</li>
-<li>Mutexes used internally for shared state</li>
-<li>R interrupt handling on both Unix (via <code>R_interrupts_pending</code>) and Windows</li>
+<ul><li>
+<code>NANO_ALLOC</code> / <code>NANO_FREE</code> macros for buffer management</li>
+<li>
+<code>nano_PreserveObject</code> / <code>nano_ReleaseObject</code> for protecting R objects from GC in the <code>nano_precious</code> environment</li>
+<li>Pointer validity checked via <code>NANO_PTR_CHECK(x, tag)</code> (verifies tag matches and pointer is non-NULL)</li>
 </ul></div>
 <div class="section level3">
 <h3 id="error-handling">Error Handling<a class="anchor" aria-label="anchor" href="#error-handling"></a></h3>
-<ul><li>NNG errors returned as integer error codes</li>
+<ul><li>NNG errors are integer codes; <code>mk_error(xc)</code> creates objects of class <code>"errorValue"</code>
+</li>
 <li>
-<code>mk_error()</code> creates error values of class <code>"errorValue"</code>
-</li>
-<li>Error messages via <code>nng_strerror()</code>
-</li>
-<li>Use <code>ERROR_OUT()</code> macro to error, <code>ERROR_RET()</code> to return error value</li>
+<code>ERROR_OUT(xc)</code> macro calls <code>Rf_error()</code>, <code>ERROR_RET(xc)</code> returns an error value</li>
+<li>Functions generally return error values rather than throwing R errors</li>
 </ul></div>
 <div class="section level3">
-<h3 id="configuration-options">Configuration Options<a class="anchor" aria-label="anchor" href="#configuration-options"></a></h3>
-<p>Set/get socket/dialer/listener options via: - <code>opt(object, "option-name")</code> - get - <code>opt(object, "option-name") &lt;- value</code> - set</p>
-<p>Options are protocol-specific (e.g., <code>"req:resend-time"</code>, <code>"sub:prefnew"</code>).</p>
+<h3 id="httpwebsocket-server-architecture">HTTP/WebSocket Server Architecture<a class="anchor" aria-label="anchor" href="#httpwebsocket-server-architecture"></a></h3>
+<p><code>src/server.c</code> implements a multi-handler HTTP server with WebSocket and chunked streaming support. Handler types (discriminated by integer <code>type</code> field): 1=HTTP callback, 2=WebSocket, 3=static file, 4=directory, 5=inline content, 6=redirect, 7=HTTP streaming. WebSocket and streaming connections use a state machine (<code>CONN_STATE_OPEN</code> → <code>CONN_STATE_CLOSING</code> → <code>CONN_STATE_CLOSED</code>) with mutex protection to prevent races between NNG threads and R’s main thread.</p>
+</div>
+<div class="section level3">
+<h3 id="vignettes">Vignettes<a class="anchor" aria-label="anchor" href="#vignettes"></a></h3>
+<p>Vignettes are precompiled because they require live network connections. Source files are in <code>dev/vignettes/_*.Rmd</code>, compiled output goes to <code>vignettes/*.Rmd</code>. Run <code>Rscript dev/vignettes/precompile.R</code> to regenerate.</p>
 </div>
 </div>
 <div class="section level2">
@@ -224,28 +160,18 @@
 <ul><li>
 <code>configure</code> - POSIX shell script for Unix-like systems</li>
 <li>
-<code>configure.win</code> - Windows configuration</li>
-<li>
-<code>configure.ucrt</code> - UCRT-specific Windows config</li>
-<li>Requires <code>cmake</code> if compiling bundled libraries (no longer requires <code>xz</code> as libraries are pre-extracted)</li>
+<code>configure.win</code> / <code>configure.ucrt</code> - Windows configurations</li>
+<li>Requires <code>cmake</code> if compiling bundled libraries</li>
 <li>Environment variables: <code>INCLUDE_DIR</code>, <code>LIB_DIR</code>, <code>NANONEXT_LIBS</code>
 </li>
 </ul></div>
 <div class="section level2">
-<h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a></h2>
-<ul><li>Roxygen2-based documentation in R files</li>
-<li>Main vignette: <code>vignettes/nanonext.Rmd</code>
-</li>
-<li>Website: <a href="https://nanonext.r-lib.org" class="uri">https://nanonext.r-lib.org</a>
-</li>
-<li>Generated with pkgdown</li>
-</ul></div>
-<div class="section level2">
 <h2 id="code-style">Code Style<a class="anchor" aria-label="anchor" href="#code-style"></a></h2>
-<ul><li>C code follows NNG conventions with <code>nano_</code> prefixes for package functions</li>
-<li>R code uses snake_case for functions</li>
-<li>Clear separation between user-facing and internal functions (<code>.function</code> prefix for internal)</li>
-<li>Extensive use of macros for code clarity (<code>NANO_PTR</code>, <code>NANO_DATAPTR</code>, etc.)</li>
+<ul><li>C functions registered for <code>.Call</code> use <code>rnng_</code> prefix</li>
+<li>Internal C functions and types use <code>nano_</code> prefix</li>
+<li>R code uses snake_case; internal functions use <code>.function</code> prefix (e.g., <code>.dispatcher</code>)</li>
+<li>C macros for common operations: <code>NANO_PTR</code>, <code>NANO_DATAPTR</code>, <code>NANO_STRING</code>, <code>NANO_VECTOR</code>
+</li>
 </ul></div>
 </div>
 

@@ -22,7 +22,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/v01-messaging.html">nanonext - Messaging and Async I/O</a></li>
     <li><a class="dropdown-item" href="../articles/v02-protocols.html">nanonext - Scalability Protocols</a></li>
     <li><a class="dropdown-item" href="../articles/v03-configuration.html">nanonext - Configuration and Security</a></li>
-    <li><a class="dropdown-item" href="../articles/v04-web.html">nanonext - Web Utilities</a></li>
+    <li><a class="dropdown-item" href="../articles/v04-web.html">nanonext - Web Toolkit</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-news" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">News</button>
@@ -104,9 +104,9 @@ When FALSE: incoming <code>data</code> is raw vector, outgoing data should be ra
 a raw vector or character string. Returns 0 on success, or an error code
 on failure (e.g., if the connection is closed).</p></li>
 <li><p><code>ws$close()</code>: Close the connection.</p></li>
-<li><p><code>ws$id</code>: Unique integer identifier for this connection. IDs are
-unique server-wide across all WebSocket handlers, making them safe to use
-as keys in a shared data structure.</p></li>
+<li><p><code>ws$id</code>: Unique integer identifier for this connection. No two
+connections on the same server will share an ID, even across different
+handlers, making IDs safe to use as keys in a shared data structure.</p></li>
 </ul></div>
 
     <div class="section level2">
