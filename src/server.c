@@ -949,16 +949,20 @@ SEXP rnng_http_server_start(SEXP xptr) {
   }
 
   srv->state = SERVER_STARTED;
+  Rf_setAttrib(xptr, nano_StateSymbol, Rf_mkString("started"));
 
-  nng_sockaddr sa;
-  if (nng_http_server_get_addr(srv->server, &sa) == 0 &&
-      (sa.s_family == NNG_AF_INET || sa.s_family == NNG_AF_INET6)) {
-    uint16_t port = (sa.s_family == NNG_AF_INET) ? sa.s_in.sa_port : sa.s_in6.sa_port;
-    port = ntohs(port);
-    SEXP vec = Rf_allocVector(INTSXP, 2);
-    INTEGER(vec)[0] = 0;
-    INTEGER(vec)[1] = (int) port;
-    return vec;
+  SEXP url = Rf_getAttrib(xptr, nano_UrlSymbol);
+  nng_url *up;
+  if (nng_url_parse(&up, CHAR(STRING_ELT(url, 0))) == 0) {
+    if (up->u_port != NULL && up->u_port[0] == '0' && up->u_port[1] == '\0') {
+      nng_sockaddr sa;
+      if (nng_http_server_get_addr(srv->server, &sa) == 0 &&
+          (sa.s_family == NNG_AF_INET || sa.s_family == NNG_AF_INET6)) {
+        int port = (int) ntohs(sa.s_family == NNG_AF_INET ? sa.s_in.sa_port : sa.s_in6.sa_port);
+        Rf_setAttrib(xptr, nano_UrlSymbol, nano_url_with_port(up, port));
+      }
+    }
+    nng_url_free(up);
   }
 
   return nano_success;

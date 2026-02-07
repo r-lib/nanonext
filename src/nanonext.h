@@ -437,6 +437,7 @@ SEXP nano_raw_char(const unsigned char *, const size_t);
 void nano_serialize(nano_buf *, const SEXP, SEXP, int);
 SEXP nano_unserialize(unsigned char *, const size_t, SEXP);
 SEXP nano_decode(unsigned char *, const size_t, const uint8_t, SEXP);
+SEXP nano_url_with_port(nng_url *, int);
 void nano_encode(nano_buf *, const SEXP);
 int nano_encode_mode(const SEXP);
 int nano_matcharg(const SEXP);

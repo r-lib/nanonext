@@ -259,6 +259,33 @@ SEXP nano_raw_char(const unsigned char *buf, const size_t sz) {
 
 }
 
+SEXP nano_url_with_port(nng_url *up, int port) {
+
+  char port_s[8];
+  const int port_len = snprintf(port_s, sizeof(port_s), "%d", port);
+  const int ipv6 = strchr(up->u_hostname, ':') != NULL;
+
+  size_t len = strlen(up->u_scheme) + 3 + strlen(up->u_hostname) + (ipv6 ? 2 : 0) +
+               1 + (size_t) port_len;
+  if (up->u_path != NULL) len += strlen(up->u_path);
+  if (up->u_query != NULL && up->u_query[0] != '\0') len += 1 + strlen(up->u_query);
+  if (up->u_fragment != NULL && up->u_fragment[0] != '\0') len += 1 + strlen(up->u_fragment);
+
+  char *s = R_alloc(len + 1, 1);
+  char *p = s;
+  size_t r = len + 1;
+  int n;
+  n = snprintf(p, r, "%s://", up->u_scheme); p += n; r -= (size_t) n;
+  n = snprintf(p, r, ipv6 ? "[%s]" : "%s", up->u_hostname); p += n; r -= (size_t) n;
+  n = snprintf(p, r, ":%s", port_s); p += n; r -= (size_t) n;
+  if (up->u_path != NULL) { n = snprintf(p, r, "%s", up->u_path); p += n; r -= (size_t) n; }
+  if (up->u_query != NULL && up->u_query[0] != '\0') { n = snprintf(p, r, "?%s", up->u_query); p += n; r -= (size_t) n; }
+  if (up->u_fragment != NULL && up->u_fragment[0] != '\0') snprintf(p, r, "#%s", up->u_fragment);
+
+  return Rf_mkString(s);
+
+}
+
 void nano_serialize(nano_buf *buf, SEXP object, SEXP hook, int header) {
 
   NANO_ALLOC(buf, NANONEXT_INIT_BUFSIZE);

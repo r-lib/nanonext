@@ -337,7 +337,7 @@ static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls) {
     goto fail;
 
   nst->stream = nng_aio_get_output(aiop, 0);
-
+  
   nng_aio_free(aiop);
   nng_url_free(up);
 
