@@ -440,7 +440,7 @@ This example shows how the unified server architecture makes it straightforward 
 
 If you've rendered a Quarto website and want to serve it locally -- but also expose a dynamic API endpoint alongside it, that's possible with a single `http_server()` call:
 
-```r
+```{r}
 #| label: quartoplusapi
 #| eval: false
 library(nanonext)
