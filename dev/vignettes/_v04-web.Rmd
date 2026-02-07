@@ -393,9 +393,13 @@ server$close()
 
 ```
 
-### 5. Complete Example: Shiny ExtendedTask
+### 5. Client Example: Shiny ExtendedTask
 
 This example demonstrates using `ncurl_aio()` with Shiny's ExtendedTask for non-blocking HTTP requests.
+
+If your Shiny app calls an external API, a slow or unresponsive endpoint will block the R process and freeze the app for *all* users, not just the one who triggered the request.
+`ncurl_aio()` avoids this -- it performs the HTTP call on a background thread and returns a promise, so the R process stays free to serve other sessions.
+It works anywhere that accepts a promise, including Shiny's ExtendedTask:
 
 ```{r}
 #| label: shinyextendedtask
@@ -430,65 +434,39 @@ shinyApp(ui, server)
 
 ```
 
-### 6. Complete Example: Chat Application
+### 6. Server Example: Quarto Site with Dynamic API
 
-This example shows how the unified server architecture makes it natural to combine HTTP and WebSocket handlers -- the page is served over HTTP and the real-time messaging runs over WebSocket, both on the same port.
-```{r}
-#| label: chatexample
+This example shows how the unified server architecture makes it straightforward to combine HTTP or WebSocket handlers to serve different content over the same port.
+
+If you've rendered a Quarto website and want to serve it locally -- but also expose a dynamic API endpoint alongside it, that's possible with a single `http_server()` call:
+
+```r
+#| label: quartoplusapi
 #| eval: false
-clients <- list()
+library(nanonext)
 
 server <- http_server(
-  url = "http://127.0.0.1:8080",
+  url = "http://127.0.0.1:0",
   handlers = list(
-    # Serve the chat page
-    handler("/", function(req) {
+    # Serve your rendered Quarto site
+    handler_directory("/", "_site"),
+
+    # Add a prediction API endpoint
+    handler("/api/predict", function(req) {
+      input <- secretbase::jsondec(req$body)
+      pred <- predict(model, newdata = input)
       list(
         status = 200L,
-        headers = c("Content-Type" = "text/html"),
-        body = '<!DOCTYPE html>
-<html>
-<body>
-  <div id="messages"></div>
-  <input id="msg" type="text">
-  <button onclick="send()">Send</button>
-  <script>
-    const ws = new WebSocket("ws://127.0.0.1:8080/ws");
-    ws.onmessage = (e) => {
-      document.getElementById("messages").innerHTML += "<p>" + e.data + "</p>";
-    };
-    function send() {
-      ws.send(document.getElementById("msg").value);
-      document.getElementById("msg").value = "";
-    }
-  </script>
-</body>
-</html>'
+        headers = c("Content-Type" = "application/json"),
+        body = secretbase::jsonenc(list(prediction = pred))
       )
-    }),
-    # WebSocket endpoint for real-time messaging
-    handler_ws("/ws",
-      on_message = function(ws, data) {
-        # Broadcast to all clients
-        for (client in clients) {
-          client$send(data)
-        }
-      },
-      on_open = function(ws) {
-        clients[[as.character(ws$id)]] <<- ws
-      },
-      on_close = function(ws) {
-        clients[[as.character(ws$id)]] <<- NULL
-      },
-      textframes = TRUE
-    )
+    }, method = "POST")
   )
 )
 
 server$start()
-
-# The server runs non-blocking in the background via the 'later' event loop.
-
-# server$close()
-
+server$url
+# Browse to the URL to see your Quarto site with a live API behind it
 ```
+
+Static pages are served at native speed by NNG while the prediction endpoint is handled by R. Without requiring separate processes or ports, you can even add TLS with just a single argument.
