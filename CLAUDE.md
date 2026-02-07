@@ -4,208 +4,119 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-**nanonext** is an R package providing a binding to NNG (Nanomsg Next Gen), a high-performance messaging library. The package is implemented almost entirely in C, wrapping the NNG C library to provide R interfaces for socket-based messaging, asynchronous I/O operations, and distributed computing primitives.
+**nanonext** is an R package providing a binding to NNG (Nanomsg Next Gen), a high-performance messaging library. The package is implemented almost entirely in C, wrapping the NNG C library to provide R interfaces for socket-based messaging, asynchronous I/O operations, HTTP/WebSocket servers, and distributed computing primitives.
+
+## Common Development Commands
+
+```bash
+# Install package from source
+R CMD INSTALL .
+
+# Build tarball then run full CRAN checks (tests + docs + examples)
+R CMD build . && R CMD check nanonext_*.tar.gz
+
+# Run tests only (uses custom minitest framework, not testthat)
+Rscript tests/tests.R
+
+# Build roxygen2 documentation
+Rscript -e 'devtools::document()'
+
+# Precompile vignettes (must be done before R CMD build when vignettes change)
+Rscript dev/vignettes/precompile.R
+```
+
+### Compilation
+
+The configure script detects or compiles `libmbedtls` (>= 2.5.0) and `libnng` (>= 1.9.0), then generates `src/Makevars`. To force compilation of bundled libraries: `Sys.setenv(NANONEXT_LIBS = 1)`.
+
+### Testing
+
+Tests are in `tests/tests.R` using a custom minitest framework (defined at the top of the file). Available assertions: `test_true`, `test_false`, `test_null`, `test_zero`, `test_type`, `test_class`, `test_equal`, `test_identical`, `test_error(expr, containing = "substring")`, `test_print`. Some tests only run when `NOT_CRAN=true` or on specific platforms.
 
 ## Core Architecture
 
 ### Dual Interface Design
 
-The package provides two equivalent interfaces:
-
 1. **Functional Interface**: Socket objects passed as first argument to functions like `send()`, `recv()`, `dial()`, `listen()`
 2. **Object-Oriented Interface**: Nano objects with methods accessible via `$send()`, `$recv()`, etc.
 
-### Key C Source Files
+### C Source Organization
 
-- `src/nanonext.h` - Main header with type definitions, macros, and function declarations
-- `src/core.c` - Core serialization/unserialization, hooks, and fundamental utilities
+Each `.c` file defines a compilation unit guard macro (e.g., `NANONEXT_PROTOCOLS`, `NANONEXT_HTTP`, `NANONEXT_TLS`) that controls which headers are included via `src/nanonext.h`. The guard is defined in `src/Makevars.in` per-file.
+
+Key files:
+- `src/nanonext.h` - Main header: type definitions, macros, all C function declarations
+- `src/core.c` - Serialization/unserialization, refhook system
 - `src/proto.c` - Protocol implementations (socket opening, option handling)
-- `src/aio.c` - Asynchronous I/O operations and callbacks
+- `src/aio.c` - Async I/O operations, callbacks, `race_aio()`
 - `src/comms.c` - Send/receive operations and data marshaling
 - `src/sync.c` - Synchronization primitives (condition variables, mutexes)
-- `src/thread.c` - Thread management and concurrent operations
-- `src/ncurl.c` - HTTP client implementation
-- `src/net.c` - Network utilities (IP address retrieval)
-- `src/tls.c` - TLS configuration and certificate handling
-- `src/utils.c` - Utility functions
-- `src/init.c` - Package initialization and registration
+- `src/thread.c` - Thread management, interruptible waits
+- `src/ncurl.c` - HTTP client (`ncurl`, `ncurl_aio`, `ncurl_session`)
+- `src/server.c` - HTTP/WebSocket server, streaming handlers
+- `src/dispatcher.c` - C-level task dispatcher (used by mirai package)
+- `src/tls.c` - TLS configuration and certificate generation
+- `src/init.c` - Package initialization, `.Call` registration, symbol definitions
 
-### Key R Source Files
+### R Source Organization
 
-- `R/socket.R` - Socket creation and management (functional interface)
+- `R/socket.R` - Socket creation (functional interface)
 - `R/nano.R` - Nano object creation (OO interface)
 - `R/sendrecv.R` - Send/receive operations
-- `R/aio.R` - Async I/O wrappers
-- `R/context.R` - Context management for concurrent operations
-- `R/sync.R` - Synchronization primitives
+- `R/aio.R` - Async I/O wrappers (`send_aio`, `recv_aio`, `race_aio`, `collect_aio`)
+- `R/server.R` - HTTP/WebSocket server (`http_server`, `handler`, `handler_ws`, `handler_stream`, `format_sse`)
+- `R/dispatcher.R` - C-level dispatcher entry point (internal, for mirai)
 - `R/ncurl.R` - HTTP client functions
-- `R/stream.R` - WebSocket and stream interfaces
-- `R/tls.R` - TLS configuration
+- `R/stream.R` - Low-level WebSocket/stream interfaces
+- `R/tls.R` - TLS configuration and certificate generation
+- `R/sync.R` - Synchronization primitives (`cv`, `wait`, `pipe_notify`)
 
 ### External Dependencies
 
-The package bundles and can compile:
+Bundled in source:
 - `libnng` v1.11.0 (messaging library) - in `src/nng/`
-- `libmbedtls` v3.6.2 (TLS implementation) - in `src/mbedtls/`
+- `libmbedtls` v3.6.5 (TLS implementation) - in `src/mbedtls/`
 
-These bundled libraries are compiled during installation if system libraries are not found or if `NANONEXT_LIBS=1` is set.
+### Thread-to-R Callback Pattern
 
-## Common Development Commands
+NNG callbacks run on background threads and cannot call R directly. The package uses the `later` package (lazily loaded) to schedule R callbacks on the main thread. The `eln2` function pointer (set by `nano_load_later()`) is the bridge. This pattern is used by: promise resolution, WebSocket `on_message`/`on_open`/`on_close` callbacks, HTTP streaming `on_request`/`on_close` callbacks.
 
-### Building and Testing
-
-```r
-# Install package from source
-R CMD INSTALL .
-
-# Build package
-R CMD build .
-
-# Check package (run all tests and CRAN checks)
-R CMD check nanonext_*.tar.gz
-
-# Run tests only
-Rscript tests/tests.R
-```
-
-### Development Workflow
-
-```r
-# In R session - load package for development
-devtools::load_all()
-
-# Build documentation
-devtools::document()
-
-# Run tests
-devtools::test()
-
-# Check package
-devtools::check()
-```
-
-### Compilation
-
-The package uses a configure script (`configure`) that:
-1. Detects or compiles `libmbedtls` (requires >= 2.5.0)
-2. Detects or compiles `libnng` (requires >= 1.9.0)
-3. Generates `src/Makevars` with appropriate flags
-
-For forced compilation of bundled libraries:
-```bash
-Sys.setenv(NANONEXT_LIBS = 1)
-```
-
-### Testing Notes
-
-- Tests are in `tests/tests.R` using a minimal custom testing framework
-- Tests cover: sockets, protocols, async I/O, serialization, HTTP client, TLS, streams, contexts
-- Network-dependent tests may fail if external services are unavailable
-- Some tests only run when `NOT_CRAN=true` or on specific platforms (Linux)
-
-## Key Concepts
-
-### Protocols
-
-Implements scalability protocols:
-- **Bus** (mesh): `"bus"`
-- **Pair** (1-to-1): `"pair"`
-- **Poly** (polyamorous 1-to-1): `"poly"`
-- **Pipeline**: `"push"`, `"pull"`
-- **Pub/Sub**: `"pub"`, `"sub"`
-- **Request/Reply**: `"req"`, `"rep"`
-- **Survey**: `"surveyor"`, `"respondent"`
-
-### Transports
-
-Supported URL schemes:
-- `inproc://` - in-process (zero-copy)
-- `ipc://` - inter-process
-- `tcp://` - TCP/IP
-- `ws://` - WebSocket
-- `wss://` - WebSocket over TLS
-- `tls+tcp://` - TLS over TCP
-
-### Async I/O (AIO)
-
-Async operations return "aio" objects that auto-resolve:
-- `send_aio()`, `recv_aio()` - async send/receive
-- `request()` - async request/reply
-- `ncurl_aio()` - async HTTP
-- Objects have `$data`, `$result` fields
-- Use `call_aio()` to wait/retrieve results
-- Use `unresolved()` to check status
-
-### Serialization Modes
-
-Data can be sent in multiple modes:
-- `mode = "serial"` or `1` - R serialization (default, handles any R object)
-- `mode = "raw"` or `2` - raw bytes (for atomic vectors)
-- `mode = "string"` or `8` - character conversion
-- Various receive modes for type coercion
-
-Custom serialization supported via `serial_config()` for specific object classes.
+## Key Implementation Details
 
 ### Object System
 
-The package uses R's S3 object system with heavy use of external pointers tagged with specific symbols (defined in `src/init.c`):
-- `nano_SocketSymbol` - Socket objects
-- `nano_ContextSymbol` - Context objects
-- `nano_AioSymbol` - AIO objects
-- `nano_CvSymbol` - Condition variables
-- etc.
-
-External pointers are stored in pairlists with finalizers for automatic cleanup.
-
-## Important Implementation Details
+S3 classes backed by external pointers tagged with symbols (defined in `src/init.c`, e.g. `nano_SocketSymbol`, `nano_CvSymbol`, `nano_HttpServerSymbol`). External pointers are stored in pairlists (CAR = pointer, CDR = protected data, TAG = type symbol). Finalizers handle C resource cleanup. The `nano_precious` environment prevents premature GC of R objects referenced by C code.
 
 ### Memory Management
 
-- C code uses `NANO_ALLOC`, `NANO_FREE` macros for buffer management
-- R objects protected via `nano_precious` environment (prevents GC)
-- Finalizers registered for cleanup of C resources
-- Careful use of `PROTECT`/`UNPROTECT` in C code
-
-### Thread Safety
-
-- Package implements its own threading via NNG's platform layer
-- Condition variables (`cv()`) for cross-thread signaling
-- Mutexes used internally for shared state
-- R interrupt handling on both Unix (via `R_interrupts_pending`) and Windows
+- `NANO_ALLOC` / `NANO_FREE` macros for buffer management
+- `nano_PreserveObject` / `nano_ReleaseObject` for protecting R objects from GC in the `nano_precious` environment
+- Pointer validity checked via `NANO_PTR_CHECK(x, tag)` (verifies tag matches and pointer is non-NULL)
 
 ### Error Handling
 
-- NNG errors returned as integer error codes
-- `mk_error()` creates error values of class `"errorValue"`
-- Error messages via `nng_strerror()`
-- Use `ERROR_OUT()` macro to error, `ERROR_RET()` to return error value
+- NNG errors are integer codes; `mk_error(xc)` creates objects of class `"errorValue"`
+- `ERROR_OUT(xc)` macro calls `Rf_error()`, `ERROR_RET(xc)` returns an error value
+- Functions generally return error values rather than throwing R errors
 
-### Configuration Options
+### HTTP/WebSocket Server Architecture
 
-Set/get socket/dialer/listener options via:
-- `opt(object, "option-name")` - get
-- `opt(object, "option-name") <- value` - set
+`src/server.c` implements a multi-handler HTTP server with WebSocket and chunked streaming support. Handler types (discriminated by integer `type` field): 1=HTTP callback, 2=WebSocket, 3=static file, 4=directory, 5=inline content, 6=redirect, 7=HTTP streaming. WebSocket and streaming connections use a state machine (`CONN_STATE_OPEN` → `CONN_STATE_CLOSING` → `CONN_STATE_CLOSED`) with mutex protection to prevent races between NNG threads and R's main thread.
 
-Options are protocol-specific (e.g., `"req:resend-time"`, `"sub:prefnew"`).
+### Vignettes
+
+Vignettes are precompiled because they require live network connections. Source files are in `dev/vignettes/_*.Rmd`, compiled output goes to `vignettes/*.Rmd`. Run `Rscript dev/vignettes/precompile.R` to regenerate.
 
 ## Build System
 
 - `configure` - POSIX shell script for Unix-like systems
-- `configure.win` - Windows configuration
-- `configure.ucrt` - UCRT-specific Windows config
-- Requires `cmake` if compiling bundled libraries (no longer requires `xz` as libraries are pre-extracted)
+- `configure.win` / `configure.ucrt` - Windows configurations
+- Requires `cmake` if compiling bundled libraries
 - Environment variables: `INCLUDE_DIR`, `LIB_DIR`, `NANONEXT_LIBS`
-
-## Documentation
-
-- Roxygen2-based documentation in R files
-- Main vignette: `vignettes/nanonext.Rmd`
-- Website: https://nanonext.r-lib.org
-- Generated with pkgdown
 
 ## Code Style
 
-- C code follows NNG conventions with `nano_` prefixes for package functions
-- R code uses snake_case for functions
-- Clear separation between user-facing and internal functions (`.function` prefix for internal)
-- Extensive use of macros for code clarity (`NANO_PTR`, `NANO_DATAPTR`, etc.)
+- C functions registered for `.Call` use `rnng_` prefix
+- Internal C functions and types use `nano_` prefix
+- R code uses snake_case; internal functions use `.function` prefix (e.g., `.dispatcher`)
+- C macros for common operations: `NANO_PTR`, `NANO_DATAPTR`, `NANO_STRING`, `NANO_VECTOR`

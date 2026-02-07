@@ -15,7 +15,7 @@ This is a cheatsheet. Refer to the other vignettes for detailed introductions:
 - [Messaging and Async I/O](v01-messaging.html) - cross-language exchange, async operations, synchronisation
 - [Scalability Protocols](v02-protocols.html) - req/rep, pub/sub, surveyor/respondent
 - [Configuration and Security](v03-configuration.html) - TLS, options, serialization, statistics
-- [Web Utilities](v04-web.html) - HTTP client/server, WebSocket, streaming
+- [Web Toolkit](v04-web.html) - HTTP client/server, WebSocket, streaming
 
 ## Key Takeaways
 

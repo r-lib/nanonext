@@ -44,9 +44,9 @@ The \code{ws} object passed to callbacks has the following fields and methods:
 a raw vector or character string. Returns 0 on success, or an error code
 on failure (e.g., if the connection is closed).
 \item \code{ws$close()}: Close the connection.
-\item \code{ws$id}: Unique integer identifier for this connection. IDs are
-unique server-wide across all WebSocket handlers, making them safe to use
-as keys in a shared data structure.
+\item \code{ws$id}: Unique integer identifier for this connection. No two
+connections on the same server will share an ID, even across different
+handlers, making IDs safe to use as keys in a shared data structure.
 }
 }
 

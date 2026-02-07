@@ -1,7 +1,7 @@
 ---
-title: "nanonext - Web Utilities"
+title: "nanonext - Web Toolkit"
 vignette: >
-  %\VignetteIndexEntry{nanonext - Web Utilities}
+  %\VignetteIndexEntry{nanonext - Web Toolkit}
   %\VignetteEngine{litedown::vignette}
   %\VignetteEncoding{UTF-8}
 ---
@@ -13,7 +13,7 @@ vignette: >
 library(nanonext)
 ```
 
-nanonext provides high-performance HTTP/WebSocket client and server capabilities built on NNG.
+nanonext provides high-performance HTTP/WebSocket client and server capabilities built on NNG's networking stack with Mbed TLS for secure connections.
 
 ### 1. HTTP Client
 
@@ -48,7 +48,7 @@ ncurl("https://postman-echo.com/post",
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Sat, 07 Feb 2026 12:05:15 GMT"
+#> [1] "Sat, 07 Feb 2026 19:43:40 GMT"
 #> 
 #> 
 #> $data
@@ -66,7 +66,7 @@ ncurl("https://postman-echo.com/get",
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Sat, 07 Feb 2026 12:05:15 GMT"
+#> [1] "Sat, 07 Feb 2026 19:43:41 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -78,7 +78,7 @@ ncurl("https://postman-echo.com/get",
 #> [1] "close"
 #> 
 #> $headers$`CF-RAY`
-#> [1] "9ca2c123fc0fbd6e-LHR"
+#> [1] "9ca560a88db4edea-LHR"
 #> 
 #> $headers$etag
 #> [1] "W/\"8f-7zN8nSad8A9WlFJjKQZB04z5nHE\""
@@ -87,7 +87,7 @@ ncurl("https://postman-echo.com/get",
 #> [1] "Accept-Encoding"
 #> 
 #> $headers$`Set-Cookie`
-#> [1] "sails.sid=s%3Ae_mISpmL4XXcdYdcUlFrPQ6BDhNksO4D.il%2FhisOP0Vf1jhPbQP4EjDFI6I2nlcZgLIRsN421kCE; Path=/; HttpOnly, __cf_bm=Sc0wmYhgsovmfVH2Z9OShMZUgjiym.ocBonxFwBHn0k-1770465915-1.0.1.1-81eZgPyB8rhf51KT4QU.bCSoZepcryWCa552DCzsps7FhOslDjyXmAeEKHCf7oSNoHfjKyXwJVFKAkhh1q3VtPD2Uun8osRyKrCxBu64G0k; path=/; expires=Sat, 07-Feb-26 12:35:15 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=tGV0.l4C.tS29T.3Ixhi4s.ugthS5ZGMiTkcdP42x1A-1770465915624-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
+#> [1] "sails.sid=s%3AK3m5xa7-usqJ1o1xSl6A82Gkc5B6TdoA.rRzl7KNGFbTGWt7VNEwNV8oDHv8NJFuc6%2BlwrVxZXNw; Path=/; HttpOnly, __cf_bm=jt0yThIQ_4Cy3vCqexjRnnEpoyJjoJhZaLfcjHxrHZo-1770493421-1.0.1.1-pq0P2hoYcRMW1w0z.hfXr3C9jHB3_NAXVHgx_KybZxoZCJ3_JX6_laYXYPxbRkFK.j45GaFe5_3Tzkp5iss97M.30fY7pfOX8rWCWTFG6c8; path=/; expires=Sat, 07-Feb-26 20:13:41 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=r3GbLU8Eg7ulxWB.d6BVYk9usJpOaBUisgqG82JRs_w-1770493421009-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
 #> 
 #> $headers$`x-envoy-upstream-service-time`
 #> [1] "5"
@@ -119,7 +119,7 @@ res
 
 call_aio(res)$headers
 #> $date
-#> [1] "Sat, 07 Feb 2026 12:05:15 GMT"
+#> [1] "Sat, 07 Feb 2026 19:43:41 GMT"
 
 res$status
 #> [1] 200
@@ -160,7 +160,7 @@ transact(sess)
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Sat, 07 Feb 2026 12:05:16 GMT"
+#> [1] "Sat, 07 Feb 2026 19:43:41 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -220,9 +220,11 @@ close(s)
 
 ```
 
-### 3. HTTP Server
+### 3. Unified HTTP/WebSocket Server
 
-`http_server()` creates servers that handle HTTP requests and WebSocket connections using NNG's high-performance architecture.
+`http_server()` creates a single server that can handle HTTP requests, WebSocket connections, and HTTP streaming, all on the same port.
+
+A single call to `http_server()` sets up one NNG server instance with a list of handlers. HTTP routes, WebSocket endpoints, streaming endpoints, and static file handlers all share the same underlying server -- there is no need to run separate processes or bind additional ports. WebSocket clients connect via the standard HTTP upgrade mechanism, so a browser can load a page over HTTP and open a WebSocket connection to the same origin without any cross-origin configuration.
 
 
 ``` r
@@ -247,7 +249,23 @@ server$close()
 
 ```
 
-#### Request Handlers
+Specifying port `0` in the URL lets the OS assign an available port. The actual port is reflected in `server$url` after `$start()`, making it easy to set up test servers without port conflicts.
+
+#### Handler Types
+
+All handler types can be freely mixed in a single server's handler list:
+
+| Handler | Purpose |
+|:--------|:--------|
+| `handler()` | HTTP request/response with R callback |
+| `handler_ws()` | WebSocket with `on_message`, `on_open`, `on_close` callbacks |
+| `handler_stream()` | Chunked HTTP streaming (SSE, NDJSON, custom) |
+| `handler_file()` | Serve a single static file |
+| `handler_directory()` | Serve a directory tree with automatic MIME types |
+| `handler_inline()` | Serve in-memory content |
+| `handler_redirect()` | HTTP redirect |
+
+#### HTTP Request Handlers
 
 `handler()` creates HTTP route handlers. The callback receives a request list with `method`, `uri`, `headers`, and `body`, and returns a response list with `status`, optional `headers`, and `body`.
 
@@ -276,8 +294,6 @@ h3 <- handler("/api", function(req) {
 
 #### Static Content Handlers
 
-nanonext provides specialized handlers for serving static content.
-
 
 ``` r
 # Serve a single file
@@ -295,9 +311,9 @@ h_redirect <- handler_redirect("/old-page", "/new-page", status = 301L)
 
 ```
 
-### 4. WebSocket Server
+#### WebSocket Handlers
 
-`handler_ws()` creates WebSocket handlers that manage bidirectional connections. NNG handles the HTTP upgrade handshake and WebSocket framing automatically.
+`handler_ws()` creates WebSocket endpoints. NNG handles the HTTP upgrade handshake and all WebSocket framing (RFC 6455) automatically. Because WebSocket handlers share the same server as HTTP handlers, the browser can load a page and open a WebSocket to the same host and port with no additional setup.
 
 
 ``` r
@@ -330,11 +346,13 @@ The `ws` connection object provides:
 
 - `ws$send(data)` - Send a message to the client
 - `ws$close()` - Close the connection
-- `ws$id` - Unique connection identifier
+- `ws$id` - Unique integer connection identifier
 
-### 5. HTTP Streaming
+Multiple WebSocket endpoints can coexist on the same server, each with independent callbacks and connection tracking. Connection IDs are unique across the entire server, so they are safe to use as keys in a shared data structure spanning multiple handlers.
 
-`handler_stream()` enables HTTP streaming using chunked transfer encoding. This supports Server-Sent Events (SSE), newline-delimited JSON (NDJSON), and custom streaming formats.
+#### HTTP Streaming Handlers
+
+`handler_stream()` enables HTTP streaming using chunked transfer encoding, supporting Server-Sent Events (SSE), newline-delimited JSON (NDJSON), and custom streaming formats. Like WebSocket handlers, streaming endpoints share the same server as all other handlers.
 
 
 ``` r
@@ -369,7 +387,7 @@ server$start()
 
 #### Server-Sent Events
 
-`format_sse()` formats messages according to the SSE specification for browser EventSource clients.
+`format_sse()` formats messages according to the SSE specification for browser `EventSource` clients.
 
 
 ``` r
@@ -391,9 +409,9 @@ The streaming connection object provides:
 - `conn$set_header(name, value)` - Set response header (before first send)
 - `conn$id` - Unique connection identifier
 
-### 6. Secure Connections (TLS)
+### 4. Secure Connections (TLS)
 
-All web utilities support TLS for secure HTTPS/WSS connections via `tls_config()`.
+All web functions support TLS for secure HTTPS/WSS connections via `tls_config()`.
 
 #### Public Internet HTTPS
 
@@ -444,7 +462,7 @@ server <- http_server(
 server$start()
 server
 #> < nanoServer >
-#>  - url: https://127.0.0.1:55198 
+#>  - url: https://127.0.0.1:50209 
 #>  - state: started
 
 # HTTPS client request
@@ -460,7 +478,7 @@ server$close()
 
 ```
 
-### 7. Complete Example: Shiny ExtendedTask
+### 5. Complete Example: Shiny ExtendedTask
 
 This example demonstrates using `ncurl_aio()` with Shiny's ExtendedTask for non-blocking HTTP requests.
 
@@ -496,9 +514,9 @@ shinyApp(ui, server)
 
 ```
 
-### 8. Complete Example: Chat Application
+### 6. Complete Example: Chat Application
 
-This example demonstrates combining HTTP and WebSocket handlers for a simple chat application.
+This example shows how the unified server architecture makes it natural to combine HTTP and WebSocket handlers -- the page is served over HTTP and the real-time messaging runs over WebSocket, both on the same port.
 
 ``` r
 clients <- list()

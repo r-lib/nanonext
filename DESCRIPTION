@@ -1,6 +1,6 @@
 Type: Package
 Package: nanonext
-Title: NNG (Nanomsg Next Gen) Lightweight Messaging Library
+Title: Lightweight Toolkit for Messaging, Concurrency and the Web
 Version: 1.7.2.9000
 Authors@R: c(
     person("Charlie", "Gao", , "charlie.gao@posit.co", role = c("aut", "cre"),
@@ -11,15 +11,16 @@ Authors@R: c(
     person("R Consortium", role = "fnd")
   )
 Description: R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ.
-    NNG is a socket library for reliable, high-performance messaging over
-    in-process, IPC, TCP, WebSocket and secure TLS transports. Implements
-    'Scalability Protocols', a standard for common communications patterns
-    including publish/subscribe, request/reply and service discovery. As
-    its own threaded concurrency framework, provides a toolkit for
-    asynchronous programming and distributed computing. Intuitive 'aio'
-    objects resolve automatically when asynchronous operations complete,
-    and synchronisation primitives allow R to wait upon events signalled
-    by concurrent threads.
+    A toolkit for messaging, concurrency and the web. High-performance
+    socket messaging over in-process, IPC, TCP, WebSocket and secure TLS
+    transports implements 'Scalability Protocols', a standard for common
+    communications patterns including publish/subscribe, request/reply and
+    survey. A threaded concurrency framework with intuitive 'aio' objects
+    that resolve automatically upon completion of asynchronous operations,
+    and synchronisation primitives that allow R to wait on events
+    signalled by concurrent threads. A unified HTTP server hosting REST
+    endpoints, WebSocket connections and streaming on a single port, with
+    a built-in HTTP client.
 License: MIT + file LICENSE
 URL: https://nanonext.r-lib.org, https://github.com/r-lib/nanonext
 BugReports: https://github.com/r-lib/nanonext/issues

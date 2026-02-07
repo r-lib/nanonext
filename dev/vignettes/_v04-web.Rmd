@@ -1,7 +1,7 @@
 ---
-title: "nanonext - Web Utilities"
+title: "nanonext - Web Toolkit"
 vignette: >
-  %\VignetteIndexEntry{nanonext - Web Utilities}
+  %\VignetteIndexEntry{nanonext - Web Toolkit}
   %\VignetteEngine{litedown::vignette}
   %\VignetteEncoding{UTF-8}
 ---
@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
 library(nanonext)
 ```
 
-nanonext provides high-performance HTTP/WebSocket client and server capabilities built on NNG.
+nanonext provides high-performance HTTP/WebSocket client and server capabilities built on NNG's networking stack with Mbed TLS for secure connections.
 
 ### 1. HTTP Client
 
@@ -138,9 +138,11 @@ close(s)
 
 ```
 
-### 3. HTTP Server
+### 3. Unified HTTP/WebSocket Server
 
-`http_server()` creates servers that handle HTTP requests and WebSocket connections using NNG's high-performance architecture.
+`http_server()` creates a single server that can handle HTTP requests, WebSocket connections, and HTTP streaming, all on the same port.
+
+A single call to `http_server()` sets up one NNG server instance with a list of handlers. HTTP routes, WebSocket endpoints, streaming endpoints, and static file handlers all share the same underlying server -- there is no need to run separate processes or bind additional ports. WebSocket clients connect via the standard HTTP upgrade mechanism, so a browser can load a page over HTTP and open a WebSocket connection to the same origin without any cross-origin configuration.
 
 ```{r}
 #| label: httpserver
@@ -166,7 +168,23 @@ server$close()
 
 ```
 
-#### Request Handlers
+Specifying port `0` in the URL lets the OS assign an available port. The actual port is reflected in `server$url` after `$start()`, making it easy to set up test servers without port conflicts.
+
+#### Handler Types
+
+All handler types can be freely mixed in a single server's handler list:
+
+| Handler | Purpose |
+|:--------|:--------|
+| `handler()` | HTTP request/response with R callback |
+| `handler_ws()` | WebSocket with `on_message`, `on_open`, `on_close` callbacks |
+| `handler_stream()` | Chunked HTTP streaming (SSE, NDJSON, custom) |
+| `handler_file()` | Serve a single static file |
+| `handler_directory()` | Serve a directory tree with automatic MIME types |
+| `handler_inline()` | Serve in-memory content |
+| `handler_redirect()` | HTTP redirect |
+
+#### HTTP Request Handlers
 
 `handler()` creates HTTP route handlers. The callback receives a request list with `method`, `uri`, `headers`, and `body`, and returns a response list with `status`, optional `headers`, and `body`.
 
@@ -195,8 +213,6 @@ h3 <- handler("/api", function(req) {
 
 #### Static Content Handlers
 
-nanonext provides specialized handlers for serving static content.
-
 ```{r}
 #| label: statichandlers
 #| eval: false
@@ -215,9 +231,9 @@ h_redirect <- handler_redirect("/old-page", "/new-page", status = 301L)
 
 ```
 
-### 4. WebSocket Server
+#### WebSocket Handlers
 
-`handler_ws()` creates WebSocket handlers that manage bidirectional connections. NNG handles the HTTP upgrade handshake and WebSocket framing automatically.
+`handler_ws()` creates WebSocket endpoints. NNG handles the HTTP upgrade handshake and all WebSocket framing (RFC 6455) automatically. Because WebSocket handlers share the same server as HTTP handlers, the browser can load a page and open a WebSocket to the same host and port with no additional setup.
 
 ```{r}
 #| label: wshandler
@@ -251,11 +267,13 @@ The `ws` connection object provides:
 
 - `ws$send(data)` - Send a message to the client
 - `ws$close()` - Close the connection
-- `ws$id` - Unique connection identifier
+- `ws$id` - Unique integer connection identifier
 
-### 5. HTTP Streaming
+Multiple WebSocket endpoints can coexist on the same server, each with independent callbacks and connection tracking. Connection IDs are unique across the entire server, so they are safe to use as keys in a shared data structure spanning multiple handlers.
 
-`handler_stream()` enables HTTP streaming using chunked transfer encoding. This supports Server-Sent Events (SSE), newline-delimited JSON (NDJSON), and custom streaming formats.
+#### HTTP Streaming Handlers
+
+`handler_stream()` enables HTTP streaming using chunked transfer encoding, supporting Server-Sent Events (SSE), newline-delimited JSON (NDJSON), and custom streaming formats. Like WebSocket handlers, streaming endpoints share the same server as all other handlers.
 
 ```{r}
 #| label: streamhandler
@@ -291,7 +309,7 @@ server$start()
 
 #### Server-Sent Events
 
-`format_sse()` formats messages according to the SSE specification for browser EventSource clients.
+`format_sse()` formats messages according to the SSE specification for browser `EventSource` clients.
 
 ```{r}
 #| label: formatsse
@@ -311,9 +329,9 @@ The streaming connection object provides:
 - `conn$set_header(name, value)` - Set response header (before first send)
 - `conn$id` - Unique connection identifier
 
-### 6. Secure Connections (TLS)
+### 4. Secure Connections (TLS)
 
-All web utilities support TLS for secure HTTPS/WSS connections via `tls_config()`.
+All web functions support TLS for secure HTTPS/WSS connections via `tls_config()`.
 
 #### Public Internet HTTPS
 
@@ -375,7 +393,7 @@ server$close()
 
 ```
 
-### 7. Complete Example: Shiny ExtendedTask
+### 5. Complete Example: Shiny ExtendedTask
 
 This example demonstrates using `ncurl_aio()` with Shiny's ExtendedTask for non-blocking HTTP requests.
 
@@ -412,9 +430,9 @@ shinyApp(ui, server)
 
 ```
 
-### 8. Complete Example: Chat Application
+### 6. Complete Example: Chat Application
 
-This example demonstrates combining HTTP and WebSocket handlers for a simple chat application.
+This example shows how the unified server architecture makes it natural to combine HTTP and WebSocket handlers -- the page is served over HTTP and the real-time messaging runs over WebSocket, both on the same port.
 ```{r}
 #| label: chatexample
 #| eval: false
