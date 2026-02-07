@@ -141,18 +141,30 @@
 <span><span class="fu"><a href="reference/close.html">close</a></span><span class="op">(</span><span class="va">s2</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="http-client">HTTP Client<a class="anchor" aria-label="anchor" href="#http-client"></a>
+<h3 id="web-utilities">Web Utilities<a class="anchor" aria-label="anchor" href="#web-utilities"></a>
 </h3>
+<p>HTTP/WebSocket client and server, with streaming support for SSE and NDJSON. Mbed TLS for secure connections.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/ncurl.html">ncurl</a></span><span class="op">(</span><span class="st">"https://postman-echo.com/get"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $status</span></span>
-<span><span class="co">#&gt; [1] 200</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $headers</span></span>
-<span><span class="co">#&gt; NULL</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $data</span></span>
-<span><span class="co">#&gt; [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Generate certificates</span></span>
+<span><span class="va">cert</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/write_cert.html">write_cert</a></span><span class="op">(</span>cn <span class="op">=</span> <span class="st">"127.0.0.1"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># HTTPS server</span></span>
+<span><span class="va">server</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/http_server.html">http_server</a></span><span class="op">(</span></span>
+<span>  url <span class="op">=</span> <span class="st">"https://127.0.0.1:0"</span>,</span>
+<span>  handlers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="reference/handler.html">handler</a></span><span class="op">(</span><span class="st">"/"</span>, \<span class="op">(</span><span class="va">req</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>status <span class="op">=</span> <span class="fl">200L</span>, body <span class="op">=</span> <span class="st">'{"status":"ok"}'</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  tls <span class="op">=</span> <span class="fu"><a href="reference/tls_config.html">tls_config</a></span><span class="op">(</span>server <span class="op">=</span> <span class="va">cert</span><span class="op">$</span><span class="va">server</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">server</span><span class="op">$</span><span class="fu">start</span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Async HTTPS client</span></span>
+<span><span class="va">aio</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ncurl_aio.html">ncurl_aio</a></span><span class="op">(</span><span class="va">server</span><span class="op">$</span><span class="va">url</span>, tls <span class="op">=</span> <span class="fu"><a href="reference/tls_config.html">tls_config</a></span><span class="op">(</span>client <span class="op">=</span> <span class="va">cert</span><span class="op">$</span><span class="va">client</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="kw">while</span> <span class="op">(</span><span class="fu"><a href="reference/unresolved.html">unresolved</a></span><span class="op">(</span><span class="va">aio</span><span class="op">)</span><span class="op">)</span> <span class="fu">later</span><span class="fu">::</span><span class="fu"><a href="https://later.r-lib.org/reference/run_now.html" class="external-link">run_now</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">aio</span><span class="op">$</span><span class="va">data</span></span>
+<span><span class="co">#&gt; [1] "{\"status\":\"ok\"}"</span></span>
+<span></span>
+<span><span class="va">server</span><span class="op">$</span><span class="fu">close</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
@@ -207,7 +219,7 @@
 <h4 id="linux--mac--solaris">Linux / Mac / Solaris<a class="anchor" aria-label="anchor" href="#linux--mac--solaris"></a>
 </h4>
 <p>Requires ‘libnng’ &gt;= v1.9.0 and ‘libmbedtls’ &gt;= 2.5.0, or ‘cmake’ to compile bundled libraries (libnng v1.11.0, libmbedtls v3.6.5).</p>
-<p><strong>Recommended:</strong> Let the package compile bundled libraries for optimal performance:</p>
+<p>Recommended: Let the package compile bundled libraries for optimal performance:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>NANONEXT_LIBS <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"nanonext"</span><span class="op">)</span></span></code></pre></div>

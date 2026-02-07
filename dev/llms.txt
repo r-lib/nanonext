@@ -59,18 +59,32 @@ close(s1)
 close(s2)
 ```
 
-### HTTP Client
+### Web Utilities
+
+HTTP/WebSocket client and server, with streaming support for SSE and
+NDJSON. Mbed TLS for secure connections.
 
 ``` r
-ncurl("https://postman-echo.com/get")
-#> $status
-#> [1] 200
-#> 
-#> $headers
-#> NULL
-#> 
-#> $data
-#> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"
+# Generate certificates
+cert <- write_cert(cn = "127.0.0.1")
+
+# HTTPS server
+server <- http_server(
+  url = "https://127.0.0.1:0",
+  handlers = list(
+    handler("/", \(req) list(status = 200L, body = '{"status":"ok"}'))
+  ),
+  tls = tls_config(server = cert$server)
+)
+server$start()
+
+# Async HTTPS client
+aio <- ncurl_aio(server$url, tls = tls_config(client = cert$client))
+while (unresolved(aio)) later::run_now(1)
+aio$data
+#> [1] "{\"status\":\"ok\"}"
+
+server$close()
 ```
 
 ### Documentation
@@ -100,7 +114,7 @@ install.packages("nanonext", repos = "https://r-lib.r-universe.dev")
 Requires ‘libnng’ \>= v1.9.0 and ‘libmbedtls’ \>= 2.5.0, or ‘cmake’ to
 compile bundled libraries (libnng v1.11.0, libmbedtls v3.6.5).
 
-**Recommended:** Let the package compile bundled libraries for optimal
+Recommended: Let the package compile bundled libraries for optimal
 performance:
 
 ``` r
