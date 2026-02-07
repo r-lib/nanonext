@@ -32,6 +32,9 @@
   for HTTP redirects.
 - [`ncurl()`](https://nanonext.r-lib.org/dev/reference/ncurl.md) and
   variants now accept `response = TRUE` to return all response headers.
+- Listeners now automatically resolve port `0` to the actual port
+  assigned by the OS. The listener’s `url` attribute is updated when the
+  listener starts.
 - Adds
   [`race_aio()`](https://nanonext.r-lib.org/dev/reference/race_aio.md)
   to wait for and return the index of the first resolved Aio in a list

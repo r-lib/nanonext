@@ -57,6 +57,7 @@
 <li>Adds static content handlers: <code><a href="../reference/handler_file.html">handler_file()</a></code> and <code><a href="../reference/handler_directory.html">handler_directory()</a></code> for serving files, <code><a href="../reference/handler_inline.html">handler_inline()</a></code> for in-memory content, and <code><a href="../reference/handler_redirect.html">handler_redirect()</a></code> for HTTP redirects.</li>
 <li>
 <code><a href="../reference/ncurl.html">ncurl()</a></code> and variants now accept <code>response = TRUE</code> to return all response headers.</li>
+<li>Listeners now automatically resolve port <code>0</code> to the actual port assigned by the OS. The listener’s <code>url</code> attribute is updated when the listener starts.</li>
 <li>Adds <code><a href="../reference/race_aio.html">race_aio()</a></code> to wait for and return the index of the first resolved Aio in a list of Aios.</li>
 </ul></div>
 <div class="section level5">
