@@ -315,6 +315,28 @@ The streaming connection object provides:
 
 All web utilities support TLS for secure HTTPS/WSS connections via `tls_config()`.
 
+#### Public Internet HTTPS
+
+When making HTTPS requests over the public internet, you should supply a TLS configuration to validate server certificates.
+
+Root CA certificates in PEM format may be found at:
+
+- Linux: `/etc/ssl/certs/ca-certificates.crt` or `/etc/pki/tls/certs/ca-bundle.crt`
+- macOS: `/etc/ssl/cert.pem`
+- Windows: download from the [Common CA Database](https://www.ccadb.org/resources) site run by Mozilla (select the Server Authentication SSL/TLS certificates text file). *This link is not endorsed; use at your own risk.*
+
+```{r}
+#| label: tlspublic
+#| eval: false
+tls <- tls_config(client = "/etc/ssl/cert.pem")
+ncurl("https://www.google.com", tls = tls)
+
+```
+
+#### Self-Signed Certificates
+
+For internal services or testing, generate self-signed certificates using `write_cert()`.
+
 ```{r}
 #| label: tlsweb
 # Generate self-signed certificate for testing

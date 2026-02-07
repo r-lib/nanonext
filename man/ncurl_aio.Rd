@@ -52,17 +52,15 @@ certificates are not validated.}
 An 'ncurlAio' (object of class 'ncurlAio' and 'recvAio') (invisibly).
 The following elements may be accessed:
 \itemize{
-\item \verb{$status} - integer HTTP repsonse status code (200 - OK).
-Use \code{\link[=status_code]{status_code()}} for a translation of the meaning.
+\item \verb{$status} - integer HTTP repsonse status code (200 - OK). Use
+\code{\link[=status_code]{status_code()}} for a translation of the meaning.
 \item \verb{$headers} - named list of response headers (all headers if
 \code{response = TRUE}, or those specified in \code{response}, or NULL otherwise).
 If the status code is within the 300 range, i.e. a redirect, the response
-header 'Location' is automatically appended to return the redirect
-address.
-\item \verb{$data} - the response body, as a character string if
-\code{convert = TRUE} (may be further parsed as html, json, xml etc. as
-required), or a raw byte vector if FALSE (use \code{\link[=writeBin]{writeBin()}} to save as a
-file).
+header 'Location' is automatically appended to return the redirect address.
+\item \verb{$data} - the response body, as a character string if \code{convert = TRUE} (may
+be further parsed as html, json, xml etc. as required), or a raw byte
+vector if FALSE (use \code{\link[=writeBin]{writeBin()}} to save as a file).
 }
 }
 \description{
@@ -79,6 +77,14 @@ The promises created are completely event-driven and non-polling.
 If a status code of 200 (OK) is returned then the promise is resolved with
 the reponse body, otherwise it is rejected with a translation of the status
 code or 'errorValue' as the case may be.
+}
+
+\section{Public Internet HTTPS}{
+
+
+When making HTTPS requests over the public internet, you should supply a TLS
+configuration to validate server certificates. See \code{\link[=tls_config]{tls_config()}} for
+details.
 }
 
 \examples{

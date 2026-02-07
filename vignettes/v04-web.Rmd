@@ -48,7 +48,7 @@ ncurl("https://postman-echo.com/post",
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Fri, 06 Feb 2026 11:40:34 GMT"
+#> [1] "Sat, 07 Feb 2026 12:05:15 GMT"
 #> 
 #> 
 #> $data
@@ -66,7 +66,7 @@ ncurl("https://postman-echo.com/get",
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Fri, 06 Feb 2026 11:40:35 GMT"
+#> [1] "Sat, 07 Feb 2026 12:05:15 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -78,7 +78,7 @@ ncurl("https://postman-echo.com/get",
 #> [1] "close"
 #> 
 #> $headers$`CF-RAY`
-#> [1] "9c9a5f9f49da1991-LHR"
+#> [1] "9ca2c123fc0fbd6e-LHR"
 #> 
 #> $headers$etag
 #> [1] "W/\"8f-7zN8nSad8A9WlFJjKQZB04z5nHE\""
@@ -87,7 +87,7 @@ ncurl("https://postman-echo.com/get",
 #> [1] "Accept-Encoding"
 #> 
 #> $headers$`Set-Cookie`
-#> [1] "sails.sid=s%3AG3rHD5JFh7xQGUWN5uKuZy_VAx8K3jK4.Xri5sb2DFpVzmoUSCvFw94mJ43QzXCamX%2BwID26YXto; Path=/; HttpOnly, __cf_bm=H5EueP1cHEOyPVaqT8oVWyH_uv7aytH6JhNh2rCG404-1770378035-1.0.1.1-ANKBTHHSsgxGVLTOHVCJzq.UIh0IiDdIxmhIzLvqpME_Ro11PPGcm5s2JmnC5Z48xSIlvWQSu7a91nUWgqBuK7vSnj95x_c7DcOnlVeZxYk; path=/; expires=Fri, 06-Feb-26 12:10:35 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=QGAx0msEdEdqhBGVmwTk7S6xsOpPf_hffh1Lj7mR0PY-1770378035182-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
+#> [1] "sails.sid=s%3Ae_mISpmL4XXcdYdcUlFrPQ6BDhNksO4D.il%2FhisOP0Vf1jhPbQP4EjDFI6I2nlcZgLIRsN421kCE; Path=/; HttpOnly, __cf_bm=Sc0wmYhgsovmfVH2Z9OShMZUgjiym.ocBonxFwBHn0k-1770465915-1.0.1.1-81eZgPyB8rhf51KT4QU.bCSoZepcryWCa552DCzsps7FhOslDjyXmAeEKHCf7oSNoHfjKyXwJVFKAkhh1q3VtPD2Uun8osRyKrCxBu64G0k; path=/; expires=Sat, 07-Feb-26 12:35:15 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=tGV0.l4C.tS29T.3Ixhi4s.ugthS5ZGMiTkcdP42x1A-1770465915624-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
 #> 
 #> $headers$`x-envoy-upstream-service-time`
 #> [1] "5"
@@ -119,7 +119,7 @@ res
 
 call_aio(res)$headers
 #> $date
-#> [1] "Fri, 06 Feb 2026 11:40:35 GMT"
+#> [1] "Sat, 07 Feb 2026 12:05:15 GMT"
 
 res$status
 #> [1] 200
@@ -160,19 +160,20 @@ transact(sess)
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Fri, 06 Feb 2026 11:40:35 GMT"
+#> [1] "Sat, 07 Feb 2026 12:05:16 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
 #> 
 #> 
 #> $data
-#>   [1] 7b 22 61 72 67 73 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b 22 68 6f 73 74 22 3a 22 70 6f
-#>  [33] 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 61 63 63 65 70 74 2d 65 6e 63 6f 64 69 6e 67
-#>  [65] 22 3a 22 67 7a 69 70 2c 20 62 72 22 2c 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 72 6f 74 6f 22
-#>  [97] 3a 22 68 74 74 70 73 22 2c 22 63 6f 6e 74 65 6e 74 2d 74 79 70 65 22 3a 22 61 70 70 6c 69 63 61
-#> [129] 74 69 6f 6e 2f 6a 73 6f 6e 22 7d 2c 22 75 72 6c 22 3a 22 68 74 74 70 73 3a 2f 2f 70 6f 73 74 6d
-#> [161] 61 6e 2d 65 63 68 6f 2e 63 6f 6d 2f 67 65 74 22 7d
+#>   [1] 7b 22 61 72 67 73 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b 22 68 6f 73 74 22 3a
+#>  [30] 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 61 63 63 65 70 74 2d 65 6e
+#>  [59] 63 6f 64 69 6e 67 22 3a 22 67 7a 69 70 2c 20 62 72 22 2c 22 78 2d 66 6f 72 77 61 72 64
+#>  [88] 65 64 2d 70 72 6f 74 6f 22 3a 22 68 74 74 70 73 22 2c 22 63 6f 6e 74 65 6e 74 2d 74 79
+#> [117] 70 65 22 3a 22 61 70 70 6c 69 63 61 74 69 6f 6e 2f 6a 73 6f 6e 22 7d 2c 22 75 72 6c 22
+#> [146] 3a 22 68 74 74 70 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 2f 67 65
+#> [175] 74 22 7d
 
 close(sess)
 
@@ -394,6 +395,27 @@ The streaming connection object provides:
 
 All web utilities support TLS for secure HTTPS/WSS connections via `tls_config()`.
 
+#### Public Internet HTTPS
+
+When making HTTPS requests over the public internet, you should supply a TLS configuration to validate server certificates.
+
+Root CA certificates in PEM format may be found at:
+
+- Linux: `/etc/ssl/certs/ca-certificates.crt` or `/etc/pki/tls/certs/ca-bundle.crt`
+- macOS: `/etc/ssl/cert.pem`
+- Windows: download from the [Common CA Database](https://www.ccadb.org/resources) site run by Mozilla (select the Server Authentication SSL/TLS certificates text file). *This link is not endorsed; use at your own risk.*
+
+
+``` r
+tls <- tls_config(client = "/etc/ssl/cert.pem")
+ncurl("https://www.google.com", tls = tls)
+
+```
+
+#### Self-Signed Certificates
+
+For internal services or testing, generate self-signed certificates using `write_cert()`.
+
 
 ``` r
 # Generate self-signed certificate for testing
@@ -422,7 +444,7 @@ server <- http_server(
 server$start()
 server
 #> < nanoServer >
-#>  - url: https://127.0.0.1:64230 
+#>  - url: https://127.0.0.1:55198 
 #>  - state: started
 
 # HTTPS client request

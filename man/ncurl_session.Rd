@@ -59,15 +59,15 @@ an 'errorValue'.
 
 For \code{transact}: a named list of 3 elements:
 \itemize{
-\item \verb{$status} - integer HTTP repsonse status code (200 - OK).
-Use \code{\link[=status_code]{status_code()}} for a translation of the meaning.
+\item \verb{$status} - integer HTTP repsonse status code (200 - OK). Use
+\code{\link[=status_code]{status_code()}} for a translation of the meaning.
 \item \verb{$headers} - named list of response headers (all headers if
 \code{response = TRUE} was specified for the session, those specified in
 \code{response}, or NULL otherwise).
-\item \verb{$data} - the response body as a character string (if
-\code{convert = TRUE} was specified for the session), which may be further
-parsed as html, json, xml etc. as required, or else a raw byte vector,
-which may be saved as a file using \code{\link[=writeBin]{writeBin()}}.
+\item \verb{$data} - the response body as a character string (if \code{convert = TRUE} was
+specified for the session), which may be further parsed as html, json, xml
+etc. as required, or else a raw byte vector, which may be saved as a file
+using \code{\link[=writeBin]{writeBin()}}.
 }
 }
 \description{
@@ -76,6 +76,14 @@ along with all related parameters, and may be used to return data multiple
 times by repeatedly calling \code{transact()}, which transacts once over the
 connection.
 }
+\section{Public Internet HTTPS}{
+
+
+When making HTTPS requests over the public internet, you should supply a TLS
+configuration to validate server certificates. See \code{\link[=tls_config]{tls_config()}} for
+details.
+}
+
 \examples{
 s <- ncurl_session(
   "https://postman-echo.com/get",

@@ -9,13 +9,19 @@
 #' Specify one of `client` or `server` only, or neither (in which case an empty
 #' client configuration is created), as a configuration can only be of one type.
 #'
-#' For creating client configurations for public internet usage, root CA
-#' ceritficates may usually be found at \file{/etc/ssl/certs/ca-certificates.crt}
-#' on Linux systems. Otherwise, root CA certificates in PEM format are available
-#' at the Common CA Database site run by Mozilla:
-#' <https://www.ccadb.org/resources> (select the Server Authentication
-#' SSL/TLS certificates text file).
-#' *This link is not endorsed; use at your own risk.*
+#' @section Public Internet HTTPS:
+#'
+#' When making HTTPS requests over the public internet, you should supply a TLS
+#' configuration to validate server certificates.
+#'
+#' Root CA certificates in PEM format may be found at:
+#'
+#' - Linux: \file{/etc/ssl/certs/ca-certificates.crt} or
+#'   \file{/etc/pki/tls/certs/ca-bundle.crt}
+#' - macOS: \file{/etc/ssl/cert.pem}
+#' - Windows: download from the Common CA Database site run by Mozilla:
+#'   <https://www.ccadb.org/resources> (select the Server Authentication SSL/TLS
+#'   certificates text file). *This link is not endorsed; use at your own risk.*
 #'
 #' @param client **either** the character path to a file containing X.509
 #'   certificate(s) in PEM format, comprising the certificate authority
@@ -47,6 +53,9 @@
 #' tls <- tls_config()
 #' tls
 #' ncurl("https://postman-echo.com/get", timeout = 1000L, tls = tls)
+#'
+#' # client TLS configuration for public internet HTTPS on Linux
+#' # tls <- tls_config(client = "/etc/ssl/certs/ca-certificates.crt")
 #'
 #' @export
 #'

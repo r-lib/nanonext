@@ -33,19 +33,22 @@
 #'   certificates are not validated.
 #'
 #' @return Named list of 3 elements:
-#'  \itemize{
-#'     \item `$status` - integer HTTP repsonse status code (200 - OK).
-#'     Use [status_code()] for a translation of the meaning.
-#'     \item `$headers` - named list of response headers (all headers if
-#'     `response = TRUE`, or those specified in `response`, or NULL otherwise).
-#'     If the status code is within the 300 range, i.e. a redirect, the response
-#'     header 'Location' is automatically appended to return the redirect
-#'     address.
-#'     \item `$data` - the response body, as a character string if
-#'     `convert = TRUE` (may be further parsed as html, json, xml etc. as
-#'     required), or a raw byte vector if FALSE (use [writeBin()] to save as a
-#'     file).
-#'  }
+#'
+#' - `$status` - integer HTTP repsonse status code (200 - OK). Use
+#'   [status_code()] for a translation of the meaning.
+#' - `$headers` - named list of response headers (all headers if
+#'   `response = TRUE`, or those specified in `response`, or NULL otherwise).
+#'   If the status code is within the 300 range, i.e. a redirect, the response
+#'   header 'Location' is automatically appended to return the redirect address.
+#' - `$data` - the response body, as a character string if `convert = TRUE` (may
+#'   be further parsed as html, json, xml etc. as required), or a raw byte
+#'   vector if FALSE (use [writeBin()] to save as a file).
+#'
+#' @section Public Internet HTTPS:
+#'
+#' When making HTTPS requests over the public internet, you should supply a TLS
+#' configuration to validate server certificates. See [tls_config()] for
+#' details.
 #'
 #' @seealso [ncurl_aio()] for asynchronous http requests; [ncurl_session()] for
 #'   persistent connections.
@@ -100,19 +103,18 @@ ncurl <- function(
 #'
 #' @return An 'ncurlAio' (object of class 'ncurlAio' and 'recvAio') (invisibly).
 #'   The following elements may be accessed:
-#'   \itemize{
-#'     \item `$status` - integer HTTP repsonse status code (200 - OK).
-#'     Use [status_code()] for a translation of the meaning.
-#'     \item `$headers` - named list of response headers (all headers if
-#'     `response = TRUE`, or those specified in `response`, or NULL otherwise).
-#'     If the status code is within the 300 range, i.e. a redirect, the response
-#'     header 'Location' is automatically appended to return the redirect
-#'     address.
-#'     \item `$data` - the response body, as a character string if
-#'     `convert = TRUE` (may be further parsed as html, json, xml etc. as
-#'     required), or a raw byte vector if FALSE (use [writeBin()] to save as a
-#'     file).
-#'   }
+#'
+#' - `$status` - integer HTTP repsonse status code (200 - OK). Use
+#'   [status_code()] for a translation of the meaning.
+#' - `$headers` - named list of response headers (all headers if
+#'   `response = TRUE`, or those specified in `response`, or NULL otherwise).
+#'   If the status code is within the 300 range, i.e. a redirect, the response
+#'   header 'Location' is automatically appended to return the redirect address.
+#' - `$data` - the response body, as a character string if `convert = TRUE` (may
+#'   be further parsed as html, json, xml etc. as required), or a raw byte
+#'   vector if FALSE (use [writeBin()] to save as a file).
+#'
+#' @inheritSection ncurl Public Internet HTTPS
 #'
 #' @section Promises:
 #'
@@ -176,6 +178,8 @@ ncurl_aio <- function(
 #' @return For `ncurl_session`: an 'ncurlSession' object if successful, or else
 #'   an 'errorValue'.
 #'
+#' @inheritSection ncurl Public Internet HTTPS
+#'
 #' @seealso [ncurl()] for synchronous http requests; [ncurl_aio()] for
 #'   asynchronous http requests.
 #'
@@ -206,17 +210,16 @@ ncurl_session <- function(
 #' @param session an 'ncurlSession' object.
 #'
 #' @return For `transact`: a named list of 3 elements:
-#'   \itemize{
-#'     \item `$status` - integer HTTP repsonse status code (200 - OK).
-#'     Use [status_code()] for a translation of the meaning.
-#'     \item `$headers` - named list of response headers (all headers if
-#'     `response = TRUE` was specified for the session, those specified in
-#'     `response`, or NULL otherwise).
-#'     \item `$data` - the response body as a character string (if
-#'     `convert = TRUE` was specified for the session), which may be further
-#'     parsed as html, json, xml etc. as required, or else a raw byte vector,
-#'     which may be saved as a file using [writeBin()].
-#'   }
+#'
+#' - `$status` - integer HTTP repsonse status code (200 - OK). Use
+#'   [status_code()] for a translation of the meaning.
+#' - `$headers` - named list of response headers (all headers if
+#'   `response = TRUE` was specified for the session, those specified in
+#'   `response`, or NULL otherwise).
+#' - `$data` - the response body as a character string (if `convert = TRUE` was
+#'   specified for the session), which may be further parsed as html, json, xml
+#'   etc. as required, or else a raw byte vector, which may be saved as a file
+#'   using [writeBin()].
 #'
 #' @rdname ncurl_session
 #' @export
