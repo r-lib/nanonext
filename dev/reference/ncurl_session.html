@@ -134,16 +134,25 @@ certificates are not validated.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>For <code>ncurl_session</code>: an 'ncurlSession' object if successful, or else
 an 'errorValue'.</p>
-<p>For <code>transact</code>: a named list of 3 elements:</p><ul><li><p><code>$status</code> - integer HTTP repsonse status code (200 - OK).
-Use <code><a href="status_code.html">status_code()</a></code> for a translation of the meaning.</p></li>
+<p>For <code>transact</code>: a named list of 3 elements:</p><ul><li><p><code>$status</code> - integer HTTP repsonse status code (200 - OK). Use
+<code><a href="status_code.html">status_code()</a></code> for a translation of the meaning.</p></li>
 <li><p><code>$headers</code> - named list of response headers (all headers if
 <code>response = TRUE</code> was specified for the session, those specified in
 <code>response</code>, or NULL otherwise).</p></li>
-<li><p><code>$data</code> - the response body as a character string (if
-<code>convert = TRUE</code> was specified for the session), which may be further
-parsed as html, json, xml etc. as required, or else a raw byte vector,
-which may be saved as a file using <code><a href="https://rdrr.io/r/base/readBin.html" class="external-link">writeBin()</a></code>.</p></li>
+<li><p><code>$data</code> - the response body as a character string (if <code>convert = TRUE</code> was
+specified for the session), which may be further parsed as html, json, xml
+etc. as required, or else a raw byte vector, which may be saved as a file
+using <code><a href="https://rdrr.io/r/base/readBin.html" class="external-link">writeBin()</a></code>.</p></li>
 </ul></div>
+    <div class="section level2">
+    <h2 id="public-internet-https">Public Internet HTTPS<a class="anchor" aria-label="anchor" href="#public-internet-https"></a></h2>
+
+
+
+<p>When making HTTPS requests over the public internet, you should supply a TLS
+configuration to validate server certificates. See <code><a href="tls_config.html">tls_config()</a></code> for
+details.</p>
+    </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="ncurl.html">ncurl()</a></code> for synchronous http requests; <code><a href="ncurl_aio.html">ncurl_aio()</a></code> for
@@ -165,7 +174,7 @@ asynchronous http requests.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$date</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Sat, 07 Feb 2026 00:08:36 GMT"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Sat, 07 Feb 2026 12:14:08 GMT"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $data</span>

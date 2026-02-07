@@ -59,13 +59,22 @@ Specify one of `client` or `server` only, or neither (in which case an
 empty client configuration is created), as a configuration can only be
 of one type.
 
-For creating client configurations for public internet usage, root CA
-ceritficates may usually be found at
-`/etc/ssl/certs/ca-certificates.crt` on Linux systems. Otherwise, root
-CA certificates in PEM format are available at the Common CA Database
-site run by Mozilla: <https://www.ccadb.org/resources> (select the
-Server Authentication SSL/TLS certificates text file). *This link is not
-endorsed; use at your own risk.*
+## Public Internet HTTPS
+
+When making HTTPS requests over the public internet, you should supply a
+TLS configuration to validate server certificates.
+
+Root CA certificates in PEM format may be found at:
+
+- Linux: `/etc/ssl/certs/ca-certificates.crt` or
+  `/etc/pki/tls/certs/ca-bundle.crt`
+
+- macOS: `/etc/ssl/cert.pem`
+
+- Windows: download from the Common CA Database site run by Mozilla:
+  <https://www.ccadb.org/resources> (select the Server Authentication
+  SSL/TLS certificates text file). *This link is not endorsed; use at
+  your own risk.*
 
 ## Examples
 
@@ -83,4 +92,7 @@ ncurl("https://postman-echo.com/get", timeout = 1000L, tls = tls)
 #> $data
 #> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"
 #> 
+
+# client TLS configuration for public internet HTTPS on Linux
+# tls <- tls_config(client = "/etc/ssl/certs/ca-certificates.crt")
 ```

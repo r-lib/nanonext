@@ -124,18 +124,25 @@ certificates are not validated.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>Named list of 3 elements:</p><ul><li><p><code>$status</code> - integer HTTP repsonse status code (200 - OK).
-Use <code><a href="status_code.html">status_code()</a></code> for a translation of the meaning.</p></li>
+    <p>Named list of 3 elements:</p><ul><li><p><code>$status</code> - integer HTTP repsonse status code (200 - OK). Use
+<code><a href="status_code.html">status_code()</a></code> for a translation of the meaning.</p></li>
 <li><p><code>$headers</code> - named list of response headers (all headers if
 <code>response = TRUE</code>, or those specified in <code>response</code>, or NULL otherwise).
 If the status code is within the 300 range, i.e. a redirect, the response
-header 'Location' is automatically appended to return the redirect
-address.</p></li>
-<li><p><code>$data</code> - the response body, as a character string if
-<code>convert = TRUE</code> (may be further parsed as html, json, xml etc. as
-required), or a raw byte vector if FALSE (use <code><a href="https://rdrr.io/r/base/readBin.html" class="external-link">writeBin()</a></code> to save as a
-file).</p></li>
+header 'Location' is automatically appended to return the redirect address.</p></li>
+<li><p><code>$data</code> - the response body, as a character string if <code>convert = TRUE</code> (may
+be further parsed as html, json, xml etc. as required), or a raw byte
+vector if FALSE (use <code><a href="https://rdrr.io/r/base/readBin.html" class="external-link">writeBin()</a></code> to save as a file).</p></li>
 </ul></div>
+    <div class="section level2">
+    <h2 id="public-internet-https">Public Internet HTTPS<a class="anchor" aria-label="anchor" href="#public-internet-https"></a></h2>
+
+
+
+<p>When making HTTPS requests over the public internet, you should supply a TLS
+configuration to validate server certificates. See <code><a href="tls_config.html">tls_config()</a></code> for
+details.</p>
+    </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="ncurl_aio.html">ncurl_aio()</a></code> for asynchronous http requests; <code><a href="ncurl_session.html">ncurl_session()</a></code> for
@@ -155,7 +162,7 @@ persistent connections.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$date</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Sat, 07 Feb 2026 00:08:35 GMT"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Sat, 07 Feb 2026 12:14:06 GMT"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$`content-type`</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "application/json; charset=utf-8"</span>
@@ -180,7 +187,7 @@ persistent connections.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$Date</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Sat, 07 Feb 2026 00:08:35 GMT"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Sat, 07 Feb 2026 12:14:06 GMT"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$`Content-Type`</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "application/json; charset=utf-8"</span>
@@ -192,7 +199,7 @@ persistent connections.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "close"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$`CF-RAY`</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "9c9ea756eecd379a-IAD"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "9ca2ce1c7ec01e0f-LAX"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$etag</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "W/\"8f-7zN8nSad8A9WlFJjKQZB04z5nHE\""</span>
@@ -201,10 +208,10 @@ persistent connections.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Accept-Encoding"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$`Set-Cookie`</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "sails.sid=s%3A3fc2Fz0n9I1nFxix_cy5odgwV_j33jly.c92KGa3E6Ap67F15OsKqZnHfVeb9DyyIbiP4fG1Ylpw; Path=/; HttpOnly, __cf_bm=QS22yYOPT2ABV0fnglaXVi5pQo0J7OrDXBDDQn5xryU-1770422915-1.0.1.1-6YfrXOAaRphLM_aCY.oSANLqRoPJwEDG.mqXMoeq1EDBIbuBWUAdXODChO7uF19mmzqXPGG7TXyHTgGAfNt1d6Y7ykcbhSf7mMir.xkDRcc; path=/; expires=Sat, 07-Feb-26 00:38:35 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=qcV2ENuA9Vv2ewUkf4ER4HrtGTEpvTSx.iZ4ZezO6fA-1770422915708-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "sails.sid=s%3AKmCbfnFjkQUTXBnsoWy6nAs6cDHETs5T.Bu%2FNjU3I1NkcnYY%2BykOEf6EpMZy9CRbB6Vlzndhk7us; Path=/; HttpOnly, __cf_bm=VR6cRuHKpt1GqMLWN9u_R.eSV6a0tYhFjuJr1DoGLY4-1770466446-1.0.1.1-NaaBSX7VwxVkHxJwIRv3dR4eiMd3w5wtOtotIazlWmZbe52Qo5CLpLK2HjYPZtSq4fi9hMWCIgpIz92_9c9shb3DcOBp5bqy1l0IpQzEsV0; path=/; expires=Sat, 07-Feb-26 12:44:06 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=zhQJ9vilD27dY_aNnZQi7KKkdvqRZXmgSKxevpdI..I-1770466446883-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$`x-envoy-upstream-service-time`</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "6"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "5"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$`cf-cache-status`</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "DYNAMIC"</span>
