@@ -233,6 +233,8 @@ h_redirect <- handler_redirect("/old-page", "/new-page", status = 301L)
 
 #### WebSocket Handlers
 
+WebSockets provide full bidirectional communication -- the server can push messages to the client, and the client can send messages back.
+
 `handler_ws()` creates WebSocket endpoints. NNG handles the HTTP upgrade handshake and all WebSocket framing (RFC 6455) automatically. Because WebSocket handlers share the same server as HTTP handlers, the browser can load a page and open a WebSocket to the same host and port with no additional setup.
 
 ```{r}
@@ -272,6 +274,8 @@ The `ws` connection object provides:
 Multiple WebSocket endpoints can coexist on the same server, each with independent callbacks and connection tracking. Connection IDs are unique across the entire server, so they are safe to use as keys in a shared data structure spanning multiple handlers.
 
 #### HTTP Streaming Handlers
+
+When you only need to push data in one direction -- server to client -- streaming is a lighter-weight alternative to WebSockets. It works over plain HTTP, so any client that speaks HTTP can consume the stream without needing a WebSocket library.
 
 `handler_stream()` enables HTTP streaming using chunked transfer encoding, supporting Server-Sent Events (SSE), newline-delimited JSON (NDJSON), and custom streaming formats. Like WebSocket handlers, streaming endpoints share the same server as all other handlers.
 
@@ -469,4 +473,4 @@ server$url
 # Browse to the URL to see your Quarto site with a live API behind it
 ```
 
-Static pages are served at native speed by NNG while the prediction endpoint is handled by R. Without requiring separate processes or ports, you can even add TLS with just a single argument.
+Static pages are served at native speed by NNG while the prediction endpoint is handled by R -- no separate processes or ports required. Adding TLS is a single argument.
