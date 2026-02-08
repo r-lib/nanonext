@@ -41,7 +41,7 @@ ncurl("https://postman-echo.com/post",
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Sat, 07 Feb 2026 22:22:11 GMT"
+#> [1] "Sun, 08 Feb 2026 11:22:45 GMT"
 #> 
 #> 
 #> $data
@@ -58,7 +58,7 @@ ncurl("https://postman-echo.com/get",
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Sat, 07 Feb 2026 22:22:11 GMT"
+#> [1] "Sun, 08 Feb 2026 11:22:45 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -70,7 +70,7 @@ ncurl("https://postman-echo.com/get",
 #> [1] "close"
 #> 
 #> $headers$`CF-RAY`
-#> [1] "9ca648d8083093ee-LHR"
+#> [1] "9caac0420a1dc16b-LHR"
 #> 
 #> $headers$etag
 #> [1] "W/\"8f-7zN8nSad8A9WlFJjKQZB04z5nHE\""
@@ -79,7 +79,7 @@ ncurl("https://postman-echo.com/get",
 #> [1] "Accept-Encoding"
 #> 
 #> $headers$`Set-Cookie`
-#> [1] "sails.sid=s%3AmEmlEN7Qkym06ooJ2ms4Uz3vreH1Z932.05WoUaoH%2FZjAxOICAVtXEQ7YTQVnMEzdeEi24WNWh%2FU; Path=/; HttpOnly, __cf_bm=txVQrfbj.2Gd4nlQCcRxvVdnF8mEz4TNP5UCWj6ILhE-1770502931-1.0.1.1-qEanN1PX__sIebLC8Jfk.I53MbrwpqI2.hhKwTSGBC5bDj.dH5dhuwQs3tANihRp1Ti63FP8.1.UYbWrGdFxomHl3fTp2M5SSYxSZivSOq4; path=/; expires=Sat, 07-Feb-26 22:52:11 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=AJPdn_6roTsDTqlWghs4iCLF0bYxRzm7UYghDHWA5Ew-1770502931321-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
+#> [1] "sails.sid=s%3A3tYl-iuzp8jF0j82bxVHtxrx87HF8PoG.ykEiyyCKGOB1tWjbdRBXQQN7R2JwAHxl%2FkpAWvaV%2FIs; Path=/; HttpOnly, __cf_bm=xmba.Nkum1545BuZtIF1AkAAJzxI0VLZrdSg2QarH6M-1770549765-1.0.1.1-Twtq9B6vpPFSSJbuRQ9AaEDUB83Sprl4keRU_kvVk7PZqFGUZc1cVqFvyfN14NRX1CG5qT1idcqkSWejx03q6v3KYkPgCga6vJiifoRoVUs; path=/; expires=Sun, 08-Feb-26 11:52:45 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=u2FHSl3lIzG1PMEmFIe9J58inYS1BQ8KH5f7Y3RV1Nk-1770549765548-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
 #> 
 #> $headers$`x-envoy-upstream-service-time`
 #> [1] "5"
@@ -112,7 +112,7 @@ res
 
 call_aio(res)$headers
 #> $date
-#> [1] "Sat, 07 Feb 2026 22:22:11 GMT"
+#> [1] "Sun, 08 Feb 2026 11:22:45 GMT"
 
 res$status
 #> [1] 200
@@ -156,7 +156,7 @@ transact(sess)
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Sat, 07 Feb 2026 22:22:11 GMT"
+#> [1] "Sun, 08 Feb 2026 11:22:46 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -322,6 +322,9 @@ h_redirect <- handler_redirect("/old-page", "/new-page", status = 301L)
 
 #### WebSocket Handlers
 
+WebSockets provide full bidirectional communication – the server can
+push messages to the client, and the client can send messages back.
+
 [`handler_ws()`](https://nanonext.r-lib.org/dev/reference/handler_ws.md)
 creates WebSocket endpoints. NNG handles the HTTP upgrade handshake and
 all WebSocket framing (RFC 6455) automatically. Because WebSocket
@@ -366,6 +369,11 @@ across the entire server, so they are safe to use as keys in a shared
 data structure spanning multiple handlers.
 
 #### HTTP Streaming Handlers
+
+When you only need to push data in one direction – server to client –
+streaming is a lighter-weight alternative to WebSockets. It works over
+plain HTTP, so any client that speaks HTTP can consume the stream
+without needing a WebSocket library.
 
 [`handler_stream()`](https://nanonext.r-lib.org/dev/reference/handler_stream.md)
 enables HTTP streaming using chunked transfer encoding, supporting
@@ -484,7 +492,7 @@ server <- http_server(
 server$start()
 server
 #> < nanoServer >
-#>  - url: https://127.0.0.1:53472 
+#>  - url: https://127.0.0.1:50715 
 #>  - state: started
 
 # HTTPS client request
@@ -584,5 +592,5 @@ server$url
 ```
 
 Static pages are served at native speed by NNG while the prediction
-endpoint is handled by R. Without requiring separate processes or ports,
-you can even add TLS with just a single argument.
+endpoint is handled by R – no separate processes or ports required.
+Adding TLS is a single argument.
