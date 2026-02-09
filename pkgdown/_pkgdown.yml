@@ -122,5 +122,7 @@ development:
   mode: auto
 news:
   releases:
+  - text: "nanonext 1.8.0"
+    href: https://tidyverse.org/blog/2026/02/nanonext-1-8-0/
   - text: "nanonext 1.7.0"
     href: https://www.tidyverse.org/blog/2025/09/nanonext-1-7-0/
