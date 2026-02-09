@@ -2,6 +2,10 @@
 
 ## nanonext (development version)
 
+## nanonext 1.8.0
+
+CRAN release: 2026-02-09
+
 ##### New Features
 
 - Adds
