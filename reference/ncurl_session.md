@@ -98,6 +98,13 @@ For `transact`: a named list of 3 elements:
   saved as a file using
   [`writeBin()`](https://rdrr.io/r/base/readBin.html).
 
+## Public Internet HTTPS
+
+When making HTTPS requests over the public internet, you should supply a
+TLS configuration to validate server certificates. See
+[`tls_config()`](https://nanonext.r-lib.org/reference/tls_config.md) for
+details.
+
 ## See also
 
 [`ncurl()`](https://nanonext.r-lib.org/reference/ncurl.md) for
@@ -121,7 +128,7 @@ if (is_ncurl_session(s)) transact(s)
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Fri, 06 Feb 2026 16:37:10 GMT"
+#> [1] "Mon, 09 Feb 2026 19:26:35 GMT"
 #> 
 #> 
 #> $data

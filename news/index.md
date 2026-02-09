@@ -1,5 +1,67 @@
 # Changelog
 
+## nanonext 1.8.0
+
+CRAN release: 2026-02-09
+
+##### New Features
+
+- Adds
+  [`http_server()`](https://nanonext.r-lib.org/reference/http_server.md)
+  for creating HTTP and WebSocket servers with TLS/SSL support.
+- Adds [`handler()`](https://nanonext.r-lib.org/reference/handler.md)
+  for dynamic HTTP request handling with custom callbacks.
+- Adds
+  [`handler_ws()`](https://nanonext.r-lib.org/reference/handler_ws.md)
+  for WebSocket connections with `on_message`, `on_open`, and `on_close`
+  callbacks.
+- Adds
+  [`handler_stream()`](https://nanonext.r-lib.org/reference/handler_stream.md)
+  for HTTP streaming using chunked transfer encoding, supporting
+  Server-Sent Events (SSE), NDJSON, and custom streaming formats.
+- Adds
+  [`format_sse()`](https://nanonext.r-lib.org/reference/format_sse.md)
+  helper for formatting Server-Sent Events messages.
+- Adds static content handlers:
+  [`handler_file()`](https://nanonext.r-lib.org/reference/handler_file.md)
+  and
+  [`handler_directory()`](https://nanonext.r-lib.org/reference/handler_directory.md)
+  for serving files,
+  [`handler_inline()`](https://nanonext.r-lib.org/reference/handler_inline.md)
+  for in-memory content, and
+  [`handler_redirect()`](https://nanonext.r-lib.org/reference/handler_redirect.md)
+  for HTTP redirects.
+- [`ncurl()`](https://nanonext.r-lib.org/reference/ncurl.md) and
+  variants now accept `response = TRUE` to return all response headers.
+- Listeners now automatically resolve port `0` to the actual port
+  assigned by the OS. The listener’s `url` attribute is updated when the
+  listener starts.
+- Adds [`race_aio()`](https://nanonext.r-lib.org/reference/race_aio.md)
+  to wait for and return the index of the first resolved Aio in a list
+  of Aios.
+
+##### Updates
+
+- Closing an already closed stream now returns ‘errorValue’ 7 \| Object
+  closed rather than error.
+- [`random()`](https://nanonext.r-lib.org/reference/random.md) now only
+  accepts ‘n’ between 1 and 1024. Supplying 0 will error
+  ([\#238](https://github.com/r-lib/nanonext/issues/238)).
+- Fixes a potential crash when
+  [`random()`](https://nanonext.r-lib.org/reference/random.md) or
+  [`write_cert()`](https://nanonext.r-lib.org/reference/write_cert.md)
+  is called in a fresh session before any other TLS-related functions
+  have been called, and nanonext has been compiled against a system Mbed
+  TLS with PSA crypto enabled.
+  ([\#242](https://github.com/r-lib/nanonext/issues/242)).
+- Fixes a potential crash when a serialization hook errors
+  ([\#225](https://github.com/r-lib/nanonext/issues/225)).
+- Performance improvements for serialization, streaming, and async
+  sends.
+- Bundled ‘libmbedtls’ updated to latest 3.6.5 LTS branch release
+  ([\#234](https://github.com/r-lib/nanonext/issues/234)).
+- Building from source no longer requires `xz`.
+
 ## nanonext 1.7.2
 
 CRAN release: 2025-11-03

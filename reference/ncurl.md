@@ -95,6 +95,13 @@ Named list of 3 elements:
   [`writeBin()`](https://rdrr.io/r/base/readBin.html) to save as a
   file).
 
+## Public Internet HTTPS
+
+When making HTTPS requests over the public internet, you should supply a
+TLS configuration to validate server certificates. See
+[`tls_config()`](https://nanonext.r-lib.org/reference/tls_config.md) for
+details.
+
 ## See also
 
 [`ncurl_aio()`](https://nanonext.r-lib.org/reference/ncurl_aio.md) for
@@ -116,7 +123,7 @@ ncurl(
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Fri, 06 Feb 2026 16:37:09 GMT"
+#> [1] "Mon, 09 Feb 2026 19:26:33 GMT"
 #> 
 #> $headers$`content-type`
 #> [1] "application/json; charset=utf-8"
@@ -141,7 +148,7 @@ ncurl(
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Fri, 06 Feb 2026 16:37:09 GMT"
+#> [1] "Mon, 09 Feb 2026 19:26:33 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -153,7 +160,7 @@ ncurl(
 #> [1] "close"
 #> 
 #> $headers$`CF-RAY`
-#> [1] "9c9c120d0d74327e-SJC"
+#> [1] "9cb5c252ef27cb9f-LAX"
 #> 
 #> $headers$etag
 #> [1] "W/\"8f-7zN8nSad8A9WlFJjKQZB04z5nHE\""
@@ -162,10 +169,10 @@ ncurl(
 #> [1] "Accept-Encoding"
 #> 
 #> $headers$`Set-Cookie`
-#> [1] "sails.sid=s%3AX-mgkb0QJAjO1AXxlDYJT80MsDTfQuuq.P%2F3KwIy6wR7rHkybL5ahOPB8LCFMiCIy5QUR3VE%2FLAE; Path=/; HttpOnly, __cf_bm=8NzVSrmUAMdvNBWyIl4MfFuNU6TWc5GFdlRDjG5z_ow-1770395829-1.0.1.1-VpBQssW1DcgDmsuqwPOLPpTjSobBhN4HCpcqWU2dEeov6HrLVeLzMbYrrONqoUOcHaRbnpk.7j5CFhEJvVTjZDQ4Kj94bvmyPXccQ7wKkdM; path=/; expires=Fri, 06-Feb-26 17:07:09 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=lm.N.KXvQI_5E8ZEiPELl.VrCRG2Qe1EZNaKKMFxmOs-1770395829381-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
+#> [1] "sails.sid=s%3AL-H9kfulraXGfK0ZTOk9Ni4Z2tXpzM-d.Y2x5HwpCMu%2F3q%2BRoGTIyvYh9jSTfVpVlTLKb%2FlQaZBg; Path=/; HttpOnly, __cf_bm=gy6d81KY3IAc598ZzocFK0mxtyuntf2HtiM2Fdsy9KU-1770665193-1.0.1.1-LIulm0l.qvySdKvzKGbaqkGjAu2B.s4w4sSJNOVzoMyVNsOeq3wFuombYNsBcsr.CrmQjVn3Xjm2_pjnQYvRGjqROi.QCJ0oPmRLWLFVpmc; path=/; expires=Mon, 09-Feb-26 19:56:33 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=R_fWW32UmQUVECU6fMO_qkUKD.EZOwkH.LBr7bre1AU-1770665193506-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
 #> 
 #> $headers$`x-envoy-upstream-service-time`
-#> [1] "5"
+#> [1] "6"
 #> 
 #> $headers$`cf-cache-status`
 #> [1] "DYNAMIC"

@@ -13,7 +13,7 @@ connection."><meta property="og:image" content="https://nanonext.r-lib.org/logo.
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.7.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -28,7 +28,7 @@ connection."><meta property="og:image" content="https://nanonext.r-lib.org/logo.
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/v01-messaging.html">nanonext - Messaging and Async I/O</a></li>
     <li><a class="dropdown-item" href="../articles/v02-protocols.html">nanonext - Scalability Protocols</a></li>
     <li><a class="dropdown-item" href="../articles/v03-configuration.html">nanonext - Configuration and Security</a></li>
-    <li><a class="dropdown-item" href="../articles/v04-web.html">nanonext - Web Utilities</a></li>
+    <li><a class="dropdown-item" href="../articles/v04-web.html">nanonext - Web Toolkit</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-news" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">News</button>
@@ -48,7 +48,7 @@ connection."><meta property="og:image" content="https://nanonext.r-lib.org/logo.
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>ncurl Session</h1>
-      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/release/R/ncurl.R" class="external-link"><code>R/ncurl.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/main/R/ncurl.R" class="external-link"><code>R/ncurl.R</code></a></small>
       <div class="d-none name"><code>ncurl_session.Rd</code></div>
     </div>
 
@@ -134,16 +134,25 @@ certificates are not validated.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>For <code>ncurl_session</code>: an 'ncurlSession' object if successful, or else
 an 'errorValue'.</p>
-<p>For <code>transact</code>: a named list of 3 elements:</p><ul><li><p><code>$status</code> - integer HTTP repsonse status code (200 - OK).
-Use <code><a href="status_code.html">status_code()</a></code> for a translation of the meaning.</p></li>
+<p>For <code>transact</code>: a named list of 3 elements:</p><ul><li><p><code>$status</code> - integer HTTP repsonse status code (200 - OK). Use
+<code><a href="status_code.html">status_code()</a></code> for a translation of the meaning.</p></li>
 <li><p><code>$headers</code> - named list of response headers (all headers if
 <code>response = TRUE</code> was specified for the session, those specified in
 <code>response</code>, or NULL otherwise).</p></li>
-<li><p><code>$data</code> - the response body as a character string (if
-<code>convert = TRUE</code> was specified for the session), which may be further
-parsed as html, json, xml etc. as required, or else a raw byte vector,
-which may be saved as a file using <code><a href="https://rdrr.io/r/base/readBin.html" class="external-link">writeBin()</a></code>.</p></li>
+<li><p><code>$data</code> - the response body as a character string (if <code>convert = TRUE</code> was
+specified for the session), which may be further parsed as html, json, xml
+etc. as required, or else a raw byte vector, which may be saved as a file
+using <code><a href="https://rdrr.io/r/base/readBin.html" class="external-link">writeBin()</a></code>.</p></li>
 </ul></div>
+    <div class="section level2">
+    <h2 id="public-internet-https">Public Internet HTTPS<a class="anchor" aria-label="anchor" href="#public-internet-https"></a></h2>
+
+
+
+<p>When making HTTPS requests over the public internet, you should supply a TLS
+configuration to validate server certificates. See <code><a href="tls_config.html">tls_config()</a></code> for
+details.</p>
+    </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="ncurl.html">ncurl()</a></code> for synchronous http requests; <code><a href="ncurl_aio.html">ncurl_aio()</a></code> for
@@ -165,7 +174,7 @@ asynchronous http requests.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$date</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Fri, 06 Feb 2026 16:37:10 GMT"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Mon, 09 Feb 2026 19:26:35 GMT"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $data</span>

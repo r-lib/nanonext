@@ -1,8 +1,8 @@
 # nanonext
 
-R binding for [NNG (Nanomsg Next Gen)](https://nng.nanomsg.org/), a
-high-performance messaging library. Lightweight, implemented almost
-entirely in C.
+Fast, lightweight toolkit for messaging, concurrency, and the web in R.
+Built on [NNG (Nanomsg Next Gen)](https://nng.nanomsg.org/) and
+implemented almost entirely in C.
 
 - **Scalability protocols** - pub/sub, req/rep, push/pull,
   surveyor/respondent, bus, pair
@@ -10,8 +10,8 @@ entirely in C.
 - **Async I/O** - non-blocking operations with auto-resolving ‘aio’
   objects
 - **Cross-language** - exchange data with Python, C++, Go, Rust
-- **Web utilities** - HTTP client/server, WebSocket, streaming (SSE,
-  NDJSON)
+- **Web toolkit** - unified HTTP, WebSocket, and streaming (SSE, NDJSON)
+  on a single port
 
 ### Quick Start
 
@@ -59,29 +59,43 @@ close(s1)
 close(s2)
 ```
 
-### HTTP Client
+### Web Toolkit
+
+One server, one port – HTTP endpoints, WebSocket connections, and
+streaming all coexist. Mbed TLS built in for HTTPS/WSS.
 
 ``` r
-ncurl("https://postman-echo.com/get")
-#> $status
-#> [1] 200
-#> 
-#> $headers
-#> NULL
-#> 
-#> $data
-#> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"
+# Generate self-signed certificates
+cert <- write_cert(cn = "127.0.0.1")
+
+# HTTPS server (port 0 = auto-assign a free port)
+server <- http_server(
+  url = "https://127.0.0.1:0",
+  handlers = list(
+    handler("/", \(req) list(status = 200L, body = '{"status":"ok"}'))
+  ),
+  tls = tls_config(server = cert$server)
+)
+server$start()
+
+# Async HTTPS client
+aio <- ncurl_aio(server$url, tls = tls_config(client = cert$client))
+while (unresolved(aio)) later::run_now(1)
+aio$data
+#> [1] "{\"status\":\"ok\"}"
+
+server$close()
 ```
 
 ### Documentation
 
-| Guide                                                                       | Topics                                 |
-|:----------------------------------------------------------------------------|:---------------------------------------|
-| [Quick Reference](https://nanonext.r-lib.org/articles/nanonext.html)        | Cheatsheet                             |
-| [Messaging](https://nanonext.r-lib.org/articles/v01-messaging.html)         | Cross-language, async, synchronisation |
-| [Protocols](https://nanonext.r-lib.org/articles/v02-protocols.html)         | req/rep, pub/sub, surveyor/respondent  |
-| [Configuration](https://nanonext.r-lib.org/articles/v03-configuration.html) | TLS, options, serialization            |
-| [Web Utilities](https://nanonext.r-lib.org/articles/v04-web.html)           | HTTP, WebSocket, streaming             |
+| Guide                                                                       | Topics                                   |
+|:----------------------------------------------------------------------------|:-----------------------------------------|
+| [Quick Reference](https://nanonext.r-lib.org/articles/nanonext.html)        | At-a-glance API overview                 |
+| [Messaging](https://nanonext.r-lib.org/articles/v01-messaging.html)         | Cross-language, async, synchronisation   |
+| [Protocols](https://nanonext.r-lib.org/articles/v02-protocols.html)         | req/rep, pub/sub, surveyor/respondent    |
+| [Configuration](https://nanonext.r-lib.org/articles/v03-configuration.html) | TLS, options, serialization              |
+| [Web Toolkit](https://nanonext.r-lib.org/articles/v04-web.html)             | HTTP client/server, WebSocket, streaming |
 
 ### Installation
 
@@ -100,7 +114,7 @@ install.packages("nanonext", repos = "https://r-lib.r-universe.dev")
 Requires ‘libnng’ \>= v1.9.0 and ‘libmbedtls’ \>= 2.5.0, or ‘cmake’ to
 compile bundled libraries (libnng v1.11.0, libmbedtls v3.6.5).
 
-**Recommended:** Let the package compile bundled libraries for optimal
+Recommended: Let the package compile bundled libraries for optimal
 performance:
 
 ``` r
@@ -364,4 +378,4 @@ Helper functions
 - [nanonext - Configuration and
   Security](https://nanonext.r-lib.org/articles/v03-configuration.md):
 - [nanonext - Web
-  Utilities](https://nanonext.r-lib.org/articles/v04-web.md):
+  Toolkit](https://nanonext.r-lib.org/articles/v04-web.md):

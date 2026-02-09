@@ -11,7 +11,7 @@ configuration."><meta property="og:image" content="https://nanonext.r-lib.org/lo
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.7.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -26,7 +26,7 @@ configuration."><meta property="og:image" content="https://nanonext.r-lib.org/lo
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/v01-messaging.html">nanonext - Messaging and Async I/O</a></li>
     <li><a class="dropdown-item" href="../articles/v02-protocols.html">nanonext - Scalability Protocols</a></li>
     <li><a class="dropdown-item" href="../articles/v03-configuration.html">nanonext - Configuration and Security</a></li>
-    <li><a class="dropdown-item" href="../articles/v04-web.html">nanonext - Web Utilities</a></li>
+    <li><a class="dropdown-item" href="../articles/v04-web.html">nanonext - Web Toolkit</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-news" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">News</button>
@@ -46,7 +46,7 @@ configuration."><meta property="og:image" content="https://nanonext.r-lib.org/lo
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Create TLS Configuration</h1>
-      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/release/R/tls.R" class="external-link"><code>R/tls.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/main/R/tls.R" class="external-link"><code>R/tls.R</code></a></small>
       <div class="d-none name"><code>tls_config.Rd</code></div>
     </div>
 
@@ -106,14 +106,21 @@ authentication is performed and this argument has no effect.</p></dd>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Specify one of <code>client</code> or <code>server</code> only, or neither (in which case an empty
 client configuration is created), as a configuration can only be of one type.</p>
-<p>For creating client configurations for public internet usage, root CA
-ceritficates may usually be found at <code class="file">/etc/ssl/certs/ca-certificates.crt</code>
-on Linux systems. Otherwise, root CA certificates in PEM format are available
-at the Common CA Database site run by Mozilla:
-<a href="https://www.ccadb.org/resources" class="external-link">https://www.ccadb.org/resources</a> (select the Server Authentication
-SSL/TLS certificates text file).
-<em>This link is not endorsed; use at your own risk.</em></p>
     </div>
+    <div class="section level2">
+    <h2 id="public-internet-https">Public Internet HTTPS<a class="anchor" aria-label="anchor" href="#public-internet-https"></a></h2>
+
+
+
+<p>When making HTTPS requests over the public internet, you should supply a TLS
+configuration to validate server certificates.</p>
+<p>Root CA certificates in PEM format may be found at:</p><ul><li><p>Linux: <code class="file">/etc/ssl/certs/ca-certificates.crt</code> or
+<code class="file">/etc/pki/tls/certs/ca-bundle.crt</code></p></li>
+<li><p>macOS: <code class="file">/etc/ssl/cert.pem</code></p></li>
+<li><p>Windows: download from the Common CA Database site run by Mozilla:
+<a href="https://www.ccadb.org/resources" class="external-link">https://www.ccadb.org/resources</a> (select the Server Authentication SSL/TLS
+certificates text file). <em>This link is not endorsed; use at your own risk.</em></p></li>
+</ul></div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -130,6 +137,9 @@ SSL/TLS certificates text file).
 <span class="r-out co"><span class="r-pr">#&gt;</span> $data</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># client TLS configuration for public internet HTTPS on Linux</span></span></span>
+<span class="r-in"><span><span class="co"># tls &lt;- tls_config(client = "/etc/ssl/certs/ca-certificates.crt")</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

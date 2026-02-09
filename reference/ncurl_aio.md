@@ -101,6 +101,13 @@ If a status code of 200 (OK) is returned then the promise is resolved
 with the reponse body, otherwise it is rejected with a translation of
 the status code or 'errorValue' as the case may be.
 
+## Public Internet HTTPS
+
+When making HTTPS requests over the public internet, you should supply a
+TLS configuration to validate server certificates. See
+[`tls_config()`](https://nanonext.r-lib.org/reference/tls_config.md) for
+details.
+
 ## See also
 
 [`ncurl()`](https://nanonext.r-lib.org/reference/ncurl.md) for
@@ -121,7 +128,7 @@ nc$status
 #> [1] 200
 nc$headers
 #> $date
-#> [1] "Fri, 06 Feb 2026 16:37:10 GMT"
+#> [1] "Mon, 09 Feb 2026 19:26:34 GMT"
 #> 
 #> $server
 #> [1] "cloudflare"
