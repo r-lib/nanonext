@@ -13,6 +13,9 @@ implemented almost entirely in C.
 - **Web toolkit** - unified HTTP, WebSocket, and streaming (SSE, NDJSON)
   on a single port
 
+[![Ask
+DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/r-lib/nanonext)
+
 ### Quick Start
 
 ``` r
