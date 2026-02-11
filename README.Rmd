@@ -31,6 +31,8 @@ Fast, lightweight toolkit for messaging, concurrency, and the web in R. Built on
 - **Cross-language** - exchange data with Python, C++, Go, Rust
 - **Web toolkit** - unified HTTP, WebSocket, and streaming (SSE, NDJSON) on a single port
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/r-lib/nanonext)
+
 ### Quick Start
 
 ```{r}
