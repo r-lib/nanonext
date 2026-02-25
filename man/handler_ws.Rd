@@ -21,7 +21,9 @@ object and \code{data} is the message. Use \code{ws$send()} to send
 responses; the return value is ignored.}
 
 \item{on_open}{[default NULL] Function called when a connection opens.
-Signature: \verb{function(ws)}}
+Signature: \verb{function(ws, req)} where \code{req} is a list with \code{uri}
+(character) and \code{headers} (named character vector) from the HTTP upgrade
+request.}
 
 \item{on_close}{[default NULL] Function called when a connection closes.
 Signature: \verb{function(ws)}}
@@ -62,7 +64,7 @@ h <- handler_ws(
     # Broadcast to all
     for (client in clients) client$send(data)
   },
-  on_open = function(ws) {
+  on_open = function(ws, req) {
     clients[[as.character(ws$id)]] <<- ws
   },
   on_close = function(ws) {

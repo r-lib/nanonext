@@ -1,5 +1,9 @@
 # nanonext (development version)
 
+#### Updates
+
+* `handler_ws()` `on_open` callback now receives a second argument `req`, a list containing `uri` and `headers` from the HTTP upgrade request (this is technically a breaking change).
+
 # nanonext 1.8.0
 
 #### New Features

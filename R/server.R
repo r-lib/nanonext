@@ -173,7 +173,9 @@ handler <- function(path, callback, method = "GET", prefix = FALSE) {
 #'   object and `data` is the message. Use `ws$send()` to send
 #'   responses; the return value is ignored.
 #' @param on_open \[default NULL\] Function called when a connection opens.
-#'   Signature: `function(ws)`
+#'   Signature: `function(ws, req)` where `req` is a list with `uri`
+#'   (character) and `headers` (named character vector) from the HTTP upgrade
+#'   request.
 #' @param on_close \[default NULL\] Function called when a connection closes.
 #'   Signature: `function(ws)`
 #' @param textframes \[default FALSE\] Logical, use text frames instead of binary.
@@ -205,7 +207,7 @@ handler <- function(path, callback, method = "GET", prefix = FALSE) {
 #'     # Broadcast to all
 #'     for (client in clients) client$send(data)
 #'   },
-#'   on_open = function(ws) {
+#'   on_open = function(ws, req) {
 #'     clients[[as.character(ws$id)]] <<- ws
 #'   },
 #'   on_close = function(ws) {
