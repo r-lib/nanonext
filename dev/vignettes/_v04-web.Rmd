@@ -251,7 +251,7 @@ server <- http_server(
         # Broadcast to all connected clients
         for (client in clients) client$send(data)
       },
-      on_open = function(ws) {
+      on_open = function(ws, req) {
         clients[[as.character(ws$id)]] <<- ws
       },
       on_close = function(ws) {

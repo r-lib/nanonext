@@ -187,6 +187,60 @@ static void http_server_stop(nano_http_server *srv) {
 
 // On R main thread ------------------------------------------------------------
 
+static SEXP make_ws_request_list(nng_stream *stream) {
+
+  const char *names[] = {"uri", "headers", ""};
+  SEXP request;
+  PROTECT(request = Rf_mkNamed(VECSXP, names));
+
+  char *uri_str = NULL;
+  if (nng_stream_get_string(stream, NNG_OPT_WS_REQUEST_URI, &uri_str) == 0) {
+    SET_VECTOR_ELT(request, 0, Rf_mkString(uri_str));
+    nng_strfree(uri_str);
+  }
+
+  char *headers_str = NULL;
+  if (nng_stream_get_string(stream, NNG_OPT_WS_REQUEST_HEADERS, &headers_str) == 0) {
+
+    int count = 0;
+    for (const char *p = headers_str; *p != '\0'; ) {
+      const char *eol = strstr(p, "\r\n");
+      if (eol == NULL) break;
+      if (eol > p) count++;
+      p = eol + 2;
+    }
+
+    SEXP headers = Rf_allocVector(STRSXP, count);
+    SET_VECTOR_ELT(request, 1, headers);
+    SEXP hdr_names = Rf_allocVector(STRSXP, count);
+    Rf_namesgets(headers, hdr_names);
+
+    int i = 0;
+    for (const char *p = headers_str; *p != '\0' && i < count; ) {
+      const char *eol = strstr(p, "\r\n");
+      if (eol == NULL) break;
+      if (eol > p) {
+        const char *sep = strstr(p, ": ");
+        if (sep != NULL && sep < eol) {
+          SET_STRING_ELT(hdr_names, i, Rf_mkCharLen(p, (int) (sep - p)));
+          SET_STRING_ELT(headers, i, Rf_mkCharLen(sep + 2, (int) (eol - sep - 2)));
+        } else {
+          SET_STRING_ELT(hdr_names, i, Rf_mkCharLen(p, (int) (eol - p)));
+          SET_STRING_ELT(headers, i, Rf_mkChar(""));
+        }
+        i++;
+      }
+      p = eol + 2;
+    }
+
+    nng_strfree(headers_str);
+  }
+
+  UNPROTECT(1);
+  return request;
+
+}
+
 static SEXP make_request_list(nng_http_req *req) {
 
   const char *names[] = {"method", "uri", "headers", "body", ""};
@@ -536,10 +590,11 @@ static void ws_invoke_onopen(void *arg) {
   UNPROTECT(1);
 
   if (info->on_open != R_NilValue) {
-    SEXP call;
-    PROTECT(call = Rf_lang2(info->on_open, ws->conn.xptr));
+    SEXP request, call;
+    PROTECT(request = make_ws_request_list(ws->stream));
+    PROTECT(call = Rf_lang3(info->on_open, ws->conn.xptr, request));
     R_tryEval(call, R_GlobalEnv, NULL);
-    UNPROTECT(1);
+    UNPROTECT(2);
   }
 
   // on_open callback may have closed connection e.g. if not authorized
