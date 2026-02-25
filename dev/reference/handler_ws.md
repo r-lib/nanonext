@@ -31,7 +31,8 @@ handler_ws(
 - on_open:
 
   \[default NULL\] Function called when a connection opens. Signature:
-  `function(ws)`
+  `function(ws, req)` where `req` is a list with `uri` (character) and
+  `headers` (named character vector) from the HTTP upgrade request.
 
 - on_close:
 
@@ -79,7 +80,7 @@ h <- handler_ws(
     # Broadcast to all
     for (client in clients) client$send(data)
   },
-  on_open = function(ws) {
+  on_open = function(ws, req) {
     clients[[as.character(ws$id)]] <<- ws
   },
   on_close = function(ws) {

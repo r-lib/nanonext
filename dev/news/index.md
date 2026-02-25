@@ -2,6 +2,13 @@
 
 ## nanonext (development version)
 
+##### Updates
+
+- [`handler_ws()`](https://nanonext.r-lib.org/dev/reference/handler_ws.md)
+  `on_open` callback now receives a second argument `req`, a list
+  containing `uri` and `headers` from the HTTP upgrade request (this is
+  technically a breaking change).
+
 ## nanonext 1.8.0
 
 CRAN release: 2026-02-09
