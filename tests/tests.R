@@ -1060,7 +1060,7 @@ if (later && NOT_CRAN) {
     test_error(ws_conn$send(123L), "`data` must be raw or character")
     test_error(ws_conn$send(list(a = 1)), "`data` must be raw or character")
     test_zero(close(ws))
-    for (i in 1:5) later::run_now(0.1)
+    while (length(msgs) < 3L) later::run_now(1)
     test_equal(msgs[[1]], "open")
     test_equal(msgs[[2]], "hello")
     test_equal(ws_conn$close(), 7L)
@@ -1080,8 +1080,9 @@ if (later && NOT_CRAN) {
     while (is.null(ws_req)) later::run_now(1)
     test_equal(ws_req$headers[["Authorization"]], "Bearer testtoken")
     test_equal(ws_req$headers[["X-Custom"]], "value1")
+    n_msgs <- length(msgs)
     close(ws_h)
-    for (i in 1:5) later::run_now(0.1)
+    while (length(msgs) == n_msgs) later::run_now(1)
   }
   test_zero(srv$close())
   test_error(http_server(url = "http://127.0.0.1:0", handlers = list(
