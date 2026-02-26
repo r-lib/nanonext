@@ -7,7 +7,13 @@ low-level interface intended for communicating with non-NNG endpoints.
 ## Usage
 
 ``` r
-stream(dial = NULL, listen = NULL, textframes = FALSE, tls = NULL)
+stream(
+  dial = NULL,
+  listen = NULL,
+  textframes = FALSE,
+  headers = NULL,
+  tls = NULL
+)
 ```
 
 ## Arguments
@@ -28,6 +34,14 @@ stream(dial = NULL, listen = NULL, textframes = FALSE, tls = NULL)
 
   \[default FALSE\] applicable to the websocket transport only, enables
   sending and receiving of TEXT frames (ignored otherwise).
+
+- headers:
+
+  (optional) applicable to websocket connections only, a **named**
+  character vector specifying custom request headers to send during the
+  WebSocket upgrade handshake e.g.
+  `c(Authorization = "Bearer token", Custom = "value")` (ignored for
+  non-websocket transports).
 
 - tls:
 

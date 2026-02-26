@@ -8,6 +8,9 @@
   `on_open` callback now receives a second argument `req`, a list
   containing `uri` and `headers` from the HTTP upgrade request (this is
   technically a breaking change).
+- [`stream()`](https://nanonext.r-lib.org/dev/reference/stream.md) gains
+  a `headers` argument for setting custom request headers on WebSocket
+  connections.
 
 ## nanonext 1.8.0
 
