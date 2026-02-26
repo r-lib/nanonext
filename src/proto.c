@@ -194,7 +194,7 @@ SEXP rnng_reap(SEXP con) {
 
 // streams ---------------------------------------------------------------------
 
-static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP tls) {
+static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP headers, SEXP tls) {
 
   const char *add = CHAR(STRING_ELT(url, 0));
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
@@ -223,6 +223,19 @@ static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP tls) {
         ((xc = nng_stream_dialer_set_bool(nst->endpoint.dial, "ws:recv-text", 1)) ||
         (xc = nng_stream_dialer_set_bool(nst->endpoint.dial, "ws:send-text", 1))))
       goto fail;
+    if (headers != R_NilValue && TYPEOF(headers) == STRSXP) {
+      const R_xlen_t hlen = XLENGTH(headers);
+      SEXP hnames = Rf_getAttrib(headers, R_NamesSymbol);
+      if (TYPEOF(hnames) == STRSXP && XLENGTH(hnames) == hlen) {
+        for (R_xlen_t i = 0; i < hlen; i++) {
+          const char *name = NANO_STR_N(hnames, i);
+          char optname[256];
+          snprintf(optname, sizeof(optname), "%s%s", NNG_OPT_WS_REQUEST_HEADER, name);
+          if ((xc = nng_stream_dialer_set_string(nst->endpoint.dial, optname, NANO_STR_N(headers, i))))
+            goto fail;
+        }
+      }
+    }
   }
 
   if (!strcmp(up->u_scheme, "wss")) {
@@ -364,10 +377,10 @@ static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls) {
 
 }
 
-SEXP rnng_stream_open(SEXP dial, SEXP listen, SEXP textframes, SEXP tls) {
+SEXP rnng_stream_open(SEXP dial, SEXP listen, SEXP textframes, SEXP headers, SEXP tls) {
 
   if (dial != R_NilValue) {
-    return nano_stream_dial(dial, textframes, tls);
+    return nano_stream_dial(dial, textframes, headers, tls);
   } else if (listen != R_NilValue) {
     return nano_stream_listen(listen, textframes, tls);
   }

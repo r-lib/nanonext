@@ -26,6 +26,11 @@
 #'   all transports are supported).
 #' @param textframes \[default FALSE\] applicable to the websocket transport
 #'   only, enables sending and receiving of TEXT frames (ignored otherwise).
+#' @param headers (optional) applicable to websocket connections only, a
+#'   **named** character vector specifying custom request headers to send during
+#'   the WebSocket upgrade handshake e.g.
+#'   \code{c(Authorization = "Bearer token", Custom = "value")} (ignored for
+#'   non-websocket transports).
 #' @param tls (optional) applicable to secure websockets only, a client or
 #'   server TLS configuration object created by [tls_config()]. If missing or
 #'   NULL, certificates are not validated.
@@ -50,8 +55,9 @@
 #'
 #' @export
 #'
-stream <- function(dial = NULL, listen = NULL, textframes = FALSE, tls = NULL)
-  .Call(rnng_stream_open, dial, listen, textframes, tls)
+stream <- function(dial = NULL, listen = NULL, textframes = FALSE,
+                   headers = NULL, tls = NULL)
+  .Call(rnng_stream_open, dial, listen, textframes, headers, tls)
 
 #' @rdname close
 #' @method close nanoStream

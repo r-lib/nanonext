@@ -4,7 +4,13 @@
 \alias{stream}
 \title{Open Stream}
 \usage{
-stream(dial = NULL, listen = NULL, textframes = FALSE, tls = NULL)
+stream(
+  dial = NULL,
+  listen = NULL,
+  textframes = FALSE,
+  headers = NULL,
+  tls = NULL
+)
 }
 \arguments{
 \item{dial}{a URL to dial, specifying the transport and address as a
@@ -17,6 +23,12 @@ all transports are supported).}
 
 \item{textframes}{[default FALSE] applicable to the websocket transport
 only, enables sending and receiving of TEXT frames (ignored otherwise).}
+
+\item{headers}{(optional) applicable to websocket connections only, a
+\strong{named} character vector specifying custom request headers to send during
+the WebSocket upgrade handshake e.g.
+\code{c(Authorization = "Bearer token", Custom = "value")} (ignored for
+non-websocket transports).}
 
 \item{tls}{(optional) applicable to secure websockets only, a client or
 server TLS configuration object created by \code{\link[=tls_config]{tls_config()}}. If missing or

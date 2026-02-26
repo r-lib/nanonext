@@ -1072,6 +1072,17 @@ if (later && NOT_CRAN) {
     later::run_now(1)
     close(ws_reject)
   }
+  ws_req <- NULL
+  ws_h <- tryCatch(stream(dial = paste0(ws_url, "/ws"), textframes = TRUE,
+                          headers = c(Authorization = "Bearer testtoken", "X-Custom" = "value1")),
+                   error = identity)
+  if (is_nano(ws_h)) {
+    while (is.null(ws_req)) later::run_now(1)
+    test_equal(ws_req$headers[["Authorization"]], "Bearer testtoken")
+    test_equal(ws_req$headers[["X-Custom"]], "value1")
+    close(ws_h)
+    for (i in 1:5) later::run_now(0.1)
+  }
   test_zero(srv$close())
   test_error(http_server(url = "http://127.0.0.1:0", handlers = list(
     handler_ws(paste0("/", strrep("x", 8180)), function(ws, data) ws$send(data))
