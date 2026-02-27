@@ -4,17 +4,20 @@
 \alias{race_aio}
 \title{Race Aio}
 \usage{
-race_aio(x, cv)
+race_aio(x, cv, timeout = NULL)
 }
 \arguments{
 \item{x}{A list of Aio objects.}
 
 \item{cv}{A condition variable. This must be the same cv supplied to
 \code{\link[=recv_aio]{recv_aio()}} or \code{\link[=request]{request()}} when creating the Aio objects in \code{x}.}
+
+\item{timeout}{[default NULL] integer value in milliseconds or NULL to wait
+indefinitely.}
 }
 \value{
 Integer index of the first resolved Aio, or 0L if none are resolved,
-the list is empty, or the cv was terminated.
+the list is empty, a cv flag has been set, or the timeout was reached.
 }
 \description{
 Returns the index of the first resolved Aio in a list, waiting if necessary.

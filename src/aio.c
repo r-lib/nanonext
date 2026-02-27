@@ -640,7 +640,7 @@ static inline int race_count_unresolved(SEXP x, R_xlen_t xlen) {
   return n;
 }
 
-SEXP rnng_race_aio(SEXP x, SEXP cvar) {
+SEXP rnng_race_aio(SEXP x, SEXP cvar, SEXP timeout) {
 
   if (TYPEOF(x) != VECSXP)
     return Rf_ScalarInteger(0);
@@ -668,11 +668,19 @@ SEXP rnng_race_aio(SEXP x, SEXP cvar) {
   if (n == 0)
     return Rf_ScalarInteger((int) race_find_resolved(x, xlen));
 
+  const int timed = timeout != R_NilValue;
+  nng_time deadline = 0;
+  if (timed)
+    deadline = nng_clock() + (nng_time) nano_integer(timeout);
+
   nng_time time = nng_clock();
   int current_n, flag;
 
   do {
     time = time + 400;
+    if (timed && time > deadline)
+      time = deadline;
+
     int signalled = 1;
     nng_mtx_lock(mtx);
     while (ncv->condition == 0) {
@@ -688,6 +696,9 @@ SEXP rnng_race_aio(SEXP x, SEXP cvar) {
 
     if (flag < 0)
       return Rf_ScalarInteger(0);
+
+    if (timed && nng_clock() >= deadline)
+      break;
 
     if (!signalled)
       R_CheckUserInterrupt();

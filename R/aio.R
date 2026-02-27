@@ -251,13 +251,15 @@ collect_aio_ <- function(x) .Call(rnng_aio_collect_safe, x)
 #' @param x A list of Aio objects.
 #' @param cv A condition variable. This must be the same cv supplied to
 #'   [recv_aio()] or [request()] when creating the Aio objects in `x`.
+#' @param timeout \[default NULL\] integer value in milliseconds or NULL to wait
+#'   indefinitely.
 #'
 #' @return Integer index of the first resolved Aio, or 0L if none are resolved,
-#'   the list is empty, or the cv was terminated.
+#'   the list is empty, a cv flag has been set, or the timeout was reached.
 #'
 #' @export
 #'
-race_aio <- function(x, cv) .Call(rnng_race_aio, x, cv)
+race_aio <- function(x, cv, timeout = NULL) .Call(rnng_race_aio, x, cv, timeout)
 
 #' Stop Asynchronous Aio Operation
 #'
