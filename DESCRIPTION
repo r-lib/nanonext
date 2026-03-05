@@ -8,7 +8,8 @@ Authors@R: c(
     person("Posit Software, PBC", role = c("cph", "fnd"),
            comment = c(ROR = "03wc8by49")),
     person("Hibiki AI Limited", role = "cph"),
-    person("R Consortium", role = "fnd")
+    person("R Consortium", role = "fnd",
+           comment = c(ROR = "01z833950"))
   )
 Description: R binding for NNG (Nanomsg Next Gen), a successor to ZeroMQ.
     A toolkit for messaging, concurrency and the web. High-performance

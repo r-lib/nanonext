@@ -100,7 +100,7 @@ Other contributors:
 \itemize{
   \item Posit Software, PBC (\href{https://ror.org/03wc8by49}{ROR}) [copyright holder, funder]
   \item Hibiki AI Limited [copyright holder]
-  \item R Consortium [funder]
+  \item R Consortium (\href{https://ror.org/01z833950}{ROR}) [funder]
 }
 
 }
