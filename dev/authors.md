@@ -14,6 +14,7 @@
 - **![R
   Consortium](https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp)**.
   Funder.
+  [![ROR](https://raw.githubusercontent.com/ror-community/ror-logos/main/ror-icon-rgb.svg)](https://ror.org/01z833950)
 
 ## Citation
 

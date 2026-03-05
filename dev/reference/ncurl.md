@@ -123,7 +123,7 @@ ncurl(
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Thu, 26 Feb 2026 23:00:50 GMT"
+#> [1] "Thu, 05 Mar 2026 14:15:51 GMT"
 #> 
 #> $headers$`content-type`
 #> [1] "application/json; charset=utf-8"
@@ -148,7 +148,7 @@ ncurl(
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Thu, 26 Feb 2026 23:00:50 GMT"
+#> [1] "Thu, 05 Mar 2026 14:15:51 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -160,7 +160,7 @@ ncurl(
 #> [1] "close"
 #> 
 #> $headers$`CF-RAY`
-#> [1] "9d430f960c8af208-LAX"
+#> [1] "9d79bc347fe7fa10-ORD"
 #> 
 #> $headers$etag
 #> [1] "W/\"8f-7zN8nSad8A9WlFJjKQZB04z5nHE\""
@@ -169,10 +169,10 @@ ncurl(
 #> [1] "Accept-Encoding"
 #> 
 #> $headers$`Set-Cookie`
-#> [1] "sails.sid=s%3Ap2elnbmzrNVaGl21y5MAGt1WPsVQVPpC.4t1%2FVzqaK6u7mCASz7MP99nPmLtjXpnM6KepRVpaXBw; Path=/; HttpOnly, __cf_bm=vkU35VrGe6FXshnlttWUBUDRY.USu8nvw7r5Fyg.HUc-1772146850-1.0.1.1-LH5bBZthyGRcqbjPQhSub8LH45pj8S7wa4l4OM4yqyEN3mk7cxYq8ese8UFGtuntHL6eviKk6hQyJ78giEaKDuLMeRwzvYnHDw3YCghFhpM; path=/; expires=Thu, 26-Feb-26 23:30:50 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=4aOwaf87zS5te9PGTUuhs60CBKMaQxB4yoCu_Kb7Hr4-1772146850328-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
+#> [1] "sails.sid=s%3A7QLx-rDwnFoxlTKNg5NgARTudsXGYUNn.IeDZofdSE%2F6gJCzR0M1BrZrz04mTYBR3QFR7mV3Yqfs; Path=/; HttpOnly, __cf_bm=Sq33mJ_yCSpK9nqBVBLMB8D.4OVaGmePyFLmmGguR1c-1772720151-1.0.1.1-_kPW450_.lKl3S_hsJ5R557vuYaVUuNkUeWrshsEznKREXyJObacaWw5JoRToGMqifvOcKnO1gvL6ZicBfPzE049LZSM6XbjmshfBPGbF.A; path=/; expires=Thu, 05-Mar-26 14:45:51 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=V7wb_R38nf.j49_nk2hvURbNo5u3OT9rViam.3xzqsQ-1772720151799-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
 #> 
 #> $headers$`x-envoy-upstream-service-time`
-#> [1] "5"
+#> [1] "4"
 #> 
 #> $headers$`cf-cache-status`
 #> [1] "DYNAMIC"
@@ -208,12 +208,12 @@ ncurl(
   timeout = 1500L
 )
 #> $status
-#> [1] 200
+#> 'errorValue' int 5 | Timed out
 #> 
 #> $headers
-#> NULL
+#> 'errorValue' int 5 | Timed out
 #> 
 #> $data
-#> [1] "{\"args\":{},\"data\":{\"key\":\"value\"},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"content-type\":\"application/json\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\",\"content-length\":\"15\"},\"json\":{\"key\":\"value\"},\"url\":\"https://postman-echo.com/post\"}"
+#> 'errorValue' int 5 | Timed out
 #> 
 ```
