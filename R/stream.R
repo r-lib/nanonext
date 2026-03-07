@@ -29,7 +29,7 @@
 #' @param headers (optional) applicable to websocket connections only, a
 #'   **named** character vector specifying custom request headers to send during
 #'   the WebSocket upgrade handshake e.g.
-#'   \code{c(Authorization = "Bearer token", Custom = "value")} (ignored for
+#'   `c(Authorization = "Bearer token", Custom = "value")` (ignored for
 #'   non-websocket transports).
 #' @param tls (optional) applicable to secure websockets only, a client or
 #'   server TLS configuration object created by [tls_config()]. If missing or
