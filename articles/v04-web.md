@@ -41,7 +41,7 @@ ncurl("https://postman-echo.com/post",
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Sun, 08 Feb 2026 11:22:45 GMT"
+#> [1] "Wed, 25 Feb 2026 20:10:29 GMT"
 #> 
 #> 
 #> $data
@@ -58,7 +58,7 @@ ncurl("https://postman-echo.com/get",
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Sun, 08 Feb 2026 11:22:45 GMT"
+#> [1] "Wed, 25 Feb 2026 20:10:30 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -70,7 +70,7 @@ ncurl("https://postman-echo.com/get",
 #> [1] "close"
 #> 
 #> $headers$`CF-RAY`
-#> [1] "9caac0420a1dc16b-LHR"
+#> [1] "9d39d8b0eb7bce7b-LHR"
 #> 
 #> $headers$etag
 #> [1] "W/\"8f-7zN8nSad8A9WlFJjKQZB04z5nHE\""
@@ -79,10 +79,10 @@ ncurl("https://postman-echo.com/get",
 #> [1] "Accept-Encoding"
 #> 
 #> $headers$`Set-Cookie`
-#> [1] "sails.sid=s%3A3tYl-iuzp8jF0j82bxVHtxrx87HF8PoG.ykEiyyCKGOB1tWjbdRBXQQN7R2JwAHxl%2FkpAWvaV%2FIs; Path=/; HttpOnly, __cf_bm=xmba.Nkum1545BuZtIF1AkAAJzxI0VLZrdSg2QarH6M-1770549765-1.0.1.1-Twtq9B6vpPFSSJbuRQ9AaEDUB83Sprl4keRU_kvVk7PZqFGUZc1cVqFvyfN14NRX1CG5qT1idcqkSWejx03q6v3KYkPgCga6vJiifoRoVUs; path=/; expires=Sun, 08-Feb-26 11:52:45 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=u2FHSl3lIzG1PMEmFIe9J58inYS1BQ8KH5f7Y3RV1Nk-1770549765548-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
+#> [1] "sails.sid=s%3AwH622ngshSXMrA7ebK36VF8ljdvJURS_.dc0udVn4RC4LtE%2BuLRsSPSguz4JiRmp2ko1ecmMaxWI; Path=/; HttpOnly, __cf_bm=sijEg6f0LkDsu4.vo_d65ThwUaephl5UJTmhqTqHOxQ-1772050230-1.0.1.1-_7tgVpEYqMqBiaCocz16tASo_t.71RsyJlO74Q_tW33JvUS8gP0H.n0XYNVQ6IWXf9bHQEE2ClHqnRCDrReRcrgzZcYD.im_JDYn_fB6O1g; path=/; expires=Wed, 25-Feb-26 20:40:30 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=yjuM4wzOZHEA..Tmr5h3VMYGOY6fe8afDDwByo9TcZg-1772050230010-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
 #> 
 #> $headers$`x-envoy-upstream-service-time`
-#> [1] "5"
+#> [1] "4"
 #> 
 #> $headers$`cf-cache-status`
 #> [1] "DYNAMIC"
@@ -112,7 +112,7 @@ res
 
 call_aio(res)$headers
 #> $date
-#> [1] "Sun, 08 Feb 2026 11:22:45 GMT"
+#> [1] "Wed, 25 Feb 2026 20:10:30 GMT"
 
 res$status
 #> [1] 200
@@ -156,20 +156,21 @@ transact(sess)
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Sun, 08 Feb 2026 11:22:46 GMT"
+#> [1] "Wed, 25 Feb 2026 20:10:30 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
 #> 
 #> 
 #> $data
-#>   [1] 7b 22 61 72 67 73 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b 22 68 6f 73 74 22 3a
-#>  [30] 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 61 63 63 65 70 74 2d 65 6e
-#>  [59] 63 6f 64 69 6e 67 22 3a 22 67 7a 69 70 2c 20 62 72 22 2c 22 78 2d 66 6f 72 77 61 72 64
-#>  [88] 65 64 2d 70 72 6f 74 6f 22 3a 22 68 74 74 70 73 22 2c 22 63 6f 6e 74 65 6e 74 2d 74 79
-#> [117] 70 65 22 3a 22 61 70 70 6c 69 63 61 74 69 6f 6e 2f 6a 73 6f 6e 22 7d 2c 22 75 72 6c 22
-#> [146] 3a 22 68 74 74 70 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 2f 67 65
-#> [175] 74 22 7d
+#>   [1] 7b 22 61 72 67 73 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b 22 68 6f
+#>  [26] 73 74 22 3a 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 61
+#>  [51] 63 63 65 70 74 2d 65 6e 63 6f 64 69 6e 67 22 3a 22 67 7a 69 70 2c 20 62 72
+#>  [76] 22 2c 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 72 6f 74 6f 22 3a 22 68 74
+#> [101] 74 70 73 22 2c 22 63 6f 6e 74 65 6e 74 2d 74 79 70 65 22 3a 22 61 70 70 6c
+#> [126] 69 63 61 74 69 6f 6e 2f 6a 73 6f 6e 22 7d 2c 22 75 72 6c 22 3a 22 68 74 74
+#> [151] 70 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 2f 67 65 74
+#> [176] 22 7d
 
 close(sess)
 ```
@@ -344,7 +345,7 @@ server <- http_server(
         # Broadcast to all connected clients
         for (client in clients) client$send(data)
       },
-      on_open = function(ws) {
+      on_open = function(ws, req) {
         clients[[as.character(ws$id)]] <<- ws
       },
       on_close = function(ws) {
@@ -492,7 +493,7 @@ server <- http_server(
 server$start()
 server
 #> < nanoServer >
-#>  - url: https://127.0.0.1:50715 
+#>  - url: https://127.0.0.1:50424 
 #>  - state: started
 
 # HTTPS client request

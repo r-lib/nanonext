@@ -96,4 +96,4 @@ Other contributors:
 
 - Hibiki AI Limited \[copyright holder\]
 
-- R Consortium \[funder\]
+- R Consortium ([ROR](https://ror.org/01z833950)) \[funder\]

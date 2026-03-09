@@ -1,5 +1,19 @@
 # Changelog
 
+## nanonext 1.8.1
+
+CRAN release: 2026-03-08
+
+##### Updates
+
+- [`handler_ws()`](https://nanonext.r-lib.org/reference/handler_ws.md)
+  `on_open` callback now receives a second argument `req`, a list
+  containing `uri` and `headers` from the HTTP upgrade request (this is
+  technically a breaking change).
+- [`stream()`](https://nanonext.r-lib.org/reference/stream.md) gains a
+  `headers` argument for setting custom request headers on WebSocket
+  connections.
+
 ## nanonext 1.8.0
 
 CRAN release: 2026-02-09

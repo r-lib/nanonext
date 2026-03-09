@@ -11,7 +11,7 @@ low-level interface intended for communicating with non-NNG endpoints."><meta pr
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.8.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.8.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,7 +47,7 @@ low-level interface intended for communicating with non-NNG endpoints."><meta pr
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Open Stream</h1>
-      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/release/R/stream.R" class="external-link"><code>R/stream.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/main/R/stream.R" class="external-link"><code>R/stream.R</code></a></small>
       <div class="d-none name"><code>stream.Rd</code></div>
     </div>
 
@@ -59,7 +59,13 @@ low-level interface intended for communicating with non-NNG endpoints.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">stream</span><span class="op">(</span>dial <span class="op">=</span> <span class="cn">NULL</span>, listen <span class="op">=</span> <span class="cn">NULL</span>, textframes <span class="op">=</span> <span class="cn">FALSE</span>, tls <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">stream</span><span class="op">(</span></span>
+<span>  dial <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  listen <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  textframes <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  headers <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  tls <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -81,6 +87,14 @@ all transports are supported).</p></dd>
 <dt id="arg-textframes">textframes<a class="anchor" aria-label="anchor" href="#arg-textframes"></a></dt>
 <dd><p>[default FALSE] applicable to the websocket transport
 only, enables sending and receiving of TEXT frames (ignored otherwise).</p></dd>
+
+
+<dt id="arg-headers">headers<a class="anchor" aria-label="anchor" href="#arg-headers"></a></dt>
+<dd><p>(optional) applicable to websocket connections only, a
+<strong>named</strong> character vector specifying custom request headers to send during
+the WebSocket upgrade handshake e.g.
+<code>c(Authorization = "Bearer token", Custom = "value")</code> (ignored for
+non-websocket transports).</p></dd>
 
 
 <dt id="arg-tls">tls<a class="anchor" aria-label="anchor" href="#arg-tls"></a></dt>

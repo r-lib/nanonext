@@ -14,19 +14,20 @@
 - **![R
   Consortium](https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp)**.
   Funder.
+  [![ROR](https://raw.githubusercontent.com/ror-community/ror-logos/main/ror-icon-rgb.svg)](https://ror.org/01z833950)
 
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/r-lib/nanonext/blob/release/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/r-lib/nanonext/blob/main/DESCRIPTION)
 
 Gao C (2026). *nanonext: Lightweight Toolkit for Messaging, Concurrency
-and the Web*. R package version 1.8.0, <https://nanonext.r-lib.org>.
+and the Web*. R package version 1.8.1, <https://nanonext.r-lib.org>.
 
     @Manual{,
       title = {nanonext: Lightweight Toolkit for Messaging, Concurrency and the Web},
       author = {Charlie Gao},
       year = {2026},
-      note = {R package version 1.8.0},
+      note = {R package version 1.8.1},
       url = {https://nanonext.r-lib.org},
     }
