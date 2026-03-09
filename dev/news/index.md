@@ -2,6 +2,10 @@
 
 ## nanonext (development version)
 
+## nanonext 1.8.1
+
+CRAN release: 2026-03-08
+
 ##### Updates
 
 - [`handler_ws()`](https://nanonext.r-lib.org/dev/reference/handler_ws.md)
