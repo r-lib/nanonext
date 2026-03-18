@@ -259,6 +259,18 @@ SEXP nano_raw_char(const unsigned char *buf, const size_t sz) {
 
 }
 
+SEXP nano_findVarInFrame(const SEXP env, const SEXP sym) {
+
+  SEXP frame = CAR(env);  // FRAME
+  while (frame != R_NilValue) {
+    if (TAG(frame) == sym)
+      return CAR(frame); // BINDING_VALUE
+    frame = CDR(frame);
+  }
+  return R_UnboundValue;
+
+}
+
 SEXP nano_url_with_port(nng_url *up, int port) {
 
   char port_s[8];
