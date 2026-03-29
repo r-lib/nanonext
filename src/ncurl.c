@@ -741,7 +741,7 @@ SEXP rnng_ncurl_session_close(SEXP session) {
 
   nng_http_conn_close((nng_http_conn *) haio->data);
   haio->data = NULL;
-  Rf_setAttrib(session, nano_StateSymbol, R_MissingArg);
+  Rf_setAttrib(session, nano_StateSymbol, Rf_mkString("closed"));
 
   return nano_success;
 
