@@ -128,11 +128,11 @@ if (is_ncurl_session(s)) transact(s)
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Wed, 18 Mar 2026 11:32:28 GMT"
+#> [1] "Sun, 29 Mar 2026 02:04:16 GMT"
 #> 
 #> 
 #> $data
-#> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"
+#> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"x-forwarded-proto\":\"https\",\"accept-encoding\":\"gzip, br\"},\"url\":\"https://postman-echo.com/get\"}"
 #> 
 if (is_ncurl_session(s)) close(s)
 ```
