@@ -378,6 +378,7 @@ extern SEXP nano_SocketSymbol;
 extern SEXP nano_StateSymbol;
 extern SEXP nano_StatusSymbol;
 extern SEXP nano_StreamSymbol;
+extern SEXP nano_ThreadSymbol;
 extern SEXP nano_TlsSymbol;
 extern SEXP nano_UrlSymbol;
 extern SEXP nano_ValueSymbol;

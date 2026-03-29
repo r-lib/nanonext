@@ -22,6 +22,7 @@ SEXP nano_SocketSymbol;
 SEXP nano_StateSymbol;
 SEXP nano_StatusSymbol;
 SEXP nano_StreamSymbol;
+SEXP nano_ThreadSymbol;
 SEXP nano_TlsSymbol;
 SEXP nano_UrlSymbol;
 SEXP nano_ValueSymbol;
@@ -58,6 +59,7 @@ static void RegisterSymbols(void) {
   nano_StateSymbol = Rf_install("state");
   nano_StatusSymbol = Rf_install("status");
   nano_StreamSymbol = Rf_install("stream");
+  nano_ThreadSymbol = Rf_install("thread");
   nano_TlsSymbol = Rf_install("tls");
   nano_UrlSymbol = Rf_install("url");
   nano_ValueSymbol = Rf_install("value");
