@@ -450,7 +450,7 @@ void pipe_cb_signal(nng_pipe, nng_pipe_ev, void *);
 void tls_finalizer(SEXP);
 
 void nano_load_later(void);
-SEXP nano_findVarInFrame(const SEXP, const SEXP);
+SEXP nano_findVarInFrame(const SEXP, const SEXP, int *);
 SEXP nano_PreserveObject(const SEXP);
 void nano_ReleaseObject(SEXP);
 

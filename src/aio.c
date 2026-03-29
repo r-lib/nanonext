@@ -250,11 +250,12 @@ static inline SEXP create_aio_msg(SEXP env, SEXP aio, nano_aio *raio, int res) {
 
 SEXP nano_aio_result(SEXP env) {
 
-  const SEXP exist = nano_findVarInFrame(env, nano_ValueSymbol);
-  if (exist != R_UnboundValue)
+  int found;
+  SEXP exist = nano_findVarInFrame(env, nano_ValueSymbol, &found);
+  if (found)
     return exist;
 
-  const SEXP aio = nano_findVarInFrame(env, nano_AioSymbol);
+  const SEXP aio = nano_findVarInFrame(env, nano_AioSymbol, NULL);
   nano_aio *saio = (nano_aio *) NANO_PTR(aio);
 
   return create_aio_result(env, saio);
@@ -263,11 +264,12 @@ SEXP nano_aio_result(SEXP env) {
 
 SEXP nano_aio_get_msg(SEXP env) {
 
-  const SEXP exist = nano_findVarInFrame(env, nano_ValueSymbol);
-  if (exist != R_UnboundValue)
+  int found;
+  SEXP exist = nano_findVarInFrame(env, nano_ValueSymbol, &found);
+  if (found)
     return exist;
 
-  const SEXP aio = nano_findVarInFrame(env, nano_AioSymbol);
+  const SEXP aio = nano_findVarInFrame(env, nano_AioSymbol, NULL);
   nano_aio *raio = (nano_aio *) NANO_PTR(aio);
 
   int res;
@@ -295,11 +297,12 @@ SEXP nano_aio_get_msg(SEXP env) {
 
 SEXP rnng_aio_result(SEXP env) {
 
-  const SEXP exist = nano_findVarInFrame(env, nano_ValueSymbol);
-  if (exist != R_UnboundValue)
+  int found;
+  SEXP exist = nano_findVarInFrame(env, nano_ValueSymbol, &found);
+  if (found)
     return exist;
 
-  const SEXP aio = nano_findVarInFrame(env, nano_AioSymbol);
+  const SEXP aio = nano_findVarInFrame(env, nano_AioSymbol, NULL);
   nano_aio *saio = (nano_aio *) NANO_PTR(aio);
 
   if (nng_aio_busy(saio->aio))
@@ -311,11 +314,12 @@ SEXP rnng_aio_result(SEXP env) {
 
 SEXP rnng_aio_get_msg(SEXP env) {
 
-  const SEXP exist = nano_findVarInFrame(env, nano_ValueSymbol);
-  if (exist != R_UnboundValue)
+  int found;
+  SEXP exist = nano_findVarInFrame(env, nano_ValueSymbol, &found);
+  if (found)
     return exist;
 
-  const SEXP aio = nano_findVarInFrame(env, nano_AioSymbol);
+  const SEXP aio = nano_findVarInFrame(env, nano_AioSymbol, NULL);
   nano_aio *raio = (nano_aio *) NANO_PTR(aio);
 
   int res;
@@ -360,7 +364,7 @@ SEXP rnng_aio_call(SEXP x) {
 
   switch (TYPEOF(x)) {
   case ENVSXP: {
-    const SEXP coreaio = nano_findVarInFrame(x, nano_AioSymbol);
+    const SEXP coreaio = nano_findVarInFrame(x, nano_AioSymbol, NULL);
     if (NANO_PTR_CHECK(coreaio, nano_AioSymbol))
       return x;
 
@@ -401,23 +405,24 @@ SEXP rnng_aio_call(SEXP x) {
 static SEXP rnng_aio_collect_impl(SEXP x, SEXP (*const func)(SEXP)) {
 
   SEXP out;
+  int found;
 
   switch (TYPEOF(x)) {
   case ENVSXP: {
-    out = nano_findVarInFrame(func(x), nano_ValueSymbol);
-    if (out == R_UnboundValue) goto fail;
+    out = nano_findVarInFrame(func(x), nano_ValueSymbol, &found);
+    if (!found) goto fail;
     break;
   }
   case VECSXP: {
-    SEXP env, names;
+    SEXP env, val, names;
     const R_xlen_t xlen = Rf_xlength(x);
     PROTECT(out = Rf_allocVector(VECSXP, xlen));
     for (R_xlen_t i = 0; i < xlen; i++) {
       env = func(NANO_VECTOR(x)[i]);
       if (TYPEOF(env) != ENVSXP) goto fail;
-      env = nano_findVarInFrame(env, nano_ValueSymbol);
-      if (env == R_UnboundValue) goto fail;
-      SET_VECTOR_ELT(out, i, env);
+      val = nano_findVarInFrame(env, nano_ValueSymbol, &found);
+      if (!found) goto fail;
+      SET_VECTOR_ELT(out, i, val);
     }
     names = Rf_getAttrib(x, R_NamesSymbol);
     if (names != R_NilValue)
@@ -452,7 +457,7 @@ SEXP rnng_aio_stop(SEXP x) {
 
   switch (TYPEOF(x)) {
   case ENVSXP: {
-    const SEXP coreaio = nano_findVarInFrame(x, nano_AioSymbol);
+    const SEXP coreaio = nano_findVarInFrame(x, nano_AioSymbol, NULL);
     if (NANO_PTR_CHECK(coreaio, nano_AioSymbol)) break;
     nano_aio *aiop = (nano_aio *) NANO_PTR(coreaio);
     nng_aio_stop(aiop->aio);
@@ -483,10 +488,10 @@ SEXP rnng_request_stop(SEXP x) {
   SEXP out;
   switch (TYPEOF(x)) {
   case ENVSXP: {
-    SEXP coreaio;
     nng_msg *msgp = NULL;
     int res = 0;
-    PROTECT(coreaio = nano_findVarInFrame(x, nano_AioSymbol));
+    SEXP coreaio = nano_findVarInFrame(x, nano_AioSymbol, NULL);
+    PROTECT(coreaio);
     if (NANO_PTR_CHECK(coreaio, nano_AioSymbol)) goto fail;
     nano_aio *aiop = (nano_aio *) NANO_PTR(coreaio);
     if (aiop->type != REQAIOS && aiop->type != REQAIO) goto fail;
@@ -540,7 +545,7 @@ static int rnng_unresolved_impl(SEXP x) {
   int xc;
   switch (TYPEOF(x)) {
   case ENVSXP: {
-    const SEXP coreaio = nano_findVarInFrame(x, nano_AioSymbol);
+    const SEXP coreaio = nano_findVarInFrame(x, nano_AioSymbol, NULL);
     if (NANO_PTR_CHECK(coreaio, nano_AioSymbol)) {
       xc = 0; break;
     }
@@ -594,7 +599,7 @@ SEXP rnng_unresolved(SEXP x) {
 static int rnng_unresolved2_impl(SEXP x) {
 
   if (TYPEOF(x) == ENVSXP) {
-    const SEXP coreaio = nano_findVarInFrame(x, nano_AioSymbol);
+    const SEXP coreaio = nano_findVarInFrame(x, nano_AioSymbol, NULL);
     if (NANO_PTR_CHECK(coreaio, nano_AioSymbol))
       return 0;
     nano_aio *aiop = (nano_aio *) NANO_PTR(coreaio);

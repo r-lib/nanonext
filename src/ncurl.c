@@ -166,7 +166,7 @@ static inline SEXP create_aio_http(SEXP env, nano_aio *haio, int typ) {
   SEXP out, vec, rvec, response;
   nano_handle *handle = (nano_handle *) haio->next;
 
-  PROTECT(response = nano_findVarInFrame(env, nano_ResponseSymbol));
+  PROTECT(response = nano_findVarInFrame(env, nano_ResponseSymbol, NULL));
   const int all_resp = response != R_NilValue && TYPEOF(response) == LGLSXP && LOGICAL(response)[0] == 1;
   int chk_resp = response != R_NilValue && TYPEOF(response) == STRSXP;
   const uint16_t code = nng_http_res_get_status(handle->res), relo = code >= 300 && code < 400;
@@ -217,9 +217,9 @@ static inline SEXP create_aio_http(SEXP env, nano_aio *haio, int typ) {
   Rf_defineVar(nano_AioSymbol, R_NilValue, env);
 
   switch (typ) {
-  case 0: out = nano_findVarInFrame(env, nano_ResultSymbol); break;
-  case 1: out = nano_findVarInFrame(env, nano_ProtocolSymbol); break;
-  default: out = nano_findVarInFrame(env, nano_ValueSymbol); break;
+  case 0: out = nano_findVarInFrame(env, nano_ResultSymbol, NULL); break;
+  case 1: out = nano_findVarInFrame(env, nano_ProtocolSymbol, NULL); break;
+  default: out = nano_findVarInFrame(env, nano_ValueSymbol, NULL); break;
   }
   return out;
 
@@ -227,16 +227,17 @@ static inline SEXP create_aio_http(SEXP env, nano_aio *haio, int typ) {
 
 static inline SEXP nano_aio_http_impl(SEXP env, const int typ) {
 
+  int found;
   SEXP exist;
   switch (typ) {
-  case 0: exist = nano_findVarInFrame(env, nano_ResultSymbol); break;
-  case 1: exist = nano_findVarInFrame(env, nano_ProtocolSymbol); break;
-  default: exist = nano_findVarInFrame(env, nano_ValueSymbol); break;
+  case 0: exist = nano_findVarInFrame(env, nano_ResultSymbol, &found); break;
+  case 1: exist = nano_findVarInFrame(env, nano_ProtocolSymbol, &found); break;
+  default: exist = nano_findVarInFrame(env, nano_ValueSymbol, &found); break;
   }
-  if (exist != R_UnboundValue)
+  if (found)
     return exist;
 
-  const SEXP aio = nano_findVarInFrame(env, nano_AioSymbol);
+  const SEXP aio = nano_findVarInFrame(env, nano_AioSymbol, NULL);
   nano_aio *haio = (nano_aio *) NANO_PTR(aio);
 
   if (nng_aio_busy(haio->aio))
@@ -248,11 +249,12 @@ static inline SEXP nano_aio_http_impl(SEXP env, const int typ) {
 
 SEXP nano_aio_http_status(SEXP env) {
 
-  SEXP exist = nano_findVarInFrame(env, nano_ResultSymbol);
-  if (exist != R_UnboundValue)
+  int found;
+  SEXP exist = nano_findVarInFrame(env, nano_ResultSymbol, &found);
+  if (found)
     return exist;
 
-  const SEXP aio = nano_findVarInFrame(env, nano_AioSymbol);
+  const SEXP aio = nano_findVarInFrame(env, nano_AioSymbol, NULL);
   nano_aio *haio = (nano_aio *) NANO_PTR(aio);
 
   return create_aio_http(env, haio, 0);
