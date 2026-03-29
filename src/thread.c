@@ -171,7 +171,7 @@ SEXP rnng_messenger(SEXP url) {
   }
   PROTECT(socket = R_MakeExternalPtr(sock, nano_SocketSymbol, con));
   R_RegisterCFinalizerEx(socket, socket_finalizer, TRUE);
-  if (dialer) Rf_setAttrib(socket, nano_DialerSymbol, R_MissingArg);
+  if (dialer) Rf_setAttrib(socket, nano_DialerSymbol, Rf_ScalarLogical(1));
 
   UNPROTECT(2);
   return socket;
