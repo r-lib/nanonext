@@ -378,6 +378,7 @@ extern SEXP nano_SocketSymbol;
 extern SEXP nano_StateSymbol;
 extern SEXP nano_StatusSymbol;
 extern SEXP nano_StreamSymbol;
+extern SEXP nano_ThreadSymbol;
 extern SEXP nano_TlsSymbol;
 extern SEXP nano_UrlSymbol;
 extern SEXP nano_ValueSymbol;
@@ -449,7 +450,7 @@ void pipe_cb_signal(nng_pipe, nng_pipe_ev, void *);
 void tls_finalizer(SEXP);
 
 void nano_load_later(void);
-SEXP nano_findVarInFrame(const SEXP, const SEXP);
+SEXP nano_findVarInFrame(const SEXP, const SEXP, int *);
 SEXP nano_PreserveObject(const SEXP);
 void nano_ReleaseObject(SEXP);
 
@@ -468,6 +469,7 @@ SEXP rnng_aio_result(SEXP);
 SEXP rnng_aio_stop(SEXP);
 SEXP rnng_clock(void);
 SEXP rnng_close(SEXP);
+SEXP rnng_conn_close(SEXP);
 SEXP rnng_ctx_close(SEXP);
 SEXP rnng_ctx_create(SEXP);
 SEXP rnng_ctx_open(SEXP);
@@ -528,6 +530,9 @@ SEXP rnng_sleep(SEXP);
 SEXP rnng_stats_get(SEXP, SEXP);
 SEXP rnng_status_code(SEXP);
 SEXP rnng_stream_close(SEXP);
+SEXP rnng_stream_conn_send(SEXP, SEXP);
+SEXP rnng_stream_conn_set_header(SEXP, SEXP, SEXP);
+SEXP rnng_stream_conn_set_status(SEXP, SEXP);
 SEXP rnng_stream_open(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_strerror(SEXP);
 SEXP rnng_subscribe(SEXP, SEXP, SEXP);
@@ -543,9 +548,5 @@ SEXP rnng_write_cert(SEXP, SEXP);
 SEXP rnng_write_stdout(SEXP);
 SEXP rnng_ws_close(SEXP);
 SEXP rnng_ws_send(SEXP, SEXP);
-SEXP rnng_conn_close(SEXP);
-SEXP rnng_stream_conn_send(SEXP, SEXP);
-SEXP rnng_stream_conn_set_header(SEXP, SEXP, SEXP);
-SEXP rnng_stream_conn_set_status(SEXP, SEXP);
 
 #endif

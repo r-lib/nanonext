@@ -171,7 +171,7 @@ SEXP rnng_messenger(SEXP url) {
   }
   PROTECT(socket = R_MakeExternalPtr(sock, nano_SocketSymbol, con));
   R_RegisterCFinalizerEx(socket, socket_finalizer, TRUE);
-  if (dialer) Rf_setAttrib(socket, nano_DialerSymbol, R_MissingArg);
+  if (dialer) Rf_setAttrib(socket, nano_DialerSymbol, Rf_ScalarLogical(1));
 
   UNPROTECT(2);
   return socket;
@@ -346,7 +346,7 @@ SEXP rnng_wait_thread_create(SEXP x) {
   const SEXPTYPE typ = TYPEOF(x);
   if (typ == ENVSXP) {
 
-    const SEXP coreaio = nano_findVarInFrame(x, nano_AioSymbol);
+    const SEXP coreaio = nano_findVarInFrame(x, nano_AioSymbol, NULL);
     if (NANO_PTR_CHECK(coreaio, nano_AioSymbol))
       return x;
 
@@ -496,7 +496,7 @@ SEXP rnng_signal_thread_create(SEXP cv, SEXP cv2) {
   nano_thread_duo *duo = malloc(sizeof(nano_thread_duo));
   NANO_ENSURE_ALLOC(duo);
 
-  SEXP existing = Rf_getAttrib(cv, R_MissingArg);
+  SEXP existing = Rf_getAttrib(cv, nano_ThreadSymbol);
   if (existing != R_NilValue) {
     thread_duo_finalizer(existing);
     R_ClearExternalPtr(existing);
@@ -516,14 +516,14 @@ SEXP rnng_signal_thread_create(SEXP cv, SEXP cv2) {
     goto fail;
 
   SEXP xptr = R_MakeExternalPtr(duo, R_NilValue, R_NilValue);
-  Rf_setAttrib(cv, R_MissingArg, xptr);
+  Rf_setAttrib(cv, nano_ThreadSymbol, xptr);
   R_RegisterCFinalizerEx(xptr, thread_duo_finalizer, TRUE);
 
   return cv2;
 
   fail:
   free(duo);
-  Rf_setAttrib(cv, R_MissingArg, R_NilValue);
+  Rf_setAttrib(cv, nano_ThreadSymbol, R_NilValue);
   failmem:
   ERROR_OUT(xc);
 
