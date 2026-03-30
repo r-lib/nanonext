@@ -74,6 +74,7 @@ reference:
   desc: Server creation and request handlers
   contents:
   - http_server
+  - serve
   - handler
   - handler_ws
   - handler_stream
