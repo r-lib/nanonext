@@ -162,13 +162,13 @@ server <- http_server(
     }, method = "GET")
   )
 )
-server$start()
-# Process requests: repeat later::run_now(Inf)
-server$close()
+server$serve()
 
 ```
 
-Specifying port `0` in the URL lets the OS assign an available port. The actual port is reflected in `server$url` after `$start()`, making it easy to set up test servers without port conflicts.
+`$serve()` is a blocking call that starts the server, runs the event loop to process requests, and automatically closes the server on interrupt (Ctrl+C). For non-blocking use, call `$start()` and `$close()` separately, with `repeat later::run_now(Inf)` to run the event loop manually.
+
+Specifying port `0` in the URL lets the OS assign an available port. The actual port is reflected in `server$url` after `$start()` or `$serve()`, making it easy to set up test servers without port conflicts.
 
 #### Handler Types
 
@@ -261,7 +261,7 @@ server <- http_server(
     )
   )
 )
-server$start()
+server$serve()
 
 ```
 
@@ -307,7 +307,7 @@ server <- http_server(
     }, method = "POST")
   )
 )
-server$start()
+server$serve()
 
 ```
 
