@@ -41,11 +41,11 @@ ncurl("https://postman-echo.com/post",
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Wed, 25 Feb 2026 20:10:29 GMT"
+#> [1] "Mon, 30 Mar 2026 22:16:56 GMT"
 #> 
 #> 
 #> $data
-#> [1] "{\"args\":{},\"data\":{\"key\":\"value\"},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\",\"content-type\":\"application/json\",\"authorization\":\"Bearer APIKEY\",\"content-length\":\"16\"},\"json\":{\"key\":\"value\"},\"url\":\"https://postman-echo.com/post\"}"
+#> [1] "{\"args\":{},\"data\":{\"key\":\"value\"},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"content-length\":\"16\",\"authorization\":\"Bearer APIKEY\",\"content-type\":\"application/json\",\"x-forwarded-proto\":\"https\"},\"json\":{\"key\":\"value\"},\"url\":\"https://postman-echo.com/post\"}"
 ```
 
 Specify `response = TRUE` to return all response headers.
@@ -58,7 +58,7 @@ ncurl("https://postman-echo.com/get",
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Wed, 25 Feb 2026 20:10:30 GMT"
+#> [1] "Mon, 30 Mar 2026 22:16:56 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -69,26 +69,26 @@ ncurl("https://postman-echo.com/get",
 #> $headers$Connection
 #> [1] "close"
 #> 
-#> $headers$`CF-RAY`
-#> [1] "9d39d8b0eb7bce7b-LHR"
-#> 
 #> $headers$etag
 #> [1] "W/\"8f-7zN8nSad8A9WlFJjKQZB04z5nHE\""
 #> 
 #> $headers$vary
 #> [1] "Accept-Encoding"
 #> 
-#> $headers$`Set-Cookie`
-#> [1] "sails.sid=s%3AwH622ngshSXMrA7ebK36VF8ljdvJURS_.dc0udVn4RC4LtE%2BuLRsSPSguz4JiRmp2ko1ecmMaxWI; Path=/; HttpOnly, __cf_bm=sijEg6f0LkDsu4.vo_d65ThwUaephl5UJTmhqTqHOxQ-1772050230-1.0.1.1-_7tgVpEYqMqBiaCocz16tASo_t.71RsyJlO74Q_tW33JvUS8gP0H.n0XYNVQ6IWXf9bHQEE2ClHqnRCDrReRcrgzZcYD.im_JDYn_fB6O1g; path=/; expires=Wed, 25-Feb-26 20:40:30 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=yjuM4wzOZHEA..Tmr5h3VMYGOY6fe8afDDwByo9TcZg-1772050230010-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"
-#> 
 #> $headers$`x-envoy-upstream-service-time`
-#> [1] "4"
+#> [1] "5"
 #> 
 #> $headers$`cf-cache-status`
 #> [1] "DYNAMIC"
 #> 
+#> $headers$`Set-Cookie`
+#> [1] "sails.sid=s%3AtfbN2TazlwshVuIc_Y-l_CKCt7WScK3s.5Z30lz615FemZ1kCseuVIUD4G%2BEAGJfIiYaJhfFDiGU; Path=/; HttpOnly, __cf_bm=mX8EtQ27DKZ2X6uAi8_krT8AN00Bf9rEnI4aauRi_.Q-1774909016.466189-1.0.1.1-Wtzs3qUkHi8sLuARpkSeFbJ8vXysEL7bXJdqKa3EqeWEanTLfzrcxvOudXHbpT8moKuZq5KuQXmZr0dSvqRdXUuc_yS8Ms47TY9OL3jb0muL_3gxejNDW7cDvtDcmLKh; HttpOnly; Secure; Path=/; Domain=postman-echo.com; Expires=Mon, 30 Mar 2026 22:46:56 GMT, _cfuvid=PgOu7XWt97qqSBedwhgeqXxkMVIYi18WzlBWroe865k-1774909016.466189-1.0.1.1-z9Y3X8DXI.zgMtblcU7939qcoMyvq2dQUGtA9Mbi59o; HttpOnly; SameSite=None; Secure; Path=/; Domain=postman-echo.com"
+#> 
 #> $headers$Server
 #> [1] "cloudflare"
+#> 
+#> $headers$`CF-RAY`
+#> [1] "9e4a7b48ed31cd3a-LHR"
 #> 
 #> 
 #> $data
@@ -112,13 +112,13 @@ res
 
 call_aio(res)$headers
 #> $date
-#> [1] "Wed, 25 Feb 2026 20:10:30 GMT"
+#> [1] "Mon, 30 Mar 2026 22:16:56 GMT"
 
 res$status
 #> [1] 200
 
 res$data
-#> [1] "{\"args\":{},\"data\":{\"async\":true},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"content-type\":\"application/json\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\",\"content-length\":\"15\"},\"json\":{\"async\":true},\"url\":\"https://postman-echo.com/post\"}"
+#> [1] "{\"args\":{},\"data\":{\"async\":true},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"content-type\":\"application/json\",\"content-length\":\"15\",\"x-forwarded-proto\":\"https\"},\"json\":{\"async\":true},\"url\":\"https://postman-echo.com/post\"}"
 ```
 
 ##### Promises Integration
@@ -156,7 +156,7 @@ transact(sess)
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Wed, 25 Feb 2026 20:10:30 GMT"
+#> [1] "Mon, 30 Mar 2026 22:16:57 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -164,11 +164,11 @@ transact(sess)
 #> 
 #> $data
 #>   [1] 7b 22 61 72 67 73 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b 22 68 6f
-#>  [26] 73 74 22 3a 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 61
-#>  [51] 63 63 65 70 74 2d 65 6e 63 6f 64 69 6e 67 22 3a 22 67 7a 69 70 2c 20 62 72
-#>  [76] 22 2c 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 72 6f 74 6f 22 3a 22 68 74
-#> [101] 74 70 73 22 2c 22 63 6f 6e 74 65 6e 74 2d 74 79 70 65 22 3a 22 61 70 70 6c
-#> [126] 69 63 61 74 69 6f 6e 2f 6a 73 6f 6e 22 7d 2c 22 75 72 6c 22 3a 22 68 74 74
+#>  [26] 73 74 22 3a 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 63
+#>  [51] 6f 6e 74 65 6e 74 2d 74 79 70 65 22 3a 22 61 70 70 6c 69 63 61 74 69 6f 6e
+#>  [76] 2f 6a 73 6f 6e 22 2c 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 72 6f 74 6f
+#> [101] 22 3a 22 68 74 74 70 73 22 2c 22 61 63 63 65 70 74 2d 65 6e 63 6f 64 69 6e
+#> [126] 67 22 3a 22 67 7a 69 70 2c 20 62 72 22 7d 2c 22 75 72 6c 22 3a 22 68 74 74
 #> [151] 70 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 2f 67 65 74
 #> [176] 22 7d
 
@@ -253,14 +253,18 @@ server <- http_server(
     }, method = "GET")
   )
 )
-server$start()
-# Process requests: repeat later::run_now(Inf)
-server$close()
+server$serve()
 ```
 
+`$serve()` is a blocking call that starts the server, runs the event
+loop to process requests, and automatically closes the server on
+interrupt (Ctrl+C). For non-blocking use, call `$start()` and `$close()`
+separately, with `repeat later::run_now(Inf)` to run the event loop
+manually.
+
 Specifying port `0` in the URL lets the OS assign an available port. The
-actual port is reflected in `server$url` after `$start()`, making it
-easy to set up test servers without port conflicts.
+actual port is reflected in `server$url` after `$start()` or `$serve()`,
+making it easy to set up test servers without port conflicts.
 
 #### Handler Types
 
@@ -355,7 +359,7 @@ server <- http_server(
     )
   )
 )
-server$start()
+server$serve()
 ```
 
 The `ws` connection object provides:
@@ -408,7 +412,7 @@ server <- http_server(
     }, method = "POST")
   )
 )
-server$start()
+server$serve()
 ```
 
 #### Server-Sent Events
@@ -493,7 +497,7 @@ server <- http_server(
 server$start()
 server
 #> < nanoServer >
-#>  - url: https://127.0.0.1:50424 
+#>  - url: https://127.0.0.1:55055 
 #>  - state: started
 
 # HTTPS client request

@@ -122,11 +122,11 @@ custom headers, and request bodies.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $headers</span></span>
 <span><span class="co">#&gt; $headers$date</span></span>
-<span><span class="co">#&gt; [1] "Wed, 25 Feb 2026 20:10:29 GMT"</span></span>
+<span><span class="co">#&gt; [1] "Mon, 30 Mar 2026 22:16:56 GMT"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $data</span></span>
-<span><span class="co">#&gt; [1] "{\"args\":{},\"data\":{\"key\":\"value\"},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\",\"content-type\":\"application/json\",\"authorization\":\"Bearer APIKEY\",\"content-length\":\"16\"},\"json\":{\"key\":\"value\"},\"url\":\"https://postman-echo.com/post\"}"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "{\"args\":{},\"data\":{\"key\":\"value\"},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"content-length\":\"16\",\"authorization\":\"Bearer APIKEY\",\"content-type\":\"application/json\",\"x-forwarded-proto\":\"https\"},\"json\":{\"key\":\"value\"},\"url\":\"https://postman-echo.com/post\"}"</span></span></code></pre></div>
 <p>Specify <code>response = TRUE</code> to return all response
 headers.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
@@ -137,7 +137,7 @@ headers.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $headers</span></span>
 <span><span class="co">#&gt; $headers$Date</span></span>
-<span><span class="co">#&gt; [1] "Wed, 25 Feb 2026 20:10:30 GMT"</span></span>
+<span><span class="co">#&gt; [1] "Mon, 30 Mar 2026 22:16:56 GMT"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $headers$`Content-Type`</span></span>
 <span><span class="co">#&gt; [1] "application/json; charset=utf-8"</span></span>
@@ -148,26 +148,26 @@ headers.</p>
 <span><span class="co">#&gt; $headers$Connection</span></span>
 <span><span class="co">#&gt; [1] "close"</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $headers$`CF-RAY`</span></span>
-<span><span class="co">#&gt; [1] "9d39d8b0eb7bce7b-LHR"</span></span>
-<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $headers$etag</span></span>
 <span><span class="co">#&gt; [1] "W/\"8f-7zN8nSad8A9WlFJjKQZB04z5nHE\""</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $headers$vary</span></span>
 <span><span class="co">#&gt; [1] "Accept-Encoding"</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $headers$`Set-Cookie`</span></span>
-<span><span class="co">#&gt; [1] "sails.sid=s%3AwH622ngshSXMrA7ebK36VF8ljdvJURS_.dc0udVn4RC4LtE%2BuLRsSPSguz4JiRmp2ko1ecmMaxWI; Path=/; HttpOnly, __cf_bm=sijEg6f0LkDsu4.vo_d65ThwUaephl5UJTmhqTqHOxQ-1772050230-1.0.1.1-_7tgVpEYqMqBiaCocz16tASo_t.71RsyJlO74Q_tW33JvUS8gP0H.n0XYNVQ6IWXf9bHQEE2ClHqnRCDrReRcrgzZcYD.im_JDYn_fB6O1g; path=/; expires=Wed, 25-Feb-26 20:40:30 GMT; domain=.postman-echo.com; HttpOnly; Secure, _cfuvid=yjuM4wzOZHEA..Tmr5h3VMYGOY6fe8afDDwByo9TcZg-1772050230010-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None"</span></span>
-<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $headers$`x-envoy-upstream-service-time`</span></span>
-<span><span class="co">#&gt; [1] "4"</span></span>
+<span><span class="co">#&gt; [1] "5"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $headers$`cf-cache-status`</span></span>
 <span><span class="co">#&gt; [1] "DYNAMIC"</span></span>
 <span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $headers$`Set-Cookie`</span></span>
+<span><span class="co">#&gt; [1] "sails.sid=s%3AtfbN2TazlwshVuIc_Y-l_CKCt7WScK3s.5Z30lz615FemZ1kCseuVIUD4G%2BEAGJfIiYaJhfFDiGU; Path=/; HttpOnly, __cf_bm=mX8EtQ27DKZ2X6uAi8_krT8AN00Bf9rEnI4aauRi_.Q-1774909016.466189-1.0.1.1-Wtzs3qUkHi8sLuARpkSeFbJ8vXysEL7bXJdqKa3EqeWEanTLfzrcxvOudXHbpT8moKuZq5KuQXmZr0dSvqRdXUuc_yS8Ms47TY9OL3jb0muL_3gxejNDW7cDvtDcmLKh; HttpOnly; Secure; Path=/; Domain=postman-echo.com; Expires=Mon, 30 Mar 2026 22:46:56 GMT, _cfuvid=PgOu7XWt97qqSBedwhgeqXxkMVIYi18WzlBWroe865k-1774909016.466189-1.0.1.1-z9Y3X8DXI.zgMtblcU7939qcoMyvq2dQUGtA9Mbi59o; HttpOnly; SameSite=None; Secure; Path=/; Domain=postman-echo.com"</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $headers$Server</span></span>
 <span><span class="co">#&gt; [1] "cloudflare"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $headers$`CF-RAY`</span></span>
+<span><span class="co">#&gt; [1] "9e4a7b48ed31cd3a-LHR"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $data</span></span>
@@ -190,13 +190,13 @@ arrives.</p>
 <span></span>
 <span><span class="fu"><a href="../reference/call_aio.html">call_aio</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span><span class="op">$</span><span class="va">headers</span></span>
 <span><span class="co">#&gt; $date</span></span>
-<span><span class="co">#&gt; [1] "Wed, 25 Feb 2026 20:10:30 GMT"</span></span>
+<span><span class="co">#&gt; [1] "Mon, 30 Mar 2026 22:16:56 GMT"</span></span>
 <span></span>
 <span><span class="va">res</span><span class="op">$</span><span class="va">status</span></span>
 <span><span class="co">#&gt; [1] 200</span></span>
 <span></span>
 <span><span class="va">res</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="co">#&gt; [1] "{\"args\":{},\"data\":{\"async\":true},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"content-type\":\"application/json\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\",\"content-length\":\"15\"},\"json\":{\"async\":true},\"url\":\"https://postman-echo.com/post\"}"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "{\"args\":{},\"data\":{\"async\":true},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"content-type\":\"application/json\",\"content-length\":\"15\",\"x-forwarded-proto\":\"https\"},\"json\":{\"async\":true},\"url\":\"https://postman-echo.com/post\"}"</span></span></code></pre></div>
 <div class="section level5">
 <h5 id="promises-integration">Promises Integration<a class="anchor" aria-label="anchor" href="#promises-integration"></a>
 </h5>
@@ -230,7 +230,7 @@ efficient repeated requests to an API endpoint. Use
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $headers</span></span>
 <span><span class="co">#&gt; $headers$Date</span></span>
-<span><span class="co">#&gt; [1] "Wed, 25 Feb 2026 20:10:30 GMT"</span></span>
+<span><span class="co">#&gt; [1] "Mon, 30 Mar 2026 22:16:57 GMT"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $headers$`Content-Type`</span></span>
 <span><span class="co">#&gt; [1] "application/json; charset=utf-8"</span></span>
@@ -238,11 +238,11 @@ efficient repeated requests to an API endpoint. Use
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $data</span></span>
 <span><span class="co">#&gt;   [1] 7b 22 61 72 67 73 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b 22 68 6f</span></span>
-<span><span class="co">#&gt;  [26] 73 74 22 3a 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 61</span></span>
-<span><span class="co">#&gt;  [51] 63 63 65 70 74 2d 65 6e 63 6f 64 69 6e 67 22 3a 22 67 7a 69 70 2c 20 62 72</span></span>
-<span><span class="co">#&gt;  [76] 22 2c 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 72 6f 74 6f 22 3a 22 68 74</span></span>
-<span><span class="co">#&gt; [101] 74 70 73 22 2c 22 63 6f 6e 74 65 6e 74 2d 74 79 70 65 22 3a 22 61 70 70 6c</span></span>
-<span><span class="co">#&gt; [126] 69 63 61 74 69 6f 6e 2f 6a 73 6f 6e 22 7d 2c 22 75 72 6c 22 3a 22 68 74 74</span></span>
+<span><span class="co">#&gt;  [26] 73 74 22 3a 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 63</span></span>
+<span><span class="co">#&gt;  [51] 6f 6e 74 65 6e 74 2d 74 79 70 65 22 3a 22 61 70 70 6c 69 63 61 74 69 6f 6e</span></span>
+<span><span class="co">#&gt;  [76] 2f 6a 73 6f 6e 22 2c 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 72 6f 74 6f</span></span>
+<span><span class="co">#&gt; [101] 22 3a 22 68 74 74 70 73 22 2c 22 61 63 63 65 70 74 2d 65 6e 63 6f 64 69 6e</span></span>
+<span><span class="co">#&gt; [126] 67 22 3a 22 67 7a 69 70 2c 20 62 72 22 7d 2c 22 75 72 6c 22 3a 22 68 74 74</span></span>
 <span><span class="co">#&gt; [151] 70 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 2f 67 65 74</span></span>
 <span><span class="co">#&gt; [176] 22 7d</span></span>
 <span></span>
@@ -316,13 +316,17 @@ configuration.</p>
 <span>    <span class="op">}</span>, method <span class="op">=</span> <span class="st">"GET"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">server</span><span class="op">$</span><span class="fu">start</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co"># Process requests: repeat later::run_now(Inf)</span></span>
-<span><span class="va">server</span><span class="op">$</span><span class="fu">close</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">server</span><span class="op">$</span><span class="fu">serve</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><code>$serve()</code> is a blocking call that starts the server, runs
+the event loop to process requests, and automatically closes the server
+on interrupt (Ctrl+C). For non-blocking use, call <code>$start()</code>
+and <code>$close()</code> separately, with
+<code>repeat later::run_now(Inf)</code> to run the event loop
+manually.</p>
 <p>Specifying port <code>0</code> in the URL lets the OS assign an
 available port. The actual port is reflected in <code>server$url</code>
-after <code>$start()</code>, making it easy to set up test servers
-without port conflicts.</p>
+after <code>$start()</code> or <code>$serve()</code>, making it easy to
+set up test servers without port conflicts.</p>
 <div class="section level4">
 <h4 id="handler-types">Handler Types<a class="anchor" aria-label="anchor" href="#handler-types"></a>
 </h4>
@@ -447,7 +451,7 @@ host and port with no additional setup.</p>
 <span>    <span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">server</span><span class="op">$</span><span class="fu">start</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">server</span><span class="op">$</span><span class="fu">serve</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>The <code>ws</code> connection object provides:</p>
 <ul>
 <li>
@@ -500,7 +504,7 @@ other handlers.</p>
 <span>    <span class="op">}</span>, method <span class="op">=</span> <span class="st">"POST"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">server</span><span class="op">$</span><span class="fu">start</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">server</span><span class="op">$</span><span class="fu">serve</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="server-sent-events">Server-Sent Events<a class="anchor" aria-label="anchor" href="#server-sent-events"></a>
@@ -586,7 +590,7 @@ using <code><a href="../reference/write_cert.html">write_cert()</a></code>.</p>
 <span><span class="va">server</span><span class="op">$</span><span class="fu">start</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">server</span></span>
 <span><span class="co">#&gt; &lt; nanoServer &gt;</span></span>
-<span><span class="co">#&gt;  - url: https://127.0.0.1:50424 </span></span>
+<span><span class="co">#&gt;  - url: https://127.0.0.1:55055 </span></span>
 <span><span class="co">#&gt;  - state: started</span></span>
 <span></span>
 <span><span class="co"># HTTPS client request</span></span>
