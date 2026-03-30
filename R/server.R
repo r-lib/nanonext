@@ -113,7 +113,7 @@ http_server <- function(url, handlers = list(), tls = NULL) {
   attr(srv, "serve") <- function() {
     on.exit(.Call(rnng_http_server_close, srv))
     .Call(rnng_http_server_start, srv)
-    cat(sprintf("serving at %s - press Ctrl+C to stop\n", attr(srv, "url")))
+    cat(sprintf("Serving at %s - press Ctrl+C to stop\n", attr(srv, "url")))
     repeat later::run_now(Inf)
   }
   srv
