@@ -102,9 +102,7 @@ http_server <- function(url, handlers = list(), tls = NULL) {
     invisible(.Call(rnng_http_server_start, srv))
   }
   attr(srv, "close") <- function() {
-    res <- .Call(rnng_http_server_close, srv)
-    if (res == 0L) attr(srv, "state") <- "closed"
-    invisible(res)
+    invisible(.Call(rnng_http_server_close, srv))
   }
   srv
 }
