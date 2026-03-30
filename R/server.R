@@ -12,6 +12,9 @@
 #'
 #'   - `$start()` - Start accepting connections
 #'   - `$close()` - Stop and release all resources
+#'   - `$serve()` - Start and block, processing requests via the \pkg{later}
+#'     event loop until interrupted (e.g., Ctrl+C). The server is automatically
+#'     closed on exit
 #'   - `$url` - The server URL
 #'
 #' @details
@@ -20,9 +23,12 @@
 #' underlying server and port. WebSocket handlers automatically handle
 #' the HTTP upgrade handshake and all WebSocket framing (RFC 6455).
 #'
-#' WebSocket callbacks are executed on R's main thread via the 'later' package.
-#' To process callbacks, you must run the event loop (e.g., using
-#' `later::run_now()` in a loop).
+#' WebSocket and streaming callbacks are executed on R's main thread via the
+#' \pkg{later} package. To process callbacks, you must run the event loop
+#' (e.g., using `later::run_now()` in a loop), or use `$serve()` which
+#' handles this automatically.
+#'
+#' Requires the \pkg{later} package.
 #'
 #' @examplesIf interactive() && requireNamespace("later", quietly = TRUE)
 #' # Simple HTTP server
@@ -103,6 +109,12 @@ http_server <- function(url, handlers = list(), tls = NULL) {
   }
   attr(srv, "close") <- function() {
     invisible(.Call(rnng_http_server_close, srv))
+  }
+  attr(srv, "serve") <- function() {
+    on.exit(.Call(rnng_http_server_close, srv))
+    .Call(rnng_http_server_start, srv)
+    cat(sprintf("Serving at %s - press Ctrl+C to stop\n", attr(srv, "url")))
+    repeat later::run_now(Inf)
   }
   srv
 }

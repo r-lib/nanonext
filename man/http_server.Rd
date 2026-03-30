@@ -18,6 +18,9 @@ A nanoServer object with methods:
 \itemize{
 \item \verb{$start()} - Start accepting connections
 \item \verb{$close()} - Stop and release all resources
+\item \verb{$serve()} - Start and block, processing requests via the \pkg{later}
+event loop until interrupted (e.g., Ctrl+C). The server is automatically
+closed on exit
 \item \verb{$url} - The server URL
 }
 }
@@ -30,9 +33,12 @@ HTTP handlers and WebSocket handlers are provided, they share the same
 underlying server and port. WebSocket handlers automatically handle
 the HTTP upgrade handshake and all WebSocket framing (RFC 6455).
 
-WebSocket callbacks are executed on R's main thread via the 'later' package.
-To process callbacks, you must run the event loop (e.g., using
-\code{later::run_now()} in a loop).
+WebSocket and streaming callbacks are executed on R's main thread via the
+\pkg{later} package. To process callbacks, you must run the event loop
+(e.g., using \code{later::run_now()} in a loop), or use \verb{$serve()} which
+handles this automatically.
+
+Requires the \pkg{later} package.
 }
 \examples{
 \dontshow{if (interactive() && requireNamespace("later", quietly = TRUE)) withAutoprint(\{ # examplesIf}
