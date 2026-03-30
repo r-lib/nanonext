@@ -76,6 +76,9 @@
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A nanoServer object with methods:</p><ul><li><p><code>$start()</code> - Start accepting connections</p></li>
 <li><p><code>$close()</code> - Stop and release all resources</p></li>
+<li><p><code>$serve()</code> - Start and block, processing requests via the <span class="pkg">later</span>
+event loop until interrupted (e.g., Ctrl+C). The server is automatically
+closed on exit</p></li>
 <li><p><code>$url</code> - The server URL</p></li>
 </ul></div>
     <div class="section level2">
@@ -84,9 +87,11 @@
 HTTP handlers and WebSocket handlers are provided, they share the same
 underlying server and port. WebSocket handlers automatically handle
 the HTTP upgrade handshake and all WebSocket framing (RFC 6455).</p>
-<p>WebSocket callbacks are executed on R's main thread via the 'later' package.
-To process callbacks, you must run the event loop (e.g., using
-<code><a href="https://later.r-lib.org/reference/run_now.html" class="external-link">later::run_now()</a></code> in a loop).</p>
+<p>WebSocket and streaming callbacks are executed on R's main thread via the
+<span class="pkg">later</span> package. To process callbacks, you must run the event loop
+(e.g., using <code><a href="https://later.r-lib.org/reference/run_now.html" class="external-link">later::run_now()</a></code> in a loop), or use <code>$serve()</code> which
+handles this automatically.</p>
+<p>Requires the <span class="pkg">later</span> package.</p>
     </div>
 
     <div class="section level2">
