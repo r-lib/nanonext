@@ -7,7 +7,8 @@
 
 static SEXP mk_error_aio(const int xc, SEXP env) {
 
-  SEXP err = PROTECT(Rf_ScalarInteger(xc));
+  SEXP err;
+  PROTECT(err = Rf_ScalarInteger(xc));
   Rf_classgets(err, nano_error);
   Rf_defineVar(nano_ValueSymbol, err, env);
   Rf_defineVar(nano_AioSymbol, nano_success, env);
@@ -490,8 +491,8 @@ SEXP rnng_request_stop(SEXP x) {
   case ENVSXP: {
     nng_msg *msgp = NULL;
     int res = 0;
-    SEXP coreaio = nano_findVarInFrame(x, nano_AioSymbol, NULL);
-    PROTECT(coreaio);
+    SEXP coreaio;
+    PROTECT(coreaio = nano_findVarInFrame(x, nano_AioSymbol, NULL));
     if (NANO_PTR_CHECK(coreaio, nano_AioSymbol)) goto fail;
     nano_aio *aiop = (nano_aio *) NANO_PTR(coreaio);
     if (aiop->type != REQAIOS && aiop->type != REQAIO) goto fail;

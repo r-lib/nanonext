@@ -34,7 +34,8 @@ static SEXP build_all_headers(nng_http_res *res) {
 
 static SEXP mk_error_haio(const int xc, SEXP env) {
 
-  SEXP err = PROTECT(Rf_ScalarInteger(xc));
+  SEXP err;
+  PROTECT(err = Rf_ScalarInteger(xc));
   Rf_classgets(err, nano_error);
   Rf_defineVar(nano_ResultSymbol, err, env);
   Rf_defineVar(nano_ProtocolSymbol, err, env);
@@ -48,8 +49,9 @@ static SEXP mk_error_haio(const int xc, SEXP env) {
 static SEXP mk_error_ncurl(const int xc) {
 
   const char *names[] = {"status", "headers", "data", ""};
-  SEXP out = PROTECT(Rf_mkNamed(VECSXP, names));
-  SEXP err = PROTECT(Rf_ScalarInteger(xc));
+  SEXP out, err;
+  PROTECT(out = Rf_mkNamed(VECSXP, names));
+  PROTECT(err = Rf_ScalarInteger(xc));
   Rf_classgets(err, nano_error);
   SET_VECTOR_ELT(out, 0, err);
   SET_VECTOR_ELT(out, 1, err);

@@ -336,9 +336,10 @@ static void dispatch_handle_connect(nano_dispatcher *d, int pipe) {
 
   d->connections++;
 
-  SEXP init_data = PROTECT(Rf_allocVector(VECSXP, 2));
-  SEXP call = PROTECT(Rf_lang2(d->next_stream_fun, d->envir));
-  SEXP stream = Rf_eval(call, R_GlobalEnv);
+  SEXP init_data, call, stream;
+  PROTECT(init_data = Rf_allocVector(VECSXP, 2));
+  PROTECT(call = Rf_lang2(d->next_stream_fun, d->envir));
+  stream = Rf_eval(call, R_GlobalEnv);
   SET_VECTOR_ELT(init_data, 0, stream);
   SET_VECTOR_ELT(init_data, 1, d->serial);
 
