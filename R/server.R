@@ -107,6 +107,38 @@ http_server <- function(url, handlers = list(), tls = NULL) {
   srv
 }
 
+#' Serve HTTP
+#'
+#' Start an HTTP server synchronously (blocking). The server processes
+#' requests via the \pkg{later} event loop until interrupted (e.g., Ctrl+C).
+#'
+#' @inheritParams http_server
+#'
+#' @return Invisible NULL. The function blocks until interrupted.
+#'
+#' @details This is a convenience wrapper around [http_server()] that creates
+#'   the server, starts it, and enters a blocking event loop. The server is
+#'   automatically closed when the function exits (e.g., on interrupt).
+#'
+#'   Requires the \pkg{later} package to be installed.
+#'
+#' @examplesIf interactive() && requireNamespace("later", quietly = TRUE)
+#' serve(
+#'   "http://127.0.0.1:0",
+#'   handlers = handler("/", function(req) list(status = 200L, body = "hello"))
+#' )
+#'
+#' @export
+#'
+serve <- function(url, handlers = list(), tls = NULL) {
+  requireNamespace("later")
+  srv <- http_server(url = url, handlers = handlers, tls = tls)
+  on.exit(srv$close())
+  srv$start()
+  cat(sprintf("serving at %s - press Ctrl+C to stop\n", attr(srv, "url")))
+  repeat later::run_now(Inf)
+}
+
 #' Create HTTP Handler
 #'
 #' Creates an HTTP route handler for use with [http_server()].
