@@ -1,5 +1,7 @@
 # nanonext (development version)
 
+* Adds `serve()` for running an HTTP server in synchronous (blocking) mode.
+
 # nanonext 1.8.1
 
 #### Updates
