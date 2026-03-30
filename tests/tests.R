@@ -1368,6 +1368,12 @@ if (later && NOT_CRAN) {
   test_true("POST" %in% received_methods)
 
   test_zero(stream_srv$close())
+
+  later::later(function() stop("test_stop"), 0.5)
+  test_error(
+    serve("http://127.0.0.1:0", handlers = handler("/", function(req) list(status = 200L, body = "OK"))),
+    "test_stop"
+  )
 }
 
 if (!interactive() && NOT_CRAN) {
