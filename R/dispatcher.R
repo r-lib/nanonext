@@ -19,3 +19,71 @@
 #'
 .dispatcher <- function(sock, psock, monitor, reset, serial, envir, next_stream)
     .Call(rnng_dispatcher_run, sock, psock, monitor, reset, serial, envir, next_stream)
+
+#' Start In-Process Dispatcher
+#'
+#' @param url URL to listen at for daemon connections.
+#' @param reset Pre-serialized connection reset error (raw vector).
+#' @param serial Serialization configuration (list or NULL).
+#' @param stream RNG stream integer vector (.Random.seed).
+#' @param disp_url inproc:// URL for host REQ socket.
+#' @param limit Maximum in-flight tasks (0 for unlimited).
+#' @param cvar Shared condition variable for limit signaling.
+#' @param tls TLS configuration or NULL.
+#'
+#' @return External pointer to dispatcher handle.
+#'
+#' @keywords internal
+#' @export
+#'
+.dispatcher_start <- function(url, reset, serial, stream, disp_url, limit, cvar, tls)
+    .Call(rnng_dispatcher_start, url, reset, serial, stream, disp_url, limit, cvar, tls)
+
+#' Stop In-Process Dispatcher
+#'
+#' @param xptr External pointer to dispatcher handle.
+#'
+#' @return Invisible NULL.
+#'
+#' @keywords internal
+#' @export
+#'
+.dispatcher_stop <- function(xptr) invisible(.Call(rnng_dispatcher_stop, xptr))
+
+#' Wait for N Daemon Connections
+#'
+#' @param disp External pointer to dispatcher handle.
+#' @param n Number of connections to wait for.
+#'
+#' @return Invisible NULL.
+#'
+#' @keywords internal
+#' @export
+#'
+.dispatcher_wait_n <- function(disp, n) invisible(.Call(rnng_dispatcher_wait_n, disp, n))
+
+#' Limit Gate
+#'
+#' Block until inflight count is below limit, then increment.
+#'
+#' @param disp External pointer to dispatcher handle.
+#'
+#' @return Invisible NULL.
+#'
+#' @keywords internal
+#' @export
+#'
+.limit_gate <- function(disp) invisible(.Call(rnng_limit_gate, disp))
+
+#' Limit Release
+#'
+#' Decrement inflight count on request failure.
+#'
+#' @param disp External pointer to dispatcher handle.
+#'
+#' @return Invisible NULL.
+#'
+#' @keywords internal
+#' @export
+#'
+.limit_release <- function(disp) invisible(.Call(rnng_limit_release, disp))

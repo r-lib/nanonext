@@ -445,6 +445,7 @@ SEXP nano_aio_get_msg(SEXP);
 SEXP nano_aio_http_status(SEXP);
 
 void pipe_cb_signal(nng_pipe, nng_pipe_ev, void *);
+void pipe_cb_monitor(nng_pipe, nng_pipe_ev, void *);
 void tls_finalizer(SEXP);
 
 void nano_load_later(void);
@@ -483,6 +484,11 @@ SEXP rnng_dial(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_dialer_close(SEXP);
 SEXP rnng_dialer_start(SEXP, SEXP);
 SEXP rnng_dispatcher_run(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP rnng_dispatcher_start(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP rnng_dispatcher_stop(SEXP);
+SEXP rnng_dispatcher_wait_n(SEXP, SEXP);
+SEXP rnng_limit_gate(SEXP);
+SEXP rnng_limit_release(SEXP);
 SEXP rnng_eval_safe(SEXP);
 SEXP rnng_fini(void);
 SEXP rnng_fini_priors(void);

@@ -162,7 +162,7 @@ void pipe_cb_signal(nng_pipe p, nng_pipe_ev ev, void *arg) {
 
 }
 
-static void pipe_cb_monitor(nng_pipe p, nng_pipe_ev ev, void *arg) {
+void pipe_cb_monitor(nng_pipe p, nng_pipe_ev ev, void *arg) {
 
   nano_monitor *monitor = (nano_monitor *) arg;
 

@@ -1,6 +1,61 @@
 // nanonext - dispatcher implementation -----------------------------------------
 
+#define NANONEXT_PROTOCOLS
 #include "nanonext.h"
+
+// L'Ecuyer-CMRG RNG stream advancement ----------------------------------------
+//
+// Pure-C implementation of MRG32k3a stream jumping. Moduli and jump matrix
+// constants below are from the RngStreams package by Pierre L'Ecuyer,
+// University of Montreal (https://github.com/umontreal-simul/RngStreams),
+// licensed under the Apache License, Version 2.0. The original copyright
+// notice requests citation of:
+//
+//   P. L'Ecuyer, "Good Parameter Sets for Combined Multiple Recursive Random
+//     Number Generators", Operations Research, 47, 1 (1999), 159-164.
+//   P. L'Ecuyer, R. Simard, E. J. Chen, and W. D. Kelton, "An Objected-
+//     Oriented Random-Number Package with Many Long Streams and Substreams",
+//     Operations Research, 50, 6 (2002), 1073-1075.
+//
+
+#define M1 4294967087ULL
+#define M2 4294944443ULL
+
+// Jump matrices A1^(2^127) mod m1 and A2^(2^127) mod m2
+static const unsigned long long A1p127[3][3] = {
+  { 2427906178ULL, 3580155704ULL,  949770784ULL },
+  {  226153695ULL, 1230515664ULL, 3580155704ULL },
+  { 1988835001ULL,  986791581ULL, 1230515664ULL }
+};
+static const unsigned long long A2p127[3][3] = {
+  { 1464411153ULL,  277697599ULL, 1610723613ULL },
+  {   32183930ULL, 1464411153ULL, 1022607788ULL },
+  { 2824425944ULL,   32183930ULL, 2093834863ULL }
+};
+
+static void mat_vec_mod(const unsigned long long A[3][3],
+                        const unsigned long long *v,
+                        unsigned long long *out, unsigned long long m) {
+  for (int i = 0; i < 3; i++) {
+    unsigned long long s = 0;
+    for (int j = 0; j < 3; j++) {
+      s = (s + (A[i][j] * v[j]) % m) % m;
+    }
+    out[i] = s;
+  }
+}
+
+static void next_rng_stream_c(int *seed) {
+  unsigned long long v1[3] = { (unsigned int) seed[0], (unsigned int) seed[1], (unsigned int) seed[2] };
+  unsigned long long v2[3] = { (unsigned int) seed[3], (unsigned int) seed[4], (unsigned int) seed[5] };
+  unsigned long long out1[3], out2[3];
+  mat_vec_mod(A1p127, v1, out1, M1);
+  mat_vec_mod(A2p127, v2, out2, M2);
+  for (int i = 0; i < 3; i++) {
+    seed[i]     = (int) out1[i];
+    seed[i + 3] = (int) out2[i];
+  }
+}
 
 // data structures -------------------------------------------------------------
 
@@ -25,6 +80,7 @@ typedef struct nano_dispatcher_s {
   nng_socket *rep_sock;
   nng_socket *poly_sock;
   nano_cv *cv;
+  nano_cv *limit_cv;
   nano_monitor *monitor;
   nano_dispatch_task *inq_head;
   nano_dispatch_task *inq_tail;
@@ -40,15 +96,18 @@ typedef struct nano_dispatcher_s {
   nng_ctx host_ctx;
   int host_recv_ready;
   int daemon_recv_ready;
-  SEXP serial;
-  SEXP envir;
-  SEXP next_stream_fun;
+  int rng_seed[6];
+  unsigned char *init_template;
+  size_t init_template_len;
+  size_t init_seed_offset;
   unsigned char *conn_reset_buf;
   size_t conn_reset_len;
   int syncing;
   int sync_generation;
   int *pipe_events;
   int pipe_events_size;
+  int limit;
+  int inflight;
 } nano_dispatcher;
 
 // forward declarations --------------------------------------------------------
@@ -330,26 +389,83 @@ static int dispatch_process_monitor(nano_dispatcher *d) {
 
 }
 
+// init template ---------------------------------------------------------------
+
+static int dispatch_prepare_init_template(nano_dispatcher *d, SEXP stream,
+                                          SEXP serial) {
+
+  int *sdata = INTEGER(stream);
+  for (int i = 0; i < 6; i++)
+    d->rng_seed[i] = sdata[i + 1];
+
+  int saved[6];
+  memcpy(saved, sdata + 1, 6 * sizeof(int));
+
+  const int sentinel_val = 0x7F7F7F7F;
+  for (int i = 0; i < 6; i++)
+    sdata[i + 1] = sentinel_val;
+
+  SEXP init_data;
+  PROTECT(init_data = Rf_allocVector(VECSXP, 2));
+  SET_VECTOR_ELT(init_data, 0, stream);
+  SET_VECTOR_ELT(init_data, 1, serial);
+
+  nano_buf buf;
+  nano_serialize(&buf, init_data, serial, 0);
+  UNPROTECT(1);
+
+  memcpy(sdata + 1, saved, 6 * sizeof(int));
+
+  unsigned char sentinel[24];
+  memset(sentinel, 0x7F, 24);
+  size_t offset = 0;
+  int found = 0;
+
+  for (size_t i = 0; i + 24 <= buf.cur; i++) {
+    if (memcmp(buf.buf + i, sentinel, 24) == 0) {
+      offset = i;
+      found = 1;
+      break;
+    }
+  }
+
+  if (!found) {
+    NANO_FREE(buf);
+    return -1;
+  }
+
+  d->init_template = malloc(buf.cur);
+  if (d->init_template == NULL) {
+    NANO_FREE(buf);
+    return -1;
+  }
+  memcpy(d->init_template, buf.buf, buf.cur);
+  d->init_template_len = buf.cur;
+  d->init_seed_offset = offset;
+  NANO_FREE(buf);
+
+  return 0;
+
+}
+
 // event handlers --------------------------------------------------------------
 
 static void dispatch_handle_connect(nano_dispatcher *d, int pipe) {
 
   d->connections++;
 
-  SEXP init_data, call, stream;
-  PROTECT(init_data = Rf_allocVector(VECSXP, 2));
-  PROTECT(call = Rf_lang2(d->next_stream_fun, d->envir));
-  stream = Rf_eval(call, R_GlobalEnv);
-  SET_VECTOR_ELT(init_data, 0, stream);
-  SET_VECTOR_ELT(init_data, 1, d->serial);
+  next_rng_stream_c(d->rng_seed);
 
-  nano_buf buf;
-  nano_serialize(&buf, init_data, d->serial, 0);
-  UNPROTECT(2);
+  unsigned char *buf = malloc(d->init_template_len);
+  if (buf == NULL) return;
+  memcpy(buf, d->init_template, d->init_template_len);
 
-  if (dispatch_send_to_daemon(d, pipe, buf.buf, buf.cur) == 0)
+  for (int i = 0; i < 6; i++)
+    memcpy(buf + d->init_seed_offset + i * 4, &d->rng_seed[i], sizeof(int));
+
+  if (dispatch_send_to_daemon(d, pipe, buf, d->init_template_len) == 0)
     dispatch_insert_daemon(d, pipe);
-  NANO_FREE(buf);
+  free(buf);
 
 }
 
@@ -362,6 +478,12 @@ static void dispatch_handle_disconnect(nano_dispatcher *d, int pipe) {
     d->executing--;
     dispatch_send_reply(dd->ctx, d->conn_reset_buf, d->conn_reset_len);
     nng_ctx_close(dd->ctx);
+    if (d->limit > 0) {
+      nng_mtx_lock(d->limit_cv->mtx);
+      d->inflight--;
+      nng_cv_wake(d->limit_cv->cv);
+      nng_mtx_unlock(d->limit_cv->mtx);
+    }
   }
 
   dispatch_remove_daemon(d, pipe);
@@ -454,6 +576,13 @@ static void dispatch_handle_daemon_recv(nano_dispatcher *d) {
       msg = NULL;
     nng_ctx_close(dd->ctx);
 
+    if (d->limit > 0) {
+      nng_mtx_lock(d->limit_cv->mtx);
+      d->inflight--;
+      nng_cv_wake(d->limit_cv->cv);
+      nng_mtx_unlock(d->limit_cv->mtx);
+    }
+
     if (is_marker) {
       dispatch_send_to_daemon(d, pipe_id, NULL, 0);
       dispatch_remove_daemon(d, pipe_id);
@@ -482,6 +611,12 @@ static int dispatch_cancel_inq(nano_dispatcher *d, int id) {
         d->inq_tail = prev;
       dispatch_free_task(t);
       d->inq_count--;
+      if (d->limit > 0) {
+        nng_mtx_lock(d->limit_cv->mtx);
+        d->inflight--;
+        nng_cv_wake(d->limit_cv->cv);
+        nng_mtx_unlock(d->limit_cv->mtx);
+      }
       return 1;
     }
     prev = *pp;
@@ -633,6 +768,8 @@ static void dispatch_shutdown(nano_dispatcher *d) {
 
   nng_aio_free(d->host_aio);
   nng_aio_free(d->daemon_aio);
+  free(d->init_template);
+  free(d->conn_reset_buf);
   free(d->pipe_events);
   free(d);
 
@@ -650,19 +787,30 @@ SEXP rnng_dispatcher_run(SEXP rep, SEXP poly, SEXP mon, SEXP reset,
   if (NANO_PTR_CHECK(mon, nano_MonitorSymbol))
     Rf_error("`mon` is not a valid Monitor");
 
+  SEXP stream;
+  PROTECT(stream = Rf_eval(Rf_lang2(next_stream_fun, envir), R_GlobalEnv));
+
   int xc;
   nano_dispatcher *d = calloc(1, sizeof(nano_dispatcher));
-  if (d == NULL) { xc = 2; goto fail; }
+  if (d == NULL) { UNPROTECT(1); xc = 2; goto fail; }
 
   d->rep_sock = (nng_socket *) NANO_PTR(rep);
   d->poly_sock = (nng_socket *) NANO_PTR(poly);
   d->monitor = (nano_monitor *) NANO_PTR(mon);
   d->cv = d->monitor->cv;
-  d->conn_reset_buf = (unsigned char *) DATAPTR_RO(reset);
-  d->conn_reset_len = XLENGTH(reset);
-  d->serial = serial;
-  d->envir = envir;
-  d->next_stream_fun = next_stream_fun;
+
+  size_t reset_len = XLENGTH(reset);
+  d->conn_reset_buf = malloc(reset_len);
+  if (d->conn_reset_buf == NULL) { UNPROTECT(1); xc = 2; goto fail; }
+  memcpy(d->conn_reset_buf, DATAPTR_RO(reset), reset_len);
+  d->conn_reset_len = reset_len;
+
+  if (dispatch_prepare_init_template(d, stream, serial)) {
+    UNPROTECT(1);
+    xc = 2;
+    goto fail;
+  }
+  UNPROTECT(1);
 
   d->outq_size = DISPATCH_INITIAL_SIZE;
   d->outq_table = calloc(d->outq_size, sizeof(nano_dispatch_daemon *));
@@ -684,5 +832,292 @@ SEXP rnng_dispatcher_run(SEXP rep, SEXP poly, SEXP mon, SEXP reset,
   fail:
   dispatch_shutdown(d);
   ERROR_OUT(xc);
+
+}
+
+// in-process dispatcher -------------------------------------------------------
+
+typedef struct nano_dispatcher_handle_s {
+  nano_dispatcher *d;
+  nng_thread *thr;
+  nng_socket poly_sock;
+  nng_socket rep_sock;
+  nano_cv *priv_cv;
+  nano_monitor *monitor;
+  int owns_resources;
+} nano_dispatcher_handle;
+
+static void dispatch_thread_func(void *arg) {
+  nano_dispatcher *d = (nano_dispatcher *) arg;
+  dispatch_loop(d);
+}
+
+static void dispatcher_handle_finalizer(SEXP xptr) {
+
+  if (NANO_PTR(xptr) == NULL) return;
+  nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(xptr);
+
+  if (h->owns_resources) {
+    nng_mtx_lock(h->priv_cv->mtx);
+    h->priv_cv->flag = -1;
+    nng_cv_wake(h->priv_cv->cv);
+    nng_mtx_unlock(h->priv_cv->mtx);
+
+    nng_thread_destroy(h->thr);
+    dispatch_shutdown(h->d);
+
+    nng_close(h->poly_sock);
+    nng_close(h->rep_sock);
+
+    if (h->monitor) {
+      free(h->monitor->ids);
+      free(h->monitor);
+    }
+    free(h->priv_cv);
+    h->owns_resources = 0;
+  }
+
+  SETCAR(xptr, NULL);
+  free(h);
+
+}
+
+SEXP rnng_dispatcher_start(SEXP url, SEXP reset, SEXP serial,
+                           SEXP stream, SEXP disp_url, SEXP limit,
+                           SEXP cvar, SEXP tls) {
+
+  int xc;
+  nng_listener listener = NNG_LISTENER_INITIALIZER;
+
+  nano_dispatcher_handle *h = calloc(1, sizeof(nano_dispatcher_handle));
+  if (h == NULL) Rf_error("memory allocation failed");
+
+  nano_dispatcher *d = calloc(1, sizeof(nano_dispatcher));
+  if (d == NULL) { free(h); Rf_error("memory allocation failed"); }
+  h->d = d;
+
+  // Private CV sharing mutex/cv with shared CV
+  nano_cv *shared = (nano_cv *) NANO_PTR(cvar);
+  nano_cv *priv = calloc(1, sizeof(nano_cv));
+  if (priv == NULL) { free(d); free(h); Rf_error("memory allocation failed"); }
+  priv->mtx = shared->mtx;
+  priv->cv = shared->cv;
+  priv->condition = 0;
+  priv->flag = 0;
+  h->priv_cv = priv;
+  d->cv = priv;
+  d->limit_cv = shared;
+  d->limit = limit == R_NilValue ? 0 : nano_integer(limit);
+
+  // POLY socket for daemon connections
+  if ((xc = nng_pair1_open_poly(&h->poly_sock)))
+    goto fail;
+
+  d->poly_sock = &h->poly_sock;
+
+  // Monitor on the POLY socket
+  const int n = 8;
+  nano_monitor *monitor = calloc(1, sizeof(nano_monitor));
+  if (monitor == NULL) { xc = 2; goto fail; }
+  monitor->ids = calloc(n, sizeof(int));
+  if (monitor->ids == NULL) { free(monitor); xc = 2; goto fail; }
+  monitor->size = n;
+  monitor->cv = priv;
+  h->monitor = monitor;
+  d->monitor = monitor;
+
+  if ((xc = nng_pipe_notify(h->poly_sock, NNG_PIPE_EV_ADD_POST, pipe_cb_monitor, monitor)))
+    goto fail;
+  if ((xc = nng_pipe_notify(h->poly_sock, NNG_PIPE_EV_REM_POST, pipe_cb_monitor, monitor)))
+    goto fail;
+
+  // Listen for daemon connections
+  const char *url_str = NANO_STRING(url);
+  if (TYPEOF(tls) != NILSXP && !NANO_PTR_CHECK(tls, nano_TlsSymbol)) {
+    nng_tls_config *cfg = (nng_tls_config *) NANO_PTR(tls);
+    if ((xc = nng_listener_create(&listener, h->poly_sock, url_str)) ||
+        (xc = nng_listener_set_ptr(listener, NNG_OPT_TLS_CONFIG, cfg)) ||
+        (xc = nng_listener_start(listener, 0)))
+      goto fail;
+  } else {
+    if ((xc = nng_listen(h->poly_sock, url_str, &listener, 0)))
+      goto fail;
+  }
+
+  // REP socket dials into the host's inproc:// REQ socket
+  if ((xc = nng_rep0_open(&h->rep_sock)))
+    goto fail;
+  d->rep_sock = &h->rep_sock;
+
+  const char *disp_url_str = NANO_STRING(disp_url);
+  if ((xc = nng_dial(h->rep_sock, disp_url_str, NULL, 0)))
+    goto fail;
+
+  // Copy conn_reset_buf
+  size_t reset_len = XLENGTH(reset);
+  d->conn_reset_buf = malloc(reset_len);
+  if (d->conn_reset_buf == NULL) { xc = 2; goto fail; }
+  memcpy(d->conn_reset_buf, DATAPTR_RO(reset), reset_len);
+  d->conn_reset_len = reset_len;
+
+  // Prepare init template
+  if (dispatch_prepare_init_template(d, stream, serial)) { xc = 2; goto fail; }
+
+  // Allocate hash table
+  d->outq_size = DISPATCH_INITIAL_SIZE;
+  d->outq_table = calloc(d->outq_size, sizeof(nano_dispatch_daemon *));
+  if (d->outq_table == NULL) { xc = 2; goto fail; }
+
+  // Allocate AIOs and open host context
+  if ((xc = nng_aio_alloc(&d->host_aio, host_recv_cb, d)) ||
+      (xc = nng_aio_alloc(&d->daemon_aio, daemon_recv_cb, d)) ||
+      (xc = nng_ctx_open(&d->host_ctx, *d->rep_sock)))
+    goto fail;
+
+  // Start initial receive operations
+  nng_ctx_recv(d->host_ctx, d->host_aio);
+  nng_recv_aio(*d->poly_sock, d->daemon_aio);
+
+  // Create the dispatcher thread
+  if ((xc = nng_thread_create(&h->thr, dispatch_thread_func, d)))
+    goto fail;
+
+  h->owns_resources = 1;
+
+  // Build external pointer with finalizer
+  SEXP xptr;
+  PROTECT(xptr = R_MakeExternalPtr(h, R_NilValue, R_NilValue));
+  R_RegisterCFinalizerEx(xptr, dispatcher_handle_finalizer, TRUE);
+
+  // Attach resolved listener URL as attribute
+  SEXP resolved_url = url;
+  nng_url *up;
+  if (nng_url_parse(&up, url_str) == 0) {
+    if (up->u_port != NULL && up->u_port[0] == '0' && up->u_port[1] == '\0') {
+      int port;
+      if (nng_listener_get_int(listener, NNG_OPT_TCP_BOUND_PORT, &port) == 0)
+        resolved_url = nano_url_with_port(up, port);
+    }
+    nng_url_free(up);
+  }
+  Rf_setAttrib(xptr, nano_UrlSymbol, resolved_url);
+
+  UNPROTECT(1);
+  return xptr;
+
+  fail:
+  if (d->daemon_aio) { nng_aio_stop(d->daemon_aio); nng_aio_free(d->daemon_aio); d->daemon_aio = NULL; }
+  if (d->host_aio) { nng_aio_stop(d->host_aio); nng_aio_free(d->host_aio); d->host_aio = NULL; }
+  free(d->outq_table); d->outq_table = NULL;
+  free(d->init_template); d->init_template = NULL;
+  free(d->conn_reset_buf); d->conn_reset_buf = NULL;
+  nng_close(h->rep_sock);
+  nng_close(h->poly_sock);
+  if (h->monitor) { free(h->monitor->ids); free(h->monitor); }
+  free(priv);
+  free(d->pipe_events);
+  free(d);
+  free(h);
+  ERROR_OUT(xc);
+
+}
+
+SEXP rnng_dispatcher_stop(SEXP xptr) {
+
+  if (NANO_PTR(xptr) == NULL)
+    return R_NilValue;
+
+  nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(xptr);
+
+  if (h->owns_resources) {
+    nng_mtx_lock(h->priv_cv->mtx);
+    h->priv_cv->flag = -1;
+    nng_cv_wake(h->priv_cv->cv);
+    nng_mtx_unlock(h->priv_cv->mtx);
+
+    nng_thread_destroy(h->thr);
+    dispatch_shutdown(h->d);
+
+    nng_close(h->poly_sock);
+    nng_close(h->rep_sock);
+
+    if (h->monitor) {
+      free(h->monitor->ids);
+      free(h->monitor);
+    }
+    free(h->priv_cv);
+    h->owns_resources = 0;
+  }
+
+  SETCAR(xptr, NULL);
+  free(h);
+
+  return R_NilValue;
+
+}
+
+SEXP rnng_dispatcher_wait_n(SEXP disp, SEXP n) {
+
+  nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
+  nano_dispatcher *d = h->d;
+  int target = Rf_asInteger(n);
+  nng_cv *cv = d->cv->cv;
+  nng_mtx *mtx = d->cv->mtx;
+
+  nng_mtx_lock(mtx);
+  while (d->connections < target && d->cv->flag >= 0) {
+    nng_time time = nng_clock() + 400;
+    nng_cv_until(cv, time);
+    nng_mtx_unlock(mtx);
+    R_CheckUserInterrupt();
+    nng_mtx_lock(mtx);
+  }
+  nng_mtx_unlock(mtx);
+
+  return R_NilValue;
+
+}
+
+SEXP rnng_limit_gate(SEXP disp) {
+
+  nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
+  nano_dispatcher *d = h->d;
+
+  if (d->limit > 0) {
+    nng_mtx *mtx = d->limit_cv->mtx;
+    nng_cv *cv = d->limit_cv->cv;
+
+    nng_mtx_lock(mtx);
+    while (d->inflight >= d->limit) {
+      nng_time time = nng_clock() + 400;
+      nng_cv_until(cv, time);
+      nng_mtx_unlock(mtx);
+      R_CheckUserInterrupt();
+      nng_mtx_lock(mtx);
+    }
+    d->inflight++;
+    nng_mtx_unlock(mtx);
+  }
+
+  return R_NilValue;
+
+}
+
+SEXP rnng_limit_release(SEXP disp) {
+
+  nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
+  nano_dispatcher *d = h->d;
+
+  if (d->limit > 0) {
+    nng_mtx *mtx = d->limit_cv->mtx;
+    nng_cv *cv = d->limit_cv->cv;
+
+    nng_mtx_lock(mtx);
+    d->inflight--;
+    nng_cv_wake(cv);
+    nng_mtx_unlock(mtx);
+  }
+
+  return R_NilValue;
 
 }

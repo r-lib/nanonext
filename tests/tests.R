@@ -707,7 +707,7 @@ if (NOT_CRAN) {
     poly_sock <- socket("poly", listen = "%s")
     mon <- monitor(poly_sock, cv)
     pipe_notify(rep_sock, cv, remove = TRUE, flag = tools::SIGTERM)
-    .dispatcher(rep_sock, poly_sock, mon, raw(10), NULL, new.env(), function(e) NULL)
+    .dispatcher(rep_sock, poly_sock, mon, raw(10), NULL, new.env(), function(e) integer(7))
     close(poly_sock)
   ', url_rep, url_poly)
   script <- tempfile(fileext = ".R")
