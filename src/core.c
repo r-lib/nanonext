@@ -590,25 +590,3 @@ SEXP rnng_marker_set(SEXP x) {
 
 }
 
-SEXP rnng_marker_read(SEXP x) {
-
-  int res = 0;
-  if (TYPEOF(x) == RAWSXP && XLENGTH(x) > 12) {
-    unsigned char *buf = (unsigned char *) DATAPTR_RO(x);
-    res = buf[0] == 0x7 && buf[3] == 0x1;
-  }
-  return Rf_ScalarLogical(res);
-
-}
-
-SEXP rnng_header_read(SEXP x) {
-
-  int res = 0;
-  if (TYPEOF(x) == RAWSXP && XLENGTH(x) > 12) {
-    unsigned char *buf = (unsigned char *) DATAPTR_RO(x);
-    if (buf[0] == 0x7)
-      memcpy(&res, buf + 4, sizeof(int));
-  }
-  return Rf_ScalarInteger(res);
-
-}

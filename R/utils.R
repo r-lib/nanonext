@@ -360,42 +360,19 @@ ip_addr <- function() .Call(rnng_ip_addr)
 #'
 .advance <- function() .Call(rnng_advance_rng_state)
 
-#' Serialization Headers and Markers
-#'
-#' Internal package functions.
-#'
-#' @param x raw vector.
-#'
-#' @return For `.read_header()`: integer value.
-#'
-#' @keywords internal
-#' @export
-#'
-.read_header <- function(x) .Call(rnng_header_read, x)
-
 #' Set Serialization Marker
+#'
+#' Internal package function.
 #'
 #' @param bool logical value.
 #'
-#' @return For `.mark()`: the logical `bool` supplied.
+#' @return The logical `bool` supplied.
 #'
 #' @keywords internal
-#' @rdname dot-read_header
 #' @export
 #'
 .mark <- function(bool = TRUE) .Call(rnng_marker_set, bool)
 
-#' Read Serialization Marker
-#'
-#' @param x raw vector.
-#'
-#' @return For `.read_marker()`: logical value `TRUE` or `FALSE`.
-#'
-#' @keywords internal
-#' @rdname dot-read_header
-#' @export
-#'
-.read_marker <- function(x) .Call(rnng_marker_read, x)
 
 #' Internal Package Function
 #'
