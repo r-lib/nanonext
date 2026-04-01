@@ -859,7 +859,7 @@ static void dispatch_thread_func(void *arg) {
 
 static void dispatcher_handle_finalizer(SEXP xptr) {
 
-  if (NANO_PTR(xptr) == NULL) return;
+  if (NANO_PTR_CHECK(xptr, nano_ThreadSymbol)) return;
   nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(xptr);
 
   if (h->owns_resources) {
@@ -882,7 +882,6 @@ static void dispatcher_handle_finalizer(SEXP xptr) {
     h->owns_resources = 0;
   }
 
-  SETCAR(xptr, NULL);
   free(h);
 
 }
@@ -893,22 +892,23 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
 
   int xc;
   nng_listener listener = NNG_LISTENER_INITIALIZER;
+  nano_dispatcher_handle *h = NULL;
+  nano_dispatcher *d = NULL;
+  nano_cv *priv = NULL;
 
-  nano_dispatcher_handle *h = calloc(1, sizeof(nano_dispatcher_handle));
-  if (h == NULL) Rf_error("memory allocation failed");
+  h = calloc(1, sizeof(nano_dispatcher_handle));
+  if (h == NULL) { xc = 2; goto fail; }
 
-  nano_dispatcher *d = calloc(1, sizeof(nano_dispatcher));
-  if (d == NULL) { free(h); Rf_error("memory allocation failed"); }
+  d = calloc(1, sizeof(nano_dispatcher));
+  if (d == NULL) { xc = 2; goto fail; }
   h->d = d;
 
   // Private CV sharing mutex/cv with shared CV
   nano_cv *shared = (nano_cv *) NANO_PTR(cvar);
-  nano_cv *priv = calloc(1, sizeof(nano_cv));
-  if (priv == NULL) { free(d); free(h); Rf_error("memory allocation failed"); }
+  priv = calloc(1, sizeof(nano_cv));
+  if (priv == NULL) { xc = 2; goto fail; }
   priv->mtx = shared->mtx;
   priv->cv = shared->cv;
-  priv->condition = 0;
-  priv->flag = 0;
   h->priv_cv = priv;
   d->cv = priv;
   d->limit_cv = shared;
@@ -991,7 +991,7 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
 
   // Build external pointer with finalizer
   SEXP xptr;
-  PROTECT(xptr = R_MakeExternalPtr(h, R_NilValue, R_NilValue));
+  PROTECT(xptr = R_MakeExternalPtr(h, nano_ThreadSymbol, R_NilValue));
   R_RegisterCFinalizerEx(xptr, dispatcher_handle_finalizer, TRUE);
 
   // Attach resolved listener URL as attribute
@@ -1011,25 +1011,29 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
   return xptr;
 
   fail:
-  if (d->daemon_aio) { nng_aio_stop(d->daemon_aio); nng_aio_free(d->daemon_aio); d->daemon_aio = NULL; }
-  if (d->host_aio) { nng_aio_stop(d->host_aio); nng_aio_free(d->host_aio); d->host_aio = NULL; }
-  free(d->outq_table); d->outq_table = NULL;
-  free(d->init_template); d->init_template = NULL;
-  free(d->conn_reset_buf); d->conn_reset_buf = NULL;
-  nng_close(h->rep_sock);
-  nng_close(h->poly_sock);
-  if (h->monitor) { free(h->monitor->ids); free(h->monitor); }
+  if (d) {
+    if (d->daemon_aio) { nng_aio_stop(d->daemon_aio); nng_aio_free(d->daemon_aio); }
+    if (d->host_aio) { nng_aio_stop(d->host_aio); nng_aio_free(d->host_aio); }
+    free(d->outq_table);
+    free(d->init_template);
+    free(d->conn_reset_buf);
+    free(d->pipe_events);
+    free(d);
+  }
+  if (h) {
+    nng_close(h->rep_sock);
+    nng_close(h->poly_sock);
+    if (h->monitor) { free(h->monitor->ids); free(h->monitor); }
+    free(h);
+  }
   free(priv);
-  free(d->pipe_events);
-  free(d);
-  free(h);
   ERROR_OUT(xc);
 
 }
 
 SEXP rnng_dispatcher_stop(SEXP disp) {
 
-  if (NANO_PTR(disp) == NULL)
+  if (NANO_PTR_CHECK(disp, nano_ThreadSymbol))
     return R_NilValue;
 
   nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
@@ -1054,8 +1058,8 @@ SEXP rnng_dispatcher_stop(SEXP disp) {
     h->owns_resources = 0;
   }
 
-  SETCAR(disp, NULL);
   free(h);
+  R_ClearExternalPtr(disp);
 
   return R_NilValue;
 
@@ -1063,9 +1067,12 @@ SEXP rnng_dispatcher_stop(SEXP disp) {
 
 SEXP rnng_dispatcher_wait(SEXP disp, SEXP n) {
 
+  if (NANO_PTR_CHECK(disp, nano_ThreadSymbol))
+    return R_NilValue;
+
   nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
   nano_dispatcher *d = h->d;
-  int target = Rf_asInteger(n);
+  const int target = nano_integer(n);
   nng_cv *cv = d->cv->cv;
   nng_mtx *mtx = d->cv->mtx;
 
@@ -1084,6 +1091,9 @@ SEXP rnng_dispatcher_wait(SEXP disp, SEXP n) {
 }
 
 SEXP rnng_limit_gate(SEXP disp) {
+
+  if (NANO_PTR_CHECK(disp, nano_ThreadSymbol))
+    return R_NilValue;
 
   nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
   nano_dispatcher *d = h->d;
