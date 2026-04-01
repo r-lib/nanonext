@@ -246,7 +246,7 @@ void single_wait_thread_create(SEXP x) {
 
   taio = malloc(sizeof(nano_thread_aio));
   NANO_ENSURE_ALLOC(taio);
-  ncv = malloc(sizeof(nano_cv));
+  ncv = calloc(1, sizeof(nano_cv));
   NANO_ENSURE_ALLOC(ncv);
   taio->aio = aiop->aio;
   taio->cv = ncv;
