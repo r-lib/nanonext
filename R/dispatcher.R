@@ -62,7 +62,7 @@
 #' @keywords internal
 #' @export
 #'
-.dispatcher_wait_n <- function(disp, n) invisible(.Call(rnng_dispatcher_wait_n, disp, n))
+.dispatcher_wait <- function(disp, n) invisible(.Call(rnng_dispatcher_wait, disp, n))
 
 #' Limit Gate
 #'
@@ -76,16 +76,3 @@
 #' @export
 #'
 .limit_gate <- function(disp) invisible(.Call(rnng_limit_gate, disp))
-
-#' Limit Release
-#'
-#' Decrement inflight count on request failure.
-#'
-#' @param disp External pointer to dispatcher handle.
-#'
-#' @return Invisible NULL.
-#'
-#' @keywords internal
-#' @export
-#'
-.limit_release <- function(disp) invisible(.Call(rnng_limit_release, disp))

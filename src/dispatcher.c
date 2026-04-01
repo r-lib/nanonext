@@ -525,6 +525,11 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
     nng_ctx_close(d->host_ctx);
   } else {
     d->count++;
+    if (d->limit > 0) {
+      nng_mtx_lock(d->limit_cv->mtx);
+      d->inflight++;
+      nng_mtx_unlock(d->limit_cv->mtx);
+    }
     int msgid = dispatch_read_header(buf, len);
     int is_sync = dispatch_read_marker(buf, len);
 
@@ -1056,7 +1061,7 @@ SEXP rnng_dispatcher_stop(SEXP disp) {
 
 }
 
-SEXP rnng_dispatcher_wait_n(SEXP disp, SEXP n) {
+SEXP rnng_dispatcher_wait(SEXP disp, SEXP n) {
 
   nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
   nano_dispatcher *d = h->d;
@@ -1095,7 +1100,6 @@ SEXP rnng_limit_gate(SEXP disp) {
       R_CheckUserInterrupt();
       nng_mtx_lock(mtx);
     }
-    d->inflight++;
     nng_mtx_unlock(mtx);
   }
 
@@ -1103,21 +1107,3 @@ SEXP rnng_limit_gate(SEXP disp) {
 
 }
 
-SEXP rnng_limit_release(SEXP disp) {
-
-  nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
-  nano_dispatcher *d = h->d;
-
-  if (d->limit > 0) {
-    nng_mtx *mtx = d->limit_cv->mtx;
-    nng_cv *cv = d->limit_cv->cv;
-
-    nng_mtx_lock(mtx);
-    d->inflight--;
-    nng_cv_wake(cv);
-    nng_mtx_unlock(mtx);
-  }
-
-  return R_NilValue;
-
-}
