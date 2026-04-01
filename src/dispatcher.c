@@ -887,7 +887,7 @@ static void dispatcher_handle_finalizer(SEXP xptr) {
 }
 
 SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
-                           SEXP reset, SEXP serial, SEXP stream,
+                           SEXP serial, SEXP stream,
                            SEXP limit, SEXP cvar) {
 
   int xc;
@@ -958,12 +958,14 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
   if ((xc = nng_dial(h->rep_sock, disp_url_str, NULL, 0)))
     goto fail;
 
-  // Copy conn_reset_buf
-  size_t reset_len = XLENGTH(reset);
-  d->conn_reset_buf = malloc(reset_len);
-  if (d->conn_reset_buf == NULL) { xc = 2; goto fail; }
-  memcpy(d->conn_reset_buf, DATAPTR_RO(reset), reset_len);
-  d->conn_reset_len = reset_len;
+  // Serialize mk_error(19) for conn_reset_buf
+  SEXP err;
+  PROTECT(err = mk_error(19));
+  nano_buf reset_buf;
+  nano_serialize(&reset_buf, err, R_NilValue, 0);
+  UNPROTECT(1);
+  d->conn_reset_buf = reset_buf.buf;
+  d->conn_reset_len = reset_buf.cur;
 
   // Prepare init template
   if (dispatch_prepare_init_template(d, stream, serial)) { xc = 2; goto fail; }

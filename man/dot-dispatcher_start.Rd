@@ -4,7 +4,7 @@
 \alias{.dispatcher_start}
 \title{Start In-Process Dispatcher}
 \usage{
-.dispatcher_start(url, disp_url, tls, reset, serial, stream, limit, cvar)
+.dispatcher_start(url, disp_url, tls, serial, stream, limit, cvar)
 }
 \arguments{
 \item{url}{URL to listen at for daemon connections.}
@@ -12,8 +12,6 @@
 \item{disp_url}{inproc:// URL for host REQ socket.}
 
 \item{tls}{TLS configuration or NULL.}
-
-\item{reset}{Pre-serialized connection reset error (raw vector).}
 
 \item{serial}{Serialization configuration (list or NULL).}
 

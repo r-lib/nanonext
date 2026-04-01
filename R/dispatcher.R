@@ -26,7 +26,6 @@
 #' @param url URL to listen at for daemon connections.
 #' @param disp_url inproc:// URL for host REQ socket.
 #' @param tls TLS configuration or NULL.
-#' @param reset Pre-serialized connection reset error (raw vector).
 #' @param serial Serialization configuration (list or NULL).
 #' @param stream RNG stream integer vector (.Random.seed).
 #' @param limit Maximum in-flight tasks (NULL for unlimited).
@@ -37,8 +36,8 @@
 #' @keywords internal
 #' @export
 #'
-.dispatcher_start <- function(url, disp_url, tls, reset, serial, stream, limit, cvar) {
-  .Call(rnng_dispatcher_start, url, disp_url, tls, reset, serial, stream, limit, cvar)
+.dispatcher_start <- function(url, disp_url, tls, serial, stream, limit, cvar) {
+  .Call(rnng_dispatcher_start, url, disp_url, tls, serial, stream, limit, cvar)
 }
 
 #' Stop In-Process Dispatcher
