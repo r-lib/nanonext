@@ -369,18 +369,18 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
     }
     nng_msg *msgp = NULL;
 
+    if ((xc = nng_msg_alloc(&msgp, buf.cur)))
+      goto fail;
+
+    memcpy(nng_msg_body(msgp), buf.buf, buf.cur);
+
+    if (pipeid) {
+      nng_pipe p;
+      p.id = (uint32_t) pipeid;
+      nng_msg_set_pipe(msgp, p);
+    }
+
     if (flags <= 0) {
-
-      if ((xc = nng_msg_alloc(&msgp, buf.cur)))
-        goto fail;
-
-      memcpy(nng_msg_body(msgp), buf.buf, buf.cur);
-
-      if (pipeid) {
-        nng_pipe p;
-        p.id = (uint32_t) pipeid;
-        nng_msg_set_pipe(msgp, p);
-      }
 
       if ((xc = sock ? nng_sendmsg(*(nng_socket *) NANO_PTR(con), msgp, flags ? NNG_FLAG_NONBLOCK : (NANO_INTEGER(block) != 1) * NNG_FLAG_NONBLOCK) :
                        nng_ctx_sendmsg(*(nng_ctx *) NANO_PTR(con), msgp, flags ? NNG_FLAG_NONBLOCK : (NANO_INTEGER(block) != 1) * NNG_FLAG_NONBLOCK))) {
@@ -393,17 +393,6 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
     } else {
 
       nng_aio *aiop = NULL;
-
-      if ((xc = nng_msg_alloc(&msgp, buf.cur)))
-        goto fail;
-
-      memcpy(nng_msg_body(msgp), buf.buf, buf.cur);
-
-      if (pipeid) {
-        nng_pipe p;
-        p.id = (uint32_t) pipeid;
-        nng_msg_set_pipe(msgp, p);
-      }
 
       if ((xc = nng_aio_alloc(&aiop, NULL, NULL))) {
         nng_msg_free(msgp);
