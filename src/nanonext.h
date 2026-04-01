@@ -487,6 +487,7 @@ SEXP rnng_dispatcher_run(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_dispatcher_start(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_dispatcher_stop(SEXP);
 SEXP rnng_dispatcher_wait(SEXP, SEXP);
+SEXP rnng_dispatcher_info(SEXP);
 SEXP rnng_limit_gate(SEXP);
 SEXP rnng_eval_safe(SEXP);
 SEXP rnng_fini(void);

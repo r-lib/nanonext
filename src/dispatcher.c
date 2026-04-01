@@ -1092,6 +1092,29 @@ SEXP rnng_dispatcher_wait(SEXP disp, SEXP n) {
 
 }
 
+SEXP rnng_dispatcher_info(SEXP disp) {
+
+  if (NANO_PTR_CHECK(disp, nano_ThreadSymbol))
+    return Rf_allocVector(INTSXP, 5);
+
+  nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
+  nano_dispatcher *d = h->d;
+
+  int result[5];
+  result[0] = d->outq_count;
+  result[1] = d->connections;
+  result[2] = d->inq_count;
+  result[3] = d->executing;
+  result[4] = d->count - d->inq_count - d->executing;
+
+  SEXP out = PROTECT(Rf_allocVector(INTSXP, 5));
+  memcpy(NANO_DATAPTR(out), result, sizeof(result));
+  UNPROTECT(1);
+
+  return out;
+
+}
+
 SEXP rnng_limit_gate(SEXP disp) {
 
   if (NANO_PTR_CHECK(disp, nano_ThreadSymbol))

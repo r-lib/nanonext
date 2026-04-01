@@ -135,6 +135,7 @@ static const R_CallMethodDef callMethods[] = {
   {"rnng_dispatcher_start", (DL_FUNC) &rnng_dispatcher_start, 7},
   {"rnng_dispatcher_stop", (DL_FUNC) &rnng_dispatcher_stop, 1},
   {"rnng_dispatcher_wait", (DL_FUNC) &rnng_dispatcher_wait, 2},
+  {"rnng_dispatcher_info", (DL_FUNC) &rnng_dispatcher_info, 1},
   {"rnng_limit_gate", (DL_FUNC) &rnng_limit_gate, 1},
   {"rnng_eval_safe", (DL_FUNC) &rnng_eval_safe, 1},
   {"rnng_fini", (DL_FUNC) &rnng_fini, 0},

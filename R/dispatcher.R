@@ -63,6 +63,20 @@
 #'
 .dispatcher_wait <- function(disp, n) invisible(.Call(rnng_dispatcher_wait, disp, n))
 
+#' Dispatcher Info
+#'
+#' Read dispatcher statistics directly under lock.
+#'
+#' @param disp External pointer to dispatcher handle.
+#'
+#' @return Integer vector of length 5: connections, cumulative, awaiting,
+#'   executing, completed.
+#'
+#' @keywords internal
+#' @export
+#'
+.dispatcher_info <- function(disp) .Call(rnng_dispatcher_info, disp)
+
 #' Limit Gate
 #'
 #' Block until inflight count is below limit, then increment.
