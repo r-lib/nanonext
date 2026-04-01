@@ -491,12 +491,13 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   saio->ctx = ctx;
   saio->id = msgid != R_NilValue ? id : mod != 1 ? -id : 0;
 
-  if ((xc = nng_msg_alloc(&msg, 0)) ||
-      (xc = nng_msg_append(msg, buf.buf, buf.cur)) ||
+  if ((xc = nng_msg_alloc(&msg, buf.cur)) ||
       (xc = nng_aio_alloc(&saio->aio, sendaio_complete, saio))) {
     nng_msg_free(msg);
     goto fail;
   }
+
+  memcpy(nng_msg_body(msg), buf.buf, buf.cur);
 
   nng_aio_set_msg(saio->aio, msg);
   nng_ctx_send(*ctx, saio->aio);

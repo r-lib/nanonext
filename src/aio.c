@@ -731,12 +731,13 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     NANO_ENSURE_ALLOC(saio);
     saio->type = SENDAIO;
 
-    if ((xc = nng_msg_alloc(&msg, 0)) ||
-        (xc = nng_msg_append(msg, buf.buf, buf.cur)) ||
+    if ((xc = nng_msg_alloc(&msg, buf.cur)) ||
         (xc = nng_aio_alloc(&saio->aio, saio_complete, saio))) {
       nng_msg_free(msg);
       goto fail;
     }
+
+    memcpy(nng_msg_body(msg), buf.buf, buf.cur);
 
     if (pipeid) {
       nng_pipe p;
