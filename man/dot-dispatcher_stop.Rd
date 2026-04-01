@@ -4,10 +4,10 @@
 \alias{.dispatcher_stop}
 \title{Stop In-Process Dispatcher}
 \usage{
-.dispatcher_stop(xptr)
+.dispatcher_stop(disp)
 }
 \arguments{
-\item{xptr}{External pointer to dispatcher handle.}
+\item{disp}{External pointer to dispatcher handle.}
 }
 \value{
 Invisible NULL.

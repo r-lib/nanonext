@@ -882,9 +882,9 @@ static void dispatcher_handle_finalizer(SEXP xptr) {
 
 }
 
-SEXP rnng_dispatcher_start(SEXP url, SEXP reset, SEXP serial,
-                           SEXP stream, SEXP disp_url, SEXP limit,
-                           SEXP cvar, SEXP tls) {
+SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
+                           SEXP reset, SEXP serial, SEXP stream,
+                           SEXP limit, SEXP cvar) {
 
   int xc;
   nng_listener listener = NNG_LISTENER_INITIALIZER;
@@ -1022,12 +1022,12 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP reset, SEXP serial,
 
 }
 
-SEXP rnng_dispatcher_stop(SEXP xptr) {
+SEXP rnng_dispatcher_stop(SEXP disp) {
 
-  if (NANO_PTR(xptr) == NULL)
+  if (NANO_PTR(disp) == NULL)
     return R_NilValue;
 
-  nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(xptr);
+  nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
 
   if (h->owns_resources) {
     nng_mtx_lock(h->priv_cv->mtx);
@@ -1049,7 +1049,7 @@ SEXP rnng_dispatcher_stop(SEXP xptr) {
     h->owns_resources = 0;
   }
 
-  SETCAR(xptr, NULL);
+  SETCAR(disp, NULL);
   free(h);
 
   return R_NilValue;

@@ -4,10 +4,14 @@
 \alias{.dispatcher_start}
 \title{Start In-Process Dispatcher}
 \usage{
-.dispatcher_start(url, reset, serial, stream, disp_url, limit, cvar, tls)
+.dispatcher_start(url, disp_url, tls, reset, serial, stream, limit, cvar)
 }
 \arguments{
 \item{url}{URL to listen at for daemon connections.}
+
+\item{disp_url}{inproc:// URL for host REQ socket.}
+
+\item{tls}{TLS configuration or NULL.}
 
 \item{reset}{Pre-serialized connection reset error (raw vector).}
 
@@ -15,13 +19,9 @@
 
 \item{stream}{RNG stream integer vector (.Random.seed).}
 
-\item{disp_url}{inproc:// URL for host REQ socket.}
-
-\item{limit}{Maximum in-flight tasks (0 for unlimited).}
+\item{limit}{Maximum in-flight tasks (NULL for unlimited).}
 
 \item{cvar}{Shared condition variable for limit signaling.}
-
-\item{tls}{TLS configuration or NULL.}
 }
 \value{
 External pointer to dispatcher handle.
