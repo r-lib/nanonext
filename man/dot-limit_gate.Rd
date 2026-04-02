@@ -10,7 +10,7 @@
 \item{disp}{External pointer to dispatcher handle.}
 }
 \value{
-Invisible NULL.
+Logical TRUE.
 }
 \description{
 Block until inflight count is below limit, then increment.

@@ -83,9 +83,9 @@
 #'
 #' @param disp External pointer to dispatcher handle.
 #'
-#' @return Invisible NULL.
+#' @return Logical TRUE.
 #'
 #' @keywords internal
 #' @export
 #'
-.limit_gate <- function(disp) invisible(.Call(rnng_limit_gate, disp))
+.limit_gate <- function(disp) .Call(rnng_limit_gate, disp)

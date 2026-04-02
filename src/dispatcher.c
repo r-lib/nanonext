@@ -1181,7 +1181,7 @@ SEXP rnng_limit_gate(SEXP disp) {
     nng_mtx_unlock(d->cv->mtx);
   }
 
-  return R_NilValue;
+  return Rf_ScalarLogical(1);
 
 }
 
