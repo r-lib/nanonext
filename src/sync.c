@@ -92,13 +92,8 @@ static void request_complete(void *arg) {
         nng_pipe_close(p);
     }
   } else if (res == 5 && saio->id > 0) {
-    nng_msg *msg = NULL;
-    if (nng_msg_alloc(&msg, 0) ||
-        nng_msg_append_u32(msg, 0) ||
-        nng_msg_append(msg, &saio->id, sizeof(int)) ||
-        nng_ctx_sendmsg(*saio->ctx, msg, NNG_FLAG_NONBLOCK)) {
-      nng_msg_free(msg);
-    }
+    if (saio->disp != NULL)
+      dispatch_cancel_direct(saio->disp, saio->id);
   }
 
   if (raio->next != NULL) {
@@ -488,7 +483,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   raio = calloc(1, sizeof(nano_aio));
   NANO_ENSURE_ALLOC(raio);
 
-  saio->ctx = ctx;
+  saio->disp = TYPEOF(msgid) == EXTPTRSXP ? NANO_PTR(msgid) : NULL;
   saio->id = msgid != R_NilValue ? id : mod != 1 ? -id : 0;
 
   if ((xc = nng_msg_alloc(&msg, buf.cur)) ||

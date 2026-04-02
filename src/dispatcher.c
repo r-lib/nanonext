@@ -79,6 +79,7 @@ typedef struct nano_dispatch_daemon_s {
 typedef struct nano_dispatcher_s {
   nng_socket *rep_sock;
   nng_socket *poly_sock;
+  nng_mtx *mtx;
   nano_cv *cv;
   nano_cv *limit_cv;
   nano_monitor *monitor;
@@ -704,6 +705,8 @@ static int dispatch_loop(nano_dispatcher *d) {
 
     if (d->cv->flag < 0) return 0;
 
+    nng_mtx_lock(d->mtx);
+
     dispatch_process_monitor(d);
 
     if (host_ready) {
@@ -722,6 +725,8 @@ static int dispatch_loop(nano_dispatcher *d) {
 
     if (d->inq_head)
       dispatch_dispatch_tasks(d);
+
+    nng_mtx_unlock(d->mtx);
   }
 
 }
@@ -773,6 +778,7 @@ static void dispatch_shutdown(nano_dispatcher *d) {
 
   nng_aio_free(d->host_aio);
   nng_aio_free(d->daemon_aio);
+  nng_mtx_free(d->mtx);
   free(d->init_template);
   free(d->conn_reset_buf);
   free(d->pipe_events);
@@ -821,7 +827,8 @@ SEXP rnng_dispatcher_run(SEXP rep, SEXP poly, SEXP mon, SEXP reset,
   d->outq_table = calloc(d->outq_size, sizeof(nano_dispatch_daemon *));
   if (d->outq_table == NULL) { xc = 2; goto fail; }
 
-  if ((xc = nng_aio_alloc(&d->host_aio, host_recv_cb, d)) ||
+  if ((xc = nng_mtx_alloc(&d->mtx)) ||
+      (xc = nng_aio_alloc(&d->host_aio, host_recv_cb, d)) ||
       (xc = nng_aio_alloc(&d->daemon_aio, daemon_recv_cb, d)) ||
       (xc = nng_ctx_open(&d->host_ctx, *d->rep_sock)))
     goto fail;
@@ -883,6 +890,32 @@ static void dispatcher_handle_finalizer(SEXP xptr) {
   }
 
   free(h);
+
+}
+
+int dispatch_cancel_direct(void *handle, int id) {
+
+  nano_dispatcher_handle *h = (nano_dispatcher_handle *) handle;
+  nano_dispatcher *d = h->d;
+  int found = 0;
+
+  nng_mtx_lock(d->mtx);
+
+  for (int i = 0; i < d->outq_size && !found; i++) {
+    for (nano_dispatch_daemon *dd = d->outq_table[i]; dd; dd = dd->next) {
+      if (dd->msgid == id) {
+        dispatch_send_to_daemon(d, dd->pipe, NULL, 0);
+        found = 1;
+        break;
+      }
+    }
+  }
+  if (!found)
+    found = dispatch_cancel_inq(d, id);
+
+  nng_mtx_unlock(d->mtx);
+
+  return found;
 
 }
 
@@ -976,7 +1009,8 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
   if (d->outq_table == NULL) { xc = 2; goto fail; }
 
   // Allocate AIOs and open host context
-  if ((xc = nng_aio_alloc(&d->host_aio, host_recv_cb, d)) ||
+  if ((xc = nng_mtx_alloc(&d->mtx)) ||
+      (xc = nng_aio_alloc(&d->host_aio, host_recv_cb, d)) ||
       (xc = nng_aio_alloc(&d->daemon_aio, daemon_recv_cb, d)) ||
       (xc = nng_ctx_open(&d->host_ctx, *d->rep_sock)))
     goto fail;
@@ -1101,11 +1135,13 @@ SEXP rnng_dispatcher_info(SEXP disp) {
   nano_dispatcher *d = h->d;
 
   int result[5];
+  nng_mtx_lock(d->mtx);
   result[0] = d->outq_count;
   result[1] = d->connections;
   result[2] = d->inq_count;
   result[3] = d->executing;
   result[4] = d->count - d->inq_count - d->executing;
+  nng_mtx_unlock(d->mtx);
 
   SEXP out = PROTECT(Rf_allocVector(INTSXP, 5));
   memcpy(NANO_DATAPTR(out), result, sizeof(result));

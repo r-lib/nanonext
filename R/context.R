@@ -179,9 +179,7 @@ reply <- function(
 #'   applies a socket-specific default, usually the same as no timeout.
 #' @param cv (optional) a 'conditionVariable' to signal when the async receive
 #'   is complete, or NULL.
-#' @param id (optional) set to `TRUE` (or any non-NULL value) to send a message
-#'   via the context upon timeout (asynchronously) consisting of an integer
-#'   zero, followed by the integer `context` ID.
+#' @param id NULL. For package internal use only.
 #'
 #' @return A 'recvAio' (object of class 'mirai' and 'recvAio') (invisibly).
 #'

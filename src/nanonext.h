@@ -197,8 +197,8 @@ typedef struct nano_aio_s {
 } nano_aio;
 
 typedef struct nano_saio_s {
-  nng_ctx *ctx;
   nng_aio *aio;
+  void *disp;
   void *cb;
   int id;
 } nano_saio;
@@ -455,6 +455,7 @@ void nano_ReleaseObject(SEXP);
 
 void nano_list_do(nano_list_op, nano_aio *);
 void nano_thread_shutdown(void);
+int dispatch_cancel_direct(void *, int);
 
 SEXP rnng_advance_rng_state(void);
 SEXP rnng_aio_call(SEXP);

@@ -489,7 +489,6 @@ SEXP rnng_request_stop(SEXP x) {
   SEXP out;
   switch (TYPEOF(x)) {
   case ENVSXP: {
-    nng_msg *msgp = NULL;
     int res = 0;
     SEXP coreaio;
     PROTECT(coreaio = nano_findVarInFrame(x, nano_AioSymbol, NULL));
@@ -498,27 +497,10 @@ SEXP rnng_request_stop(SEXP x) {
     if (aiop->type != REQAIOS && aiop->type != REQAIO) goto fail;
     nng_aio_stop(aiop->aio);
     nano_saio *saio = (nano_saio *) aiop->cb;
-    if (saio->id == 0) goto fail;
-
-    const SEXP context = Rf_getAttrib(coreaio, nano_ContextSymbol);
-    if (NANO_PTR_CHECK(context, nano_ContextSymbol)) goto fail;
-    nng_ctx *ctx = (nng_ctx *) NANO_PTR(context);
-    const nng_duration dur = NANONEXT_WAIT_DUR;
-    if (nng_ctx_set_ms(*ctx, "send-timeout", dur) ||
-        nng_ctx_set_ms(*ctx, "recv-timeout", dur) ||
-        nng_msg_alloc(&msgp, 0) ||
-        nng_msg_append_u32(msgp, 0) ||
-        nng_msg_append(msgp, &saio->id, sizeof(int)) ||
-        nng_ctx_sendmsg(*ctx, msgp, 0)) {
-      goto fail;
-    }
-    msgp = NULL;
-    if (nng_ctx_recvmsg(*ctx, &msgp, 0))
-      goto fail;
-    memcpy(&res, nng_msg_body(msgp), sizeof(int));
+    if (saio->disp == NULL) goto fail;
+    res = dispatch_cancel_direct(saio->disp, saio->id);
 
     fail:
-    nng_msg_free(msgp);
     UNPROTECT(1);
     out = Rf_ScalarLogical(res != 0);
     break;

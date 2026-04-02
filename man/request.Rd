@@ -37,9 +37,7 @@ applies a socket-specific default, usually the same as no timeout.}
 \item{cv}{(optional) a 'conditionVariable' to signal when the async receive
 is complete, or NULL.}
 
-\item{id}{(optional) set to \code{TRUE} (or any non-NULL value) to send a message
-via the context upon timeout (asynchronously) consisting of an integer
-zero, followed by the integer \code{context} ID.}
+\item{id}{NULL. For package internal use only.}
 }
 \value{
 A 'recvAio' (object of class 'mirai' and 'recvAio') (invisibly).
