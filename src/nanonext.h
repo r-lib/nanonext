@@ -168,6 +168,7 @@ typedef struct nano_stream_s {
     nng_stream_listener *list;
   } endpoint;
   nng_tls_config *tls;
+  size_t bufsize;
   int textframes;
   int msgmode;
   enum {
@@ -531,7 +532,7 @@ SEXP rnng_stream_close(SEXP);
 SEXP rnng_stream_conn_send(SEXP, SEXP);
 SEXP rnng_stream_conn_set_header(SEXP, SEXP, SEXP);
 SEXP rnng_stream_conn_set_status(SEXP, SEXP);
-SEXP rnng_stream_open(SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP rnng_stream_open(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_strerror(SEXP);
 SEXP rnng_subscribe(SEXP, SEXP, SEXP);
 SEXP rnng_tls_config(SEXP, SEXP, SEXP, SEXP);

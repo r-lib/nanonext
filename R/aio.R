@@ -126,7 +126,7 @@ recv_aio <- function(
   mode = c("serial", "character", "complex", "double", "integer", "logical", "numeric", "raw", "string"),
   timeout = NULL,
   cv = NULL,
-  n = 65536L
+  n = NULL
 )
   data <- .Call(rnng_recv_aio, con, mode, timeout, cv, n, environment())
 

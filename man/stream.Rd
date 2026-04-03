@@ -9,7 +9,8 @@ stream(
   listen = NULL,
   textframes = FALSE,
   headers = NULL,
-  tls = NULL
+  tls = NULL,
+  buffer = 65536L
 )
 }
 \arguments{
@@ -33,6 +34,11 @@ non-websocket transports).}
 \item{tls}{(optional) applicable to secure websockets only, a client or
 server TLS configuration object created by \code{\link[=tls_config]{tls_config()}}. If missing or
 NULL, certificates are not validated.}
+
+\item{buffer}{[default 65536L] applicable to non-websocket streams only, the
+maximum number of bytes to receive. Can be an over-estimate, but note that
+a buffer of this size is reserved. Not used for websocket connections,
+which handle framing automatically.}
 }
 \value{
 A Stream (object of class 'nanoStream' and 'nano').

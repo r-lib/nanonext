@@ -1,6 +1,8 @@
 # nanonext (development version)
 
 * Adds `serve()` for running an HTTP server in synchronous (blocking) mode.
+* `stream()` gains a `buffer` argument for setting the receive buffer size for non-websocket byte streams.
+* The `n` argument of `recv()` and `recv_aio()` is deprecated in favour of the new `buffer` argument of `stream()`.
 
 # nanonext 1.8.1
 
