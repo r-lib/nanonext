@@ -868,7 +868,13 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP bytes, SEX
       if ((xc = nng_aio_alloc(&raio->aio, raio_complete, raio)))
         goto fail;
     } else {
-      const size_t xlen = (size_t) nano_integer(bytes);
+      size_t xlen;
+      if (bytes != R_NilValue) {
+        xlen = (size_t) nano_integer(bytes);
+        Rf_warning("argument 'n' is deprecated; set 'buffer' in stream() instead");
+      } else {
+        xlen = nst->bufsize;
+      }
       raio->type = signal ? IOV_RECVAIOS : IOV_RECVAIO;
       raio->data = malloc(xlen);
       NANO_ENSURE_ALLOC(raio->data);

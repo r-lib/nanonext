@@ -570,7 +570,13 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
       res = nano_decode(buf, sz, mod, NANO_PROT(con));
       nng_msg_free(msgp);
     } else {
-      const size_t xlen = (size_t) nano_integer(bytes);
+      size_t xlen;
+      if (bytes != R_NilValue) {
+        xlen = (size_t) nano_integer(bytes);
+        Rf_warning("argument 'n' is deprecated; set 'buffer' in stream() instead");
+      } else {
+        xlen = nst->bufsize;
+      }
       buf = malloc(xlen);
       NANO_ENSURE_ALLOC(buf);
       nng_iov iov = {

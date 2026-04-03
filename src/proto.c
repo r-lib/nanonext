@@ -194,7 +194,7 @@ SEXP rnng_reap(SEXP con) {
 
 // streams ---------------------------------------------------------------------
 
-static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP headers, SEXP tls) {
+static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP headers, SEXP tls, SEXP buffer) {
 
   const char *add = CHAR(STRING_ELT(url, 0));
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
@@ -208,6 +208,7 @@ static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP headers, SEXP tls) 
   nano_stream *nst = calloc(1, sizeof(nano_stream));
   NANO_ENSURE_ALLOC(nst);
   nst->mode = NANO_STREAM_DIALER;
+  nst->bufsize = (size_t) nano_integer(buffer);
   nst->textframes = NANO_INTEGER(textframes) != 0;
 
   if ((xc = nng_url_parse(&up, add)) ||
@@ -291,7 +292,7 @@ static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP headers, SEXP tls) 
 
 }
 
-static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls) {
+static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls, SEXP buffer) {
 
   const char *add = CHAR(STRING_ELT(url, 0));
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
@@ -305,6 +306,7 @@ static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls) {
   nano_stream *nst = calloc(1, sizeof(nano_stream));
   NANO_ENSURE_ALLOC(nst);
   nst->mode = NANO_STREAM_LISTENER;
+  nst->bufsize = (size_t) nano_integer(buffer);
   nst->textframes = NANO_INTEGER(textframes) != 0;
 
   if ((xc = nng_url_parse(&up, add)) ||
@@ -377,12 +379,12 @@ static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls) {
 
 }
 
-SEXP rnng_stream_open(SEXP dial, SEXP listen, SEXP textframes, SEXP headers, SEXP tls) {
+SEXP rnng_stream_open(SEXP dial, SEXP listen, SEXP textframes, SEXP headers, SEXP tls, SEXP buffer) {
 
   if (dial != R_NilValue) {
-    return nano_stream_dial(dial, textframes, headers, tls);
+    return nano_stream_dial(dial, textframes, headers, tls, buffer);
   } else if (listen != R_NilValue) {
-    return nano_stream_listen(listen, textframes, tls);
+    return nano_stream_listen(listen, textframes, tls, buffer);
   }
   Rf_error("specify a URL for either `dial` or `listen`");
 

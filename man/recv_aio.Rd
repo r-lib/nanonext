@@ -10,7 +10,7 @@ recv_aio(
     "raw", "string"),
   timeout = NULL,
   cv = NULL,
-  n = 65536L
+  n = NULL
 )
 }
 \arguments{
@@ -30,9 +30,7 @@ applies a socket-specific default, usually the same as no timeout.}
 \item{cv}{(optional) a 'conditionVariable' to signal when the async receive
 is complete.}
 
-\item{n}{[default 65536L] applicable to Streams only, the maximum number of
-bytes to receive. Can be an over-estimate, but note that a buffer of this
-size is reserved.}
+\item{n}{(deprecated) use the \code{buffer} argument of \code{\link[=stream]{stream()}} instead.}
 }
 \value{
 A 'recvAio' (object of class 'recvAio') (invisibly).

@@ -34,6 +34,10 @@
 #' @param tls (optional) applicable to secure websockets only, a client or
 #'   server TLS configuration object created by [tls_config()]. If missing or
 #'   NULL, certificates are not validated.
+#' @param buffer \[default 65536L\] applicable to non-websocket streams only, the
+#'   maximum number of bytes to receive. Can be an over-estimate, but note that
+#'   a buffer of this size is reserved. Not used for websocket connections,
+#'   which handle framing automatically.
 #'
 #' @return A Stream (object of class 'nanoStream' and 'nano').
 #'
@@ -56,8 +60,8 @@
 #' @export
 #'
 stream <- function(dial = NULL, listen = NULL, textframes = FALSE,
-                   headers = NULL, tls = NULL)
-  .Call(rnng_stream_open, dial, listen, textframes, headers, tls)
+                   headers = NULL, tls = NULL, buffer = 65536L)
+  .Call(rnng_stream_open, dial, listen, textframes, headers, tls, buffer)
 
 #' @rdname close
 #' @method close nanoStream
