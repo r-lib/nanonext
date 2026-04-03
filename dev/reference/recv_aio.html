@@ -59,7 +59,7 @@
 <span>    <span class="st">"raw"</span>, <span class="st">"string"</span><span class="op">)</span>,</span>
 <span>  timeout <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cv <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  n <span class="op">=</span> <span class="fl">65536L</span></span>
+<span>  n <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -92,9 +92,7 @@ is complete.</p></dd>
 
 
 <dt id="arg-n">n<a class="anchor" aria-label="anchor" href="#arg-n"></a></dt>
-<dd><p>[default 65536L] applicable to Streams only, the maximum number of
-bytes to receive. Can be an over-estimate, but note that a buffer of this
-size is reserved.</p></dd>
+<dd><p>(deprecated) use the <code>buffer</code> argument of <code><a href="stream.html">stream()</a></code> instead.</p></dd>
 
 </dl></div>
     <div class="section level2">

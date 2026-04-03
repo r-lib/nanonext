@@ -49,6 +49,9 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="nanonext-development-version">nanonext (development version)<a class="anchor" aria-label="anchor" href="#nanonext-development-version"></a></h2>
 <ul><li>Adds <code>serve()</code> for running an HTTP server in synchronous (blocking) mode.</li>
+<li>
+<code><a href="../reference/stream.html">stream()</a></code> gains a <code>buffer</code> argument for setting the receive buffer size for non-websocket byte streams.</li>
+<li>The <code>n</code> argument of <code><a href="../reference/recv.html">recv()</a></code> and <code><a href="../reference/recv_aio.html">recv_aio()</a></code> is deprecated in favour of the new <code>buffer</code> argument of <code><a href="../reference/stream.html">stream()</a></code>.</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.8.1" id="nanonext-181">nanonext 1.8.1<a class="anchor" aria-label="anchor" href="#nanonext-181"></a></h2><p class="text-muted">CRAN release: 2026-03-08</p>

@@ -64,7 +64,8 @@ low-level interface intended for communicating with non-NNG endpoints.</p>
 <span>  listen <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  textframes <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  headers <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  tls <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  tls <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  buffer <span class="op">=</span> <span class="fl">65536L</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -101,6 +102,13 @@ non-websocket transports).</p></dd>
 <dd><p>(optional) applicable to secure websockets only, a client or
 server TLS configuration object created by <code><a href="tls_config.html">tls_config()</a></code>. If missing or
 NULL, certificates are not validated.</p></dd>
+
+
+<dt id="arg-buffer">buffer<a class="anchor" aria-label="anchor" href="#arg-buffer"></a></dt>
+<dd><p>[default 65536L] applicable to non-websocket streams only, the
+maximum number of bytes to receive. Can be an over-estimate, but note that
+a buffer of this size is reserved. Not used for websocket connections,
+which handle framing automatically.</p></dd>
 
 </dl></div>
     <div class="section level2">
