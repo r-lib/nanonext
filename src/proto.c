@@ -197,6 +197,7 @@ SEXP rnng_reap(SEXP con) {
 static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP headers, SEXP tls, SEXP buffer) {
 
   const char *add = CHAR(STRING_ELT(url, 0));
+  const size_t bufsize = (size_t) nano_integer(buffer);
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
     Rf_error("`tls` is not a valid TLS Configuration");
 
@@ -208,7 +209,7 @@ static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP headers, SEXP tls, 
   nano_stream *nst = calloc(1, sizeof(nano_stream));
   NANO_ENSURE_ALLOC(nst);
   nst->mode = NANO_STREAM_DIALER;
-  nst->bufsize = (size_t) nano_integer(buffer);
+  nst->bufsize = bufsize;
   nst->textframes = NANO_INTEGER(textframes) != 0;
 
   if ((xc = nng_url_parse(&up, add)) ||
@@ -295,6 +296,7 @@ static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP headers, SEXP tls, 
 static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls, SEXP buffer) {
 
   const char *add = CHAR(STRING_ELT(url, 0));
+  const size_t bufsize = (size_t) nano_integer(buffer);
   if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
     Rf_error("`tls` is not a valid TLS Configuration");
 
@@ -306,7 +308,7 @@ static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls, SEXP buffer)
   nano_stream *nst = calloc(1, sizeof(nano_stream));
   NANO_ENSURE_ALLOC(nst);
   nst->mode = NANO_STREAM_LISTENER;
-  nst->bufsize = (size_t) nano_integer(buffer);
+  nst->bufsize = bufsize;
   nst->textframes = NANO_INTEGER(textframes) != 0;
 
   if ((xc = nng_url_parse(&up, add)) ||
