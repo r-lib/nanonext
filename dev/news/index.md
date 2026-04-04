@@ -2,8 +2,15 @@
 
 ## nanonext (development version)
 
-- Adds `serve()` for running an HTTP server in synchronous (blocking)
-  mode.
+## nanonext 1.8.2
+
+CRAN release: 2026-04-04
+
+##### Updates
+
+- Adds `$serve()` method for running an HTTP server created by
+  [`http_server()`](https://nanonext.r-lib.org/dev/reference/http_server.md)
+  in synchronous (blocking) mode.
 - [`stream()`](https://nanonext.r-lib.org/dev/reference/stream.md) gains
   a `buffer` argument for setting the receive buffer size for
   non-websocket byte streams.
