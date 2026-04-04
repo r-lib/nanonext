@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.8.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.8.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,7 +43,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Receive</h1>
-      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/v1.8.1/R/sendrecv.R" class="external-link"><code>R/sendrecv.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/main/R/sendrecv.R" class="external-link"><code>R/sendrecv.R</code></a></small>
       <div class="d-none name"><code>recv.Rd</code></div>
     </div>
 
@@ -58,7 +58,7 @@
 <span>  mode <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"serial"</span>, <span class="st">"character"</span>, <span class="st">"complex"</span>, <span class="st">"double"</span>, <span class="st">"integer"</span>, <span class="st">"logical"</span>, <span class="st">"numeric"</span>,</span>
 <span>    <span class="st">"raw"</span>, <span class="st">"string"</span><span class="op">)</span>,</span>
 <span>  block <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  n <span class="op">=</span> <span class="fl">65536L</span></span>
+<span>  n <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -89,9 +89,7 @@ time to block in milliseconds, after which the operation will time out.</p></dd>
 
 
 <dt id="arg-n">n<a class="anchor" aria-label="anchor" href="#arg-n"></a></dt>
-<dd><p>[default 65536L] applicable to Streams only, the maximum number of
-bytes to receive. Can be an over-estimate, but note that a buffer of this
-size is reserved.</p></dd>
+<dd><p>(deprecated) use the <code>buffer</code> argument of <code><a href="stream.html">stream()</a></code> instead.</p></dd>
 
 </dl></div>
     <div class="section level2">

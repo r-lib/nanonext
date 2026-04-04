@@ -35,6 +35,10 @@ A nanoServer object with methods:
 
 - `$close()` - Stop and release all resources
 
+- `$serve()` - Start and block, processing requests via the later event
+  loop until interrupted (e.g., Ctrl+C). The server is automatically
+  closed on exit
+
 - `$url` - The server URL
 
 ## Details
@@ -44,10 +48,13 @@ HTTP handlers and WebSocket handlers are provided, they share the same
 underlying server and port. WebSocket handlers automatically handle the
 HTTP upgrade handshake and all WebSocket framing (RFC 6455).
 
-WebSocket callbacks are executed on R's main thread via the 'later'
-package. To process callbacks, you must run the event loop (e.g., using
+WebSocket and streaming callbacks are executed on R's main thread via
+the later package. To process callbacks, you must run the event loop
+(e.g., using
 [`later::run_now()`](https://later.r-lib.org/reference/run_now.html) in
-a loop).
+a loop), or use `$serve()` which handles this automatically.
+
+Requires the later package.
 
 ## Examples
 

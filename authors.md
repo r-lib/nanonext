@@ -19,15 +19,15 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/r-lib/nanonext/blob/v1.8.1/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/r-lib/nanonext/blob/main/DESCRIPTION)
 
 Gao C (2026). *nanonext: Lightweight Toolkit for Messaging, Concurrency
-and the Web*. R package version 1.8.1, <https://nanonext.r-lib.org>.
+and the Web*. R package version 1.8.2, <https://nanonext.r-lib.org>.
 
     @Manual{,
       title = {nanonext: Lightweight Toolkit for Messaging, Concurrency and the Web},
       author = {Charlie Gao},
       year = {2026},
-      note = {R package version 1.8.1},
+      note = {R package version 1.8.2},
       url = {https://nanonext.r-lib.org},
     }

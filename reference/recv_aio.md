@@ -12,7 +12,7 @@ recv_aio(
     "raw", "string"),
   timeout = NULL,
   cv = NULL,
-  n = 65536L
+  n = NULL
 )
 ```
 
@@ -45,9 +45,8 @@ recv_aio(
 
 - n:
 
-  \[default 65536L\] applicable to Streams only, the maximum number of
-  bytes to receive. Can be an over-estimate, but note that a buffer of
-  this size is reserved.
+  (deprecated) use the `buffer` argument of
+  [`stream()`](https://nanonext.r-lib.org/reference/stream.md) instead.
 
 ## Value
 

@@ -12,7 +12,8 @@ stream(
   listen = NULL,
   textframes = FALSE,
   headers = NULL,
-  tls = NULL
+  tls = NULL,
+  buffer = 65536L
 )
 ```
 
@@ -49,6 +50,13 @@ stream(
   TLS configuration object created by
   [`tls_config()`](https://nanonext.r-lib.org/reference/tls_config.md).
   If missing or NULL, certificates are not validated.
+
+- buffer:
+
+  \[default 65536L\] applicable to non-websocket streams only, the
+  maximum number of bytes to receive. Can be an over-estimate, but note
+  that a buffer of this size is reserved. Not used for websocket
+  connections, which handle framing automatically.
 
 ## Value
 
