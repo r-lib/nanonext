@@ -878,7 +878,8 @@ static void dispatch_thread_func(void *arg) {
 
 static void dispatcher_handle_finalizer(SEXP xptr) {
 
-  if (NANO_PTR_CHECK(xptr, nano_ThreadSymbol)) return;
+  if (NANO_PTR(xptr) == NULL) return;
+  
   nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(xptr);
 
   if (h->owns_resources) {
@@ -889,6 +890,7 @@ static void dispatcher_handle_finalizer(SEXP xptr) {
 
     nng_thread_destroy(h->thr);
     dispatch_shutdown(h->d);
+    h->d = NULL;
 
     nng_close(h->poly_sock);
     nng_close(h->rep_sock);
@@ -909,6 +911,9 @@ int dispatch_cancel_direct(void *handle, int id) {
 
   nano_dispatcher_handle *h = (nano_dispatcher_handle *) handle;
   nano_dispatcher *d = h->d;
+  if (d == NULL)
+    return 0;
+  
   int found = 0;
 
   nng_mtx_lock(d->cv->mtx);
@@ -1092,6 +1097,7 @@ SEXP rnng_dispatcher_stop(SEXP disp) {
 
     nng_thread_destroy(h->thr);
     dispatch_shutdown(h->d);
+    h->d = NULL;
 
     nng_close(h->poly_sock);
     nng_close(h->rep_sock);
@@ -1104,8 +1110,7 @@ SEXP rnng_dispatcher_stop(SEXP disp) {
     h->owns_resources = 0;
   }
 
-  free(h);
-  R_ClearExternalPtr(disp);
+  NANO_SET_TAG(disp, R_NilValue);
 
   return R_NilValue;
 
