@@ -1,5 +1,9 @@
 # nanonext (development version)
 
+#### Fixes
+
+* Fixes sending and receiving of messages larger than `INT_MAX` bytes over TCP and IPC transports on macOS and Windows.
+
 # nanonext 1.8.2
 
 #### Updates

@@ -13,6 +13,7 @@
 #include "platform/posix/posix_peerid.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <poll.h>
 #include <stdbool.h>
 #include <string.h>
@@ -46,6 +47,7 @@ ipc_dowrite(ipc_conn *c)
 		nni_iov      *aiov;
 		struct msghdr hdr;
 		struct iovec  iovec[16];
+		size_t        count;
 
 		memset(&hdr, 0, sizeof(hdr));
 		nni_aio_get_iov(aio, &naiov, &aiov);
@@ -56,10 +58,15 @@ ipc_dowrite(ipc_conn *c)
 			continue;
 		}
 
+		count = 0;
 		for (niov = 0, i = 0; i < naiov; i++) {
 			if (aiov[i].iov_len > 0) {
-				iovec[niov].iov_len  = aiov[i].iov_len;
+				size_t len = aiov[i].iov_len;
+				if (count + len > INT_MAX)
+					len = INT_MAX - count;
+				iovec[niov].iov_len  = len;
 				iovec[niov].iov_base = aiov[i].iov_buf;
+				count += len;
 				niov++;
 			}
 		}
@@ -110,6 +117,7 @@ ipc_doread(ipc_conn *c)
 		unsigned     naiov;
 		nni_iov     *aiov;
 		struct iovec iovec[16];
+		size_t       count;
 
 		nni_aio_get_iov(aio, &naiov, &aiov);
 		if (naiov > NNI_NUM_ELEMENTS(iovec)) {
@@ -117,10 +125,15 @@ ipc_doread(ipc_conn *c)
 			nni_aio_finish_error(aio, NNG_EINVAL);
 			continue;
 		}
+		count = 0;
 		for (niov = 0, i = 0; i < naiov; i++) {
 			if (aiov[i].iov_len != 0) {
-				iovec[niov].iov_len  = aiov[i].iov_len;
+				size_t len = aiov[i].iov_len;
+				if (count + len > INT_MAX)
+					len = INT_MAX - count;
+				iovec[niov].iov_len  = len;
 				iovec[niov].iov_base = aiov[i].iov_buf;
+				count += len;
 				niov++;
 			}
 		}
