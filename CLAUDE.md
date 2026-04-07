@@ -27,7 +27,7 @@ Rscript dev/vignettes/precompile.R
 
 ### Compilation
 
-The configure script detects or compiles `libmbedtls` (>= 2.5.0) and `libnng` (>= 1.9.0), then generates `src/Makevars`. To force compilation of bundled libraries: `Sys.setenv(NANONEXT_LIBS = 1)`.
+The configure script detects or compiles `libmbedtls` (>= 2.5.0) and `libnng` (>= 1.11.0), then generates `src/Makevars`. To force compilation of bundled libraries: `Sys.setenv(NANONEXT_LIBS = 1)`.
 
 ### Testing
 
