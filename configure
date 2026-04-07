@@ -100,7 +100,7 @@ int main() {
 
   echo "#include <nng/nng.h>
 int main() {
-#if NNG_MAJOR_VERSION < 1 || NNG_MAJOR_VERSION == 1 && NNG_MINOR_VERSION < 9
+#if NNG_MAJOR_VERSION < 1 || NNG_MAJOR_VERSION == 1 && NNG_MINOR_VERSION < 11
     *(void *) 0 = 0;
 #endif
 }" | ${CC} ${NNG_CFLAGS} -xc - -o /dev/null > /dev/null 2>&1
@@ -125,7 +125,7 @@ fi
 
 # Compile NNG if needed
 if [ $compile_nng -eq 1 ]; then
-  echo "Existing 'libnng' >= 1.9.0 not found"
+  echo "Existing 'libnng' >= 1.11.0 not found"
   detect_cmake
   echo "Compiling 'libnng' from source ..."
   cmake -S src/nng -B nano-build -DCMAKE_INSTALL_PREFIX=nano-install -DCMAKE_INSTALL_LIBDIR=lib

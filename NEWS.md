@@ -1,5 +1,10 @@
 # nanonext (development version)
 
+#### Updates
+
+* Fixes sending and receiving of messages larger than `INT_MAX` bytes over TCP and IPC transports on macOS and Windows.
+* Minimum required NNG version raised to 1.11 (bundled: 1.11.1-pre).
+
 # nanonext 1.8.2
 
 #### Updates

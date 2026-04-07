@@ -130,7 +130,7 @@ install.packages("nanonext", repos = "https://r-lib.r-universe.dev")
 
 #### Linux / Mac / Solaris
 
-Requires 'libnng' >= v1.9.0 and 'libmbedtls' >= 2.5.0, or 'cmake' to compile bundled libraries (libnng v1.11.0, libmbedtls v3.6.5).
+Requires 'libnng' >= v1.11.0 and 'libmbedtls' >= 2.5.0, or 'cmake' to compile bundled libraries (libnng v1.11.1-pre, libmbedtls v3.6.5).
 
 Recommended: Let the package compile bundled libraries for optimal performance:
 
