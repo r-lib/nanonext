@@ -281,18 +281,16 @@ static void daemon_recv_cb(void *arg) {
 
 // message utilities -----------------------------------------------------------
 
-static inline int dispatch_read_header(unsigned char *buf, size_t len) {
+static inline void dispatch_read_msg_info(unsigned char *buf, size_t len,
+                                          int *msgid, int *is_sync) {
 
-  int msgid = 0;
-  if (len > 12 && buf[0] == 0x7)
-    memcpy(&msgid, buf + 4, sizeof(int));
-  return msgid;
-
-}
-
-static inline int dispatch_read_marker(unsigned char *buf, size_t len) {
-
-  return len > 12 && buf[0] == 0x7 && buf[3] == 0x1;
+  if (len > 12 && buf[0] == 0x7) {
+    memcpy(msgid, buf + 4, sizeof(int));
+    *is_sync = buf[3] == 0x1;
+  } else {
+    *msgid = 0;
+    *is_sync = 0;
+  }
 
 }
 
@@ -317,26 +315,7 @@ static int dispatch_ensure_pipe_events(nano_dispatcher *d, int needed) {
 
 }
 
-static int dispatch_process_monitor(nano_dispatcher *d) {
-
-  nano_monitor *m = d->monitor;
-  nng_mtx *mtx = d->cv->mtx;
-
-  nng_mtx_lock(mtx);
-  int count = m->updates;
-  if (count == 0) {
-    nng_mtx_unlock(mtx);
-    return 0;
-  }
-
-  if (!dispatch_ensure_pipe_events(d, count)) {
-    nng_mtx_unlock(mtx);
-    return 0;
-  }
-
-  memcpy(d->pipe_events, m->ids, count * sizeof(int));
-  m->updates = 0;
-  nng_mtx_unlock(mtx);
+static void dispatch_process_monitor(nano_dispatcher *d, int count) {
 
   for (int i = 0; i < count; i++) {
     if (d->pipe_events[i] > 0)
@@ -344,8 +323,6 @@ static int dispatch_process_monitor(nano_dispatcher *d) {
     else
       dispatch_handle_disconnect(d, -d->pipe_events[i]);
   }
-
-  return count;
 
 }
 
@@ -494,8 +471,8 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
     }
     nng_ctx_close(d->host_ctx);
   } else {
-    int msgid = dispatch_read_header(buf, len);
-    int is_sync = dispatch_read_marker(buf, len);
+    int msgid, is_sync;
+    dispatch_read_msg_info(buf, len, &msgid, &is_sync);
 
     nng_mtx_lock(d->cv->mtx);
     d->count++;
@@ -547,7 +524,8 @@ static void dispatch_handle_daemon_recv(nano_dispatcher *d) {
   nano_dispatch_daemon *dd = dispatch_find_daemon(d, pipe_id);
   if (dd != NULL && dd->msgid != 0) {
     d->executing--;
-    is_marker = dispatch_read_marker(nng_msg_body(msg), nng_msg_len(msg));
+    int dummy;
+    dispatch_read_msg_info(nng_msg_body(msg), nng_msg_len(msg), &dummy, &is_marker);
     nng_ctx ctx = dd->ctx;
 
     if (d->limit > 0) {
@@ -572,7 +550,8 @@ static void dispatch_handle_daemon_recv(nano_dispatcher *d) {
     nng_mtx_unlock(d->cv->mtx);
   }
 
-  nng_msg_free(msg);
+  if (msg)
+    nng_msg_free(msg);
 
   nng_recv_aio(*d->poly_sock, d->daemon_aio);
 
@@ -624,7 +603,8 @@ static void dispatch_dispatch_tasks(nano_dispatcher *d) {
   while (d->inq_head) {
     nano_dispatch_task *t = d->inq_head;
 
-    int is_sync = dispatch_read_marker(nng_msg_body(t->msg), nng_msg_len(t->msg));
+    int dummy, is_sync;
+    dispatch_read_msg_info(nng_msg_body(t->msg), nng_msg_len(t->msg), &dummy, &is_sync);
 
     nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
     if (dd == NULL)
@@ -655,10 +635,12 @@ static void dispatch_dispatch_tasks(nano_dispatcher *d) {
 
 // main event loop -------------------------------------------------------------
 
-static void dispatch_wait_cv(nano_dispatcher *d, int *host_ready, int *daemon_ready) {
+static void dispatch_wait_cv(nano_dispatcher *d, int *host_ready,
+                             int *daemon_ready, int *monitor_count) {
 
   nng_mtx *mtx = d->cv->mtx;
   nng_cv *cv = d->cv->cv;
+  nano_monitor *m = d->monitor;
 
   nng_mtx_lock(mtx);
   while (d->cv->condition == 0 && d->cv->flag >= 0)
@@ -668,20 +650,31 @@ static void dispatch_wait_cv(nano_dispatcher *d, int *host_ready, int *daemon_re
   *daemon_ready = d->daemon_recv_ready;
   d->host_recv_ready = 0;
   d->daemon_recv_ready = 0;
+
+  int count = m->updates;
+  if (count && dispatch_ensure_pipe_events(d, count)) {
+    memcpy(d->pipe_events, m->ids, count * sizeof(int));
+    m->updates = 0;
+    *monitor_count = count;
+  } else {
+    *monitor_count = 0;
+  }
+
   nng_mtx_unlock(mtx);
 
 }
 
 static int dispatch_loop(nano_dispatcher *d) {
 
-  int host_ready, daemon_ready;
+  int host_ready, daemon_ready, monitor_events;
 
   while (1) {
-    dispatch_wait_cv(d, &host_ready, &daemon_ready);
+    dispatch_wait_cv(d, &host_ready, &daemon_ready, &monitor_events);
 
     if (d->cv->flag < 0) return 0;
 
-    dispatch_process_monitor(d);
+    if (monitor_events)
+      dispatch_process_monitor(d, monitor_events);
 
     if (host_ready) {
       if (nng_aio_result(d->host_aio) == 0)
