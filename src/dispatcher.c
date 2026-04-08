@@ -457,9 +457,10 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
       dispatch_send_reply(d->host_ctx, (unsigned char *) result, sizeof(result));
     } else {
       int found = 0;
+      int cancel_pipe = 0;
       for (int i = 0; i < d->outq_count; i++) {
         if (d->daemons[i].msgid == id) {
-          dispatch_send_to_daemon(d, d->daemons[i].pipe, NULL, 0);
+          cancel_pipe = d->daemons[i].pipe;
           found = 1;
           break;
         }
@@ -467,6 +468,8 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
       if (!found)
         found = dispatch_cancel_inq(d, id);
       nng_mtx_unlock(d->cv->mtx);
+      if (cancel_pipe)
+        dispatch_send_to_daemon(d, cancel_pipe, NULL, 0);
       dispatch_send_reply(d->host_ctx, (unsigned char *) &found, sizeof(int));
     }
     nng_ctx_close(d->host_ctx);
@@ -474,15 +477,15 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
     int msgid, is_sync;
     dispatch_read_msg_info(buf, len, &msgid, &is_sync);
 
+    int send_pipe = 0;
     nng_mtx_lock(d->cv->mtx);
     d->count++;
-    if (d->limit > 0) {
+    if (d->limit > 0)
       d->inflight++;
-    }
 
     nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
-    if (dd != NULL && dispatch_send_msg_to_daemon(d, dd->pipe, msg) == 0) {
-      msg = NULL;
+    if (dd != NULL) {
+      send_pipe = dd->pipe;
       dd->ctx = d->host_ctx;
       dd->msgid = msgid;
       d->executing++;
@@ -498,6 +501,11 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
       msg = NULL;
     }
     nng_mtx_unlock(d->cv->mtx);
+
+    if (send_pipe) {
+      if (dispatch_send_msg_to_daemon(d, send_pipe, msg) == 0)
+        msg = NULL;
+    }
   }
 
   if (msg)
@@ -598,38 +606,51 @@ static nano_dispatch_daemon *dispatch_find_idle_daemon(nano_dispatcher *d) {
 
 static void dispatch_dispatch_tasks(nano_dispatcher *d) {
 
-  nng_mtx_lock(d->cv->mtx);
+  struct { int pipe; nng_msg *msg; } batch[32];
+  int nsends;
 
-  while (d->inq_head) {
-    nano_dispatch_task *t = d->inq_head;
+  do {
+    nsends = 0;
+    nng_mtx_lock(d->cv->mtx);
 
-    int dummy, is_sync;
-    dispatch_read_msg_info(nng_msg_body(t->msg), nng_msg_len(t->msg), &dummy, &is_sync);
+    while (d->inq_head && nsends < 32) {
+      nano_dispatch_task *t = d->inq_head;
 
-    nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
-    if (dd == NULL)
-      break;
+      int dummy, is_sync;
+      dispatch_read_msg_info(nng_msg_body(t->msg), nng_msg_len(t->msg), &dummy, &is_sync);
 
-    if (dispatch_send_msg_to_daemon(d, dd->pipe, t->msg) != 0)
-      break;
+      nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
+      if (dd == NULL)
+        break;
 
-    t->msg = NULL;
-    dd->ctx = t->ctx;
-    dd->msgid = t->msgid;
-    d->executing++;
+      batch[nsends].pipe = dd->pipe;
+      batch[nsends].msg = t->msg;
+      nsends++;
 
-    if (is_sync) {
-      dd->sync_gen = d->sync_generation;
-      d->syncing = 1;
-    } else if (d->syncing) {
-      d->syncing = 0;
-      d->sync_generation++;
+      t->msg = NULL;
+      dd->ctx = t->ctx;
+      dd->msgid = t->msgid;
+      d->executing++;
+
+      if (is_sync) {
+        dd->sync_gen = d->sync_generation;
+        d->syncing = 1;
+      } else if (d->syncing) {
+        d->syncing = 0;
+        d->sync_generation++;
+      }
+
+      dispatch_dequeue(d);
     }
 
-    dispatch_dequeue(d);
-  }
+    nng_mtx_unlock(d->cv->mtx);
 
-  nng_mtx_unlock(d->cv->mtx);
+    for (int i = 0; i < nsends; i++) {
+      if (dispatch_send_msg_to_daemon(d, batch[i].pipe, batch[i].msg) != 0)
+        nng_msg_free(batch[i].msg);
+    }
+
+  } while (nsends == 32);
 
 }
 
