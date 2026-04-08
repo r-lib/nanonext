@@ -4,7 +4,7 @@
 #define NANONEXT_IO
 #include "nanonext.h"
 
-// threads callable and messenger ----------------------------------------------
+// threads --------------------------------------------------------------------
 
 static nng_mtx *nano_wait_mtx = NULL;
 static nng_cv *nano_wait_cv = NULL;
@@ -27,9 +27,6 @@ void nano_thread_shutdown(void) {
   nano_wait_thr = NULL;
 }
 
-// # nocov start
-// tested interactively
-
 static void thread_finalizer(SEXP xptr) {
 
   if (NANO_PTR(xptr) == NULL) return;
@@ -37,168 +34,6 @@ static void thread_finalizer(SEXP xptr) {
   nng_thread_destroy(xp);
 
 }
-
-static SEXP rnng_thread_create(void (*func)(void *), void *arg) {
-
-  nng_thread *thr;
-  int xc;
-
-  if ((xc = nng_thread_create(&thr, func, arg)))
-    ERROR_OUT(xc);
-
-  SEXP xptr = R_MakeExternalPtr(thr, R_NilValue, R_NilValue);
-  R_RegisterCFinalizerEx(xptr, thread_finalizer, TRUE);
-
-  return xptr;
-
-}
-
-static void nano_printf(const int err, const char *fmt, ...) {
-
-  char buf[NANONEXT_INIT_BUFSIZE];
-  va_list arg_ptr;
-
-  va_start(arg_ptr, fmt);
-  int bytes = vsnprintf(buf, NANONEXT_INIT_BUFSIZE, fmt, arg_ptr);
-  va_end(arg_ptr);
-
-  if (write(err ? STDERR_FILENO : STDOUT_FILENO, buf, (size_t) bytes)) {}
-
-}
-
-static void rnng_messenger_thread(void *args) {
-
-  SEXP plist = (SEXP) args;
-  SEXP socket = CADR(plist);
-  SEXP key = CADDR(plist);
-  nng_socket *sock = (nng_socket *) NANO_PTR(socket);
-  nng_msg *msgp = NULL;
-  unsigned char *buf;
-  size_t sz;
-  time_t now;
-  struct tm *tms;
-  int xc;
-
-  while (1) {
-    xc = nng_recvmsg(*sock, &msgp, 0);
-    time(&now);
-    tms = localtime(&now);
-
-    if (xc) {
-      nano_printf(1,
-                  "| messenger session ended: %d-%02d-%02d %02d:%02d:%02d\n",
-                  tms->tm_year + 1900, tms->tm_mon + 1, tms->tm_mday,
-                  tms->tm_hour, tms->tm_min, tms->tm_sec);
-      break;
-    }
-
-    buf = nng_msg_body(msgp);
-    sz = nng_msg_len(msgp);
-
-    if (!strncmp((char *) buf, ":", 1)) {
-      if (!strncmp((char *) buf, ":c ", 3)) {
-        nano_printf(1,
-                    "| <- peer connected: %d-%02d-%02d %02d:%02d:%02d\n",
-                    tms->tm_year + 1900, tms->tm_mon + 1, tms->tm_mday,
-                    tms->tm_hour, tms->tm_min, tms->tm_sec);
-        nng_msg_free(msgp);
-        nano_buf enc;
-        nano_encode(&enc, key);
-        xc = nng_send(*sock, enc.buf, enc.cur, NNG_FLAG_NONBLOCK);
-        if (xc) {
-          nano_printf(1,
-                      "| messenger session ended: %d-%02d-%02d %02d:%02d:%02d\n",
-                      tms->tm_year + 1900, tms->tm_mon + 1, tms->tm_mday,
-                      tms->tm_hour, tms->tm_min, tms->tm_sec);
-          break;
-        }
-        continue;
-      }
-      if (!strncmp((char *) buf, ":d ", 3)) {
-        nano_printf(1,
-                    "| -> peer disconnected: %d-%02d-%02d %02d:%02d:%02d\n",
-                    tms->tm_year + 1900, tms->tm_mon + 1, tms->tm_mday,
-                    tms->tm_hour, tms->tm_min, tms->tm_sec);
-        nng_msg_free(msgp);
-        continue;
-      }
-    }
-
-    nano_printf(0,
-                "%s\n%*s< %d-%02d-%02d %02d:%02d:%02d\n",
-                (char *) buf, (int) sz, "",
-                tms->tm_year + 1900, tms->tm_mon + 1, tms->tm_mday,
-                tms->tm_hour, tms->tm_min, tms->tm_sec);
-    nng_msg_free(msgp);
-
-  }
-
-}
-
-SEXP rnng_messenger(SEXP url) {
-
-  const char *up = CHAR(STRING_ELT(url, 0));
-  nng_listener *lp = NULL;
-  nng_dialer *dp = NULL;
-  int xc, dialer = 0;
-  SEXP socket, con;
-
-  nng_socket *sock = malloc(sizeof(nng_socket));
-  NANO_ENSURE_ALLOC(sock);
-
-  if ((xc = nng_pair0_open(sock)))
-    goto fail;
-  lp = malloc(sizeof(nng_listener));
-  NANO_ENSURE_ALLOC(lp);
-  if ((xc = nng_listen(*sock, up, lp, 0))) {
-    if (xc != 10 && xc != 15)
-      goto fail;
-    free(lp);
-    lp = NULL;
-    dp = malloc(sizeof(nng_dialer));
-    NANO_ENSURE_ALLOC(dp);
-    if ((xc = nng_dial(*sock, up, dp, 0)))
-      goto fail;
-    dialer = 1;
-  }
-
-  if (dialer) {
-    PROTECT(con = R_MakeExternalPtr(dp, R_NilValue, R_NilValue));
-    R_RegisterCFinalizerEx(con, dialer_finalizer, TRUE);
-  } else {
-    PROTECT(con = R_MakeExternalPtr(lp, R_NilValue, R_NilValue));
-    R_RegisterCFinalizerEx(con, listener_finalizer, TRUE);
-  }
-  PROTECT(socket = R_MakeExternalPtr(sock, nano_SocketSymbol, con));
-  R_RegisterCFinalizerEx(socket, socket_finalizer, TRUE);
-  if (dialer) Rf_setAttrib(socket, nano_DialerSymbol, Rf_ScalarLogical(1));
-
-  UNPROTECT(2);
-  return socket;
-
-  fail:
-  failmem:
-  free(dp);
-  free(lp);
-  if (sock != NULL)
-    nng_close(*sock);
-  free(sock);
-  ERROR_OUT(xc);
-
-}
-
-SEXP rnng_messenger_thread_create(SEXP args) {
-
-  SEXP socket = CADR(args);
-  NANO_SET_PROT(socket, rnng_thread_create(rnng_messenger_thread, args));
-
-  return socket;
-
-}
-
-// # nocov end
-
-// threaded functions ----------------------------------------------------------
 
 // # nocov start
 // tested interactively

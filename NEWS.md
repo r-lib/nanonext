@@ -2,7 +2,8 @@
 
 #### Updates
 
-* Fixes sending and receiving of messages larger than `INT_MAX` bytes over TCP and IPC transports on macOS and Windows.
+* Fixes sending and receiving of messages larger than `INT_MAX` bytes over TCP and IPC transports on macOS and Windows (#266).
+* Removes `messenger()` as a non-core function (#268).
 * Minimum required NNG version raised to 1.11 (bundled: 1.11.1-pre).
 
 # nanonext 1.8.2
