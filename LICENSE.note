@@ -231,3 +231,15 @@ SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+The L'Ecuyer-CMRG RNG stream jumping implementation in src/dispatcher.c uses
+moduli and jump matrix constants from the RngStreams package by Pierre L'Ecuyer,
+University of Montreal (https://github.com/umontreal-simul/RngStreams), licensed
+under the Apache License, Version 2.0 (same terms as reproduced above for
+Mbed TLS). The original copyright notice requests citation of:
+
+  P. L'Ecuyer, "Good Parameter Sets for Combined Multiple Recursive Random
+    Number Generators", Operations Research, 47, 1 (1999), 159-164.
+  P. L'Ecuyer, R. Simard, E. J. Chen, and W. D. Kelton, "An Objected-
+    Oriented Random-Number Package with Many Long Streams and Substreams",
+    Operations Research, 50, 6 (2002), 1073-1075.
