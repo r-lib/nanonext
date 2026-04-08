@@ -35,6 +35,9 @@ static void thread_finalizer(SEXP xptr) {
 
 }
 
+// # nocov start
+// tested interactively
+
 static void thread_aio_finalizer(SEXP xptr) {
 
   if (NANO_PTR(xptr) == NULL) return;
@@ -129,6 +132,8 @@ void single_wait_thread_create(SEXP x) {
   ERROR_OUT(xc);
 
 }
+
+// # nocov end
 
 static void thread_duo_finalizer(SEXP xptr) {
 
