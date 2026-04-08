@@ -4,7 +4,7 @@
 #define NANONEXT_IO
 #include "nanonext.h"
 
-// threads callable ------------------------------------------------------------
+// threads --------------------------------------------------------------------
 
 static nng_mtx *nano_wait_mtx = NULL;
 static nng_cv *nano_wait_cv = NULL;

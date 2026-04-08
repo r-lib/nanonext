@@ -41,9 +41,6 @@ typedef struct nano_handle_s {
 #endif
 
 #ifdef NANONEXT_IO
-#include <time.h>
-#include <unistd.h>
-#include <stdarg.h>
 #include <stdio.h>
 #endif
 
