@@ -73,7 +73,6 @@ typedef struct nano_dispatch_daemon_s {
   nng_ctx ctx;
   int msgid;
   int sync_gen;
-  struct nano_dispatch_daemon_s *next;
 } nano_dispatch_daemon;
 
 typedef struct nano_dispatcher_s {
@@ -83,9 +82,9 @@ typedef struct nano_dispatcher_s {
   nano_monitor *monitor;
   nano_dispatch_task *inq_head;
   nano_dispatch_task *inq_tail;
-  nano_dispatch_daemon **outq_table;
+  nano_dispatch_daemon *daemons;
   int inq_count;
-  int outq_size;
+  int outq_capacity;
   int outq_count;
   int connections;
   int count;
@@ -118,85 +117,45 @@ static void dispatch_dispatch_tasks(nano_dispatcher *d);
 static int dispatch_cancel_inq(nano_dispatcher *d, int id);
 static nano_dispatch_daemon *dispatch_find_idle_daemon(nano_dispatcher *d);
 
-// hash table operations -------------------------------------------------------
-
-static inline int dispatch_hash(int pipe, int size) {
-
-  return ((unsigned int) pipe) & (size - 1);
-
-}
+// daemon array operations -----------------------------------------------------
 
 static nano_dispatch_daemon *dispatch_find_daemon(nano_dispatcher *d, int pipe) {
 
-  int idx = dispatch_hash(pipe, d->outq_size);
-  for (nano_dispatch_daemon *dd = d->outq_table[idx]; dd; dd = dd->next)
-    if (dd->pipe == pipe)
-      return dd;
+  for (int i = 0; i < d->outq_count; i++)
+    if (d->daemons[i].pipe == pipe)
+      return &d->daemons[i];
 
   return NULL;
 
 }
 
-static void dispatch_resize_table(nano_dispatcher *d, int new_size) {
-
-  nano_dispatch_daemon **new_table = calloc(new_size, sizeof(nano_dispatch_daemon *));
-  if (new_table == NULL) return;
-
-  for (int i = 0; i < d->outq_size; i++) {
-    nano_dispatch_daemon *dd = d->outq_table[i];
-    while (dd) {
-      nano_dispatch_daemon *next = dd->next;
-      int idx = dispatch_hash(dd->pipe, new_size);
-      dd->next = new_table[idx];
-      new_table[idx] = dd;
-      dd = next;
-    }
-  }
-
-  free(d->outq_table);
-  d->outq_table = new_table;
-  d->outq_size = new_size;
-
-}
-
 static void dispatch_insert_daemon(nano_dispatcher *d, int pipe) {
 
-  if (d->outq_count * 4 > d->outq_size * 3)
-    dispatch_resize_table(d, d->outq_size * 2);
-
-  nano_dispatch_daemon *dd = calloc(1, sizeof(nano_dispatch_daemon));
-  if (dd == NULL) {
-    REprintf("dispatcher: allocation failed for pipe %d\n", pipe);
-    return;
+  if (d->outq_count >= d->outq_capacity) {
+    int new_cap = d->outq_capacity * 2;
+    nano_dispatch_daemon *new_arr = realloc(d->daemons, new_cap * sizeof(nano_dispatch_daemon));
+    if (new_arr == NULL) {
+      REprintf("dispatcher: allocation failed for pipe %d\n", pipe);
+      return;
+    }
+    d->daemons = new_arr;
+    d->outq_capacity = new_cap;
   }
 
+  nano_dispatch_daemon *dd = &d->daemons[d->outq_count++];
   dd->pipe = pipe;
   dd->msgid = 0;
   dd->sync_gen = d->sync_generation - 1;
-
-  int idx = dispatch_hash(pipe, d->outq_size);
-  dd->next = d->outq_table[idx];
-  d->outq_table[idx] = dd;
-  d->outq_count++;
 
 }
 
 static void dispatch_remove_daemon(nano_dispatcher *d, int pipe) {
 
-  int idx = dispatch_hash(pipe, d->outq_size);
-  nano_dispatch_daemon **pp = &d->outq_table[idx];
-
-  while (*pp) {
-    if ((*pp)->pipe == pipe) {
-      nano_dispatch_daemon *dd = *pp;
-      *pp = dd->next;
-      free(dd);
-      d->outq_count--;
-      if (d->outq_size > DISPATCH_INITIAL_SIZE && d->outq_count * 4 < d->outq_size)
-        dispatch_resize_table(d, d->outq_size / 2);
+  for (int i = 0; i < d->outq_count; i++) {
+    if (d->daemons[i].pipe == pipe) {
+      d->daemons[i] = d->daemons[--d->outq_count];
       return;
     }
-    pp = &(*pp)->next;
   }
 
 }
@@ -521,13 +480,11 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
       dispatch_send_reply(d->host_ctx, (unsigned char *) result, sizeof(result));
     } else {
       int found = 0;
-      for (int i = 0; i < d->outq_size && !found; i++) {
-        for (nano_dispatch_daemon *dd = d->outq_table[i]; dd; dd = dd->next) {
-          if (dd->msgid == id) {
-            dispatch_send_to_daemon(d, dd->pipe, NULL, 0);
-            found = 1;
-            break;
-          }
+      for (int i = 0; i < d->outq_count; i++) {
+        if (d->daemons[i].msgid == id) {
+          dispatch_send_to_daemon(d, d->daemons[i].pipe, NULL, 0);
+          found = 1;
+          break;
         }
       }
       if (!found)
@@ -650,10 +607,9 @@ static int dispatch_cancel_inq(nano_dispatcher *d, int id) {
 
 static nano_dispatch_daemon *dispatch_find_idle_daemon(nano_dispatcher *d) {
 
-  for (int i = 0; i < d->outq_size; i++)
-    for (nano_dispatch_daemon *dd = d->outq_table[i]; dd; dd = dd->next)
-      if (dd->msgid == 0 && !(d->syncing && dd->sync_gen == d->sync_generation))
-        return dd;
+  for (int i = 0; i < d->outq_count; i++)
+    if (d->daemons[i].msgid == 0 && !(d->syncing && d->daemons[i].sync_gen == d->sync_generation))
+      return &d->daemons[i];
 
   return NULL;
 
@@ -764,11 +720,10 @@ static void dispatch_shutdown(nano_dispatcher *d) {
 
   nng_ctx_close(d->host_ctx);
 
-  if (d->outq_table) {
-    for (int i = 0; i < d->outq_size; i++)
-      for (nano_dispatch_daemon *dd = d->outq_table[i]; dd; dd = dd->next)
-        if (dd->msgid != 0)
-          nng_ctx_close(dd->ctx);
+  if (d->daemons) {
+    for (int i = 0; i < d->outq_count; i++)
+      if (d->daemons[i].msgid != 0)
+        nng_ctx_close(d->daemons[i].ctx);
   }
 
   while (d->inq_head) {
@@ -780,17 +735,7 @@ static void dispatch_shutdown(nano_dispatcher *d) {
     free(t);
   }
 
-  if (d->outq_table) {
-    for (int i = 0; i < d->outq_size; i++) {
-      nano_dispatch_daemon *dd = d->outq_table[i];
-      while (dd) {
-        nano_dispatch_daemon *next = dd->next;
-        free(dd);
-        dd = next;
-      }
-    }
-    free(d->outq_table);
-  }
+  free(d->daemons);
 
   nng_aio_free(d->host_aio);
   nng_aio_free(d->daemon_aio);
@@ -838,9 +783,9 @@ SEXP rnng_dispatcher_run(SEXP rep, SEXP poly, SEXP mon, SEXP reset,
   }
   UNPROTECT(1);
 
-  d->outq_size = DISPATCH_INITIAL_SIZE;
-  d->outq_table = calloc(d->outq_size, sizeof(nano_dispatch_daemon *));
-  if (d->outq_table == NULL) { xc = 2; goto fail; }
+  d->outq_capacity = DISPATCH_INITIAL_SIZE;
+  d->daemons = calloc(d->outq_capacity, sizeof(nano_dispatch_daemon));
+  if (d->daemons == NULL) { xc = 2; goto fail; }
 
   if ((xc = nng_aio_alloc(&d->host_aio, host_recv_cb, d)) ||
       (xc = nng_aio_alloc(&d->daemon_aio, daemon_recv_cb, d)) ||
@@ -925,13 +870,11 @@ int dispatch_cancel_direct(void *handle, int id) {
 
   nng_mtx_lock(d->cv->mtx);
 
-  for (int i = 0; i < d->outq_size && !found; i++) {
-    for (nano_dispatch_daemon *dd = d->outq_table[i]; dd; dd = dd->next) {
-      if (dd->msgid == id) {
-        pipe = dd->pipe;
-        found = 1;
-        break;
-      }
+  for (int i = 0; i < d->outq_count; i++) {
+    if (d->daemons[i].msgid == id) {
+      pipe = d->daemons[i].pipe;
+      found = 1;
+      break;
     }
   }
   if (!found)
@@ -1029,10 +972,10 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
   // Prepare init template
   if (dispatch_prepare_init_template(d, stream, serial)) { xc = 2; goto fail; }
 
-  // Allocate hash table
-  d->outq_size = DISPATCH_INITIAL_SIZE;
-  d->outq_table = calloc(d->outq_size, sizeof(nano_dispatch_daemon *));
-  if (d->outq_table == NULL) { xc = 2; goto fail; }
+  // Allocate daemon array
+  d->outq_capacity = DISPATCH_INITIAL_SIZE;
+  d->daemons = calloc(d->outq_capacity, sizeof(nano_dispatch_daemon));
+  if (d->daemons == NULL) { xc = 2; goto fail; }
 
   // Allocate AIOs and open host context
   if ((xc = nng_aio_alloc(&d->host_aio, host_recv_cb, d)) ||
@@ -1075,7 +1018,7 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
   if (d) {
     if (d->daemon_aio) { nng_aio_stop(d->daemon_aio); nng_aio_free(d->daemon_aio); }
     if (d->host_aio) { nng_aio_stop(d->host_aio); nng_aio_free(d->host_aio); }
-    free(d->outq_table);
+    free(d->daemons);
     free(d->init_template);
     free(d->conn_reset_buf);
     free(d->pipe_events);
