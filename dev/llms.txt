@@ -360,8 +360,6 @@ Helper functions
   Clock Utility
 - [`msleep()`](https://nanonext.r-lib.org/dev/reference/msleep.md) :
   Sleep Utility
-- [`messenger()`](https://nanonext.r-lib.org/dev/reference/messenger.md)
-  : Messenger
 - [`reap()`](https://nanonext.r-lib.org/dev/reference/reap.md) : Reap
 - [`read_stdin()`](https://nanonext.r-lib.org/dev/reference/read_stdin.md)
   : Read stdin
