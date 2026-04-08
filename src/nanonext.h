@@ -501,8 +501,6 @@ SEXP rnng_listen(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_listener_close(SEXP);
 SEXP rnng_listener_start(SEXP);
 SEXP rnng_marker_set(SEXP);
-SEXP rnng_messenger(SEXP);
-SEXP rnng_messenger_thread_create(SEXP);
 SEXP rnng_monitor_create(SEXP, SEXP);
 SEXP rnng_monitor_read(SEXP);
 SEXP rnng_ncurl(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
