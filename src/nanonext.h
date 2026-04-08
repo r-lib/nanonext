@@ -6,6 +6,7 @@
 #include <nng/nng.h>
 #include <nng/supplemental/util/platform.h>
 #include <nng/supplemental/tls/tls.h>
+#include "nng_structs.h"
 
 #ifdef NANONEXT_PROTOCOLS
 #include <nng/protocol/bus0/bus.h>
@@ -23,7 +24,6 @@
 
 #ifdef NANONEXT_HTTP
 #include <nng/supplemental/http/http.h>
-#include "nng_structs.h"
 #ifdef _WIN32
 #include <winsock2.h>
 #else
@@ -434,6 +434,7 @@ SEXP mk_error(const int);
 SEXP mk_error_data(const int);
 SEXP nano_raw_char(const unsigned char *, const size_t);
 void nano_serialize(nano_buf *, const SEXP, SEXP, int);
+void nano_msg_set_body(nng_msg *, nano_buf *);
 SEXP nano_unserialize(unsigned char *, const size_t, SEXP);
 SEXP nano_decode(unsigned char *, const size_t, const uint8_t, SEXP);
 SEXP nano_url_with_port(nng_url *, int);

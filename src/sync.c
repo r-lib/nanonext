@@ -497,7 +497,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
     goto fail;
   }
 
-  memcpy(nng_msg_body(msg), buf.buf, buf.cur);
+  nano_msg_set_body(msg, &buf);
 
   nng_aio_set_msg(saio->aio, msg);
   nng_ctx_send(*ctx, saio->aio);

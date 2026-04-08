@@ -347,8 +347,14 @@ static void dispatch_handle_connect(nano_dispatcher *d, int pipe) {
   nano_serialize(&buf, init_data, d->serial, 0);
   UNPROTECT(2);
 
-  if (dispatch_send_to_daemon(d, pipe, buf.buf, buf.cur) == 0)
-    dispatch_insert_daemon(d, pipe);
+  nng_msg *msg;
+  if (nng_msg_alloc(&msg, buf.cur) == 0) {
+    nano_msg_set_body(msg, &buf);
+    if (dispatch_send_msg_to_daemon(d, pipe, msg) != 0)
+      nng_msg_free(msg);
+    else
+      dispatch_insert_daemon(d, pipe);
+  }
   NANO_FREE(buf);
 
 }
