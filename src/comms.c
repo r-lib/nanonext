@@ -369,7 +369,7 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
     }
     nng_msg *msgp = NULL;
 
-    if ((xc = nng_msg_alloc(&msgp, buf.cur)))
+    if ((xc = nng_msg_alloc(&msgp, 0)))
       goto fail;
 
     nano_msg_set_body(msgp, &buf);

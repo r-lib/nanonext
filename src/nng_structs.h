@@ -60,7 +60,7 @@ static inline nano_http_header_s *nano_http_header_next(void *msg,
 }
 
 // Mirror of NNG nng_msg body layout for zero-copy buffer transfer.
-// Used by nano_serialize_msg() to install a realloc'd serialization buffer
+// Used by nano_msg_set_body() to install a realloc'd serialization buffer
 // directly as the message body, avoiding a redundant allocation + memcpy.
 //
 // Assumed NNG internal layout (stable since NNG 1.6, required >= 1.11.0):

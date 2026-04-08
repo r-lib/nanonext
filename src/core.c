@@ -346,7 +346,7 @@ void nano_msg_set_body(nng_msg *msg, nano_buf *buf) {
     m->body.cap = buf->len;
     buf->len = 0;
   } else {
-    memcpy(nng_msg_body(msg), buf->buf, buf->cur);
+    nng_msg_append(msg, buf->buf, buf->cur);
   }
 
 }

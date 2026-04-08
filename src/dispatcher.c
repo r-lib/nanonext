@@ -348,7 +348,7 @@ static void dispatch_handle_connect(nano_dispatcher *d, int pipe) {
   UNPROTECT(2);
 
   nng_msg *msg;
-  if (nng_msg_alloc(&msg, buf.cur) == 0) {
+  if (nng_msg_alloc(&msg, 0) == 0) {
     nano_msg_set_body(msg, &buf);
     if (dispatch_send_msg_to_daemon(d, pipe, msg) != 0)
       nng_msg_free(msg);
