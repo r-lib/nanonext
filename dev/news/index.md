@@ -4,6 +4,9 @@
 
 ##### Updates
 
+- Serialized send operations now transfer the buffer directly into the
+  NNG message, eliminating a redundant copy and halving peak memory
+  usage ([\#219](https://github.com/r-lib/nanonext/issues/219)).
 - Fixes sending and receiving of messages larger than `INT_MAX` bytes
   over TCP and IPC transports on macOS and Windows
   ([\#266](https://github.com/r-lib/nanonext/issues/266)).
