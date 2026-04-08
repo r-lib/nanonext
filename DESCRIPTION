@@ -8,6 +8,8 @@ Authors@R: c(
     person("Posit Software, PBC", role = c("cph", "fnd"),
            comment = c(ROR = "03wc8by49")),
     person("Hibiki AI Limited", role = "cph"),
+    person("Pierre", "L'Ecuyer", role = "cph",
+           comment = "RngStreams library"),
     person("R Consortium", role = "fnd",
            comment = c(ROR = "01z833950"))
   )
