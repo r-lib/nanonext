@@ -656,16 +656,18 @@ static void dispatch_dispatch_tasks(nano_dispatcher *d) {
 
 // main event loop -------------------------------------------------------------
 
-static void dispatch_wait_cv(nano_dispatcher *d, int *host_ready,
-                             int *daemon_ready, int *monitor_count) {
+static int dispatch_wait_cv(nano_dispatcher *d, int *host_ready,
+                            int *daemon_ready, int *monitor_count) {
 
   nng_mtx *mtx = d->cv->mtx;
   nng_cv *cv = d->cv->cv;
   nano_monitor *m = d->monitor;
+  int stop;
 
   nng_mtx_lock(mtx);
   while (d->cv->condition == 0 && d->cv->flag >= 0)
     nng_cv_wait(cv);
+  stop = d->cv->flag < 0;
   d->cv->condition = 0;
   *host_ready = d->host_recv_ready;
   *daemon_ready = d->daemon_recv_ready;
@@ -683,6 +685,8 @@ static void dispatch_wait_cv(nano_dispatcher *d, int *host_ready,
 
   nng_mtx_unlock(mtx);
 
+  return stop;
+
 }
 
 static int dispatch_loop(nano_dispatcher *d) {
@@ -690,9 +694,8 @@ static int dispatch_loop(nano_dispatcher *d) {
   int host_ready, daemon_ready, monitor_events;
 
   while (1) {
-    dispatch_wait_cv(d, &host_ready, &daemon_ready, &monitor_events);
-
-    if (d->cv->flag < 0) return 0;
+    if (dispatch_wait_cv(d, &host_ready, &daemon_ready, &monitor_events))
+      return 0;
 
     if (monitor_events)
       dispatch_process_monitor(d, monitor_events);
