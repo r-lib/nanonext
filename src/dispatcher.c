@@ -192,6 +192,8 @@ static void dispatch_remove_daemon(nano_dispatcher *d, int pipe) {
       *pp = dd->next;
       free(dd);
       d->outq_count--;
+      if (d->outq_size > DISPATCH_INITIAL_SIZE && d->outq_count * 4 < d->outq_size)
+        dispatch_resize_table(d, d->outq_size / 2);
       return;
     }
     pp = &(*pp)->next;
@@ -876,33 +878,37 @@ static void dispatch_thread_func(void *arg) {
   dispatch_loop(d);
 }
 
+static void dispatcher_handle_release(nano_dispatcher_handle *h) {
+
+  if (!h->owns_resources) return;
+
+  nng_mtx_lock(h->priv_cv->mtx);
+  h->priv_cv->flag = -1;
+  nng_cv_wake(h->priv_cv->cv);
+  nng_mtx_unlock(h->priv_cv->mtx);
+
+  nng_thread_destroy(h->thr);
+  dispatch_shutdown(h->d);
+  h->d = NULL;
+
+  nng_close(h->poly_sock);
+  nng_close(h->rep_sock);
+
+  if (h->monitor) {
+    free(h->monitor->ids);
+    free(h->monitor);
+  }
+  free(h->priv_cv);
+  h->owns_resources = 0;
+
+}
+
 static void dispatcher_handle_finalizer(SEXP xptr) {
 
   if (NANO_PTR(xptr) == NULL) return;
-  
+
   nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(xptr);
-
-  if (h->owns_resources) {
-    nng_mtx_lock(h->priv_cv->mtx);
-    h->priv_cv->flag = -1;
-    nng_cv_wake(h->priv_cv->cv);
-    nng_mtx_unlock(h->priv_cv->mtx);
-
-    nng_thread_destroy(h->thr);
-    dispatch_shutdown(h->d);
-    h->d = NULL;
-
-    nng_close(h->poly_sock);
-    nng_close(h->rep_sock);
-
-    if (h->monitor) {
-      free(h->monitor->ids);
-      free(h->monitor);
-    }
-    free(h->priv_cv);
-    h->owns_resources = 0;
-  }
-
+  dispatcher_handle_release(h);
   free(h);
 
 }
@@ -915,13 +921,14 @@ int dispatch_cancel_direct(void *handle, int id) {
     return 0;
   
   int found = 0;
+  int pipe = 0;
 
   nng_mtx_lock(d->cv->mtx);
 
   for (int i = 0; i < d->outq_size && !found; i++) {
     for (nano_dispatch_daemon *dd = d->outq_table[i]; dd; dd = dd->next) {
       if (dd->msgid == id) {
-        dispatch_send_to_daemon(d, dd->pipe, NULL, 0);
+        pipe = dd->pipe;
         found = 1;
         break;
       }
@@ -931,6 +938,9 @@ int dispatch_cancel_direct(void *handle, int id) {
     found = dispatch_cancel_inq(d, id);
 
   nng_mtx_unlock(d->cv->mtx);
+
+  if (pipe)
+    dispatch_send_to_daemon(d, pipe, NULL, 0);
 
   return found;
 
@@ -1089,26 +1099,7 @@ SEXP rnng_dispatcher_stop(SEXP disp) {
 
   nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
 
-  if (h->owns_resources) {
-    nng_mtx_lock(h->priv_cv->mtx);
-    h->priv_cv->flag = -1;
-    nng_cv_wake(h->priv_cv->cv);
-    nng_mtx_unlock(h->priv_cv->mtx);
-
-    nng_thread_destroy(h->thr);
-    dispatch_shutdown(h->d);
-    h->d = NULL;
-
-    nng_close(h->poly_sock);
-    nng_close(h->rep_sock);
-
-    if (h->monitor) {
-      free(h->monitor->ids);
-      free(h->monitor);
-    }
-    free(h->priv_cv);
-    h->owns_resources = 0;
-  }
+  dispatcher_handle_release(h);
 
   NANO_SET_TAG(disp, R_NilValue);
 
