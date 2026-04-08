@@ -31,7 +31,7 @@ The configure script detects or compiles `libmbedtls` (>= 2.5.0) and `libnng` (>
 
 ### Testing
 
-Tests are in `tests/tests.R` using a custom minitest framework (defined at the top of the file). Available assertions: `test_true`, `test_false`, `test_null`, `test_zero`, `test_type`, `test_class`, `test_equal`, `test_identical`, `test_error(expr, containing = "substring")`, `test_print`. Some tests only run when `NOT_CRAN=true` or on specific platforms.
+Tests are in `tests/tests.R` using a custom minitest framework (defined at the top of the file). Available assertions: `test_true`, `test_false`, `test_null`, `test_notnull`, `test_zero`, `test_type`, `test_class`, `test_equal`, `test_identical`, `test_error(expr, containing = "substring")`, `test_print`, `test_library`. Some tests only run when `NOT_CRAN=true` or on specific platforms.
 
 ## Core Architecture
 
@@ -42,7 +42,7 @@ Tests are in `tests/tests.R` using a custom minitest framework (defined at the t
 
 ### C Source Organization
 
-Each `.c` file defines a compilation unit guard macro (e.g., `NANONEXT_PROTOCOLS`, `NANONEXT_HTTP`, `NANONEXT_TLS`) that controls which headers are included via `src/nanonext.h`. The guard is defined in `src/Makevars.in` per-file.
+Each `.c` file defines a compilation unit guard macro (e.g., `NANONEXT_PROTOCOLS`, `NANONEXT_HTTP`, `NANONEXT_TLS`) before `#include "nanonext.h"`, which conditionally includes the relevant NNG headers for that compilation unit.
 
 Key files:
 - `src/nanonext.h` - Main header: type definitions, macros, all C function declarations
@@ -63,6 +63,9 @@ Key files:
 - `R/socket.R` - Socket creation (functional interface)
 - `R/nano.R` - Nano object creation (OO interface)
 - `R/sendrecv.R` - Send/receive operations
+- `R/listdial.R` - Listener/Dialer management (`dial()`, `listen()`)
+- `R/context.R` - Context and RPC operations (`context()`, `request()`, `reply()`)
+- `R/opts.R` - Option getting/setting (`opt()`, `opt<-()`)
 - `R/aio.R` - Async I/O wrappers (`send_aio`, `recv_aio`, `race_aio`, `collect_aio`)
 - `R/server.R` - HTTP/WebSocket server (`http_server`, `handler`, `handler_ws`, `handler_stream`, `format_sse`)
 - `R/dispatcher.R` - C-level dispatcher entry point (internal, for mirai)
@@ -79,7 +82,7 @@ Bundled in source:
 
 ### Thread-to-R Callback Pattern
 
-NNG callbacks run on background threads and cannot call R directly. The package uses the `later` package (lazily loaded) to schedule R callbacks on the main thread. The `eln2` function pointer (set by `nano_load_later()`) is the bridge. This pattern is used by: promise resolution, WebSocket `on_message`/`on_open`/`on_close` callbacks, HTTP streaming `on_request`/`on_close` callbacks.
+NNG callbacks run on background threads and cannot call R directly. The package uses the `later` package (`Suggests`, lazily loaded) to schedule R callbacks on the main thread. The `eln2` function pointer (set by `nano_load_later()`) is the bridge. This pattern is used by: promise resolution (`promises` package integration via `as.promise` methods for `recvAio`/`ncurlAio`), WebSocket `on_message`/`on_open`/`on_close` callbacks, HTTP streaming `on_request`/`on_close` callbacks.
 
 ## Key Implementation Details
 
@@ -105,7 +108,7 @@ S3 classes backed by external pointers tagged with symbols (defined in `src/init
 
 ### Vignettes
 
-Vignettes are precompiled because they require live network connections. Source files are in `dev/vignettes/_*.Rmd`, compiled output goes to `vignettes/*.Rmd`. Run `Rscript dev/vignettes/precompile.R` to regenerate.
+Vignettes are precompiled because they require live network connections. Edit source files in `dev/vignettes/_*.Rmd` (not the compiled output in `vignettes/*.Rmd`), then run `Rscript dev/vignettes/precompile.R` to regenerate.
 
 ## Build System
 
