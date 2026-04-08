@@ -335,6 +335,22 @@ void nano_serialize(nano_buf *buf, SEXP object, SEXP hook, int header) {
 
 }
 
+void nano_msg_set_body(nng_msg *msg, nano_buf *buf) {
+
+  if (buf->len) {
+    nano_nng_msg *m = (nano_nng_msg *) msg;
+    free(m->body.buf);
+    m->body.buf = buf->buf;
+    m->body.ptr = buf->buf;
+    m->body.len = buf->cur;
+    m->body.cap = buf->len;
+    buf->len = 0;
+  } else {
+    memcpy(nng_msg_body(msg), buf->buf, buf->cur);
+  }
+
+}
+
 SEXP nano_unserialize(unsigned char *buf, size_t sz, SEXP hook) {
 
   int match = 0;

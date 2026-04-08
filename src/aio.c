@@ -737,7 +737,7 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
       goto fail;
     }
 
-    memcpy(nng_msg_body(msg), buf.buf, buf.cur);
+    nano_msg_set_body(msg, &buf);
 
     if (pipeid) {
       nng_pipe p;
