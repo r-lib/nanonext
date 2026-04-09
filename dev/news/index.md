@@ -12,6 +12,9 @@
   ([\#266](https://github.com/r-lib/nanonext/issues/266)).
 - Removes `messenger()` as a non-core function
   ([\#268](https://github.com/r-lib/nanonext/issues/268)).
+- Removes the deprecated `n` argument from
+  [`recv()`](https://nanonext.r-lib.org/dev/reference/recv.md) and
+  [`recv_aio()`](https://nanonext.r-lib.org/dev/reference/recv_aio.md).
 - Minimum required NNG version raised to 1.11 (bundled: 1.11.1-pre).
 
 ## nanonext 1.8.2

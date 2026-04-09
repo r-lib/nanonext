@@ -9,8 +9,7 @@ recv(
   con,
   mode = c("serial", "character", "complex", "double", "integer", "logical", "numeric",
     "raw", "string"),
-  block = NULL,
-  n = NULL
+  block = NULL
 )
 ```
 
@@ -39,12 +38,6 @@ recv(
   connection is available), or else an integer value specifying the
   maximum time to block in milliseconds, after which the operation will
   time out.
-
-- n:
-
-  (deprecated) use the `buffer` argument of
-  [`stream()`](https://nanonext.r-lib.org/dev/reference/stream.md)
-  instead.
 
 ## Value
 

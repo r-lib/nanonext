@@ -11,8 +11,7 @@ recv_aio(
   mode = c("serial", "character", "complex", "double", "integer", "logical", "numeric",
     "raw", "string"),
   timeout = NULL,
-  cv = NULL,
-  n = NULL
+  cv = NULL
 )
 ```
 
@@ -42,12 +41,6 @@ recv_aio(
 
   (optional) a 'conditionVariable' to signal when the async receive is
   complete.
-
-- n:
-
-  (deprecated) use the `buffer` argument of
-  [`stream()`](https://nanonext.r-lib.org/dev/reference/stream.md)
-  instead.
 
 ## Value
 
