@@ -96,4 +96,6 @@ Other contributors:
 
 - Hibiki AI Limited \[copyright holder\]
 
+- Pierre L'Ecuyer (RngStreams library) \[copyright holder\]
+
 - R Consortium ([ROR](https://ror.org/01z833950)) \[funder\]

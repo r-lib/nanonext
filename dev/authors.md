@@ -11,6 +11,9 @@
 
 - **Hibiki AI Limited**. Copyright holder.
 
+- **Pierre L'Ecuyer**. Copyright holder.  
+  RngStreams library
+
 - **![R
   Consortium](https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp)**.
   Funder.

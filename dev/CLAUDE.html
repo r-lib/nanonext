@@ -75,7 +75,7 @@
 </div>
 <div class="section level3">
 <h3 id="testing">Testing<a class="anchor" aria-label="anchor" href="#testing"></a></h3>
-<p>Tests are in <code>tests/tests.R</code> using a custom minitest framework (defined at the top of the file). Available assertions: <code>test_true</code>, <code>test_false</code>, <code>test_null</code>, <code>test_zero</code>, <code>test_type</code>, <code>test_class</code>, <code>test_equal</code>, <code>test_identical</code>, <code>test_error(expr, containing = "substring")</code>, <code>test_print</code>. Some tests only run when <code>NOT_CRAN=true</code> or on specific platforms.</p>
+<p>Tests are in <code>tests/tests.R</code> using a custom minitest framework (defined at the top of the file). Available assertions: <code>test_true</code>, <code>test_false</code>, <code>test_null</code>, <code>test_notnull</code>, <code>test_zero</code>, <code>test_type</code>, <code>test_class</code>, <code>test_equal</code>, <code>test_identical</code>, <code>test_error(expr, containing = "substring")</code>, <code>test_print</code>, <code>test_library</code>. Some tests only run when <code>NOT_CRAN=true</code> or on specific platforms.</p>
 </div>
 </div>
 <div class="section level2">
@@ -90,7 +90,7 @@
 </ol></div>
 <div class="section level3">
 <h3 id="c-source-organization">C Source Organization<a class="anchor" aria-label="anchor" href="#c-source-organization"></a></h3>
-<p>Each <code>.c</code> file defines a compilation unit guard macro (e.g., <code>NANONEXT_PROTOCOLS</code>, <code>NANONEXT_HTTP</code>, <code>NANONEXT_TLS</code>) that controls which headers are included via <code>src/nanonext.h</code>. The guard is defined in <code>src/Makevars.in</code> per-file.</p>
+<p>Each <code>.c</code> file defines a compilation unit guard macro (e.g., <code>NANONEXT_PROTOCOLS</code>, <code>NANONEXT_HTTP</code>, <code>NANONEXT_TLS</code>) before <code>#include "nanonext.h"</code>, which conditionally includes the relevant NNG headers for that compilation unit.</p>
 <p>Key files: - <code>src/nanonext.h</code> - Main header: type definitions, macros, all C function declarations - <code>src/core.c</code> - Serialization/unserialization, refhook system - <code>src/proto.c</code> - Protocol implementations (socket opening, option handling) - <code>src/aio.c</code> - Async I/O operations, callbacks, <code><a href="reference/race_aio.html">race_aio()</a></code> - <code>src/comms.c</code> - Send/receive operations and data marshaling - <code>src/sync.c</code> - Synchronization primitives (condition variables, mutexes) - <code>src/thread.c</code> - Thread management, interruptible waits - <code>src/ncurl.c</code> - HTTP client (<code>ncurl</code>, <code>ncurl_aio</code>, <code>ncurl_session</code>) - <code>src/server.c</code> - HTTP/WebSocket server, streaming handlers - <code>src/dispatcher.c</code> - C-level task dispatcher (used by mirai package) - <code>src/tls.c</code> - TLS configuration and certificate generation - <code>src/init.c</code> - Package initialization, <code>.Call</code> registration, symbol definitions</p>
 </div>
 <div class="section level3">
@@ -101,6 +101,12 @@
 <code>R/nano.R</code> - Nano object creation (OO interface)</li>
 <li>
 <code>R/sendrecv.R</code> - Send/receive operations</li>
+<li>
+<code>R/listdial.R</code> - Listener/Dialer management (<code><a href="reference/dial.html">dial()</a></code>, <code><a href="reference/listen.html">listen()</a></code>)</li>
+<li>
+<code>R/context.R</code> - Context and RPC operations (<code><a href="reference/context.html">context()</a></code>, <code><a href="reference/request.html">request()</a></code>, <code><a href="reference/reply.html">reply()</a></code>)</li>
+<li>
+<code>R/opts.R</code> - Option getting/setting (<code><a href="reference/opt.html">opt()</a></code>, <code>opt&lt;-()</code>)</li>
 <li>
 <code>R/aio.R</code> - Async I/O wrappers (<code>send_aio</code>, <code>recv_aio</code>, <code>race_aio</code>, <code>collect_aio</code>)</li>
 <li>
@@ -122,7 +128,7 @@
 </div>
 <div class="section level3">
 <h3 id="thread-to-r-callback-pattern">Thread-to-R Callback Pattern<a class="anchor" aria-label="anchor" href="#thread-to-r-callback-pattern"></a></h3>
-<p>NNG callbacks run on background threads and cannot call R directly. The package uses the <code>later</code> package (lazily loaded) to schedule R callbacks on the main thread. The <code>eln2</code> function pointer (set by <code>nano_load_later()</code>) is the bridge. This pattern is used by: promise resolution, WebSocket <code>on_message</code>/<code>on_open</code>/<code>on_close</code> callbacks, HTTP streaming <code>on_request</code>/<code>on_close</code> callbacks.</p>
+<p>NNG callbacks run on background threads and cannot call R directly. The package uses the <code>later</code> package (<code>Suggests</code>, lazily loaded) to schedule R callbacks on the main thread. The <code>eln2</code> function pointer (set by <code>nano_load_later()</code>) is the bridge. This pattern is used by: promise resolution (<code>promises</code> package integration via <code>as.promise</code> methods for <code>recvAio</code>/<code>ncurlAio</code>), WebSocket <code>on_message</code>/<code>on_open</code>/<code>on_close</code> callbacks, HTTP streaming <code>on_request</code>/<code>on_close</code> callbacks.</p>
 </div>
 </div>
 <div class="section level2">
@@ -153,7 +159,7 @@
 </div>
 <div class="section level3">
 <h3 id="vignettes">Vignettes<a class="anchor" aria-label="anchor" href="#vignettes"></a></h3>
-<p>Vignettes are precompiled because they require live network connections. Source files are in <code>dev/vignettes/_*.Rmd</code>, compiled output goes to <code>vignettes/*.Rmd</code>. Run <code>Rscript dev/vignettes/precompile.R</code> to regenerate.</p>
+<p>Vignettes are precompiled because they require live network connections. Edit source files in <code>dev/vignettes/_*.Rmd</code> (not the compiled output in <code>vignettes/*.Rmd</code>), then run <code>Rscript dev/vignettes/precompile.R</code> to regenerate.</p>
 </div>
 </div>
 <div class="section level2">

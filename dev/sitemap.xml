@@ -23,7 +23,12 @@
 <url><loc>https://nanonext.r-lib.org/dev/reference/dot-advance.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/dev/reference/dot-context.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/dev/reference/dot-dispatcher.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/dev/reference/dot-dispatcher_info.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/dev/reference/dot-dispatcher_start.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/dev/reference/dot-dispatcher_stop.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/dev/reference/dot-dispatcher_wait.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/dev/reference/dot-keep.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/dev/reference/dot-limit_gate.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/dev/reference/dot-mark.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/dev/reference/dot-unresolved.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/dev/reference/format_sse.html</loc></url>
