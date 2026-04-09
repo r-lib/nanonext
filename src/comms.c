@@ -465,7 +465,7 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
 
 }
 
-SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
+SEXP rnng_recv(SEXP con, SEXP mode, SEXP block) {
 
   const int flags = block == R_NilValue ? NNG_DURATION_DEFAULT : TYPEOF(block) == LGLSXP ? 0 : nano_integer(block);
   int xc;
@@ -570,13 +570,7 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block, SEXP bytes) {
       res = nano_decode(buf, sz, mod, NANO_PROT(con));
       nng_msg_free(msgp);
     } else {
-      size_t xlen;
-      if (bytes != R_NilValue) {
-        xlen = (size_t) nano_integer(bytes);
-        Rf_warning("argument 'n' is deprecated; set 'buffer' in stream() instead");
-      } else {
-        xlen = nst->bufsize;
-      }
+      size_t xlen = nst->bufsize;
       buf = malloc(xlen);
       NANO_ENSURE_ALLOC(buf);
       nng_iov iov = {

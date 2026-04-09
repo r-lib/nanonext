@@ -8,8 +8,7 @@ recv(
   con,
   mode = c("serial", "character", "complex", "double", "integer", "logical", "numeric",
     "raw", "string"),
-  block = NULL,
-  n = NULL
+  block = NULL
 )
 }
 \arguments{
@@ -28,8 +27,6 @@ section 'Blocking' below). Specify logical \code{TRUE} to block until successful
 or \code{FALSE} to return immediately even if unsuccessful (e.g. if no
 connection is available), or else an integer value specifying the maximum
 time to block in milliseconds, after which the operation will time out.}
-
-\item{n}{(deprecated) use the \code{buffer} argument of \code{\link[=stream]{stream()}} instead.}
 }
 \value{
 The received data in the \code{mode} specified.

@@ -85,8 +85,6 @@ send <- function(con, data, mode = c("serial", "raw"), block = NULL, pipe = 0L)
 #'   the other modes, received bytes are converted into the respective mode.
 #'   `"string"` is a faster option for length one character vectors. For
 #'   Streams, `"serial"` will default to `"character"`.
-#' @param n (deprecated) use the `buffer` argument of [stream()] instead.
-#'
 #' @return The received data in the `mode` specified.
 #'
 #' @section Errors:
@@ -151,7 +149,6 @@ send <- function(con, data, mode = c("serial", "raw"), block = NULL, pipe = 0L)
 recv <- function(
   con,
   mode = c("serial", "character", "complex", "double", "integer", "logical", "numeric", "raw", "string"),
-  block = NULL,
-  n = NULL
+  block = NULL
 )
-  .Call(rnng_recv, con, mode, block, n)
+  .Call(rnng_recv, con, mode, block)

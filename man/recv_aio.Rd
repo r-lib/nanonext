@@ -9,8 +9,7 @@ recv_aio(
   mode = c("serial", "character", "complex", "double", "integer", "logical", "numeric",
     "raw", "string"),
   timeout = NULL,
-  cv = NULL,
-  n = NULL
+  cv = NULL
 )
 }
 \arguments{
@@ -29,8 +28,6 @@ applies a socket-specific default, usually the same as no timeout.}
 
 \item{cv}{(optional) a 'conditionVariable' to signal when the async receive
 is complete.}
-
-\item{n}{(deprecated) use the \code{buffer} argument of \code{\link[=stream]{stream()}} instead.}
 }
 \value{
 A 'recvAio' (object of class 'recvAio') (invisibly).
