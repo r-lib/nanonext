@@ -778,12 +778,16 @@ SEXP rnng_dispatcher_run(SEXP rep, SEXP poly, SEXP mon, SEXP reset,
   if (NANO_PTR_CHECK(mon, nano_MonitorSymbol))
     Rf_error("`mon` is not a valid Monitor");
 
-  SEXP stream;
-  PROTECT(stream = Rf_eval(Rf_lang2(next_stream_fun, envir), R_GlobalEnv));
+  SEXP call, stream;
+  PROTECT(call = Rf_lang2(next_stream_fun, envir));
+  PROTECT(stream = Rf_eval(call, R_GlobalEnv));
 
-  int xc;
+  int xc = 2;
   nano_dispatcher *d = calloc(1, sizeof(nano_dispatcher));
-  if (d == NULL) { UNPROTECT(1); xc = 2; goto fail; }
+  if (d == NULL) {
+    UNPROTECT(2);
+    goto fail;
+  }
 
   d->rep_sock = (nng_socket *) NANO_PTR(rep);
   d->poly_sock = (nng_socket *) NANO_PTR(poly);
@@ -792,20 +796,23 @@ SEXP rnng_dispatcher_run(SEXP rep, SEXP poly, SEXP mon, SEXP reset,
 
   size_t reset_len = XLENGTH(reset);
   d->conn_reset_buf = malloc(reset_len);
-  if (d->conn_reset_buf == NULL) { UNPROTECT(1); xc = 2; goto fail; }
+  if (d->conn_reset_buf == NULL) {
+    UNPROTECT(2);
+    goto fail; 
+  }
   memcpy(d->conn_reset_buf, DATAPTR_RO(reset), reset_len);
   d->conn_reset_len = reset_len;
 
   if (dispatch_prepare_init_template(d, stream, serial)) {
-    UNPROTECT(1);
-    xc = 2;
+    UNPROTECT(2);
     goto fail;
   }
-  UNPROTECT(1);
+  UNPROTECT(2);
 
   d->outq_capacity = DISPATCH_INITIAL_SIZE;
   d->daemons = calloc(d->outq_capacity, sizeof(nano_dispatch_daemon));
-  if (d->daemons == NULL) { xc = 2; goto fail; }
+  if (d->daemons == NULL)
+    goto fail;
 
   if ((xc = nng_aio_alloc(&d->host_aio, host_recv_cb, d)) ||
       (xc = nng_aio_alloc(&d->daemon_aio, daemon_recv_cb, d)) ||
