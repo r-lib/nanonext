@@ -398,13 +398,24 @@ static void dispatch_handle_connect(nano_dispatcher *d, int pipe) {
   for (int i = 0; i < 6; i++)
     memcpy(buf + d->init_seed_offset + i * 4, &d->rng_seed[i], sizeof(int));
 
-  if (dispatch_send_to_daemon(d, pipe, buf, d->init_template_len) == 0) {
-    nng_mtx_lock(d->cv->mtx);
-    dispatch_insert_daemon(d, pipe);
-    d->connections++;
-    nng_mtx_unlock(d->cv->mtx);
+  nano_buf nb;
+  nb.buf = buf;
+  nb.cur = d->init_template_len;
+  nb.len = d->init_template_len;
+
+  nng_msg *msg;
+  if (nng_msg_alloc(&msg, 0) == 0) {
+    nano_msg_set_body(msg, &nb);
+    if (dispatch_send_msg_to_daemon(d, pipe, msg) != 0)
+      nng_msg_free(msg);
+    else {
+      nng_mtx_lock(d->cv->mtx);
+      dispatch_insert_daemon(d, pipe);
+      d->connections++;
+      nng_mtx_unlock(d->cv->mtx);
+    }
   }
-  free(buf);
+  NANO_FREE(nb);
 
 }
 

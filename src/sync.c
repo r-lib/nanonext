@@ -486,13 +486,13 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   saio->disp = TYPEOF(msgid) == EXTPTRSXP ? NANO_PTR(msgid) : NULL;
   saio->id = msgid != R_NilValue ? id : mod != 1 ? -id : 0;
 
-  if ((xc = nng_msg_alloc(&msg, buf.cur)) ||
+  if ((xc = nng_msg_alloc(&msg, 0)) ||
       (xc = nng_aio_alloc(&saio->aio, sendaio_complete, saio))) {
     nng_msg_free(msg);
     goto fail;
   }
 
-  memcpy(nng_msg_body(msg), buf.buf, buf.cur);
+  nano_msg_set_body(msg, &buf);
 
   nng_aio_set_msg(saio->aio, msg);
   nng_ctx_send(*ctx, saio->aio);
