@@ -498,7 +498,29 @@ SEXP rnng_request_stop(SEXP x) {
     nng_aio_stop(aiop->aio);
     nano_saio *saio = (nano_saio *) aiop->cb;
     if (saio->disp == NULL) goto fail;
-    res = dispatch_cancel_direct(saio->disp, saio->id);
+    if (saio->type) {
+      nng_msg *msgp = NULL;
+      nng_ctx *ctx = (nng_ctx *) saio->disp;
+      const nng_duration dur = NANONEXT_WAIT_DUR;
+      if (nng_ctx_set_ms(*ctx, "send-timeout", dur) ||
+          nng_ctx_set_ms(*ctx, "recv-timeout", dur) ||
+          nng_msg_alloc(&msgp, 0) ||
+          nng_msg_append_u32(msgp, 0) ||
+          nng_msg_append(msgp, &saio->id, sizeof(int)) ||
+          nng_ctx_sendmsg(*ctx, msgp, 0)) {
+        nng_msg_free(msgp);
+        goto fail;
+      }
+      msgp = NULL;
+      if (nng_ctx_recvmsg(*ctx, &msgp, 0)) {
+        nng_msg_free(msgp);
+        goto fail;
+      }
+      memcpy(&res, nng_msg_body(msgp), sizeof(int));
+      nng_msg_free(msgp);
+    } else {
+      res = dispatch_cancel_direct(saio->disp, saio->id);
+    }
 
     fail:
     UNPROTECT(1);

@@ -201,6 +201,7 @@ typedef struct nano_saio_s {
   void *disp;
   void *cb;
   int id;
+  int type;
 } nano_saio;
 
 typedef struct nano_cv_s {
