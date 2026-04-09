@@ -8,8 +8,16 @@ Authors@R: c(
     person("Posit Software, PBC", role = c("cph", "fnd"),
            comment = c(ROR = "03wc8by49")),
     person("Hibiki AI Limited", role = "cph"),
+    person("Staysail Systems, Inc.", role = "cph",
+           comment = "NNG library"),
+    person("Capitar IT Group BV", role = "cph",
+           comment = "NNG library"),
+    person("The Mbed TLS Contributors", role = "cph",
+           comment = "Mbed TLS library"),
     person("Pierre", "L'Ecuyer", role = "cph",
            comment = "RngStreams library"),
+    person("sakura authors", role = "cph",
+           comment = "Serialization hooks"),
     person("R Consortium", role = "fnd",
            comment = c(ROR = "01z833950"))
   )
