@@ -1376,11 +1376,11 @@ if (NOT_CRAN) {
     disp_poly_url <- sprintf("ipc://%s", tempfile())
   }
   disp_inproc_url <- sprintf("inproc://disp-test-%d", Sys.getpid())
-  cvar <- cv()
-  client <- socket("req", listen = disp_inproc_url)
   RNGkind("L'Ecuyer-CMRG")
   .advance()
   stream <- .Random.seed
+  cvar <- cv()
+  client <- socket("req", listen = disp_inproc_url)
   disp <- .dispatcher_start(disp_poly_url, disp_inproc_url, NULL, NULL, stream, NULL, cvar)
   test_type("externalptr", disp)
   daemon <- socket("poly", dial = disp_poly_url)
@@ -1419,23 +1419,13 @@ if (NOT_CRAN) {
   test_true(stop_request(aio2))
   close(ctx2)
   test_null(.dispatcher_stop(disp))
-  info3 <- .dispatcher_info(disp)
-  test_equal(length(info3), 5L)
+  test_equal(length(.dispatcher_info(disp)), 5L)
   test_null(.dispatcher_stop(disp))
   close(daemon)
   close(client)
-}
-
-if (NOT_CRAN) {
-  if (.Platform$OS.type == "windows") {
-    disp_poly_url2 <- sprintf("ipc://nanonext-dpoly2-%d", Sys.getpid())
-  } else {
-    disp_poly_url2 <- sprintf("ipc://%s", tempfile())
-  }
-  disp_inproc_url2 <- sprintf("inproc://disp-test2-%d", Sys.getpid())
   cvar2 <- cv()
-  client2 <- socket("req", listen = disp_inproc_url2)
-  disp2 <- .dispatcher_start(disp_poly_url2, disp_inproc_url2, NULL, NULL, stream, 2L, cvar2)
+  client2 <- socket("req", listen = disp_inproc_url)
+  disp2 <- .dispatcher_start(disp_poly_url, disp_inproc_url, NULL, NULL, stream, 2L, cvar2)
   test_type("externalptr", disp2)
   test_true(.limit_gate(disp2))
   test_null(.dispatcher_stop(disp2))
@@ -1454,8 +1444,7 @@ if (NOT_CRAN) {
   .dispatcher_wait(disp3, 1L)
   init_data3 <- recv(daemon3, mode = "raw", block = 2000)
   test_type("raw", init_data3)
-  info3 <- .dispatcher_info(disp3)
-  test_true(info3[1L] >= 1L)
+  test_true(.dispatcher_info(disp3)[1L] >= 1L)
   test_null(.dispatcher_stop(disp3))
   close(daemon3)
   close(client3)
