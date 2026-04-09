@@ -65,6 +65,7 @@ typedef struct nano_dispatch_task_s {
   nng_ctx ctx;
   nng_msg *msg;
   int msgid;
+  int is_sync;
   struct nano_dispatch_task_s *next;
 } nano_dispatch_task;
 
@@ -163,7 +164,7 @@ static void dispatch_remove_daemon(nano_dispatcher *d, int pipe) {
 // queue operations ------------------------------------------------------------
 
 static void dispatch_enqueue(nano_dispatcher *d, nng_ctx ctx,
-                             nng_msg *msg, int msgid) {
+                             nng_msg *msg, int msgid, int is_sync) {
 
   nano_dispatch_task *t = malloc(sizeof(nano_dispatch_task));
   if (t == NULL) {
@@ -174,6 +175,7 @@ static void dispatch_enqueue(nano_dispatcher *d, nng_ctx ctx,
   t->ctx = ctx;
   t->msg = msg;
   t->msgid = msgid;
+  t->is_sync = is_sync;
   t->next = NULL;
 
   if (d->inq_tail)
@@ -500,7 +502,7 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
         d->sync_generation++;
       }
     } else {
-      dispatch_enqueue(d, d->host_ctx, msg, msgid);
+      dispatch_enqueue(d, d->host_ctx, msg, msgid, is_sync);
       msg = NULL;
     }
     nng_mtx_unlock(d->cv->mtx);
@@ -619,9 +621,6 @@ static void dispatch_dispatch_tasks(nano_dispatcher *d) {
     while (d->inq_head && nsends < 32) {
       nano_dispatch_task *t = d->inq_head;
 
-      int dummy, is_sync;
-      dispatch_read_msg_info(nng_msg_body(t->msg), nng_msg_len(t->msg), &dummy, &is_sync);
-
       nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
       if (dd == NULL)
         break;
@@ -635,7 +634,7 @@ static void dispatch_dispatch_tasks(nano_dispatcher *d) {
       dd->msgid = t->msgid;
       d->executing++;
 
-      if (is_sync) {
+      if (t->is_sync) {
         dd->sync_gen = d->sync_generation;
         d->syncing = 1;
       } else if (d->syncing) {
