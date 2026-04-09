@@ -1364,6 +1364,71 @@ if (later && NOT_CRAN) {
   test_zero(stream_srv$close())
 }
 
+test_null(.dispatcher_stop("invalid"))
+test_null(.dispatcher_wait("invalid", 1L))
+test_equal(length(.dispatcher_info("invalid")), 5L)
+test_null(.limit_gate("invalid"))
+
+if (NOT_CRAN) {
+  if (.Platform$OS.type == "windows") {
+    disp_poly_url <- sprintf("ipc://nanonext-dpoly-%d", Sys.getpid())
+  } else {
+    disp_poly_url <- sprintf("ipc://%s", tempfile())
+  }
+  disp_inproc_url <- sprintf("inproc://disp-test-%d", Sys.getpid())
+  cvar <- cv()
+  client <- socket("req", listen = disp_inproc_url)
+  RNGkind("L'Ecuyer-CMRG")
+  .advance()
+  stream <- .Random.seed
+  disp <- .dispatcher_start(disp_poly_url, disp_inproc_url, NULL, NULL, stream, NULL, cvar)
+  test_type("externalptr", disp)
+  daemon <- socket("poly", dial = disp_poly_url)
+  .dispatcher_wait(disp, 1L)
+  init_data <- recv(daemon, mode = "raw", block = 2000)
+  test_type("raw", init_data)
+  info <- .dispatcher_info(disp)
+  test_equal(length(info), 5L)
+  test_true(info[1L] >= 1L)
+  test_true(info[2L] >= 1L)
+  send(client, raw(8), mode = "raw", block = 2000)
+  status <- recv(client, mode = "integer", block = 2000)
+  test_equal(length(status), 5L)
+  task_msg <- raw(13)
+  task_msg[1] <- as.raw(0x07)
+  task_msg[5] <- as.raw(1L)
+  send(client, task_msg, mode = "raw", block = 2000)
+  task_recv <- recv(daemon, mode = "raw", block = 2000)
+  test_type("raw", task_recv)
+  send(daemon, raw(13), mode = "raw", block = 2000)
+  result <- recv(client, mode = "raw", block = 2000)
+  test_type("raw", result)
+  info2 <- .dispatcher_info(disp)
+  test_true(info2[5L] >= 1L)
+  test_null(.dispatcher_stop(disp))
+  info3 <- .dispatcher_info(disp)
+  test_equal(length(info3), 5L)
+  test_null(.dispatcher_stop(disp))
+  close(daemon)
+  close(client)
+}
+
+if (NOT_CRAN) {
+  if (.Platform$OS.type == "windows") {
+    disp_poly_url2 <- sprintf("ipc://nanonext-dpoly2-%d", Sys.getpid())
+  } else {
+    disp_poly_url2 <- sprintf("ipc://%s", tempfile())
+  }
+  disp_inproc_url2 <- sprintf("inproc://disp-test2-%d", Sys.getpid())
+  cvar2 <- cv()
+  client2 <- socket("req", listen = disp_inproc_url2)
+  disp2 <- .dispatcher_start(disp_poly_url2, disp_inproc_url2, NULL, NULL, stream, 2L, cvar2)
+  test_type("externalptr", disp2)
+  test_true(.limit_gate(disp2))
+  test_null(.dispatcher_stop(disp2))
+  close(client2)
+}
+
 if (!interactive() && NOT_CRAN) {
   test_class("conditionVariable", cv <- cv())
   f <- file("stdin", open = "r")
