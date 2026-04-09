@@ -11,8 +11,20 @@
 
 - **Hibiki AI Limited**. Copyright holder.
 
+- **Staysail Systems, Inc.**. Copyright holder.  
+  NNG library
+
+- **Capitar IT Group BV**. Copyright holder.  
+  NNG library
+
+- **The Mbed TLS Contributors**. Copyright holder.  
+  Mbed TLS library
+
 - **Pierre L'Ecuyer**. Copyright holder.  
   RngStreams library
+
+- **sakura authors**. Copyright holder.  
+  Serialization hooks
 
 - **![R
   Consortium](https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp)**.

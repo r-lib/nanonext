@@ -96,6 +96,14 @@ Other contributors:
 
 - Hibiki AI Limited \[copyright holder\]
 
+- Staysail Systems, Inc. (NNG library) \[copyright holder\]
+
+- Capitar IT Group BV (NNG library) \[copyright holder\]
+
+- The Mbed TLS Contributors (Mbed TLS library) \[copyright holder\]
+
 - Pierre L'Ecuyer (RngStreams library) \[copyright holder\]
+
+- sakura authors (Serialization hooks) \[copyright holder\]
 
 - R Consortium ([ROR](https://ror.org/01z833950)) \[funder\]
