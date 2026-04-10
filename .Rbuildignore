@@ -14,6 +14,6 @@
 ^[\.]?air\.toml$
 ^cran-comments\.md$
 ^\.claude$
-^AGENTS\.md$
+^CLAUDE\.md$
 ^nano-build$
 ^nano-install$
