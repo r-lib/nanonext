@@ -923,6 +923,12 @@ if (later && NOT_CRAN) {
         received_headers <<- req$headers
         list(status = 200L, body = paste(names(req$headers), collapse = ","))
       }),
+      handler("/echo-body", function(req) {
+        list(status = 200L, body = req$body)
+      }, method = "POST"),
+      handler("/patch", function(req) {
+        list(status = 200L, body = paste0("patched:", rawToChar(req$body)))
+      }, method = "PATCH"),
       handler("/error", function(req) stop(simpleError(""))),
       handler("/api", function(req) list(status = 200L, body = paste("path:", req$uri)), prefix = TRUE),
       handler("/any", function(req) list(status = 200L, body = req$method), method = "*"),
@@ -992,12 +998,36 @@ if (later && NOT_CRAN) {
   aio <- ncurl_aio(paste0(base_url, "/no-body"), timeout = 2000)
   while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 204L)
+  aio <- ncurl_aio(paste0(base_url, "/echo-body"), method = "POST",
+                   headers = c("Content-Type" = "text/plain"),
+                   data = "post data", timeout = 2000)
+  while (unresolved(aio)) later::run_now(1)
+  test_equal(aio$status, 200L)
+  aio <- ncurl_aio(paste0(base_url, "/patch"), method = "PATCH",
+                   headers = c("Content-Type" = "text/plain"),
+                   data = "hello", timeout = 2000)
+  while (unresolved(aio)) later::run_now(1)
+  test_equal(aio$status, 200L)
   aio <- ncurl_aio(paste0(base_url, "/nonexistent"), timeout = 2000)
   while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 404L)
   aio <- ncurl_aio(paste0(base_url, "/put"), timeout = 2000)
   while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 405L)
+  test_zero(srv$close())
+}
+
+if (later && NOT_CRAN) {
+  test_class("nanoServer", srv <- http_server(
+    url = "http://127.0.0.1:0",
+    handlers = handler("/single", function(req) list(status = 200L, body = "single handler"))
+  ))
+  test_zero(srv$start())
+  Sys.sleep(0.1)
+  aio <- ncurl_aio(paste0(srv$url, "/single"), timeout = 2000)
+  while (unresolved(aio)) later::run_now(1)
+  test_equal(aio$status, 200L)
+  test_equal(aio$data, "single handler")
   test_zero(srv$close())
 }
 
@@ -1051,6 +1081,9 @@ if (later && NOT_CRAN) {
     while (length(msgs) < 2L) later::run_now(1)
     reply <- recv(ws, block = 500, mode = "character")
     test_equal(reply, "hello")
+    test_zero(ws_conn$send(charToRaw("raw-from-server")))
+    raw_reply <- recv(ws, block = 500, mode = "raw")
+    test_type("raw", raw_reply)
     test_error(ws_conn$send(123L), "`data` must be raw or character")
     test_error(ws_conn$send(list(a = 1)), "`data` must be raw or character")
     test_zero(close(ws))
@@ -1309,6 +1342,15 @@ if (later && NOT_CRAN) {
           conn$send(paste0("method:", req$method))
           conn$close()
         }
+      ),
+      handler_stream(
+        "/prefix-stream",
+        on_request = function(conn, req) {
+          conn$set_header("Content-Type", "text/plain")
+          conn$send(paste0("prefix:", req$uri))
+          conn$close()
+        },
+        prefix = TRUE
       )
     )
   ))
@@ -1336,6 +1378,7 @@ if (later && NOT_CRAN) {
     test_error(stream_conn$set_header("X-Test", "value"), "after headers have been sent")
 
     test_zero(stream_conn$send(format_sse(data = "update")))
+    test_zero(stream_conn$send(charToRaw("raw-chunk")))
 
     test_error(stream_conn$send(123L), "`data` must be raw or character")
     test_error(stream_conn$send(list()), "`data` must be raw or character")
@@ -1360,6 +1403,10 @@ if (later && NOT_CRAN) {
 
   test_true("GET" %in% received_methods)
   test_true("POST" %in% received_methods)
+
+  prefix_aio <- ncurl_aio(paste0(base_url, "/prefix-stream/sub/path"), timeout = 2000)
+  while (unresolved(prefix_aio)) later::run_now(1)
+  test_equal(call_aio(prefix_aio)$status, 200L)
 
   test_zero(stream_srv$close())
 }
