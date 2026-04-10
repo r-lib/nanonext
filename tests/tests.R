@@ -1415,6 +1415,7 @@ if (NOT_CRAN) {
   close(ctx)
   ctx2 <- context(client)
   aio2 <- request(ctx2, data = "queued_task", id = disp)
+  while (.dispatcher_info(disp)[3L] == 0L) msleep(1)
   send(daemon, raw(13), mode = "raw", block = 2000)
   test_true(stop_request(aio2))
   close(ctx2)
