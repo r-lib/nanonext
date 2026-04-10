@@ -150,17 +150,6 @@ static void dispatch_insert_daemon(nano_dispatcher *d, int pipe) {
 
 }
 
-static void dispatch_remove_daemon(nano_dispatcher *d, int pipe) {
-
-  for (int i = 0; i < d->outq_count; i++) {
-    if (d->daemons[i].pipe == pipe) {
-      d->daemons[i] = d->daemons[--d->outq_count];
-      return;
-    }
-  }
-
-}
-
 // queue operations ------------------------------------------------------------
 
 static void dispatch_enqueue(nano_dispatcher *d, nng_ctx ctx,
@@ -399,8 +388,7 @@ static void dispatch_handle_connect(nano_dispatcher *d, int pipe) {
   unsigned char *buf = nng_msg_body(msg);
   memcpy(buf, d->init_template, d->init_template_len);
 
-  for (int i = 0; i < 6; i++)
-    memcpy(buf + d->init_seed_offset + i * 4, &d->rng_seed[i], sizeof(int));
+  memcpy(buf + d->init_seed_offset, d->rng_seed, sizeof(d->rng_seed));
 
   if (dispatch_send_msg_to_daemon(d, pipe, msg) != 0)
     nng_msg_free(msg);
@@ -433,7 +421,7 @@ static void dispatch_handle_disconnect(nano_dispatcher *d, int pipe) {
     ctx = dd->ctx;
   }
 
-  dispatch_remove_daemon(d, pipe);
+  *dd = d->daemons[--d->outq_count];
   nng_mtx_unlock(d->cv->mtx);
 
   if (busy) {
@@ -531,14 +519,13 @@ static void dispatch_handle_daemon_recv(nano_dispatcher *d) {
   nng_msg *msg = nng_aio_get_msg(d->daemon_aio);
   nng_pipe pipe = nng_msg_get_pipe(msg);
   int pipe_id = (int) pipe.id;
-  int is_marker = 0;
+  int dummy, is_marker;
+  dispatch_read_msg_info(nng_msg_body(msg), nng_msg_len(msg), &dummy, &is_marker);
 
   nng_mtx_lock(d->cv->mtx);
   nano_dispatch_daemon *dd = dispatch_find_daemon(d, pipe_id);
   if (dd != NULL && dd->msgid != 0) {
     d->executing--;
-    int dummy;
-    dispatch_read_msg_info(nng_msg_body(msg), nng_msg_len(msg), &dummy, &is_marker);
     nng_ctx ctx = dd->ctx;
 
     if (d->limit > 0) {
@@ -547,7 +534,7 @@ static void dispatch_handle_daemon_recv(nano_dispatcher *d) {
     }
 
     if (is_marker) {
-      dispatch_remove_daemon(d, pipe_id);
+      *dd = d->daemons[--d->outq_count];
     } else {
       dd->msgid = 0;
     }
