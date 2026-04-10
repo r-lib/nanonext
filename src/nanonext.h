@@ -192,8 +192,8 @@ typedef struct nano_aio_s {
   void *cb;
   void *next;
   int result;
-  uint8_t mode;
   nano_aio_typ type;
+  uint8_t mode;
 } nano_aio;
 
 typedef struct nano_saio_s {
@@ -275,14 +275,14 @@ typedef enum {
 
 // Base connection structure - common fields for linked list and lifecycle
 typedef struct nano_conn_s {
-  nano_conn_type type;              // Connection type (for dispatch)
   nng_aio *send_aio;                // For async send (both types)
   nano_http_handler_info *handler;  // Back-reference to handler
   struct nano_conn_s *next;         // Linked list
   struct nano_conn_s *prev;         // Doubly-linked for O(1) removal
   SEXP xptr;                        // R external pointer
-  int id;                           // Unique connection ID (server-wide)
+  nano_conn_type type;              // Connection type (for dispatch)
   nano_conn_state state;            // Connection state
+  int id;                           // Unique connection ID (server-wide)
   int onclose_scheduled;            // Prevents duplicate on_close callbacks
 } nano_conn;
 
@@ -332,22 +332,22 @@ typedef struct nano_http_request_s {
 } nano_http_request;
 
 typedef enum {
-  SERVER_CREATED,   // Server created but not started
-  SERVER_STARTED,   // Server running
-  SERVER_STOPPED    // Server stopped
+  SERVER_CREATED,
+  SERVER_STARTED,
+  SERVER_STOPPED
 } nano_server_state;
 
 typedef struct nano_http_server_s {
   nng_http_server *server;          // NNG HTTP server
   nng_tls_config *tls;              // TLS configuration
   nano_http_handler_info *handlers; // Array of handler info
-  int handler_count;                // Number of handlers
   nano_http_request *pending_reqs;  // Linked list of pending HTTP requests
   nng_mtx *mtx;                     // Mutex for thread safety
-  int conn_counter;                 // Server-wide unique connection ID counter
-  nano_server_state state;          // Server lifecycle state
   SEXP xptr;                        // R external pointer for this server
   SEXP prot;                        // Pairlist for GC protection of callbacks
+  int handler_count;                // Number of handlers
+  int conn_counter;                 // Server-wide unique connection ID counter
+  nano_server_state state;          // Server lifecycle state
 } nano_http_server;
 
 typedef struct ws_message_s {
