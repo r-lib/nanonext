@@ -10,6 +10,8 @@
 - Fixes sending and receiving of messages larger than `INT_MAX` bytes
   over TCP and IPC transports on macOS and Windows
   ([\#266](https://github.com/r-lib/nanonext/issues/266)).
+- Fixes unserialization of custom refhook payloads larger than
+  `ULONG_MAX` on 64-bit Windows.
 - Removes `messenger()` as a non-core function
   ([\#268](https://github.com/r-lib/nanonext/issues/268)).
 - Removes the deprecated `n` argument from
