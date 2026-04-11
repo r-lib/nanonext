@@ -154,7 +154,7 @@ static SEXP nano_unserialize_hook(SEXP x, SEXP hook_func) {
   void (*InBytes)(R_inpstream_t, void *, int) = stream->InBytes;
 
   const char *size_string = NANO_STRING(x);
-  uint64_t size = strtoul(size_string, NULL, 10);
+  uint64_t size = strtoull(size_string, NULL, 10);
 
   SEXP raw, call, out;
   PROTECT(raw = Rf_allocVector(RAWSXP, size));
