@@ -5,6 +5,7 @@
 * Serialized send operations now transfer the buffer directly into the NNG message, eliminating a redundant copy and halving peak memory usage (#219).
 * Fixes sending and receiving of messages larger than `INT_MAX` bytes over TCP and IPC transports on macOS and Windows (#266).
 * Fixes unserialization of custom refhook payloads larger than `ULONG_MAX` on 64-bit Windows.
+* Adds common MIME types to the HTTP server content map (SVG, JSON, MP4, WebP, WASM, and web fonts) (#275).
 * Removes `messenger()` as a non-core function (#268).
 * Removes the deprecated `n` argument from `recv()` and `recv_aio()`.
 * Minimum required NNG version raised to 1.11 (bundled: 1.11.1-pre).
