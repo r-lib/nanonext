@@ -1256,6 +1256,7 @@ static struct content_map {
 	{ ".png", "image/png" },
 	{ ".ps", "application/postscript" },
 	{ ".rtf", "text/rtf" },
+	{ ".svg", "image/svg+xml" },
 	{ ".text", "text/plain" },
 	{ ".tif", "image/tiff" },
 	{ ".tiff", "image/tiff" },
