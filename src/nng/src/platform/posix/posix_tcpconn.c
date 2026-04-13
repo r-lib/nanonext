@@ -61,7 +61,7 @@ tcp_dowrite(nni_tcp_conn *c)
 		for (niov = 0, i = 0; i < naiov; i++) {
 			if (aiov[i].iov_len > 0) {
 				size_t len = aiov[i].iov_len;
-				if (count + len > INT_MAX)
+				if (len > INT_MAX - count)
 					len = INT_MAX - count;
 				iovec[niov].iov_len  = len;
 				iovec[niov].iov_base = aiov[i].iov_buf;
@@ -128,7 +128,7 @@ tcp_doread(nni_tcp_conn *c)
 		for (niov = 0, i = 0; i < naiov; i++) {
 			if (aiov[i].iov_len != 0) {
 				size_t len = aiov[i].iov_len;
-				if (count + len > INT_MAX)
+				if (len > INT_MAX - count)
 					len = INT_MAX - count;
 				iovec[niov].iov_len  = len;
 				iovec[niov].iov_base = aiov[i].iov_buf;
