@@ -232,13 +232,17 @@ static inline SEXP create_aio_msg(SEXP env, SEXP aio, nano_aio *raio, int res) {
   if (raio->type == IOV_RECVAIO || raio->type == IOV_RECVAIOS) {
     buf = raio->data;
     sz = nng_aio_count(raio->aio);
+    PROTECT(out = nano_decode(buf, sz, raio->mode, NANO_PROT(aio)));
+    free(raio->data);
   } else {
     nng_msg *msg = (nng_msg *) raio->data;
     buf = nng_msg_body(msg);
     sz = nng_msg_len(msg);
+    PROTECT(out = nano_decode(buf, sz, raio->mode, NANO_PROT(aio)));
+    nng_msg_free(msg);
   }
+  raio->data = NULL;
 
-  PROTECT(out = nano_decode(buf, sz, raio->mode, NANO_PROT(aio)));
   PROTECT(pipe = Rf_ScalarInteger(-res));
   Rf_defineVar(nano_ValueSymbol, out, env);
   Rf_defineVar(nano_AioSymbol, pipe, env);
