@@ -53,6 +53,7 @@
 <ul><li>Serialized send operations now transfer the buffer directly into the NNG message, eliminating a redundant copy and halving peak memory usage (<a href="https://github.com/r-lib/nanonext/issues/219" class="external-link">#219</a>).</li>
 <li>Fixes sending and receiving of messages larger than <code>INT_MAX</code> bytes over TCP and IPC transports on macOS and Windows (<a href="https://github.com/r-lib/nanonext/issues/266" class="external-link">#266</a>).</li>
 <li>Fixes unserialization of custom refhook payloads larger than <code>ULONG_MAX</code> on 64-bit Windows.</li>
+<li>Adds common MIME types to the HTTP server content map (SVG, JSON, MP4, WebP, WASM, and web fonts) (<a href="https://github.com/r-lib/nanonext/issues/275" class="external-link">#275</a>).</li>
 <li>Removes <code>messenger()</code> as a non-core function (<a href="https://github.com/r-lib/nanonext/issues/268" class="external-link">#268</a>).</li>
 <li>Removes the deprecated <code>n</code> argument from <code><a href="../reference/recv.html">recv()</a></code> and <code><a href="../reference/recv_aio.html">recv_aio()</a></code>.</li>
 <li>Minimum required NNG version raised to 1.11 (bundled: 1.11.1-pre).</li>

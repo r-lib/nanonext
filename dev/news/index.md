@@ -12,6 +12,9 @@
   ([\#266](https://github.com/r-lib/nanonext/issues/266)).
 - Fixes unserialization of custom refhook payloads larger than
   `ULONG_MAX` on 64-bit Windows.
+- Adds common MIME types to the HTTP server content map (SVG, JSON, MP4,
+  WebP, WASM, and web fonts)
+  ([\#275](https://github.com/r-lib/nanonext/issues/275)).
 - Removes `messenger()` as a non-core function
   ([\#268](https://github.com/r-lib/nanonext/issues/268)).
 - Removes the deprecated `n` argument from
