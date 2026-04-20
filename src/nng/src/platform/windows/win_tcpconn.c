@@ -43,9 +43,7 @@ tcp_recv_start(nni_tcp_conn *c)
 	  count = 0;
 	  for (niov = 0, i = 0; i < naiov; i++) {
 	    if (aiov[i].iov_len != 0) {
-	      size_t len = aiov[i].iov_len;
-	      if (len > INT_MAX - count)
-	        len = INT_MAX - count;
+	      size_t len = nni_aio_iov_clamp_len(aiov[i].iov_len, count);
 	      iov[niov].buf = aiov[i].iov_buf;
 	      iov[niov].len = (ULONG) len;
 	      count += len;
@@ -163,9 +161,7 @@ tcp_send_start(nni_tcp_conn *c)
 	  count = 0;
 	  for (niov = 0, i = 0; i < naiov; i++) {
 	    if (aiov[i].iov_len != 0) {
-	      size_t len = aiov[i].iov_len;
-	      if (len > INT_MAX - count)
-	        len = INT_MAX - count;
+	      size_t len = nni_aio_iov_clamp_len(aiov[i].iov_len, count);
 	      iov[niov].buf = aiov[i].iov_buf;
 	      iov[niov].len = (ULONG) len;
 	      count += len;
