@@ -1414,7 +1414,7 @@ if (later && NOT_CRAN) {
 test_null(.dispatcher_stop("invalid"))
 test_null(.dispatcher_wait("invalid", 1L))
 test_equal(length(.dispatcher_info("invalid")), 5L)
-test_null(.limit_gate("invalid"))
+test_null(.dispatcher_gate("invalid"))
 
 if (NOT_CRAN) {
   if (.Platform$OS.type == "windows") {
@@ -1475,7 +1475,7 @@ if (NOT_CRAN) {
   client2 <- socket("req", listen = disp_inproc_url)
   disp2 <- .dispatcher_start(disp_poly_url, disp_inproc_url, NULL, NULL, stream, 2L, cvar2)
   test_type("externalptr", disp2)
-  test_true(.limit_gate(disp2))
+  test_true(.dispatcher_gate(disp2))
   test_null(.dispatcher_stop(disp2))
   close(client2)
   disp_tls_cert <- write_cert(cn = "127.0.0.1")
