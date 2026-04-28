@@ -5,7 +5,7 @@ Start In-Process Dispatcher
 ## Usage
 
 ``` r
-.dispatcher_start(url, disp_url, tls, serial, stream, limit, cvar)
+.dispatcher_start(url, disp_url, tls, serial, stream, capacity, cvar)
 ```
 
 ## Arguments
@@ -30,13 +30,15 @@ Start In-Process Dispatcher
 
   RNG stream integer vector (.Random.seed).
 
-- limit:
+- capacity:
 
-  Maximum in-flight tasks (NULL for unlimited).
+  Memory budget in MB (metric, 1 MB = 1,000,000 bytes) for queued task
+  payloads. `NULL`, 0, non-finite, or negative values are treated as
+  unlimited.
 
 - cvar:
 
-  Shared condition variable for limit signaling.
+  Shared condition variable for capacity signaling.
 
 ## Value
 

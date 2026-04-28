@@ -123,7 +123,7 @@ ncurl(
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Mon, 20 Apr 2026 19:50:39 GMT"
+#> [1] "Tue, 28 Apr 2026 12:21:24 GMT"
 #> 
 #> $headers$`content-type`
 #> [1] "application/json; charset=utf-8"
@@ -148,7 +148,7 @@ ncurl(
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Mon, 20 Apr 2026 19:50:40 GMT"
+#> [1] "Tue, 28 Apr 2026 12:21:24 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -172,13 +172,13 @@ ncurl(
 #> [1] "DYNAMIC"
 #> 
 #> $headers$`Set-Cookie`
-#> [1] "sails.sid=s%3AfsvX96ynYZErEm2FI8q6vS1ISVTyO7ZC.CCL0nVGsNhdmjMZKVyEC5zM8BDH4GHQnq1glfbCE2g8; Path=/; HttpOnly, __cf_bm=I8tUlT.1pzmEdcUZosqVilbSd5uWta4HEGr5C5Zv4hw-1776714639.9738274-1.0.1.1-KbfKiLSfcu_mlk_Hk4h2_BgbfNKoIDUBr_vx6OOKbPLewpOUMCuhE3GTKSO49t2vxgHCVjiX8OWrR_LGH3jM6ziiRq5UQTW.7f7rPnUuXetX6M8373O33ZP8_lyWVEyi; HttpOnly; Secure; Path=/; Domain=postman-echo.com; Expires=Mon, 20 Apr 2026 20:20:40 GMT, _cfuvid=QN3hklFL5VPrNIp9irzwrJu3VwM2DVKCAQtuerZ_gcw-1776714639.9738274-1.0.1.1-IaU9cP50kNUnSlNI9BjLo8D_LAD_xfLUaIxXnsqb.Q0; HttpOnly; SameSite=None; Secure; Path=/; Domain=postman-echo.com"
+#> [1] "sails.sid=s%3A7Tg0nN-sp45UjeGiMEa01W2EzWV1dqvn.Gc4UcqBzHbPQJ%2FpBnrUAAtUJVacpodJo3ouq6l7C6n0; Path=/; HttpOnly, __cf_bm=uGQ91Kf9fh8elJ578ILFKlgGe2k1HbcqB6u_8ZwWFRc-1777378884.9412367-1.0.1.1-JDvbR73EvfNxu1xo_iTMs0u0h1cmiNriQfZ_0M3Gz9ItsczC7mGCnoMrMsDOUOJKsY2samnpzHZ1gLsmIi8fxj4._jq941jsiIQaUN50V6xEm9MP8wl8gHOZGM1yatjg; HttpOnly; Secure; Path=/; Domain=postman-echo.com; Expires=Tue, 28 Apr 2026 12:51:24 GMT, _cfuvid=M0JLLvrUteV7I9DYw3bKRgBIPbICuzY4J1WH3T_1jBg-1777378884.9412367-1.0.1.1-Dx9..d4cMcialmNMeappwsC13Z4o8o4xz0gOE6Yrosc; HttpOnly; SameSite=None; Secure; Path=/; Domain=postman-echo.com"
 #> 
 #> $headers$Server
 #> [1] "cloudflare"
 #> 
 #> $headers$`CF-RAY`
-#> [1] "9ef6ade3dca8f7bd-LAX"
+#> [1] "9f3606cee98d5136-DFW"
 #> 
 #> 
 #> $data
@@ -198,7 +198,7 @@ ncurl(
 #> NULL
 #> 
 #> $data
-#> [1] "{\"args\":{},\"data\":\"hello world\",\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"content-length\":\"11\",\"authorization\":\"Bearer APIKEY\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\",\"content-type\":\"application/json\"},\"json\":null,\"url\":\"https://postman-echo.com/put\"}"
+#> [1] "{\"args\":{},\"data\":\"hello world\",\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"content-length\":\"11\",\"x-forwarded-proto\":\"https\",\"authorization\":\"Bearer APIKEY\",\"accept-encoding\":\"gzip, br\",\"content-type\":\"application/json\"},\"json\":null,\"url\":\"https://postman-echo.com/put\"}"
 #> 
 ncurl(
   "https://postman-echo.com/post",
