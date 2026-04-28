@@ -4,7 +4,7 @@
 \alias{.dispatcher_start}
 \title{Start In-Process Dispatcher}
 \usage{
-.dispatcher_start(url, disp_url, tls, serial, stream, limit, cvar)
+.dispatcher_start(url, disp_url, tls, serial, stream, capacity, cvar)
 }
 \arguments{
 \item{url}{URL to listen at for daemon connections.}
@@ -17,9 +17,11 @@
 
 \item{stream}{RNG stream integer vector (.Random.seed).}
 
-\item{limit}{Maximum in-flight tasks (NULL for unlimited).}
+\item{capacity}{Memory budget in MB (metric, 1 MB = 1,000,000 bytes) for
+queued task payloads. \code{NULL}, 0, non-finite, or negative values are
+treated as unlimited.}
 
-\item{cvar}{Shared condition variable for limit signaling.}
+\item{cvar}{Shared condition variable for capacity signaling.}
 }
 \value{
 External pointer to dispatcher handle.

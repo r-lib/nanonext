@@ -28,16 +28,18 @@
 #' @param tls TLS configuration or NULL.
 #' @param serial Serialization configuration (list or NULL).
 #' @param stream RNG stream integer vector (.Random.seed).
-#' @param limit Maximum in-flight tasks (NULL for unlimited).
-#' @param cvar Shared condition variable for limit signaling.
+#' @param capacity Memory budget in MB (metric, 1 MB = 1,000,000 bytes) for
+#'   queued task payloads. `NULL`, 0, non-finite, or negative values are
+#'   treated as unlimited.
+#' @param cvar Shared condition variable for capacity signaling.
 #'
 #' @return External pointer to dispatcher handle.
 #'
 #' @keywords internal
 #' @export
 #'
-.dispatcher_start <- function(url, disp_url, tls, serial, stream, limit, cvar) {
-  .Call(rnng_dispatcher_start, url, disp_url, tls, serial, stream, limit, cvar)
+.dispatcher_start <- function(url, disp_url, tls, serial, stream, capacity, cvar) {
+  .Call(rnng_dispatcher_start, url, disp_url, tls, serial, stream, capacity, cvar)
 }
 
 #' Stop In-Process Dispatcher
@@ -77,9 +79,27 @@
 #'
 .dispatcher_info <- function(disp) .Call(rnng_dispatcher_info, disp)
 
-#' Limit Gate
+#' Dispatcher Capacity
 #'
-#' Block until inflight count is below limit, then increment.
+#' Read current and peak queued task payload usage at dispatcher, plus the
+#' configured capacity, in MB (metric, 1 MB = 1,000,000 bytes).
+#'
+#' @param disp External pointer to dispatcher handle.
+#'
+#' @return Named numeric vector of length 3: **used** (current) and **peak**
+#'   (high-watermark) usage, and **capacity** (the `capacity` set on
+#'   [.dispatcher_start()], `NA_real_` if unset/unbounded), all in MB.
+#'   `NA_real_` in each slot if `disp` is invalid.
+#'
+#' @keywords internal
+#' @export
+#'
+.dispatcher_capacity <- function(disp) .Call(rnng_dispatcher_capacity, disp)
+
+#' Dispatcher Gate
+#'
+#' Block while queued bytes at dispatcher exceed the memory budget set on
+#' `.dispatcher_start()`.
 #'
 #' @param disp External pointer to dispatcher handle.
 #'
@@ -88,4 +108,4 @@
 #' @keywords internal
 #' @export
 #'
-.limit_gate <- function(disp) .Call(rnng_limit_gate, disp)
+.dispatcher_gate <- function(disp) .Call(rnng_dispatcher_gate, disp)

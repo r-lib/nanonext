@@ -105,8 +105,9 @@ typedef struct nano_dispatcher_s {
   int sync_generation;
   int *pipe_events;
   int pipe_events_size;
-  int limit;
-  int inflight;
+  size_t limit_bytes;
+  size_t queued_bytes;
+  size_t peak_queued_bytes;
 } nano_dispatcher;
 
 // forward declarations --------------------------------------------------------
@@ -173,6 +174,9 @@ static void dispatch_enqueue(nano_dispatcher *d, nng_ctx ctx,
     d->inq_head = t;
   d->inq_tail = t;
   d->inq_count++;
+  d->queued_bytes += nng_msg_len(msg);
+  if (d->queued_bytes > d->peak_queued_bytes)
+    d->peak_queued_bytes = d->queued_bytes;
 
 }
 
@@ -414,10 +418,6 @@ static void dispatch_handle_disconnect(nano_dispatcher *d, int pipe) {
   nng_ctx ctx;
   if (busy) {
     d->executing--;
-    if (d->limit > 0) {
-      d->inflight--;
-      nng_cv_wake(d->cv->cv);
-    }
     ctx = dd->ctx;
   }
 
@@ -473,8 +473,6 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
     int send_pipe = 0;
     nng_mtx_lock(d->cv->mtx);
     d->count++;
-    if (d->limit > 0)
-      d->inflight++;
 
     nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
     if (dd != NULL) {
@@ -528,11 +526,6 @@ static void dispatch_handle_daemon_recv(nano_dispatcher *d) {
     d->executing--;
     nng_ctx ctx = dd->ctx;
 
-    if (d->limit > 0) {
-      d->inflight--;
-      nng_cv_wake(d->cv->cv);
-    }
-
     if (is_marker) {
       *dd = d->daemons[--d->outq_count];
     } else {
@@ -569,12 +562,11 @@ static int dispatch_cancel_inq(nano_dispatcher *d, int id) {
       *pp = t->next;
       if (t == d->inq_tail)
         d->inq_tail = prev;
+      d->queued_bytes -= nng_msg_len(t->msg);
       dispatch_free_task(t);
       d->inq_count--;
-      if (d->limit > 0) {
-        d->inflight--;
+      if (d->limit_bytes > 0)
         nng_cv_wake(d->cv->cv);
-      }
       return 1;
     }
     prev = *pp;
@@ -612,11 +604,13 @@ static void dispatch_dispatch_tasks(nano_dispatcher *d) {
       if (dd == NULL)
         break;
 
+      size_t len = nng_msg_len(t->msg);
       batch[nsends].pipe = dd->pipe;
       batch[nsends].msg = t->msg;
       nsends++;
 
       t->msg = NULL;
+      d->queued_bytes -= len;
       dd->ctx = t->ctx;
       dd->msgid = t->msgid;
       d->executing++;
@@ -631,6 +625,9 @@ static void dispatch_dispatch_tasks(nano_dispatcher *d) {
 
       dispatch_dequeue(d);
     }
+
+    if (d->limit_bytes > 0 && nsends > 0)
+      nng_cv_wake(d->cv->cv);
 
     nng_mtx_unlock(d->cv->mtx);
 
@@ -904,7 +901,7 @@ int dispatch_cancel_direct(void *handle, int id) {
 
 SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
                            SEXP serial, SEXP stream,
-                           SEXP limit, SEXP cvar) {
+                           SEXP capacity, SEXP cvar) {
 
   int xc;
   nng_listener listener = NNG_LISTENER_INITIALIZER;
@@ -927,7 +924,12 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
   priv->cv = shared->cv;
   h->priv_cv = priv;
   d->cv = priv;
-  d->limit = limit == R_NilValue ? 0 : nano_integer(limit);
+  if (capacity == R_NilValue) {
+    d->limit_bytes = 0;
+  } else {
+    double mb = Rf_asReal(capacity);
+    d->limit_bytes = (R_FINITE(mb) && mb > 0.0) ? (size_t) (mb * 1e6) : 0;
+  }
 
   // POLY socket for daemon connections
   if ((xc = nng_pair1_open_poly(&h->poly_sock)))
@@ -1113,7 +1115,40 @@ SEXP rnng_dispatcher_info(SEXP disp) {
 
 }
 
-SEXP rnng_limit_gate(SEXP disp) {
+SEXP rnng_dispatcher_capacity(SEXP disp) {
+
+  static const char *names[] = {"used", "peak", "capacity", ""};
+  SEXP out = PROTECT(Rf_mkNamed(REALSXP, names));
+  double *p = REAL(out);
+
+  if (NANO_PTR_CHECK(disp, nano_ThreadSymbol)) {
+    p[0] = NA_REAL;
+    p[1] = NA_REAL;
+    p[2] = NA_REAL;
+    UNPROTECT(1);
+    return out;
+  }
+
+  nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
+  nano_dispatcher *d = h->d;
+
+  size_t queued, peak, limit;
+  nng_mtx_lock(d->cv->mtx);
+  queued = d->queued_bytes;
+  peak = d->peak_queued_bytes;
+  limit = d->limit_bytes;
+  nng_mtx_unlock(d->cv->mtx);
+
+  p[0] = (double) queued / 1e6;
+  p[1] = (double) peak / 1e6;
+  p[2] = limit > 0 ? (double) limit / 1e6 : NA_REAL;
+  UNPROTECT(1);
+
+  return out;
+
+}
+
+SEXP rnng_dispatcher_gate(SEXP disp) {
 
   if (NANO_PTR_CHECK(disp, nano_ThreadSymbol))
     return R_NilValue;
@@ -1121,9 +1156,9 @@ SEXP rnng_limit_gate(SEXP disp) {
   nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
   nano_dispatcher *d = h->d;
 
-  if (d->limit > 0) {
+  if (d->limit_bytes > 0) {
     nng_mtx_lock(d->cv->mtx);
-    while (d->inflight >= d->limit) {
+    while (d->queued_bytes >= d->limit_bytes) {
       nng_time time = nng_clock() + 400;
       nng_cv_until(d->cv->cv, time);
       nng_mtx_unlock(d->cv->mtx);
