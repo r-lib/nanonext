@@ -1415,6 +1415,7 @@ test_null(.dispatcher_stop("invalid"))
 test_null(.dispatcher_wait("invalid", 1L))
 test_equal(length(.dispatcher_info("invalid")), 5L)
 test_null(.dispatcher_gate("invalid"))
+test_null(.dispatcher_try_gate("invalid"))
 
 if (NOT_CRAN) {
   if (.Platform$OS.type == "windows") {
@@ -1476,8 +1477,15 @@ if (NOT_CRAN) {
   disp2 <- .dispatcher_start(disp_poly_url, disp_inproc_url, NULL, NULL, stream, 2L, cvar2)
   test_type("externalptr", disp2)
   test_true(.dispatcher_gate(disp2))
+  test_true(.dispatcher_try_gate(disp2))
   test_null(.dispatcher_stop(disp2))
   close(client2)
+  cvar2u <- cv()
+  client2u <- socket("req", listen = disp_inproc_url)
+  disp2u <- .dispatcher_start(disp_poly_url, disp_inproc_url, NULL, NULL, stream, NULL, cvar2u)
+  test_true(.dispatcher_try_gate(disp2u))
+  test_null(.dispatcher_stop(disp2u))
+  close(client2u)
   disp_tls_cert <- write_cert(cn = "127.0.0.1")
   disp_tls <- tls_config(server = disp_tls_cert$server)
   disp_inproc_url3 <- sprintf("inproc://disp-test3-%d", Sys.getpid())

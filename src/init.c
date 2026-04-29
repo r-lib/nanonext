@@ -133,6 +133,7 @@ static const R_CallMethodDef callMethods[] = {
   {"rnng_dialer_start", (DL_FUNC) &rnng_dialer_start, 2},
   {"rnng_dispatcher_capacity", (DL_FUNC) &rnng_dispatcher_capacity, 1},
   {"rnng_dispatcher_gate", (DL_FUNC) &rnng_dispatcher_gate, 1},
+  {"rnng_dispatcher_try_gate", (DL_FUNC) &rnng_dispatcher_try_gate, 1},
   {"rnng_dispatcher_info", (DL_FUNC) &rnng_dispatcher_info, 1},
   {"rnng_dispatcher_run", (DL_FUNC) &rnng_dispatcher_run, 7},
   {"rnng_dispatcher_start", (DL_FUNC) &rnng_dispatcher_start, 7},

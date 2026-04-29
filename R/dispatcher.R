@@ -109,3 +109,19 @@
 #' @export
 #'
 .dispatcher_gate <- function(disp) .Call(rnng_dispatcher_gate, disp)
+
+#' Dispatcher Try Gate
+#'
+#' Snapshot read of dispatcher capacity. Returns immediately, never blocks.
+#' The non-blocking counterpart to [.dispatcher_gate()].
+#'
+#' @param disp External pointer to dispatcher handle.
+#'
+#' @return Logical `TRUE` if submission would not block (queued bytes below
+#'   the memory budget set on `.dispatcher_start()`, or unbounded), `FALSE`
+#'   if at or over the budget. `NULL` if `disp` is invalid.
+#'
+#' @keywords internal
+#' @export
+#'
+.dispatcher_try_gate <- function(disp) .Call(rnng_dispatcher_try_gate, disp)

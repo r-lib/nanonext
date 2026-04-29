@@ -1172,3 +1172,22 @@ SEXP rnng_dispatcher_gate(SEXP disp) {
 
 }
 
+SEXP rnng_dispatcher_try_gate(SEXP disp) {
+
+  if (NANO_PTR_CHECK(disp, nano_ThreadSymbol))
+    return R_NilValue;
+
+  nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
+  nano_dispatcher *d = h->d;
+
+  int allowed = 1;
+  if (d->limit_bytes > 0) {
+    nng_mtx_lock(d->cv->mtx);
+    allowed = d->queued_bytes < d->limit_bytes;
+    nng_mtx_unlock(d->cv->mtx);
+  }
+
+  return Rf_ScalarLogical(allowed);
+
+}
+
