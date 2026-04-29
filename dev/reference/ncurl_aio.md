@@ -128,13 +128,13 @@ nc$status
 #> [1] 200
 nc$headers
 #> $date
-#> [1] "Tue, 28 Apr 2026 12:21:25 GMT"
+#> [1] "Wed, 29 Apr 2026 16:08:15 GMT"
 #> 
 #> $server
 #> [1] "cloudflare"
 #> 
 nc$data
-#> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"x-forwarded-proto\":\"https\",\"accept-encoding\":\"gzip, br\"},\"url\":\"https://postman-echo.com/get\"}"
+#> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"
 
 if (FALSE) { # interactive() && requireNamespace("promises", quietly = TRUE)
 library(promises)
