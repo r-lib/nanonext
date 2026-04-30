@@ -7,12 +7,15 @@
 
 static SEXP nano_hash_char(unsigned char *buf, const size_t sz) {
 
+  static const char hex[] = "0123456789abcdef";
   SEXP out;
   char cbuf[sz + sz + 1];
-  char *cptr = cbuf;
 
-  for (size_t i = 0; i < sz; i++)
-    cptr += snprintf(cptr, 3, "%.2x", buf[i]);
+  for (size_t i = 0; i < sz; i++) {
+    cbuf[2 * i]     = hex[buf[i] >> 4];
+    cbuf[2 * i + 1] = hex[buf[i] & 0x0f];
+  }
+  cbuf[sz + sz] = '\0';
 
   PROTECT(out = Rf_allocVector(STRSXP, 1));
   SET_STRING_ELT(out, 0, Rf_mkCharLenCE(cbuf, (int) (sz + sz), CE_NATIVE));
