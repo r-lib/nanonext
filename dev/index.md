@@ -19,6 +19,7 @@ DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/r-lib/nanonext)
 ### Quick Start
 
 ``` r
+
 library(nanonext)
 
 # Open sockets
@@ -42,6 +43,7 @@ close(s2)
 Non-blocking operations that resolve automatically:
 
 ``` r
+
 s1 <- socket("rep", listen = "tcp://127.0.0.1:5556")
 s2 <- socket("req", dial = "tcp://127.0.0.1:5556")
 
@@ -68,6 +70,7 @@ One server, one port – HTTP endpoints, WebSocket connections, and
 streaming all coexist. Mbed TLS built in for HTTPS/WSS.
 
 ``` r
+
 # Generate self-signed certificates
 cert <- write_cert(cn = "127.0.0.1")
 
@@ -92,17 +95,18 @@ server$close()
 
 ### Documentation
 
-| Guide                                                                       | Topics                                   |
-|:----------------------------------------------------------------------------|:-----------------------------------------|
-| [Quick Reference](https://nanonext.r-lib.org/articles/nanonext.html)        | At-a-glance API overview                 |
-| [Messaging](https://nanonext.r-lib.org/articles/v01-messaging.html)         | Cross-language, async, synchronisation   |
-| [Protocols](https://nanonext.r-lib.org/articles/v02-protocols.html)         | req/rep, pub/sub, surveyor/respondent    |
-| [Configuration](https://nanonext.r-lib.org/articles/v03-configuration.html) | TLS, options, serialization              |
-| [Web Toolkit](https://nanonext.r-lib.org/articles/v04-web.html)             | HTTP client/server, WebSocket, streaming |
+| Guide | Topics |
+|:---|:---|
+| [Quick Reference](https://nanonext.r-lib.org/articles/nanonext.html) | At-a-glance API overview |
+| [Messaging](https://nanonext.r-lib.org/articles/v01-messaging.html) | Cross-language, async, synchronisation |
+| [Protocols](https://nanonext.r-lib.org/articles/v02-protocols.html) | req/rep, pub/sub, surveyor/respondent |
+| [Configuration](https://nanonext.r-lib.org/articles/v03-configuration.html) | TLS, options, serialization |
+| [Web Toolkit](https://nanonext.r-lib.org/articles/v04-web.html) | HTTP client/server, WebSocket, streaming |
 
 ### Installation
 
 ``` r
+
 # CRAN
 install.packages("nanonext")
 
@@ -121,6 +125,7 @@ Recommended: Let the package compile bundled libraries for optimal
 performance:
 
 ``` r
+
 Sys.setenv(NANONEXT_LIBS = 1)
 install.packages("nanonext")
 ```

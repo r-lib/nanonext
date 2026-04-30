@@ -15,6 +15,9 @@
 - Adds common MIME types to the HTTP server content map (SVG, JSON, MP4,
   WebP, WASM, and web fonts)
   ([\#275](https://github.com/r-lib/nanonext/issues/275)).
+- Speeds up hex string conversion in
+  [`random()`](https://nanonext.r-lib.org/dev/reference/random.md)
+  (`convert = TRUE`).
 - Removes `messenger()` as a non-core function
   ([\#268](https://github.com/r-lib/nanonext/issues/268)).
 - Removes the deprecated `n` argument from

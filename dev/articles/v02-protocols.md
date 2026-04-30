@@ -1,6 +1,7 @@
 # nanonext - Scalability Protocols
 
 ``` r
+
 library(nanonext)
 ```
 
@@ -17,6 +18,7 @@ a message, applies a function, and sends back the result. Started in a
 background ‘mirai’ process.
 
 ``` r
+
 m <- mirai::mirai({
   library(nanonext)
   rep <- socket("rep", listen = "tcp://127.0.0.1:6556")
@@ -31,6 +33,7 @@ performs async send/receive, returning immediately with a `recvAio`
 object.
 
 ``` r
+
 req <- socket("req", dial = "tcp://127.0.0.1:6556")
 aio <- request(context(req), data = 1e8, recv_mode = "double")
 ```
@@ -39,6 +42,7 @@ The client can now run additional code while the server processes the
 request.
 
 ``` r
+
 # do more...
 ```
 
@@ -47,6 +51,7 @@ When the result is needed, call the recvAio using
 retrieve the value at `$data`.
 
 ``` r
+
 call_aio(aio)$data |> str()
 #>  num [1:100000000] -0.63 0.883 1.134 -0.474 -0.237 ...
 ```
@@ -70,6 +75,7 @@ asynchronous execution of arbitrary R code using the RPC model.
 to one or multiple topics broadcast by a publisher.
 
 ``` r
+
 pub <- socket("pub", listen = "inproc://nanobroadcast")
 sub <- socket("sub", dial = "inproc://nanobroadcast")
 
@@ -115,6 +121,7 @@ allowing integer, double, logical, complex and raw vectors to be sent
 and received.
 
 ``` r
+
 sub |> subscribe(topic = 1)
 pub |> send(c(1, 10, 10, 20), mode = "raw")
 #> [1] 0
@@ -136,6 +143,7 @@ broadcasts a survey to all respondents, who may reply within a timeout
 period. Late responses are discarded.
 
 ``` r
+
 sur <- socket("surveyor", listen = "inproc://nanoservice")
 res1 <- socket("respondent", dial = "inproc://nanoservice")
 res2 <- socket("respondent", dial = "inproc://nanoservice")
