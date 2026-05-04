@@ -1077,7 +1077,7 @@ SEXP rnng_dispatcher_wait(SEXP disp, SEXP n) {
   nng_mtx *mtx = d->cv->mtx;
 
   nng_mtx_lock(mtx);
-  while (d->connections < target && d->cv->flag >= 0) {
+  while (d->outq_count < target && d->cv->flag >= 0) {
     nng_time time = nng_clock() + 400;
     nng_cv_until(cv, time);
     nng_mtx_unlock(mtx);
