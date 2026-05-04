@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.8.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.9.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,13 +48,19 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="nanonext-development-version">nanonext (development version)<a class="anchor" aria-label="anchor" href="#nanonext-development-version"></a></h2>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.9.0" id="nanonext-190">nanonext 1.9.0<a class="anchor" aria-label="anchor" href="#nanonext-190"></a></h2><p class="text-muted">CRAN release: 2026-05-04</p>
 <div class="section level5">
-<h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
+<h5 id="performance-1-9-0">Performance<a class="anchor" aria-label="anchor" href="#performance-1-9-0"></a></h5>
 <ul><li>Serialized send operations now transfer the buffer directly into the NNG message, eliminating a redundant copy and halving peak memory usage (<a href="https://github.com/r-lib/nanonext/issues/219" class="external-link">#219</a>).</li>
-<li>Fixes sending and receiving of messages larger than <code>INT_MAX</code> bytes over TCP and IPC transports on macOS and Windows (<a href="https://github.com/r-lib/nanonext/issues/266" class="external-link">#266</a>).</li>
+<li>Speeds up hex string conversion in <code>random(convert = TRUE)</code>.</li>
+</ul></div>
+<div class="section level5">
+<h5 id="updates-1-9-0">Updates<a class="anchor" aria-label="anchor" href="#updates-1-9-0"></a></h5>
+<ul><li>Fixes sending and receiving of messages larger than <code>INT_MAX</code> bytes over TCP and IPC transports on macOS and Windows (<a href="https://github.com/r-lib/nanonext/issues/266" class="external-link">#266</a>).</li>
 <li>Fixes unserialization of custom refhook payloads larger than <code>ULONG_MAX</code> on 64-bit Windows.</li>
 <li>Adds common MIME types to the HTTP server content map (SVG, JSON, MP4, WebP, WASM, and web fonts) (<a href="https://github.com/r-lib/nanonext/issues/275" class="external-link">#275</a>).</li>
-<li>Speeds up hex string conversion in <code><a href="../reference/random.html">random()</a></code> (<code>convert = TRUE</code>).</li>
 <li>Removes <code>messenger()</code> as a non-core function (<a href="https://github.com/r-lib/nanonext/issues/268" class="external-link">#268</a>).</li>
 <li>Removes the deprecated <code>n</code> argument from <code><a href="../reference/recv.html">recv()</a></code> and <code><a href="../reference/recv_aio.html">recv_aio()</a></code>.</li>
 <li>Minimum required NNG version raised to 1.11 (bundled: 1.11.1-pre).</li>
