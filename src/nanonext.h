@@ -117,10 +117,10 @@ extern int R_interrupts_pending;
 #define NANO_SET_PROT(x, v) SETCDR(x, v)
 #define NANO_SET_ENCLOS(x, v) SETCDR(x, v)
 #define NANO_DATAPTR(x) (void *) DATAPTR_RO(x)
-#define NANO_VECTOR(x) ((const SEXP *) DATAPTR_RO(x))
-#define NANO_STRING(x) CHAR(*((const SEXP *) DATAPTR_RO(x)))
-#define NANO_STR_N(x, n) CHAR(((const SEXP *) DATAPTR_RO(x))[n])
-#define NANO_INTEGER(x) *(int *) DATAPTR_RO(x)
+#if R_VERSION < R_Version(4, 5, 0)
+# define VECTOR_PTR_RO(x) ((const SEXP *) DATAPTR_RO(x))
+#endif
+#define NANO_INTEGER(x) *(const int *) DATAPTR_RO(x)
 
 #define ERROR_OUT(xc) Rf_error("%d | %s", xc, nng_strerror(xc))
 #define ERROR_RET(xc) { Rf_warning("%d | %s", xc, nng_strerror(xc)); return mk_error(xc); }

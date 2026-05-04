@@ -954,7 +954,7 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
     goto fail;
 
   // Listen for daemon connections
-  const char *url_str = NANO_STRING(url);
+  const char *url_str = CHAR(STRING_ELT(url, 0));
   if (TYPEOF(tls) != NILSXP && !NANO_PTR_CHECK(tls, nano_TlsSymbol)) {
     nng_tls_config *cfg = (nng_tls_config *) NANO_PTR(tls);
     if ((xc = nng_listener_create(&listener, h->poly_sock, url_str)) ||
@@ -971,7 +971,7 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
     goto fail;
   d->rep_sock = &h->rep_sock;
 
-  const char *disp_url_str = NANO_STRING(disp_url);
+  const char *disp_url_str = CHAR(STRING_ELT(disp_url, 0));
   if ((xc = nng_dial(h->rep_sock, disp_url_str, NULL, 0)))
     goto fail;
 
