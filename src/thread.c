@@ -262,8 +262,9 @@ SEXP rnng_wait_thread_create(SEXP x) {
   } else if (typ == VECSXP) {
 
     const R_xlen_t xlen = Rf_xlength(x);
+    const SEXP *xp = VECTOR_PTR_RO(x);
     for (R_xlen_t i = 0; i < xlen; i++) {
-      rnng_wait_thread_create(NANO_VECTOR(x)[i]);
+      rnng_wait_thread_create(xp[i]);
     }
 
   }

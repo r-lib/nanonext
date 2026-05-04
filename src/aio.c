@@ -397,7 +397,7 @@ SEXP rnng_aio_call(SEXP x) {
   case VECSXP: {
     const R_xlen_t xlen = Rf_xlength(x);
     for (R_xlen_t i = 0; i < xlen; i++) {
-      rnng_aio_call(NANO_VECTOR(x)[i]);
+      rnng_aio_call(VECTOR_PTR_RO(x)[i]);
     }
     break;
   }
@@ -423,7 +423,7 @@ static SEXP rnng_aio_collect_impl(SEXP x, SEXP (*const func)(SEXP)) {
     const R_xlen_t xlen = Rf_xlength(x);
     PROTECT(out = Rf_allocVector(VECSXP, xlen));
     for (R_xlen_t i = 0; i < xlen; i++) {
-      env = func(NANO_VECTOR(x)[i]);
+      env = func(VECTOR_PTR_RO(x)[i]);
       if (TYPEOF(env) != ENVSXP) goto fail;
       val = nano_findVarInFrame(env, nano_ValueSymbol, &found);
       if (!found) goto fail;
@@ -478,7 +478,7 @@ SEXP rnng_aio_stop(SEXP x) {
   case VECSXP: {
     const R_xlen_t xlen = Rf_xlength(x);
     for (R_xlen_t i = 0; i < xlen; i++) {
-      rnng_aio_stop(NANO_VECTOR(x)[i]);
+      rnng_aio_stop(VECTOR_PTR_RO(x)[i]);
     }
     break;
   }
@@ -535,7 +535,7 @@ SEXP rnng_request_stop(SEXP x) {
     const R_xlen_t xlen = Rf_xlength(x);
     PROTECT(out = Rf_allocVector(LGLSXP, xlen));
     for (R_xlen_t i = xlen - 1; i >= 0; i--) {
-      SEXP item = rnng_request_stop(NANO_VECTOR(x)[i]);
+      SEXP item = rnng_request_stop(VECTOR_PTR_RO(x)[i]);
       SET_LOGICAL_ELT(out, i, NANO_INTEGER(item));
     }
     UNPROTECT(1);
@@ -595,7 +595,7 @@ SEXP rnng_unresolved(SEXP x) {
   case VECSXP: {
     const R_xlen_t xlen = Rf_xlength(x);
     for (R_xlen_t i = 0; i < xlen; i++) {
-      if (rnng_unresolved_impl(NANO_VECTOR(x)[i]))
+      if (rnng_unresolved_impl(VECTOR_PTR_RO(x)[i]))
         return Rf_ScalarLogical(1);
     }
   }
@@ -628,7 +628,7 @@ SEXP rnng_unresolved2(SEXP x) {
     int xc = 0;
     const R_xlen_t xlen = Rf_xlength(x);
     for (R_xlen_t i = 0; i < xlen; i++) {
-      xc += rnng_unresolved2_impl(NANO_VECTOR(x)[i]);
+      xc += rnng_unresolved2_impl(VECTOR_PTR_RO(x)[i]);
     }
     return Rf_ScalarInteger(xc);
   }
@@ -640,7 +640,7 @@ SEXP rnng_unresolved2(SEXP x) {
 
 static inline R_xlen_t race_find_resolved(SEXP x, R_xlen_t xlen) {
   for (R_xlen_t i = 0; i < xlen; i++) {
-    SEXP elem = NANO_VECTOR(x)[i];
+    SEXP elem = VECTOR_PTR_RO(x)[i];
     if (TYPEOF(elem) == ENVSXP && !rnng_unresolved2_impl(elem))
       return i + 1;
   }
@@ -650,7 +650,7 @@ static inline R_xlen_t race_find_resolved(SEXP x, R_xlen_t xlen) {
 static inline int race_count_unresolved(SEXP x, R_xlen_t xlen) {
   int n = 0;
   for (R_xlen_t i = 0; i < xlen; i++)
-    n += rnng_unresolved2_impl(NANO_VECTOR(x)[i]);
+    n += rnng_unresolved2_impl(VECTOR_PTR_RO(x)[i]);
   return n;
 }
 

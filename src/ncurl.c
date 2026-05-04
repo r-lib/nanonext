@@ -84,7 +84,7 @@ static nano_buf nano_char_buf(const SEXP data) {
   nano_buf buf = {0};
   switch (TYPEOF(data)) {
   case STRSXP: {
-    const char *s = NANO_STRING(data);
+    const char *s = CHAR(STRING_ELT(data, 0));
     NANO_INIT(&buf, (unsigned char *) s, strlen(s));
     break;
   }
@@ -192,8 +192,9 @@ static inline SEXP create_aio_http(SEXP env, nano_aio *haio, int typ) {
       const R_xlen_t rlen = XLENGTH(response);
       PROTECT(rvec = Rf_allocVector(VECSXP, rlen));
       Rf_namesgets(rvec, response);
+      const SEXP *response_p = STRING_PTR_RO(response);
       for (R_xlen_t i = 0; i < rlen; i++) {
-        const char *r = nng_http_res_get_header(handle->res, NANO_STR_N(response, i));
+        const char *r = nng_http_res_get_header(handle->res, CHAR(response_p[i]));
         SET_VECTOR_ELT(rvec, i, r == NULL ? R_NilValue : Rf_mkString(r));
       }
       UNPROTECT(1);
@@ -303,8 +304,10 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
     const R_xlen_t hlen = XLENGTH(headers);
     SEXP hnames = Rf_getAttrib(headers, R_NamesSymbol);
     if (TYPEOF(hnames) == STRSXP && XLENGTH(hnames) == hlen) {
+      const SEXP *hnames_p = STRING_PTR_RO(hnames);
+      const SEXP *headers_p = STRING_PTR_RO(headers);
       for (R_xlen_t i = 0; i < hlen; i++) {
-        if ((xc = nng_http_req_set_header(req, NANO_STR_N(hnames, i), NANO_STR_N(headers, i))))
+        if ((xc = nng_http_req_set_header(req, CHAR(hnames_p[i]), CHAR(headers_p[i]))))
           goto fail;
       }
     }
@@ -395,8 +398,9 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
       rvec = Rf_allocVector(VECSXP, rlen);
       SET_VECTOR_ELT(out, 1, rvec);
       Rf_namesgets(rvec, response);
+      const SEXP *response_p = STRING_PTR_RO(response);
       for (R_xlen_t i = 0; i < rlen; i++) {
-        const char *r = nng_http_res_get_header(res, NANO_STR_N(response, i));
+        const char *r = nng_http_res_get_header(res, CHAR(response_p[i]));
         SET_VECTOR_ELT(rvec, i, r == NULL ? R_NilValue : Rf_mkString(r));
       }
     } else {
@@ -478,8 +482,10 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
     const R_xlen_t hlen = XLENGTH(headers);
     SEXP hnames = Rf_getAttrib(headers, R_NamesSymbol);
     if (TYPEOF(hnames) == STRSXP && XLENGTH(hnames) == hlen) {
+      const SEXP *hnames_p = STRING_PTR_RO(hnames);
+      const SEXP *headers_p = STRING_PTR_RO(headers);
       for (R_xlen_t i = 0; i < hlen; i++) {
-        if ((xc = nng_http_req_set_header(handle->req, NANO_STR_N(hnames, i), NANO_STR_N(headers, i))))
+        if ((xc = nng_http_req_set_header(handle->req, CHAR(hnames_p[i]), CHAR(headers_p[i]))))
           goto fail;
       }
     }
@@ -603,8 +609,10 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
     const R_xlen_t hlen = XLENGTH(headers);
     SEXP hnames = Rf_getAttrib(headers, R_NamesSymbol);
     if (TYPEOF(hnames) == STRSXP && XLENGTH(hnames) == hlen) {
+      const SEXP *hnames_p = STRING_PTR_RO(hnames);
+      const SEXP *headers_p = STRING_PTR_RO(headers);
       for (R_xlen_t i = 0; i < hlen; i++) {
-        if ((xc = nng_http_req_set_header(handle->req, NANO_STR_N(hnames, i), NANO_STR_N(headers, i))))
+        if ((xc = nng_http_req_set_header(handle->req, CHAR(hnames_p[i]), CHAR(headers_p[i]))))
           goto fail;
       }
     }
@@ -708,8 +716,9 @@ SEXP rnng_ncurl_transact(SEXP session) {
     rvec = Rf_allocVector(VECSXP, rlen);
     SET_VECTOR_ELT(out, 1, rvec);
     Rf_namesgets(rvec, response);
+    const SEXP *response_p = STRING_PTR_RO(response);
     for (R_xlen_t i = 0; i < rlen; i++) {
-      const char *r = nng_http_res_get_header(handle->res, NANO_STR_N(response, i));
+      const char *r = nng_http_res_get_header(handle->res, CHAR(response_p[i]));
       SET_VECTOR_ELT(rvec, i, r == NULL ? R_NilValue : Rf_mkString(r));
     }
   } else {

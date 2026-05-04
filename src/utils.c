@@ -171,7 +171,7 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
       xc = nng_socket_set(*sock, op, NULL, 0);
       break;
     case STRSXP:
-      xc = nng_socket_set_string(*sock, op, NANO_STRING(value));
+      xc = nng_socket_set_string(*sock, op, CHAR(STRING_ELT(value, 0)));
       break;
     case REALSXP:
     case INTSXP:
@@ -205,7 +205,7 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
       xc = nng_ctx_set(*ctx, op, NULL, 0);
       break;
     case STRSXP:
-      xc = nng_ctx_set_string(*ctx, op, NANO_STRING(value));
+      xc = nng_ctx_set_string(*ctx, op, CHAR(STRING_ELT(value, 0)));
       break;
     case REALSXP:
     case INTSXP:
@@ -233,7 +233,7 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
       xc = nng_stream_set(*st, op, NULL, 0);
       break;
     case STRSXP:
-      xc = nng_stream_set_string(*st, op, NANO_STRING(value));
+      xc = nng_stream_set_string(*st, op, CHAR(STRING_ELT(value, 0)));
       break;
     case REALSXP:
     case INTSXP:
@@ -261,7 +261,7 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
       xc = nng_listener_set(*list, op, NULL, 0);
       break;
     case STRSXP:
-      xc = nng_listener_set_string(*list, op, NANO_STRING(value));
+      xc = nng_listener_set_string(*list, op, CHAR(STRING_ELT(value, 0)));
       break;
     case REALSXP:
     case INTSXP:
@@ -289,7 +289,7 @@ SEXP rnng_set_opt(SEXP object, SEXP opt, SEXP value) {
       xc = nng_dialer_set(*dial, op, NULL, 0);
       break;
     case STRSXP:
-      xc = nng_dialer_set_string(*dial, op, NANO_STRING(value));
+      xc = nng_dialer_set_string(*dial, op, CHAR(STRING_ELT(value, 0)));
       break;
     case REALSXP:
     case INTSXP:

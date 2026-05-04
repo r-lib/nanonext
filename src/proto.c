@@ -229,11 +229,13 @@ static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP headers, SEXP tls, 
       const R_xlen_t hlen = XLENGTH(headers);
       SEXP hnames = Rf_getAttrib(headers, R_NamesSymbol);
       if (TYPEOF(hnames) == STRSXP && XLENGTH(hnames) == hlen) {
+        const SEXP *hnames_p = STRING_PTR_RO(hnames);
+        const SEXP *headers_p = STRING_PTR_RO(headers);
         for (R_xlen_t i = 0; i < hlen; i++) {
-          const char *name = NANO_STR_N(hnames, i);
+          const char *name = CHAR(hnames_p[i]);
           char optname[256];
           snprintf(optname, sizeof(optname), "%s%s", NNG_OPT_WS_REQUEST_HEADER, name);
-          if ((xc = nng_stream_dialer_set_string(nst->endpoint.dial, optname, NANO_STR_N(headers, i))))
+          if ((xc = nng_stream_dialer_set_string(nst->endpoint.dial, optname, CHAR(headers_p[i]))))
             goto fail;
         }
       }

@@ -29,7 +29,7 @@
     (len) = (size_t) XLENGTH(data); \
     break; \
   case STRSXP: \
-    (buf) = (unsigned char *) NANO_STRING(data); \
+    (buf) = (unsigned char *) CHAR(STRING_ELT(data, 0)); \
     (len) = strlen((const char *) (buf)); \
     break; \
   default: \
@@ -374,10 +374,10 @@ static void http_invoke_callback(void *arg) {
       PROTECT(res_headers);
       SEXP hdr_nm = Rf_getAttrib(res_headers, R_NamesSymbol);
       if (TYPEOF(hdr_nm) == STRSXP) {
+        const SEXP *hdr_nm_p = STRING_PTR_RO(hdr_nm);
+        const SEXP *res_headers_p = STRING_PTR_RO(res_headers);
         for (int i = 0; i < XLENGTH(res_headers); i++) {
-          const char *name = NANO_STR_N(hdr_nm, i);
-          const char *value = NANO_STR_N(res_headers, i);
-          nng_http_res_set_header(res, name, value);
+          nng_http_res_set_header(res, CHAR(hdr_nm_p[i]), CHAR(res_headers_p[i]));
         }
       }
       UNPROTECT(1);
@@ -853,7 +853,7 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
 
         switch (TYPEOF(data_elem)) {
         case STRSXP:
-          data = (const unsigned char *) NANO_STRING(data_elem);
+          data = (const unsigned char *) CHAR(STRING_ELT(data_elem, 0));
           size = strlen((const char *) data);
           break;
         default:
@@ -1300,8 +1300,8 @@ SEXP rnng_stream_conn_set_header(SEXP xptr, SEXP name, SEXP value) {
   if (sc->headers_sent)
     Rf_error("cannot set header after headers have been sent");
 
-  const char *hdr_name = NANO_STRING(name);
-  const char *hdr_value = NANO_STRING(value);
+  const char *hdr_name = CHAR(STRING_ELT(name, 0));
+  const char *hdr_value = CHAR(STRING_ELT(value, 0));
 
   if (sc->resp_header_count >= sc->resp_header_capacity) {
     int new_cap = sc->resp_header_capacity == 0 ? 8 : sc->resp_header_capacity * 2;
