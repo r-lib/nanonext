@@ -63,7 +63,7 @@ s1 <- socket("rep", listen = "tcp://127.0.0.1:5556")
 s2 <- socket("req", dial = "tcp://127.0.0.1:5556")
 
 # Sender
-s2 |> send("async request")
+s2 |> send_aio("async request")
 
 # Async operations return immediately
 aio <- recv_aio(s1)
