@@ -1,6 +1,7 @@
 # nanonext - Web Toolkit
 
 ``` r
+
 library(nanonext)
 ```
 
@@ -16,6 +17,7 @@ connections.
 minimalist HTTP(S) client. Basic usage requires only a URL.
 
 ``` r
+
 ncurl("https://postman-echo.com/get")
 #> $status
 #> [1] 200
@@ -31,6 +33,7 @@ Advanced usage supports all HTTP methods (POST, PUT, DELETE, etc.),
 custom headers, and request bodies.
 
 ``` r
+
 ncurl("https://postman-echo.com/post",
       method = "POST",
       headers = c(`Content-Type` = "application/json", Authorization = "Bearer APIKEY"),
@@ -51,6 +54,7 @@ ncurl("https://postman-echo.com/post",
 Specify `response = TRUE` to return all response headers.
 
 ``` r
+
 ncurl("https://postman-echo.com/get",
       response = TRUE)
 #> $status
@@ -102,6 +106,7 @@ performs asynchronous requests, returning immediately with an ‘ncurlAio’
 object that resolves when the response arrives.
 
 ``` r
+
 res <- ncurl_aio("https://postman-echo.com/post",
                  method = "POST",
                  headers = c(`Content-Type` = "application/json"),
@@ -127,6 +132,7 @@ res$data
 promises package, including Shiny ExtendedTask.
 
 ``` r
+
 library(promises)
 
 p <- ncurl_aio("https://postman-echo.com/get") |> then(\(x) cat(x$data))
@@ -143,6 +149,7 @@ endpoint. Use
 send requests over the session.
 
 ``` r
+
 sess <- ncurl_session("https://postman-echo.com/get",
                       convert = FALSE,
                       headers = c(`Content-Type` = "application/json"),
@@ -185,6 +192,7 @@ Use `textframes = TRUE` for servers that expect text frames (most
 WebSocket servers).
 
 ``` r
+
 s <- stream(dial = "wss://echo.websocket.org/", textframes = TRUE)
 s
 #> < nanoStream >
@@ -201,6 +209,7 @@ their async counterparts
 on Streams just like Sockets.
 
 ``` r
+
 s |> recv()
 #> [1] "Request served by 4d896d95b55478"
 
@@ -238,6 +247,7 @@ and open a WebSocket connection to the same origin without any
 cross-origin configuration.
 
 ``` r
+
 server <- http_server(
   url = "http://127.0.0.1:8080",
   handlers = list(
@@ -270,15 +280,15 @@ making it easy to set up test servers without port conflicts.
 
 All handler types can be freely mixed in a single server’s handler list:
 
-| Handler                                                                            | Purpose                                                      |
-|:-----------------------------------------------------------------------------------|:-------------------------------------------------------------|
-| [`handler()`](https://nanonext.r-lib.org/reference/handler.md)                     | HTTP request/response with R callback                        |
-| [`handler_ws()`](https://nanonext.r-lib.org/reference/handler_ws.md)               | WebSocket with `on_message`, `on_open`, `on_close` callbacks |
-| [`handler_stream()`](https://nanonext.r-lib.org/reference/handler_stream.md)       | Chunked HTTP streaming (SSE, NDJSON, custom)                 |
-| [`handler_file()`](https://nanonext.r-lib.org/reference/handler_file.md)           | Serve a single static file                                   |
-| [`handler_directory()`](https://nanonext.r-lib.org/reference/handler_directory.md) | Serve a directory tree with automatic MIME types             |
-| [`handler_inline()`](https://nanonext.r-lib.org/reference/handler_inline.md)       | Serve in-memory content                                      |
-| [`handler_redirect()`](https://nanonext.r-lib.org/reference/handler_redirect.md)   | HTTP redirect                                                |
+| Handler | Purpose |
+|:---|:---|
+| [`handler()`](https://nanonext.r-lib.org/reference/handler.md) | HTTP request/response with R callback |
+| [`handler_ws()`](https://nanonext.r-lib.org/reference/handler_ws.md) | WebSocket with `on_message`, `on_open`, `on_close` callbacks |
+| [`handler_stream()`](https://nanonext.r-lib.org/reference/handler_stream.md) | Chunked HTTP streaming (SSE, NDJSON, custom) |
+| [`handler_file()`](https://nanonext.r-lib.org/reference/handler_file.md) | Serve a single static file |
+| [`handler_directory()`](https://nanonext.r-lib.org/reference/handler_directory.md) | Serve a directory tree with automatic MIME types |
+| [`handler_inline()`](https://nanonext.r-lib.org/reference/handler_inline.md) | Serve in-memory content |
+| [`handler_redirect()`](https://nanonext.r-lib.org/reference/handler_redirect.md) | HTTP redirect |
 
 #### HTTP Request Handlers
 
@@ -288,6 +298,7 @@ HTTP route handlers. The callback receives a request list with `method`,
 optional `headers`, and `body`.
 
 ``` r
+
 # GET endpoint
 h1 <- handler("/hello", function(req) {
   list(status = 200L, body = "Hello!")
@@ -311,6 +322,7 @@ h3 <- handler("/api", function(req) {
 #### Static Content Handlers
 
 ``` r
+
 # Serve a single file
 h_file <- handler_file("/favicon.ico", "path/to/favicon.ico")
 
@@ -338,6 +350,7 @@ page and open a WebSocket to the same host and port with no additional
 setup.
 
 ``` r
+
 clients <- list()
 
 server <- http_server(
@@ -387,6 +400,7 @@ streaming formats. Like WebSocket handlers, streaming endpoints share
 the same server as all other handlers.
 
 ``` r
+
 conns <- list()
 
 server <- http_server(
@@ -422,6 +436,7 @@ formats messages according to the SSE specification for browser
 `EventSource` clients.
 
 ``` r
+
 format_sse(data = "Hello")
 #> [1] "data: Hello\n\n"
 
@@ -462,6 +477,7 @@ Root CA certificates in PEM format may be found at:
   is not endorsed; use at your own risk.*
 
 ``` r
+
 tls <- tls_config(client = "/etc/ssl/cert.pem")
 ncurl("https://www.google.com", tls = tls)
 ```
@@ -473,6 +489,7 @@ using
 [`write_cert()`](https://nanonext.r-lib.org/reference/write_cert.md).
 
 ``` r
+
 # Generate self-signed certificate for testing
 cert <- write_cert(cn = "127.0.0.1")
 
@@ -486,6 +503,7 @@ cli <- tls_config(client = cert$client)
 Use the configurations with servers and clients:
 
 ``` r
+
 # HTTPS server
 server <- http_server(
   url = "https://127.0.0.1:0",
@@ -528,6 +546,7 @@ It works anywhere that accepts a promise, including Shiny’s
 ExtendedTask:
 
 ``` r
+
 library(shiny)
 library(bslib)
 library(nanonext)
@@ -570,6 +589,7 @@ single
 call:
 
 ``` r
+
 library(nanonext)
 
 server <- http_server(

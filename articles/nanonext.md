@@ -41,6 +41,7 @@ introductions:
 ### Create Sockets
 
 ``` r
+
 library(nanonext)
 
 # Functional interface
@@ -85,6 +86,7 @@ n$close()
 ### Synchronous
 
 ``` r
+
 # Send R object (serialized)
 send(s, data.frame(a = 1, b = 2))
 
@@ -119,6 +121,7 @@ recv(s, mode = "raw")
 ### Basic Async
 
 ``` r
+
 # Async send - returns immediately
 res <- send_aio(s, data)
 res$result          # 0 = success, error code otherwise
@@ -139,6 +142,7 @@ msg[]               # Blocks (user-interruptible), returns value
 ### Non-blocking Patterns
 
 ``` r
+
 # Poll while doing other work
 while (unresolved(msg)) {
   # do other tasks
@@ -156,6 +160,7 @@ msg2 <- recv_aio(s2)
 ### Basics
 
 ``` r
+
 # Create condition variable
 cv <- cv()
 
@@ -174,6 +179,7 @@ until(cv, 1000)
 ### Pipe Notifications
 
 ``` r
+
 # Signal on connection/disconnection
 pipe_notify(socket, cv = cv, add = TRUE, remove = TRUE)
 
@@ -186,6 +192,7 @@ wait(cv) || stop("disconnected")  # FALSE = pipe event
 ### Async with CV
 
 ``` r
+
 cv <- cv()
 msg <- recv_aio(s, cv = cv)
 wait(cv)            # Wake on receive completion
@@ -197,6 +204,7 @@ msg$data
 ### Server
 
 ``` r
+
 rep <- socket("rep", listen = "tcp://127.0.0.1:5555")
 ctx <- context(rep)
 
@@ -209,6 +217,7 @@ close(rep)
 ### Client
 
 ``` r
+
 req <- socket("req", dial = "tcp://127.0.0.1:5555")
 ctx <- context(req)
 
@@ -226,6 +235,7 @@ close(req)
 ## 6. Pub/Sub
 
 ``` r
+
 pub <- socket("pub", listen = "inproc://pubsub")
 sub <- socket("sub", dial = "inproc://pubsub")
 
@@ -249,6 +259,7 @@ close(sub)
 ## 7. Surveyor/Respondent
 
 ``` r
+
 sur <- socket("surveyor", listen = "inproc://survey")
 res1 <- socket("respondent", dial = "inproc://survey")
 res2 <- socket("respondent", dial = "inproc://survey")
@@ -281,6 +292,7 @@ close(res2)
 ### Self-signed Certificates
 
 ``` r
+
 # Generate certificate (cn must match URL host exactly)
 cert <- write_cert(cn = "127.0.0.1")
 
@@ -296,6 +308,7 @@ s2 <- socket(dial = "tls+tcp://127.0.0.1:5555", tls = client_tls)
 ### CA Certificates
 
 ``` r
+
 # Client with CA cert file
 client_tls <- tls_config(client = "/path/to/ca-cert.pem")
 
@@ -308,6 +321,7 @@ server_tls <- tls_config(server = c("/path/to/cert.pem", "/path/to/key.pem"))
 ### Get/Set Options
 
 ``` r
+
 # Delayed start for configuration
 s <- socket(listen = "tcp://127.0.0.1:5555", autostart = FALSE)
 
@@ -336,6 +350,7 @@ start(s$listener[[1]])
 ### Custom Serialization
 
 ``` r
+
 # Register custom serializer for a class
 serial <- serial_config(
   "class_name",
@@ -348,6 +363,7 @@ opt(socket, "serial") <- serial
 ### Statistics
 
 ``` r
+
 stat(socket, "pipes")      # Active connections
 stat(listener, "accept")   # Connection attempts
 stat(dialer, "reject")     # Rejected connections
@@ -359,6 +375,7 @@ Contexts enable concurrent operations on a single socket (for req/rep,
 surveyor/respondent).
 
 ``` r
+
 s <- socket("req", dial = "tcp://127.0.0.1:5555")
 
 # Create independent contexts
@@ -380,6 +397,7 @@ close(s)
 ### R to Python (NumPy)
 
 ``` r
+
 # R: send raw doubles
 n <- nano("pair", dial = "ipc:///tmp/nanonext")
 n$send(c(1.1, 2.2, 3.3), mode = "raw")
@@ -398,6 +416,7 @@ socket.send(array.tobytes())
 ## 12. Error Handling
 
 ``` r
+
 # Errors return as 'errorValue' class
 result <- recv(s, block = FALSE)
 
@@ -416,6 +435,7 @@ nng_error(5)        # "Timed out"
 ## 13. Utilities
 
 ``` r
+
 # Sleep (uninterruptible, ms)
 msleep(100)
 

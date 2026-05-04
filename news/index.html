@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,9 +43,26 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/r-lib/nanonext/blob/v1.8.2/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/r-lib/nanonext/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.9.0" id="nanonext-190">nanonext 1.9.0<a class="anchor" aria-label="anchor" href="#nanonext-190"></a></h2><p class="text-muted">CRAN release: 2026-05-04</p>
+<div class="section level5">
+<h5 id="performance-1-9-0">Performance<a class="anchor" aria-label="anchor" href="#performance-1-9-0"></a></h5>
+<ul><li>Serialized send operations now transfer the buffer directly into the NNG message, eliminating a redundant copy and halving peak memory usage (<a href="https://github.com/r-lib/nanonext/issues/219" class="external-link">#219</a>).</li>
+<li>Speeds up hex string conversion in <code>random(convert = TRUE)</code>.</li>
+</ul></div>
+<div class="section level5">
+<h5 id="updates-1-9-0">Updates<a class="anchor" aria-label="anchor" href="#updates-1-9-0"></a></h5>
+<ul><li>Fixes sending and receiving of messages larger than <code>INT_MAX</code> bytes over TCP and IPC transports on macOS and Windows (<a href="https://github.com/r-lib/nanonext/issues/266" class="external-link">#266</a>).</li>
+<li>Fixes unserialization of custom refhook payloads larger than <code>ULONG_MAX</code> on 64-bit Windows.</li>
+<li>Adds common MIME types to the HTTP server content map (SVG, JSON, MP4, WebP, WASM, and web fonts) (<a href="https://github.com/r-lib/nanonext/issues/275" class="external-link">#275</a>).</li>
+<li>Removes <code>messenger()</code> as a non-core function (<a href="https://github.com/r-lib/nanonext/issues/268" class="external-link">#268</a>).</li>
+<li>Removes the deprecated <code>n</code> argument from <code><a href="../reference/recv.html">recv()</a></code> and <code><a href="../reference/recv_aio.html">recv_aio()</a></code>.</li>
+<li>Minimum required NNG version raised to 1.11 (bundled: 1.11.1-pre).</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.8.2" id="nanonext-182">nanonext 1.8.2<a class="anchor" aria-label="anchor" href="#nanonext-182"></a></h2><p class="text-muted">CRAN release: 2026-04-04</p>
 <div class="section level5">
@@ -193,7 +210,7 @@
 <ul><li>
 <code><a href="../reference/write_cert.html">write_cert()</a></code> argument ‘cn’ now defaults to ‘127.0.0.1’ instead of ‘localhost’.</li>
 <li>
-<code><a href="../reference/messenger.html">messenger()</a></code> now exits cleanly, correcting a regression in nanonext 1.5.0 (<a href="https://github.com/r-lib/nanonext/issues/87" class="external-link">#87</a>).</li>
+<code>messenger()</code> now exits cleanly, correcting a regression in nanonext 1.5.0 (<a href="https://github.com/r-lib/nanonext/issues/87" class="external-link">#87</a>).</li>
 <li>Promises created from ‘recvAio’ and ‘ncurlAio’ now reject in exactly the same way whether or not they were resolved at time of creation (<a href="https://github.com/r-lib/nanonext/issues/89" class="external-link">#89</a>).</li>
 <li>Bundled ‘libnng’ updated to 1.10.2 pre-release.
 <ul><li>With this library version, a ‘req’ socket with option ‘req:resend-time’ set as 0 now frees the message as soon as the send has completed without waiting for the reply.</li>
@@ -427,7 +444,7 @@
 <code>sha1()</code> is removed as a hash option.</li>
 </ul><p><em>Other changes:</em></p>
 <ul><li>
-<code><a href="../reference/messenger.html">messenger()</a></code> specifying ‘auth’ now works reliably on endpoints using different R versions/platforms due to the above hashing portability fix.</li>
+<code>messenger()</code> specifying ‘auth’ now works reliably on endpoints using different R versions/platforms due to the above hashing portability fix.</li>
 <li>Internal memory-efficiency and performance enhancements.</li>
 <li>Upgrades bundled ‘libmbedtls’ to v3.5.2.</li>
 </ul></div>
@@ -735,7 +752,7 @@
 <ul><li>For dialers, the ‘autostart’ argument to <code><a href="../reference/dial.html">dial()</a></code>, <code><a href="../reference/socket.html">socket()</a></code> and <code><a href="../reference/nano.html">nano()</a></code> now accepts NA for starting the dialer synchronously - this is less resilient if a connection is not immediately possible, but avoids subtle errors from attempting to use the socket before an asynchronous dial has completed.</li>
 <li>Closing a stream now renders it inactive safely, without the need to strip all attributes on the object (as was the case previously).</li>
 <li>
-<code><a href="../reference/messenger.html">messenger()</a></code> is faster to connect and exits gracefully in case of a connection error.</li>
+<code>messenger()</code> is faster to connect and exits gracefully in case of a connection error.</li>
 <li>Removes defunct function <code>nano_init()</code>.</li>
 <li>Bundled ‘libnng’ source updated to v1.6.0 pre-release (539e559).</li>
 <li>Fixes CRAN ‘additional issue’ (clang-UBSAN).</li>
@@ -832,7 +849,7 @@
 <code><a href="../reference/socket.html">socket()</a></code> and <code><a href="../reference/nano.html">nano()</a></code> now accept non-missing NULL ‘listen’ and ‘dial’ arguments, allowing easier programmatic use.</li>
 <li>Functions <code><a href="../reference/send.html">send()</a></code>, <code><a href="../reference/recv.html">recv()</a></code>, <code><a href="../reference/send_aio.html">send_aio()</a></code>, <code><a href="../reference/recv_aio.html">recv_aio()</a></code>, <code>setopt()</code>, <code><a href="../reference/subscribe.html">subscribe()</a></code>, <code><a href="../reference/subscribe.html">unsubscribe()</a></code> and <code><a href="../reference/survey_time.html">survey_time()</a></code> are no longer S3 generics for enhanced performance.</li>
 <li>
-<code><a href="../reference/messenger.html">messenger()</a></code> uses longer SHA-512 hash for authentication; fixes errors creating a connnection not being shown.</li>
+<code>messenger()</code> uses longer SHA-512 hash for authentication; fixes errors creating a connnection not being shown.</li>
 <li>The source code of ‘libnng’ v1.6.0 pre-release (722bf46) and ‘libmbedtls’ v3.2.1 now comes bundled rather than downloaded - this is much more efficient as unused portions have been stripped out.</li>
 <li>Detects and uses system installations of ‘libnng’ &gt;= 1.6.0 pre-release 722bf46 and ‘libmbedtls’ &gt;= 2 where available, only compiling from source when required.</li>
 <li>R &gt;= 4.2 on Windows now performs source compilation of the bundled ‘libnng’ and ‘libmbedtls’ using the rtools42 toolchain. Installation falls back to pre-compiled libraries for older R releases.</li>
@@ -859,7 +876,7 @@
 <li>
 <code><a href="../reference/ncurl.html">ncurl()</a></code> now returns additional <code>$status</code> (response status code) and <code>$headers</code> (response headers) fields.</li>
 <li>
-<code><a href="../reference/messenger.html">messenger()</a></code> gains the argument ‘auth’ for authenticating communications based on a pre-shared key.</li>
+<code>messenger()</code> gains the argument ‘auth’ for authenticating communications based on a pre-shared key.</li>
 <li>
 <code><a href="../reference/random.html">random()</a></code> gains the argument ‘n’ for generating a vector of random numbers.</li>
 </ul></div>
@@ -939,7 +956,7 @@
 <ul><li>New <code><a href="../reference/stream.html">stream()</a></code> interface exposes low-level byte stream functionality in the NNG library, intended for communicating with non-NNG endpoints, including but not limited to websocket servers.</li>
 <li>
 <code><a href="../reference/ncurl.html">ncurl()</a></code> adds an ‘async’ option to perform HTTP requests asynchronously, returning immediately with a ‘recvAio’. Adds explicit arguments for HTTP method, headers (which takes a named list or character vector) and request data, as well as to specify if conversion from raw bytes is required.</li>
-<li>New <code><a href="../reference/messenger.html">messenger()</a></code> function implements a multi-threaded console-based messaging system using NNG’s scalability protocols (currently as proof of concept).</li>
+<li>New <code>messenger()</code> function implements a multi-threaded console-based messaging system using NNG’s scalability protocols (currently as proof of concept).</li>
 <li>New <code>nano_init()</code> function intended to be called immediately after package load to set global options.</li>
 </ul></div>
 <div class="section level5">

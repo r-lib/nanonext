@@ -89,11 +89,26 @@ Useful links:
 **Maintainer**: Charlie Gao <charlie.gao@posit.co>
 ([ORCID](https://orcid.org/0000-0002-0750-061X))
 
+Authors:
+
+- Charlie Gao <charlie.gao@posit.co>
+  ([ORCID](https://orcid.org/0000-0002-0750-061X))
+
 Other contributors:
 
 - Posit Software, PBC ([ROR](https://ror.org/03wc8by49)) \[copyright
   holder, funder\]
 
 - Hibiki AI Limited \[copyright holder\]
+
+- Staysail Systems, Inc. (NNG library) \[copyright holder\]
+
+- Capitar IT Group BV (NNG library) \[copyright holder\]
+
+- The Mbed TLS Contributors (Mbed TLS library) \[copyright holder\]
+
+- Pierre L'Ecuyer (RngStreams library) \[copyright holder\]
+
+- sakura authors (Serialization hooks) \[copyright holder\]
 
 - R Consortium ([ROR](https://ror.org/01z833950)) \[funder\]

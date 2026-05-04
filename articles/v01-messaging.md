@@ -29,6 +29,7 @@ Create nano object in R using `nanonext`, then send a vector of
 ‘doubles’, specifying mode as ‘raw’:
 
 ``` r
+
 library(nanonext)
 n <- nano("pair", dial = "ipc:///tmp/nanonext.socket")
 n$send(c(1.1, 2.2, 3.3, 4.4, 5.5), mode = "raw")
@@ -52,6 +53,7 @@ socket.close()
 Receive in R, specifying the receive mode as ‘double’:
 
 ``` r
+
 n$recv(mode = "double")
 #> [1] 1.1 2.2 3.3 4.4 5.5
 
@@ -64,6 +66,7 @@ n$close()
 massively-scalable concurrency framework.
 
 ``` r
+
 s1 <- socket("pair", listen = "inproc://nano")
 s2 <- socket("pair", dial = "inproc://nano")
 ```
@@ -75,6 +78,7 @@ asynchronously. Aio objects return an unresolved value while the
 operation is ongoing, then automatically resolve once complete.
 
 ``` r
+
 # async receive requested, but no messages waiting yet
 msg <- recv_aio(s2)
 msg
@@ -87,6 +91,7 @@ For ‘sendAio’ objects, the result is stored at `$result`. For ‘recvAio’
 objects, the message is stored at `$data`.
 
 ``` r
+
 res <- send_aio(s1, data.frame(a = 1, b = 2))
 res
 #> < sendAio | $result >
@@ -98,6 +103,7 @@ res$result
 > socket for sending but may still be buffered within the system.
 
 ``` r
+
 # once a message is sent, the recvAio resolves automatically
 msg$data
 #>   a b
@@ -109,6 +115,7 @@ in control flow to perform actions before or after Aio resolution
 without blocking.
 
 ``` r
+
 msg <- recv_aio(s2)
 
 # unresolved() checks resolution status
@@ -129,6 +136,7 @@ Explicitly wait for completion with
 (blocking).
 
 ``` r
+
 # wait for completion and return resolved Aio
 call_aio(msg)
 
@@ -168,6 +176,7 @@ while waiting and synchronising with zero latency.
 **Example 1: Wait for connection**
 
 ``` r
+
 sock <- socket("pair", listen = "inproc://nanopipe")
 
 cv <- cv()
@@ -200,6 +209,7 @@ close(sock)
 **Example 2: Wait for message or disconnection**
 
 ``` r
+
 sock <- socket("pair", listen = "inproc://nanosignal")
 sock2 <- socket("pair", dial = "inproc://nanosignal")
 

@@ -193,8 +193,6 @@ Helper functions
   Utility
 - [`msleep()`](https://nanonext.r-lib.org/reference/msleep.md) : Sleep
   Utility
-- [`messenger()`](https://nanonext.r-lib.org/reference/messenger.md) :
-  Messenger
 - [`reap()`](https://nanonext.r-lib.org/reference/reap.md) : Reap
 - [`read_stdin()`](https://nanonext.r-lib.org/reference/read_stdin.md) :
   Read stdin

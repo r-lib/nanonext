@@ -1,5 +1,33 @@
 # Changelog
 
+## nanonext 1.9.0
+
+CRAN release: 2026-05-04
+
+##### Performance
+
+- Serialized send operations now transfer the buffer directly into the
+  NNG message, eliminating a redundant copy and halving peak memory
+  usage ([\#219](https://github.com/r-lib/nanonext/issues/219)).
+- Speeds up hex string conversion in `random(convert = TRUE)`.
+
+##### Updates
+
+- Fixes sending and receiving of messages larger than `INT_MAX` bytes
+  over TCP and IPC transports on macOS and Windows
+  ([\#266](https://github.com/r-lib/nanonext/issues/266)).
+- Fixes unserialization of custom refhook payloads larger than
+  `ULONG_MAX` on 64-bit Windows.
+- Adds common MIME types to the HTTP server content map (SVG, JSON, MP4,
+  WebP, WASM, and web fonts)
+  ([\#275](https://github.com/r-lib/nanonext/issues/275)).
+- Removes `messenger()` as a non-core function
+  ([\#268](https://github.com/r-lib/nanonext/issues/268)).
+- Removes the deprecated `n` argument from
+  [`recv()`](https://nanonext.r-lib.org/reference/recv.md) and
+  [`recv_aio()`](https://nanonext.r-lib.org/reference/recv_aio.md).
+- Minimum required NNG version raised to 1.11 (bundled: 1.11.1-pre).
+
 ## nanonext 1.8.2
 
 CRAN release: 2026-04-04
@@ -265,9 +293,8 @@ CRAN release: 2025-03-18
 
 - [`write_cert()`](https://nanonext.r-lib.org/reference/write_cert.md)
   argument ‘cn’ now defaults to ‘127.0.0.1’ instead of ‘localhost’.
-- [`messenger()`](https://nanonext.r-lib.org/reference/messenger.md) now
-  exits cleanly, correcting a regression in nanonext 1.5.0
-  ([\#87](https://github.com/r-lib/nanonext/issues/87)).
+- `messenger()` now exits cleanly, correcting a regression in nanonext
+  1.5.0 ([\#87](https://github.com/r-lib/nanonext/issues/87)).
 - Promises created from ‘recvAio’ and ‘ncurlAio’ now reject in exactly
   the same way whether or not they were resolved at time of creation
   ([\#89](https://github.com/r-lib/nanonext/issues/89)).
@@ -622,9 +649,9 @@ when ready:*
 
 *Other changes:*
 
-- [`messenger()`](https://nanonext.r-lib.org/reference/messenger.md)
-  specifying ‘auth’ now works reliably on endpoints using different R
-  versions/platforms due to the above hashing portability fix.
+- `messenger()` specifying ‘auth’ now works reliably on endpoints using
+  different R versions/platforms due to the above hashing portability
+  fix.
 - Internal memory-efficiency and performance enhancements.
 - Upgrades bundled ‘libmbedtls’ to v3.5.2.
 
@@ -1128,8 +1155,8 @@ CRAN release: 2023-01-22
   completed.
 - Closing a stream now renders it inactive safely, without the need to
   strip all attributes on the object (as was the case previously).
-- [`messenger()`](https://nanonext.r-lib.org/reference/messenger.md) is
-  faster to connect and exits gracefully in case of a connection error.
+- `messenger()` is faster to connect and exits gracefully in case of a
+  connection error.
 - Removes defunct function `nano_init()`.
 - Bundled ‘libnng’ source updated to v1.6.0 pre-release (539e559).
 - Fixes CRAN ‘additional issue’ (clang-UBSAN).
@@ -1304,9 +1331,8 @@ update when ready:*
   and
   [`survey_time()`](https://nanonext.r-lib.org/reference/survey_time.md)
   are no longer S3 generics for enhanced performance.
-- [`messenger()`](https://nanonext.r-lib.org/reference/messenger.md)
-  uses longer SHA-512 hash for authentication; fixes errors creating a
-  connnection not being shown.
+- `messenger()` uses longer SHA-512 hash for authentication; fixes
+  errors creating a connnection not being shown.
 - The source code of ‘libnng’ v1.6.0 pre-release (722bf46) and
   ‘libmbedtls’ v3.2.1 now comes bundled rather than downloaded - this is
   much more efficient as unused portions have been stripped out.
@@ -1348,9 +1374,8 @@ CRAN release: 2022-09-02
 - [`ncurl()`](https://nanonext.r-lib.org/reference/ncurl.md) now returns
   additional `$status` (response status code) and `$headers` (response
   headers) fields.
-- [`messenger()`](https://nanonext.r-lib.org/reference/messenger.md)
-  gains the argument ‘auth’ for authenticating communications based on a
-  pre-shared key.
+- `messenger()` gains the argument ‘auth’ for authenticating
+  communications based on a pre-shared key.
 - [`random()`](https://nanonext.r-lib.org/reference/random.md) gains the
   argument ‘n’ for generating a vector of random numbers.
 
@@ -1488,9 +1513,9 @@ CRAN release: 2022-04-10
   immediately with a ‘recvAio’. Adds explicit arguments for HTTP method,
   headers (which takes a named list or character vector) and request
   data, as well as to specify if conversion from raw bytes is required.
-- New [`messenger()`](https://nanonext.r-lib.org/reference/messenger.md)
-  function implements a multi-threaded console-based messaging system
-  using NNG’s scalability protocols (currently as proof of concept).
+- New `messenger()` function implements a multi-threaded console-based
+  messaging system using NNG’s scalability protocols (currently as proof
+  of concept).
 - New `nano_init()` function intended to be called immediately after
   package load to set global options.
 

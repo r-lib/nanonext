@@ -11,6 +11,21 @@
 
 - **Hibiki AI Limited**. Copyright holder.
 
+- **Staysail Systems, Inc.**. Copyright holder.  
+  NNG library
+
+- **Capitar IT Group BV**. Copyright holder.  
+  NNG library
+
+- **The Mbed TLS Contributors**. Copyright holder.  
+  Mbed TLS library
+
+- **Pierre L'Ecuyer**. Copyright holder.  
+  RngStreams library
+
+- **sakura authors**. Copyright holder.  
+  Serialization hooks
+
 - **![R
   Consortium](https://r-consortium.org/images/RConsortium_Horizontal_Pantone.webp)**.
   Funder.
@@ -19,15 +34,15 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/r-lib/nanonext/blob/v1.8.2/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/r-lib/nanonext/blob/main/DESCRIPTION)
 
 Gao C (2026). *nanonext: Lightweight Toolkit for Messaging, Concurrency
-and the Web*. R package version 1.8.2, <https://nanonext.r-lib.org>.
+and the Web*. R package version 1.9.0, <https://nanonext.r-lib.org>.
 
     @Manual{,
       title = {nanonext: Lightweight Toolkit for Messaging, Concurrency and the Web},
       author = {Charlie Gao},
       year = {2026},
-      note = {R package version 1.8.2},
+      note = {R package version 1.9.0},
       url = {https://nanonext.r-lib.org},
     }

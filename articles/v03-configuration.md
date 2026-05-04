@@ -1,6 +1,7 @@
 # nanonext - Configuration and Security
 
 ``` r
+
 library(nanonext)
 ```
 
@@ -30,6 +31,7 @@ generates a 4096-bit RSA key pair and self-signed X.509 certificate. The
 mixed).
 
 ``` r
+
 cert <- write_cert(cn = "127.0.0.1")
 str(cert)
 #> List of 2
@@ -64,6 +66,7 @@ To configure dialers or listeners after creation, specify
 `autostart = FALSE` (configuration cannot be changed after starting).
 
 ``` r
+
 s <- socket(listen = "inproc://options", autostart = FALSE)
 
 # no maximum message size
@@ -90,6 +93,7 @@ with mode ‘serial’. Configurations apply to the Socket and all Contexts
 created from it.
 
 ``` r
+
 serial <- serial_config("obj_class", function(x) serialize(x, NULL), unserialize)
 opt(s, "serial") <- serial
 
@@ -104,6 +108,7 @@ statistics such as connection attempts and current connections. See
 function documentation for available statistics.
 
 ``` r
+
 s <- socket(listen = "inproc://stat")
 
 # no active connections (pipes)

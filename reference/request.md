@@ -57,9 +57,7 @@ request(
 
 - id:
 
-  (optional) set to `TRUE` (or any non-NULL value) to send a message via
-  the context upon timeout (asynchronously) consisting of an integer
-  zero, followed by the integer `context` ID.
+  NULL. For package internal use only.
 
 ## Value
 
