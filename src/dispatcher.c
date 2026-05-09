@@ -434,69 +434,35 @@ static void dispatch_handle_disconnect(nano_dispatcher *d, int pipe) {
 static void dispatch_handle_host_recv(nano_dispatcher *d) {
 
   nng_msg *msg = nng_aio_get_msg(d->host_aio);
-  unsigned char *buf = nng_msg_body(msg);
-  size_t len = nng_msg_len(msg);
+  int msgid, is_sync;
+  dispatch_read_msg_info(nng_msg_body(msg), nng_msg_len(msg), &msgid, &is_sync);
 
-  if (buf[0] == 0) {
-    int id = 0;
-    if (len >= 8)
-      memcpy(&id, buf + 4, sizeof(int));
+  int send_pipe = 0;
+  nng_mtx_lock(d->cv->mtx);
+  d->count++;
 
-    nng_mtx_lock(d->cv->mtx);
-    if (id == 0) {
-      int completed = d->count - d->inq_count - d->executing;
-      int result[5] = {d->outq_count, d->connections, d->inq_count, d->executing, completed};
-      nng_mtx_unlock(d->cv->mtx);
-      dispatch_send_reply(d->host_ctx, (unsigned char *) result, sizeof(result));
-    } else {
-      int found = 0;
-      int cancel_pipe = 0;
-      for (int i = 0; i < d->outq_count; i++) {
-        if (d->daemons[i].msgid == id) {
-          cancel_pipe = d->daemons[i].pipe;
-          found = 1;
-          break;
-        }
-      }
-      if (!found)
-        found = dispatch_cancel_inq(d, id);
-      nng_mtx_unlock(d->cv->mtx);
-      if (cancel_pipe)
-        dispatch_send_to_daemon(d, cancel_pipe, NULL, 0);
-      dispatch_send_reply(d->host_ctx, (unsigned char *) &found, sizeof(int));
+  nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
+  if (dd != NULL) {
+    send_pipe = dd->pipe;
+    dd->ctx = d->host_ctx;
+    dd->msgid = msgid;
+    d->executing++;
+    if (is_sync) {
+      dd->sync_gen = d->sync_generation;
+      d->syncing = 1;
+    } else if (d->syncing) {
+      d->syncing = 0;
+      d->sync_generation++;
     }
-    nng_ctx_close(d->host_ctx);
   } else {
-    int msgid, is_sync;
-    dispatch_read_msg_info(buf, len, &msgid, &is_sync);
+    dispatch_enqueue(d, d->host_ctx, msg, msgid, is_sync);
+    msg = NULL;
+  }
+  nng_mtx_unlock(d->cv->mtx);
 
-    int send_pipe = 0;
-    nng_mtx_lock(d->cv->mtx);
-    d->count++;
-
-    nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
-    if (dd != NULL) {
-      send_pipe = dd->pipe;
-      dd->ctx = d->host_ctx;
-      dd->msgid = msgid;
-      d->executing++;
-      if (is_sync) {
-        dd->sync_gen = d->sync_generation;
-        d->syncing = 1;
-      } else if (d->syncing) {
-        d->syncing = 0;
-        d->sync_generation++;
-      }
-    } else {
-      dispatch_enqueue(d, d->host_ctx, msg, msgid, is_sync);
+  if (send_pipe) {
+    if (dispatch_send_msg_to_daemon(d, send_pipe, msg) == 0)
       msg = NULL;
-    }
-    nng_mtx_unlock(d->cv->mtx);
-
-    if (send_pipe) {
-      if (dispatch_send_msg_to_daemon(d, send_pipe, msg) == 0)
-        msg = NULL;
-    }
   }
 
   if (msg)
@@ -675,13 +641,13 @@ static int dispatch_wait_cv(nano_dispatcher *d, int *host_ready,
 
 }
 
-static int dispatch_loop(nano_dispatcher *d) {
+static void dispatch_loop(nano_dispatcher *d) {
 
   int host_ready, daemon_ready, monitor_events;
 
   while (1) {
     if (dispatch_wait_cv(d, &host_ready, &daemon_ready, &monitor_events))
-      return 0;
+      return;
 
     if (monitor_events)
       dispatch_process_monitor(d, monitor_events);
@@ -710,24 +676,16 @@ static int dispatch_loop(nano_dispatcher *d) {
 
 static void dispatch_shutdown(nano_dispatcher *d) {
 
-  if (d == NULL) return;
-
-  if (d->host_aio) {
-    nng_aio_stop(d->host_aio);
-    nng_aio_wait(d->host_aio);
-  }
-  if (d->daemon_aio) {
-    nng_aio_stop(d->daemon_aio);
-    nng_aio_wait(d->daemon_aio);
-  }
+  nng_aio_stop(d->host_aio);
+  nng_aio_wait(d->host_aio);
+  nng_aio_stop(d->daemon_aio);
+  nng_aio_wait(d->daemon_aio);
 
   nng_ctx_close(d->host_ctx);
 
-  if (d->daemons) {
-    for (int i = 0; i < d->outq_count; i++)
-      if (d->daemons[i].msgid != 0)
-        nng_ctx_close(d->daemons[i].ctx);
-  }
+  for (int i = 0; i < d->outq_count; i++)
+    if (d->daemons[i].msgid != 0)
+      nng_ctx_close(d->daemons[i].ctx);
 
   while (d->inq_head) {
     nano_dispatch_task *t = d->inq_head;
@@ -739,7 +697,6 @@ static void dispatch_shutdown(nano_dispatcher *d) {
   }
 
   free(d->daemons);
-
   nng_aio_free(d->host_aio);
   nng_aio_free(d->daemon_aio);
   free(d->init_template);
