@@ -60,6 +60,7 @@ static void next_rng_stream_c(int *seed) {
 // data structures -------------------------------------------------------------
 
 #define DISPATCH_INITIAL_SIZE 16
+#define DISPATCH_BATCH_SIZE 32
 
 typedef struct nano_dispatch_task_s {
   nng_ctx ctx;
@@ -204,14 +205,11 @@ static void dispatch_free_task(nano_dispatch_task *t) {
 
 // send operations -------------------------------------------------------------
 
-static int dispatch_send_to_daemon(nano_dispatcher *d, int pipe,
-                                   unsigned char *data, size_t len) {
+static int dispatch_signal_daemon(nano_dispatcher *d, int pipe) {
 
   nng_msg *msg;
-  if (nng_msg_alloc(&msg, len))
+  if (nng_msg_alloc(&msg, 0))
     return -1;
-  if (len)
-    memcpy(nng_msg_body(msg), data, len);
   nng_msg_set_pipe(msg, (nng_pipe) {.id = (uint32_t) pipe});
   int xc = nng_sendmsg(*d->poly_sock, msg, 0);
   if (xc != 0)
@@ -237,12 +235,6 @@ static int dispatch_send_reply(nng_ctx ctx, unsigned char *data, size_t len) {
   if (xc != 0)
     nng_msg_free(msg);
   return xc;
-
-}
-
-static int dispatch_send_msg_reply(nng_ctx ctx, nng_msg *msg) {
-
-  return nng_ctx_sendmsg(ctx, msg, 0);
 
 }
 
@@ -285,38 +277,6 @@ static inline void dispatch_read_msg_info(unsigned char *buf, size_t len,
   } else {
     *msgid = 0;
     *is_sync = 0;
-  }
-
-}
-
-// monitor processing ----------------------------------------------------------
-
-static int dispatch_ensure_pipe_events(nano_dispatcher *d, int needed) {
-
-  if (needed <= d->pipe_events_size)
-    return 1;
-
-  int new_size = d->pipe_events_size ? d->pipe_events_size : DISPATCH_INITIAL_SIZE;
-  while (new_size < needed)
-    new_size *= 2;
-
-  int *new_buf = realloc(d->pipe_events, new_size * sizeof(int));
-  if (new_buf == NULL)
-    return 0;
-
-  d->pipe_events = new_buf;
-  d->pipe_events_size = new_size;
-  return 1;
-
-}
-
-static void dispatch_process_monitor(nano_dispatcher *d, int count) {
-
-  for (int i = 0; i < count; i++) {
-    if (d->pipe_events[i] > 0)
-      dispatch_handle_connect(d, d->pipe_events[i]);
-    else
-      dispatch_handle_disconnect(d, -d->pipe_events[i]);
   }
 
 }
@@ -499,12 +459,12 @@ static void dispatch_handle_daemon_recv(nano_dispatcher *d) {
     }
     nng_mtx_unlock(d->cv->mtx);
 
-    if (dispatch_send_msg_reply(ctx, msg) == 0)
+    if (nng_ctx_sendmsg(ctx, msg, 0) == 0)
       msg = NULL;
     nng_ctx_close(ctx);
 
     if (is_marker)
-      dispatch_send_to_daemon(d, pipe_id, NULL, 0);
+      dispatch_signal_daemon(d, pipe_id);
   } else {
     nng_mtx_unlock(d->cv->mtx);
   }
@@ -556,14 +516,14 @@ static nano_dispatch_daemon *dispatch_find_idle_daemon(nano_dispatcher *d) {
 
 static void dispatch_dispatch_tasks(nano_dispatcher *d) {
 
-  struct { int pipe; nng_msg *msg; } batch[32];
+  struct { int pipe; nng_msg *msg; } batch[DISPATCH_BATCH_SIZE];
   int nsends;
 
   do {
     nsends = 0;
     nng_mtx_lock(d->cv->mtx);
 
-    while (d->inq_head && nsends < 32) {
+    while (d->inq_head && nsends < DISPATCH_BATCH_SIZE) {
       nano_dispatch_task *t = d->inq_head;
 
       nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
@@ -602,7 +562,7 @@ static void dispatch_dispatch_tasks(nano_dispatcher *d) {
         nng_msg_free(batch[i].msg);
     }
 
-  } while (nsends == 32);
+  } while (nsends == DISPATCH_BATCH_SIZE);
 
 }
 
@@ -626,13 +586,15 @@ static int dispatch_wait_cv(nano_dispatcher *d, int *host_ready,
   d->host_recv_ready = 0;
   d->daemon_recv_ready = 0;
 
-  int count = m->updates;
-  if (count && dispatch_ensure_pipe_events(d, count)) {
-    memcpy(d->pipe_events, m->ids, count * sizeof(int));
+  *monitor_count = m->updates;
+  if (m->updates) {
+    int *tmp_ids = d->pipe_events;
+    int tmp_size = d->pipe_events_size;
+    d->pipe_events = m->ids;
+    d->pipe_events_size = m->size;
+    m->ids = tmp_ids;
+    m->size = tmp_size;
     m->updates = 0;
-    *monitor_count = count;
-  } else {
-    *monitor_count = 0;
   }
 
   nng_mtx_unlock(mtx);
@@ -649,8 +611,12 @@ static void dispatch_loop(nano_dispatcher *d) {
     if (dispatch_wait_cv(d, &host_ready, &daemon_ready, &monitor_events))
       return;
 
-    if (monitor_events)
-      dispatch_process_monitor(d, monitor_events);
+    for (int i = 0; i < monitor_events; i++) {
+      if (d->pipe_events[i] > 0)
+        dispatch_handle_connect(d, d->pipe_events[i]);
+      else
+        dispatch_handle_disconnect(d, -d->pipe_events[i]);
+    }
 
     if (host_ready) {
       if (nng_aio_result(d->host_aio) == 0)
@@ -666,8 +632,7 @@ static void dispatch_loop(nano_dispatcher *d) {
         nng_recv_aio(*d->poly_sock, d->daemon_aio);
     }
 
-    if (d->inq_head)
-      dispatch_dispatch_tasks(d);
+    dispatch_dispatch_tasks(d);
   }
 
 }
@@ -783,7 +748,7 @@ int dispatch_cancel_direct(void *handle, int id) {
   nng_mtx_unlock(d->cv->mtx);
 
   if (pipe)
-    dispatch_send_to_daemon(d, pipe, NULL, 0);
+    dispatch_signal_daemon(d, pipe);
 
   return found;
 
