@@ -128,7 +128,7 @@ if (is_ncurl_session(s)) transact(s)
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Tue, 26 May 2026 08:05:32 GMT"
+#> [1] "Tue, 26 May 2026 18:30:17 GMT"
 #> 
 #> 
 #> $data
