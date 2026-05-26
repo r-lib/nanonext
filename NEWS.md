@@ -1,5 +1,7 @@
 # nanonext (development version)
 
+* Bundled NNG source updated (1.11.1-pre).
+
 # nanonext 1.9.0
 
 #### Performance
