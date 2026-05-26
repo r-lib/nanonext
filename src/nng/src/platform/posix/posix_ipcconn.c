@@ -48,6 +48,7 @@ ipc_dowrite(ipc_conn *c)
 		struct msghdr hdr;
 		struct iovec  iovec[16];
 		size_t        count;
+		bool          clamped;
 
 		memset(&hdr, 0, sizeof(hdr));
 		nni_aio_get_iov(aio, &naiov, &aiov);
@@ -58,14 +59,14 @@ ipc_dowrite(ipc_conn *c)
 			continue;
 		}
 
-		count = 0;
-		for (niov = 0, i = 0; i < naiov; i++) {
+		count   = 0;
+		clamped = false;
+		for (niov = 0, i = 0; !clamped && i < naiov; i++) {
 			if (aiov[i].iov_len > 0) {
-				size_t len = nni_aio_iov_clamp_len(
-				    aiov[i].iov_len, count);
-				iovec[niov].iov_len  = len;
 				iovec[niov].iov_base = aiov[i].iov_buf;
-				count += len;
+				iovec[niov].iov_len  = aiov[i].iov_len;
+				clamped = nni_aio_iov_clamp_len(
+				    &iovec[niov].iov_len, &count);
 				niov++;
 			}
 		}
@@ -117,6 +118,7 @@ ipc_doread(ipc_conn *c)
 		nni_iov     *aiov;
 		struct iovec iovec[16];
 		size_t       count;
+		bool         clamped;
 
 		nni_aio_get_iov(aio, &naiov, &aiov);
 		if (naiov > NNI_NUM_ELEMENTS(iovec)) {
@@ -124,14 +126,14 @@ ipc_doread(ipc_conn *c)
 			nni_aio_finish_error(aio, NNG_EINVAL);
 			continue;
 		}
-		count = 0;
-		for (niov = 0, i = 0; i < naiov; i++) {
+		count   = 0;
+		clamped = false;
+		for (niov = 0, i = 0; !clamped && i < naiov; i++) {
 			if (aiov[i].iov_len != 0) {
-				size_t len = nni_aio_iov_clamp_len(
-				    aiov[i].iov_len, count);
-				iovec[niov].iov_len  = len;
 				iovec[niov].iov_base = aiov[i].iov_buf;
-				count += len;
+				iovec[niov].iov_len  = aiov[i].iov_len;
+				clamped = nni_aio_iov_clamp_len(
+				    &iovec[niov].iov_len, &count);
 				niov++;
 			}
 		}

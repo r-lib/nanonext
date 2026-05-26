@@ -29,6 +29,7 @@ tcp_recv_start(nni_tcp_conn *c)
 	WSABUF   iov[8];
 	DWORD    nrecv;
 	size_t   count;
+	bool     clamped;
 
 	c->recv_rv = 0;
 	while ((aio = nni_list_first(&c->recv_aios)) != NULL) {
@@ -40,13 +41,14 @@ tcp_recv_start(nni_tcp_conn *c)
 	  }
 	  nni_aio_get_iov(aio, &naiov, &aiov);
 
-	  count = 0;
-	  for (niov = 0, i = 0; i < naiov; i++) {
+	  count   = 0;
+	  clamped = false;
+	  for (niov = 0, i = 0; !clamped && i < naiov; i++) {
 	    if (aiov[i].iov_len != 0) {
-	      size_t len = nni_aio_iov_clamp_len(aiov[i].iov_len, count);
+	      size_t len = aiov[i].iov_len;
+	      clamped = nni_aio_iov_clamp_len(&len, &count);
 	      iov[niov].buf = aiov[i].iov_buf;
 	      iov[niov].len = (ULONG) len;
-	      count += len;
 	      niov++;
 	    }
 	  }
@@ -149,6 +151,7 @@ tcp_send_start(nni_tcp_conn *c)
 	unsigned naiov;
 	nni_iov *aiov;
 	WSABUF   iov[8];
+	bool     clamped;
 
 	while ((aio = nni_list_first(&c->send_aios)) != NULL) {
 	  if (c->closed) {
@@ -158,13 +161,14 @@ tcp_send_start(nni_tcp_conn *c)
 	  }
 	  nni_aio_get_iov(aio, &naiov, &aiov);
 
-	  count = 0;
-	  for (niov = 0, i = 0; i < naiov; i++) {
+	  count   = 0;
+	  clamped = false;
+	  for (niov = 0, i = 0; !clamped && i < naiov; i++) {
 	    if (aiov[i].iov_len != 0) {
-	      size_t len = nni_aio_iov_clamp_len(aiov[i].iov_len, count);
+	      size_t len = aiov[i].iov_len;
+	      clamped = nni_aio_iov_clamp_len(&len, &count);
 	      iov[niov].buf = aiov[i].iov_buf;
 	      iov[niov].len = (ULONG) len;
-	      count += len;
 	      niov++;
 	    }
 	  }
