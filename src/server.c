@@ -315,7 +315,6 @@ static void http_server_cleanup(void *arg) {
       conn = next;
     }
   }
-  free(srv->handlers);
 
   if (srv->tls != NULL)
     nng_tls_config_free(srv->tls);
@@ -672,17 +671,25 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
 
   const char *ur = CHAR(STRING_ELT(url, 0));
   nng_url *up = NULL;
-  nano_http_handler_info *hinfo = NULL;
   int xc;
   int handlers_added = 0;
+  const R_xlen_t handler_count = Rf_xlength(handlers);
 
-  nano_http_server *srv = calloc(1, sizeof(nano_http_server));
+  nano_http_server *srv = calloc(1, sizeof(nano_http_server) +
+                                    (size_t) handler_count * sizeof(nano_http_handler_info));
   if (srv == NULL) {
     xc = NNG_ENOMEM;
     goto fail;
   }
   srv->xptr = R_NilValue;
   srv->prot = R_NilValue;
+  srv->handler_count = handler_count;
+  for (R_xlen_t i = 0; i < handler_count; i++) {
+    srv->handlers[i].callback = R_NilValue;
+    srv->handlers[i].on_open = R_NilValue;
+    srv->handlers[i].on_close = R_NilValue;
+  }
+
   if ((xc = nng_mtx_alloc(&srv->mtx)))
     goto fail;
 
@@ -703,23 +710,7 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
       goto fail;
   }
 
-  const R_xlen_t handler_count = Rf_xlength(handlers);
-  srv->handler_count = handler_count;
-
   if (handler_count > 0) {
-    hinfo = calloc(handler_count, sizeof(nano_http_handler_info));
-    if (hinfo == NULL) {
-      xc = NNG_ENOMEM;
-      goto fail;
-    }
-    srv->handlers = hinfo;
-
-    for (R_xlen_t i = 0; i < handler_count; i++) {
-      srv->handlers[i].callback = R_NilValue;
-      srv->handlers[i].on_open = R_NilValue;
-      srv->handlers[i].on_close = R_NilValue;
-    }
-
     for (R_xlen_t i = 0; i < handler_count; i++) {
       SEXP h = VECTOR_ELT(handlers, i);
 
@@ -950,29 +941,30 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
   return xptr;
 
   fail:
-  if (srv->tls != NULL)
-    nng_tls_config_free(srv->tls);
-  for (int i = 0; i < handlers_added; i++) {
-    if (srv->handlers[i].handler != NULL)
-      nng_http_server_del_handler(srv->server, srv->handlers[i].handler);
-    if (srv->handlers[i].listener != NULL)
-      nng_stream_listener_free(srv->handlers[i].listener);
-    if (srv->handlers[i].accept_aio != NULL)
-      nng_aio_free(srv->handlers[i].accept_aio);
+  if (srv != NULL) {
+    if (srv->tls != NULL)
+      nng_tls_config_free(srv->tls);
+    for (int i = 0; i < handlers_added; i++) {
+      if (srv->handlers[i].handler != NULL)
+        nng_http_server_del_handler(srv->server, srv->handlers[i].handler);
+      if (srv->handlers[i].listener != NULL)
+        nng_stream_listener_free(srv->handlers[i].listener);
+      if (srv->handlers[i].accept_aio != NULL)
+        nng_aio_free(srv->handlers[i].accept_aio);
+    }
+    if (handlers_added < handler_count) {
+      if (srv->handlers[handlers_added].handler != NULL)
+        nng_http_handler_free(srv->handlers[handlers_added].handler);
+      if (srv->handlers[handlers_added].listener != NULL)
+        nng_stream_listener_free(srv->handlers[handlers_added].listener);
+      if (srv->handlers[handlers_added].accept_aio != NULL)
+        nng_aio_free(srv->handlers[handlers_added].accept_aio);
+    }
+    if (srv->server != NULL) nng_http_server_release(srv->server);
+    if (srv->mtx != NULL) nng_mtx_free(srv->mtx);
+    free(srv);
   }
-  if (hinfo != NULL && handlers_added < handler_count) {
-    if (srv->handlers[handlers_added].handler != NULL)
-      nng_http_handler_free(srv->handlers[handlers_added].handler);
-    if (srv->handlers[handlers_added].listener != NULL)
-      nng_stream_listener_free(srv->handlers[handlers_added].listener);
-    if (srv->handlers[handlers_added].accept_aio != NULL)
-      nng_aio_free(srv->handlers[handlers_added].accept_aio);
-  }
-  if (srv->server != NULL) nng_http_server_release(srv->server);
-  if (srv->mtx != NULL) nng_mtx_free(srv->mtx);
   nng_url_free(up);
-  free(hinfo);
-  free(srv);
   ERROR_OUT(xc);
 
 }

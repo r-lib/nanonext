@@ -340,7 +340,6 @@ typedef enum {
 typedef struct nano_http_server_s {
   nng_http_server *server;          // NNG HTTP server
   nng_tls_config *tls;              // TLS configuration
-  nano_http_handler_info *handlers; // Array of handler info
   nano_http_request *pending_reqs;  // Linked list of pending HTTP requests
   nng_mtx *mtx;                     // Mutex for thread safety
   SEXP xptr;                        // R external pointer for this server
@@ -348,6 +347,7 @@ typedef struct nano_http_server_s {
   int handler_count;                // Number of handlers
   int conn_counter;                 // Server-wide unique connection ID counter
   nano_server_state state;          // Server lifecycle state
+  nano_http_handler_info handlers[]; // Trailing array of handler info
 } nano_http_server;
 
 typedef struct ws_message_s {
