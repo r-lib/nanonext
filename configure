@@ -55,15 +55,21 @@ if [ -z "$MACOSX_DEPLOYMENT_TARGET" ]; then
 fi
 
 # Detect -latomic linker flag for ARM architectures (Raspberry Pi etc.)
-echo "#include <stdint.h>
+# Skip for Emscripten: wasm has no libatomic and emcc rejects -o /dev/null
+case "$CC" in
+  *emcc*) ;;
+  *)
+    echo "#include <stdint.h>
 uint64_t v;
 int main() {
     return (int)__atomic_load_n(&v, __ATOMIC_ACQUIRE);
 }" | ${CC} -xc - -o /dev/null > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-  echo "Adding -latomic linker flag ..."
-  PKG_LIBS="$PKG_LIBS -latomic"
-fi
+    if [ $? -ne 0 ]; then
+      echo "Adding -latomic linker flag ..."
+      PKG_LIBS="$PKG_LIBS -latomic"
+    fi
+    ;;
+esac
 
 # Determine whether to compile bundled libraries
 compile_mbedtls=0
