@@ -71,6 +71,16 @@ int main() {
     ;;
 esac
 
+# Inject Emscripten link-time tuning when building pthread-WASM
+case "$CC" in
+  *emcc*)
+    if echo " $CFLAGS $PKG_CFLAGS " | grep -q ' -pthread '; then
+      echo "Detected pthread-WASM target"
+      PKG_LIBS="$PKG_LIBS -s PTHREAD_POOL_SIZE=16 -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=33554432"
+    fi
+    ;;
+esac
+
 # Determine whether to compile bundled libraries
 compile_mbedtls=0
 compile_nng=0

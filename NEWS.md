@@ -1,6 +1,9 @@
 # nanonext (development version)
 
-* Bundled NNG source updated (1.11.1-pre).
+#### Updates
+
+* Adds support for building against pthread-enabled WebAssembly targets (e.g. a pthread variant of webR).
+* Updates bundled NNG source (1.11.1-pre).
 
 # nanonext 1.9.0
 
