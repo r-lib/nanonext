@@ -1,9 +1,10 @@
-# nanonext (development version)
+# nanonext 1.9.1
 
 #### Updates
 
 * Adds support for building against pthread-enabled WebAssembly targets (e.g. a pthread variant of webR).
 * Updates bundled NNG source (1.11.1-pre).
+* No longer supports mirai < 2.7.0.
 
 # nanonext 1.9.0
 
