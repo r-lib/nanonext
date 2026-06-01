@@ -179,6 +179,6 @@ regenerate.
 - C functions registered for `.Call` use `rnng_` prefix
 - Internal C functions and types use `nano_` prefix
 - R code uses snake_case; internal functions use `.function` prefix
-  (e.g., `.dispatcher`)
+  (e.g., `.context`)
 - C macros for common operations: `NANO_PTR`, `NANO_DATAPTR`,
   `NANO_STRING`, `NANO_VECTOR`
