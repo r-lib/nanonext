@@ -20,23 +20,19 @@
 void
 nni_plat_abort(void)
 {
-	abort();
+	__builtin_trap();
 }
 
 void
 nni_plat_printf(const char *fmt, ...)
 {
-	va_list ap;
-	va_start(ap, fmt);
-	(void) vprintf(fmt, ap);
-	va_end(ap);
+	(void) fmt;
 }
 
 void
 nni_plat_println(const char *message)
 {
-	fputs(message, stderr);
-	fputc('\n', stderr);
+	(void) message;
 }
 
 const char *

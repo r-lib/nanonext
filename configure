@@ -1,21 +1,34 @@
 #!/bin/sh
 
-# Initialise
-PKG_CFLAGS=""
-PKG_LIBS=""
+# nanonext configure (POSIX / macOS / Emscripten).
+#
+# Uses a system 'libnng' >= 1.11 and 'libmbedtls' >= 2.5 when present; otherwise
+# compiles the bundled sources directly into nanonext.so via the explicit
+# per-object rules in src/Makevars.in -- no cmake, no static archives, no
+# install step. The only genuinely platform-specific work is replicating NNG's
+# POSIX feature probes (ported below from its CMake checks), used to set the
+# NNG_HAVE_* macros and to select the poller / random-source variant.
 
-# Helper function: detect cmake
-detect_cmake() {
-  if which cmake > /dev/null 2>&1; then
-    return 0
-  fi
-  export PATH=$PATH:/Applications/CMake.app/Contents/bin
-  if which cmake > /dev/null 2>&1; then
-    return 0
-  fi
-  echo "Required 'cmake' not found"
-  exit 1
+# Initialise
+PKG_CPPFLAGS=""
+PKG_LIBS=""
+NNG_DEFS=""
+NNG_OBJECTS=""
+MBEDTLS_OBJECTS=""
+
+# Append a link flag to PKG_LIBS, deduplicated.
+add_lib() {
+  case " $PKG_LIBS " in
+    *" $1 "*) ;;
+    *) PKG_LIBS="$PKG_LIBS $1" ;;
+  esac
 }
+
+# Append -D<macro> to the NNG define set.
+add_def() { NNG_DEFS="$NNG_DEFS -D$1"; }
+
+# Read a tools/*.list source list, stripping comment and blank lines.
+read_list() { grep -v '^#' "$1" | grep -v '^[[:space:]]*$'; }
 
 # Helper function: find library paths
 # Usage: find_lib_paths <lib_name> <default_libs>
@@ -43,6 +56,62 @@ find_lib_paths() {
   fi
 }
 
+# --- NNG feature probes (ported from src/nng/.../CMakeLists.txt) -------------
+# Each probe compiles + links a small program with the same feature-test defines
+# as the real build, mirroring CMake's check_function_exists / check_symbol_exists
+# / check_library_exists / check_struct_has_member. On success it sets a shell
+# variable named after the macro (e.g. NNG_HAVE_KQUEUE=yes) and adds the define;
+# check_lib additionally adds -l<lib> to the link flags.
+
+# check_function_exists: link test, self-declared symbol (no header).
+nng_check_func() {
+  printf 'char %s();\nint main(void){ return (int) %s(); }\n' "$1" "$1" > "$CONFTEST_C"
+  if ${CC} ${PROBE_CFLAGS} "$CONFTEST_C" -o "$CONFTEST_X" > /dev/null 2>&1; then
+    add_def "$2=1"; eval "$2=yes"
+  else
+    eval "$2=no"
+  fi
+}
+
+# check_symbol_exists: compile + link, include header, reference symbol. Handles
+# both macros and functions/variables exactly as CMake's CheckSymbolExists.
+nng_check_sym() {
+  {
+    printf '#include <%s>\n' "$2"
+    printf 'int main(int argc, char **argv){ (void)argv;\n'
+    printf '#ifndef %s\n  return ((int *)(&%s))[argc];\n#else\n  (void)argc; return 0;\n#endif\n}\n' "$1" "$1"
+  } > "$CONFTEST_C"
+  if ${CC} ${PROBE_CFLAGS} "$CONFTEST_C" -o "$CONFTEST_X" > /dev/null 2>&1; then
+    add_def "$3=1"; eval "$3=yes"
+  else
+    eval "$3=no"
+  fi
+}
+
+# check_library_exists: link test adding -l<lib>; defines the macro and links the
+# library on success.
+nng_check_lib() {
+  printf 'char %s();\nint main(void){ return (int) %s(); }\n' "$2" "$2" > "$CONFTEST_C"
+  if ${CC} ${PROBE_CFLAGS} "$CONFTEST_C" "-l$1" -o "$CONFTEST_X" > /dev/null 2>&1; then
+    add_def "$3=1"; eval "$3=yes"; add_lib "-l$1"
+  else
+    eval "$3=no"
+  fi
+}
+
+# check_struct_has_member: compile + link, reference struct member.
+nng_check_struct_member() {
+  {
+    printf '#include <%s>\n' "$3"
+    printf 'int main(void){ struct %s s; (void) (s.%s); return 0; }\n' "$1" "$2"
+  } > "$CONFTEST_C"
+  if ${CC} ${PROBE_CFLAGS} "$CONFTEST_C" -o "$CONFTEST_X" > /dev/null 2>&1; then
+    add_def "$4=1"; eval "$4=yes"
+  else
+    eval "$4=no"
+  fi
+}
+
 # Find compiler and export flags
 CC=`"${R_HOME}/bin/R" CMD config CC`
 CFLAGS=`"${R_HOME}/bin/R" CMD config CFLAGS`
@@ -66,7 +135,7 @@ int main() {
 }" | ${CC} -xc - -o /dev/null > /dev/null 2>&1
     if [ $? -ne 0 ]; then
       echo "Adding -latomic linker flag ..."
-      PKG_LIBS="$PKG_LIBS -latomic"
+      add_lib -latomic
     fi
     ;;
 esac
@@ -84,6 +153,10 @@ esac
 # Determine whether to compile bundled libraries
 compile_mbedtls=0
 compile_nng=0
+MBEDTLS_SYS_CFLAGS=""
+MBEDTLS_SYS_LIBS=""
+NNG_SYS_CFLAGS=""
+NNG_SYS_LIBS=""
 
 if [ -n "$NANONEXT_LIBS" ]; then
   echo "NANONEXT_LIBS is set... building from source"
@@ -92,75 +165,190 @@ if [ -n "$NANONEXT_LIBS" ]; then
 else
   # Find MbedTLS
   find_lib_paths "mbedtls" "-lmbedtls -lmbedx509 -lmbedcrypto"
-  MBEDTLS_CFLAGS="$LIB_CFLAGS"
-  MBEDTLS_LIBS="$LIB_LIBS"
+  MBEDTLS_SYS_CFLAGS="$LIB_CFLAGS"
+  MBEDTLS_SYS_LIBS="$LIB_LIBS"
 
   echo "#include <mbedtls/version.h>
 int main() {
 #if MBEDTLS_VERSION_MAJOR < 2 || MBEDTLS_VERSION_MAJOR == 2 && MBEDTLS_VERSION_MINOR < 5
     *(void *) 0 = 0;
 #endif
-}" | ${CC} ${MBEDTLS_CFLAGS} -xc - -o /dev/null > /dev/null 2>&1
+}" | ${CC} ${MBEDTLS_SYS_CFLAGS} -xc - -o /dev/null > /dev/null 2>&1
   if [ $? -ne 0 ]; then
     compile_mbedtls=1
   else
-    echo "Found 'libmbedtls' $MBEDTLS_CFLAGS"
-    PKG_CFLAGS="$MBEDTLS_CFLAGS $PKG_CFLAGS"
-    PKG_LIBS="$MBEDTLS_LIBS $PKG_LIBS"
+    echo "Found 'libmbedtls' $MBEDTLS_SYS_CFLAGS"
   fi
 
   # Find NNG
   find_lib_paths "nng" "-lnng"
-  NNG_CFLAGS="$LIB_CFLAGS"
-  NNG_LIBS="$LIB_LIBS"
+  NNG_SYS_CFLAGS="$LIB_CFLAGS"
+  NNG_SYS_LIBS="$LIB_LIBS"
 
   echo "#include <nng/nng.h>
 int main() {
 #if NNG_MAJOR_VERSION < 1 || NNG_MAJOR_VERSION == 1 && NNG_MINOR_VERSION < 11
     *(void *) 0 = 0;
 #endif
-}" | ${CC} ${NNG_CFLAGS} -xc - -o /dev/null > /dev/null 2>&1
+}" | ${CC} ${NNG_SYS_CFLAGS} -xc - -o /dev/null > /dev/null 2>&1
   if [ $? -ne 0 ]; then
     compile_nng=1
   else
-    echo "Found 'libnng' $NNG_CFLAGS"
-    PKG_CFLAGS="$NNG_CFLAGS $PKG_CFLAGS"
-    PKG_LIBS="$NNG_LIBS $PKG_LIBS"
+    echo "Found 'libnng' $NNG_SYS_CFLAGS"
   fi
 fi
 
-# Compile MbedTLS if needed
+# --- Mbed TLS: bundled or system --------------------------------------------
+# MBEDTLS_INC is the include flag the bundled NNG TLS engine and the package's
+# own tls.c compile against (bundled headers, or the detected system headers).
 if [ $compile_mbedtls -eq 1 ]; then
-  echo "Existing 'libmbedtls' >= 2.5.0 not found"
-  detect_cmake
-  echo "Compiling 'libmbedtls' from source ..."
-  cmake -S src/mbedtls -B nano-build -DCMAKE_INSTALL_PREFIX=nano-install -DCMAKE_INSTALL_LIBDIR=lib
-  cmake --build nano-build --target install
-  rm -rf nano-build
+  echo "Compiling bundled 'libmbedtls' in place ..."
+  MBEDTLS_INC="-Imbedtls/include"
+  PKG_CPPFLAGS="$PKG_CPPFLAGS -Imbedtls/include"
+  MBEDTLS_OBJECTS=`read_list tools/mbedtls.list | tr '\n' ' ' | sed 's/  */ /g; s/ *$//'`
+else
+  MBEDTLS_INC="$MBEDTLS_SYS_CFLAGS"
+  PKG_CPPFLAGS="$PKG_CPPFLAGS $MBEDTLS_SYS_CFLAGS"
+  PKG_LIBS="$MBEDTLS_SYS_LIBS $PKG_LIBS"
 fi
 
-# Compile NNG if needed
+# --- NNG: bundled or system --------------------------------------------------
 if [ $compile_nng -eq 1 ]; then
-  echo "Existing 'libnng' >= 1.11.0 not found"
-  detect_cmake
-  echo "Compiling 'libnng' from source ..."
-  cmake -S src/nng -B nano-build -DCMAKE_INSTALL_PREFIX=nano-install -DCMAKE_INSTALL_LIBDIR=lib
-  cmake --build nano-build --target install
-  rm -rf nano-build
+  echo "Compiling bundled 'libnng' in place ..."
+
+  # Fixed NNG option set (all protocols / transports on, TLS = mbed, stats on).
+  # Identical common set to tools/generate_makevars.sh (Windows path).
+  NNG_COMMON_DEFS="-DNNG_STATIC_LIB -DNNG_PRIVATE -DNNG_SUPP_TLS -DNNG_SUPP_HTTP -DNNG_ENABLE_STATS -DNNG_RESOLV_CONCURRENCY=4 -DNNG_MAX_TASKQ_THREADS=16 -DNNG_MAX_EXPIRE_THREADS=8 -DNNG_MAX_POLLER_THREADS=8 -DNNG_TLS_ENGINE_INIT=nng_tls_engine_init_mbed -DNNG_TLS_ENGINE_FINI=nng_tls_engine_fini_mbed -DNNG_TRANSPORT_INPROC -DNNG_TRANSPORT_IPC -DNNG_TRANSPORT_TCP -DNNG_TRANSPORT_TLS -DNNG_TRANSPORT_WS -DNNG_TRANSPORT_WSS -DNNG_TRANSPORT_FDC -DNNG_HAVE_BUS0 -DNNG_HAVE_PAIR0 -DNNG_HAVE_PAIR1 -DNNG_HAVE_PUB0 -DNNG_HAVE_SUB0 -DNNG_HAVE_PULL0 -DNNG_HAVE_PUSH0 -DNNG_HAVE_REQ0 -DNNG_HAVE_REP0 -DNNG_HAVE_SURVEYOR0 -DNNG_HAVE_RESPONDENT0"
+
+  # Feature-test macros: needed by glibc / SunOS, harmless elsewhere. Declared
+  # unconditionally by NNG's POSIX layer; also used while probing so detection
+  # matches compilation.
+  POSIX_FT_DEFS="-D_GNU_SOURCE -D_REENTRANT -D_THREAD_SAFE -D_POSIX_PTHREAD_SEMANTICS"
+
+  IS_EMSCRIPTEN=no
+  case "$CC" in
+    *emcc*) IS_EMSCRIPTEN=yes ;;
+  esac
+
+  # Platform -D set, derived from uname (mirrors NNG's CMakeLists platform block).
+  if [ "$IS_EMSCRIPTEN" = yes ]; then
+    NNG_PLATFORM_DEFS="-DNNG_PLATFORM_POSIX -DNNG_PLATFORM_EMSCRIPTEN -DNNG_USE_GETTIMEOFDAY"
+  else
+    case `uname -s` in
+      Linux)   NNG_PLATFORM_DEFS="-DNNG_PLATFORM_POSIX -DNNG_PLATFORM_LINUX -DNNG_USE_EVENTFD -DNNG_HAVE_ABSTRACT_SOCKETS" ;;
+      Darwin)  NNG_PLATFORM_DEFS="-DNNG_PLATFORM_POSIX -DNNG_PLATFORM_DARWIN" ;;
+      FreeBSD) NNG_PLATFORM_DEFS="-DNNG_PLATFORM_POSIX -DNNG_PLATFORM_FREEBSD" ;;
+      NetBSD)  NNG_PLATFORM_DEFS="-DNNG_PLATFORM_POSIX -DNNG_PLATFORM_NETBSD" ;;
+      OpenBSD) NNG_PLATFORM_DEFS="-DNNG_PLATFORM_POSIX -DNNG_PLATFORM_OPENBSD" ;;
+      SunOS)   NNG_PLATFORM_DEFS="-DNNG_PLATFORM_POSIX -DNNG_PLATFORM_SUNOS" ;;
+      *)       NNG_PLATFORM_DEFS="-DNNG_PLATFORM_POSIX" ;;
+    esac
+  fi
+
+  # Seed the NNG define set: mbedtls include + fixed options + platform +
+  # feature-test macros. The probes below append the NNG_HAVE_* macros.
+  NNG_DEFS="$MBEDTLS_INC $NNG_COMMON_DEFS $NNG_PLATFORM_DEFS $POSIX_FT_DEFS"
+
+  # Probe scratch space + flags. Probes use the build CFLAGS plus the feature-test
+  # macros so header availability and detection match the real compilation.
+  PROBE_DIR=`mktemp -d 2>/dev/null || echo "./nano-conftest.$$"`
+  mkdir -p "$PROBE_DIR"
+  CONFTEST_C="$PROBE_DIR/conftest.c"
+  CONFTEST_X="$PROBE_DIR/conftest"
+  PROBE_CFLAGS="$CFLAGS $POSIX_FT_DEFS"
+
+  echo "Probing platform features for bundled NNG ..."
+
+  # core/CMakeLists.txt
+  nng_check_sym strlcpy    string.h NNG_HAVE_STRLCPY
+  nng_check_sym strnlen    string.h NNG_HAVE_STRNLEN
+  nng_check_sym strcasecmp string.h NNG_HAVE_STRCASECMP
+  nng_check_sym strncasecmp string.h NNG_HAVE_STRNCASECMP
+
+  # platform/posix/CMakeLists.txt
+  nng_check_func lockf          NNG_HAVE_LOCKF
+  nng_check_func flock          NNG_HAVE_FLOCK
+  nng_check_func getrandom      NNG_HAVE_GETRANDOM
+  nng_check_func arc4random_buf NNG_HAVE_ARC4RANDOM
+
+  nng_check_func clock_gettime  NNG_HAVE_CLOCK_GETTIME_LIBC
+  if [ "$NNG_HAVE_CLOCK_GETTIME_LIBC" = yes ]; then
+    add_def NNG_HAVE_CLOCK_GETTIME; NNG_HAVE_CLOCK_GETTIME=yes
+  else
+    nng_check_lib rt clock_gettime NNG_HAVE_CLOCK_GETTIME
+  fi
+  nng_check_lib pthread sem_wait            NNG_HAVE_SEMAPHORE_PTHREAD
+  nng_check_lib pthread pthread_atfork      NNG_HAVE_PTHREAD_ATFORK_PTHREAD
+  nng_check_lib pthread pthread_set_name_np NNG_HAVE_PTHREAD_SET_NAME_NP
+  nng_check_lib pthread pthread_setname_np  NNG_HAVE_PTHREAD_SETNAME_NP
+  nng_check_lib nsl     gethostbyname       NNG_HAVE_LIBNSL
+  nng_check_lib socket  socket              NNG_HAVE_LIBSOCKET
+  nng_check_lib atomic  __atomic_load_1     NNG_HAVE_LIBATOMIC
+
+  nng_check_sym AF_UNIX               sys/socket.h NNG_HAVE_UNIX_SOCKETS
+  nng_check_sym backtrace_symbols_fd  execinfo.h   NNG_HAVE_BACKTRACE
+  nng_check_struct_member msghdr msg_control sys/socket.h NNG_HAVE_MSG_CONTROL
+  nng_check_sym eventfd               sys/eventfd.h NNG_HAVE_EVENTFD
+  nng_check_sym kqueue                sys/event.h   NNG_HAVE_KQUEUE
+  nng_check_sym port_create           port.h        NNG_HAVE_PORT_CREATE
+  nng_check_sym epoll_create          sys/epoll.h   NNG_HAVE_EPOLL
+  nng_check_sym epoll_create1         sys/epoll.h   NNG_HAVE_EPOLL_CREATE1
+  nng_check_sym getpeereid            unistd.h      NNG_HAVE_GETPEEREID
+  nng_check_sym SO_PEERCRED           sys/socket.h  NNG_HAVE_SOPEERCRED
+  nng_check_struct_member sockpeercred uid sys/socket.h NNG_HAVE_SOCKPEERCRED
+  nng_check_sym LOCAL_PEERCRED        sys/un.h      NNG_HAVE_LOCALPEERCRED
+  nng_check_sym LOCAL_PEERPID         sys/un.h      NNG_HAVE_LOCALPEERPID
+  nng_check_sym getpeerucred          ucred.h       NNG_HAVE_GETPEERUCRED
+  nng_check_sym atomic_flag_test_and_set stdatomic.h NNG_HAVE_STDATOMIC
+  nng_check_sym socketpair            sys/socket.h  NNG_HAVE_SOCKETPAIR
+
+  rm -rf "$PROBE_DIR"
+
+  # Select exactly one poller source (avoids duplicate symbols from the
+  # unguarded poll fallback). Verbatim from NNG's CMake selection.
+  if [ "$NNG_HAVE_PORT_CREATE" = yes ]; then
+    POLLER_OBJ='$(NNG)/platform/posix/posix_pollq_port.o'
+  elif [ "$NNG_HAVE_KQUEUE" = yes ]; then
+    POLLER_OBJ='$(NNG)/platform/posix/posix_pollq_kqueue.o'
+  elif [ "$NNG_HAVE_EPOLL" = yes ] && [ "$NNG_HAVE_EVENTFD" = yes ]; then
+    POLLER_OBJ='$(NNG)/platform/posix/posix_pollq_epoll.o'
+  else
+    POLLER_OBJ='$(NNG)/platform/posix/posix_pollq_poll.o'
+  fi
+
+  # Select exactly one random source.
+  if [ "$IS_EMSCRIPTEN" = yes ]; then
+    RAND_OBJ='$(NNG)/platform/posix/posix_rand_urandom.o'
+  elif [ "$NNG_HAVE_ARC4RANDOM" = yes ]; then
+    RAND_OBJ='$(NNG)/platform/posix/posix_rand_arc4random.o'
+  elif [ "$NNG_HAVE_GETRANDOM" = yes ]; then
+    RAND_OBJ='$(NNG)/platform/posix/posix_rand_getrandom.o'
+  else
+    RAND_OBJ='$(NNG)/platform/posix/posix_rand_urandom.o'
+  fi
+
+  NNG_OBJECTS=`{ read_list tools/nng_common.list; read_list tools/nng_posix.list; } | tr '\n' ' ' | sed 's/  */ /g; s/ *$//'`
+  NNG_OBJECTS="$NNG_OBJECTS $POLLER_OBJ $RAND_OBJ"
+
+  # Package sources compile against the bundled NNG headers as a static library.
+  PKG_CPPFLAGS="$PKG_CPPFLAGS -Inng/include -DNNG_STATIC_LIB"
+else
+  PKG_CPPFLAGS="$PKG_CPPFLAGS $NNG_SYS_CFLAGS"
+  PKG_LIBS="$NNG_SYS_LIBS $PKG_LIBS"
 fi
 
-# Set flags for bundled libraries
-if [ -d "nano-install/lib" ]; then
-  PKG_CFLAGS="-I../nano-install/include -DNNG_STATIC_LIB $PKG_CFLAGS"
-  if [ -f "nano-install/lib/libmbedtls.a" ]; then
-    PKG_LIBS="../nano-install/lib/libnng.a ../nano-install/lib/libmbedtls.a ../nano-install/lib/libmbedx509.a ../nano-install/lib/libmbedcrypto.a $PKG_LIBS"
-  else
-    PKG_LIBS="../nano-install/lib/libnng.a $PKG_LIBS"
-  fi
-fi
+# Trim leading/trailing whitespace from substituted values.
+PKG_CPPFLAGS=`echo "$PKG_CPPFLAGS" | sed 's/  */ /g; s/^ *//; s/ *$//'`
+PKG_LIBS=`echo "$PKG_LIBS" | sed 's/  */ /g; s/^ *//; s/ *$//'`
+NNG_DEFS=`echo "$NNG_DEFS" | sed 's/  */ /g; s/^ *//; s/ *$//'`
 
 # Write to Makevars
-sed -e "s|@cflags@|$PKG_CFLAGS|" -e "s|@libs@|$PKG_LIBS|" src/Makevars.in > src/Makevars
+sed -e "s|@cppflags@|$PKG_CPPFLAGS|" \
+    -e "s|@libs@|$PKG_LIBS|" \
+    -e "s|@nng_defs@|$NNG_DEFS|" \
+    -e "s|@nng_objects@|$NNG_OBJECTS|" \
+    -e "s|@mbedtls_objects@|$MBEDTLS_OBJECTS|" \
+    src/Makevars.in > src/Makevars
 
 # Success
 exit 0

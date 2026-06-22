@@ -2,6 +2,7 @@
 
 #### Updates
 
+* Removes the build-time dependency on 'cmake'. Compiling the bundled NNG and Mbed TLS sources now only require a C compiler.
 * Trims the bundled mbedTLS source to remove unused modules.
 
 # nanonext 1.9.1

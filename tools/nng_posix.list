@@ -1,0 +1,21 @@
+# Generated/maintained source list -- single source of truth for the build.
+# Object paths use the $(NNG)/$(MBED) make variables. See tools/update_*.sh.
+$(NNG)/platform/posix/posix_alloc.o
+$(NNG)/platform/posix/posix_atomic.o
+$(NNG)/platform/posix/posix_clock.o
+$(NNG)/platform/posix/posix_debug.o
+$(NNG)/platform/posix/posix_file.o
+$(NNG)/platform/posix/posix_ipcconn.o
+$(NNG)/platform/posix/posix_ipcdial.o
+$(NNG)/platform/posix/posix_ipclisten.o
+$(NNG)/platform/posix/posix_peerid.o
+$(NNG)/platform/posix/posix_pipe.o
+$(NNG)/platform/posix/posix_resolv_gai.o
+$(NNG)/platform/posix/posix_sockaddr.o
+$(NNG)/platform/posix/posix_socketpair.o
+$(NNG)/platform/posix/posix_sockfd.o
+$(NNG)/platform/posix/posix_tcpconn.o
+$(NNG)/platform/posix/posix_tcpdial.o
+$(NNG)/platform/posix/posix_tcplisten.o
+$(NNG)/platform/posix/posix_thread.o
+$(NNG)/platform/posix/posix_udp.o

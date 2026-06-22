@@ -1,0 +1,20 @@
+# Generated/maintained source list -- single source of truth for the build.
+# Object paths use the $(NNG)/$(MBED) make variables. See tools/update_*.sh.
+$(NNG)/platform/windows/win_clock.o
+$(NNG)/platform/windows/win_debug.o
+$(NNG)/platform/windows/win_file.o
+$(NNG)/platform/windows/win_io.o
+$(NNG)/platform/windows/win_ipcconn.o
+$(NNG)/platform/windows/win_ipcdial.o
+$(NNG)/platform/windows/win_ipclisten.o
+$(NNG)/platform/windows/win_pipe.o
+$(NNG)/platform/windows/win_rand.o
+$(NNG)/platform/windows/win_resolv.o
+$(NNG)/platform/windows/win_sockaddr.o
+$(NNG)/platform/windows/win_socketpair.o
+$(NNG)/platform/windows/win_tcp.o
+$(NNG)/platform/windows/win_tcpconn.o
+$(NNG)/platform/windows/win_tcpdial.o
+$(NNG)/platform/windows/win_tcplisten.o
+$(NNG)/platform/windows/win_thread.o
+$(NNG)/platform/windows/win_udp.o

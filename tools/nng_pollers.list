@@ -1,0 +1,6 @@
+# Generated/maintained source list -- single source of truth for the build.
+# Object paths use the $(NNG)/$(MBED) make variables. See tools/update_*.sh.
+$(NNG)/platform/posix/posix_pollq_port.o
+$(NNG)/platform/posix/posix_pollq_kqueue.o
+$(NNG)/platform/posix/posix_pollq_epoll.o
+$(NNG)/platform/posix/posix_pollq_poll.o
