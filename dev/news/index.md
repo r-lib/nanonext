@@ -2,6 +2,10 @@
 
 ## nanonext (development version)
 
+##### Updates
+
+- Trims the bundled mbedTLS source to remove unused modules.
+
 ## nanonext 1.9.1
 
 CRAN release: 2026-06-01
