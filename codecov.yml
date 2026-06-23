@@ -12,6 +12,9 @@ coverage:
         target: auto
         threshold: 1%
         informational: true
+ignore:
+  - "src/mbedtls"
+  - "src/nng"
 
 github_checks:
    annotations: false

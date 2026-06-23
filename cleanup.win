@@ -1,1 +1,6 @@
-rm -rf src/Makevars nano-build nano-install
+#!/bin/sh
+# Remove any in-tree build objects. Makevars.win / Makevars.ucrt are static
+# (committed) and must not be removed.
+rm -f src/*.dll src/*.so
+find src -name '*.o' -delete 2>/dev/null
+exit 0

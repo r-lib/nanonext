@@ -1,2 +1,6 @@
 #!/bin/sh
-rm -rf src/Makevars nano-build nano-install
+# Remove configure's generated Makevars and any in-tree build objects (the
+# bundled NNG / Mbed TLS sources compile in place into src/<lib>/...).
+rm -f src/Makevars src/*.so
+find src -name '*.o' -delete 2>/dev/null
+exit 0

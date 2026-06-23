@@ -104,6 +104,14 @@
 #define MBEDTLS_PKCS5_C
 #define MBEDTLS_PKCS12_C
 #define MBEDTLS_PLATFORM_C
+/* nanonext: alias printf/fprintf/exit to no-op macros so the compiled
+ * shared object imports none of these libc symbols (see tools/patch_mbedtls.sh).
+ * The (void) cast keeps statement-context calls free of -Wunused-value; the
+ * only compiled call site (mbedtls_mpi_write_file, MBEDTLS_FS_IO) ignores the
+ * return value, all others are self-test only. */
+#define MBEDTLS_PLATFORM_PRINTF_MACRO(...) ((void) 0)
+#define MBEDTLS_PLATFORM_FPRINTF_MACRO(...) ((void) 0)
+#define MBEDTLS_PLATFORM_EXIT_MACRO(...) ((void) 0)
 #define MBEDTLS_VERSION_C
 #define MBEDTLS_GENPRIME
 #define MBEDTLS_PK_RSA_ALT_SUPPORT

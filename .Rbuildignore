@@ -15,5 +15,3 @@
 ^cran-comments\.md$
 ^\.claude$
 ^CLAUDE\.md$
-^nano-build$
-^nano-install$
