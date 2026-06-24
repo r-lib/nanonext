@@ -8,7 +8,6 @@ $(MBED)/asn1write.o
 $(MBED)/base64.o
 $(MBED)/bignum.o
 $(MBED)/bignum_core.o
-$(MBED)/block_cipher.o
 $(MBED)/ccm.o
 $(MBED)/chacha20.o
 $(MBED)/chachapoly.o
@@ -25,7 +24,6 @@ $(MBED)/entropy.o
 $(MBED)/entropy_poll.o
 $(MBED)/error.o
 $(MBED)/gcm.o
-$(MBED)/hkdf.o
 $(MBED)/md.o
 $(MBED)/md5.o
 $(MBED)/oid.o
@@ -45,12 +43,9 @@ $(MBED)/rsa_alt_helpers.o
 $(MBED)/sha1.o
 $(MBED)/sha256.o
 $(MBED)/sha512.o
-$(MBED)/ssl_cache.o
 $(MBED)/ssl_ciphersuites.o
 $(MBED)/ssl_client.o
-$(MBED)/ssl_debug_helpers_generated.o
 $(MBED)/ssl_msg.o
-$(MBED)/ssl_ticket.o
 $(MBED)/ssl_tls.o
 $(MBED)/ssl_tls12_client.o
 $(MBED)/ssl_tls12_server.o
@@ -63,4 +58,3 @@ $(MBED)/x509_crt.o
 $(MBED)/x509_csr.o
 $(MBED)/x509write.o
 $(MBED)/x509write_crt.o
-$(MBED)/x509write_csr.o
