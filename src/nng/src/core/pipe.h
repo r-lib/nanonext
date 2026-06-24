@@ -1,5 +1,5 @@
 //
-// Copyright 2021 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2024 Staysail Systems, Inc. <info@staysail.tech>
 // Copyright 2018 Capitar IT Group BV <info@capitar.com>
 //
 // This software is supplied under the terms of the MIT License, a
@@ -13,6 +13,7 @@
 
 #include "core/defs.h"
 #include "core/thread.h"
+#include "nng/nng.h"
 #include "sp/transport.h"
 
 extern void nni_pipe_recv(nni_pipe *, nni_aio *);
@@ -42,5 +43,7 @@ extern void nni_pipe_add_stat(nni_pipe *, nni_stat_item *);
 extern void nni_pipe_bump_rx(nni_pipe *, size_t);
 extern void nni_pipe_bump_tx(nni_pipe *, size_t);
 extern void nni_pipe_bump_error(nni_pipe *, int);
+
+extern char *nni_pipe_peer_addr(nni_pipe *p, char buf[NNG_MAXADDRSTRLEN]);
 
 #endif

@@ -1,5 +1,5 @@
 //
-// Copyright 2017 Garrett D'Amore <garrett@damore.org>
+// Copyright 2024 Garrett D'Amore <garrett@damore.org>
 // Copyright 2017 Capitar IT Group BV <info@capitar.com>
 //
 // This software is supplied under the terms of the MIT License, a
@@ -10,12 +10,41 @@
 
 #include "core/nng_impl.h"
 
+#include <time.h>
+
 #ifdef NNG_PLATFORM_WINDOWS
 
 nni_time
 nni_clock(void)
 {
 	return (GetTickCount64());
+}
+
+int
+nni_time_get(uint64_t *seconds, uint32_t *nanoseconds)
+{
+#if defined(TIME_UTC)
+	struct timespec ts;
+	if (timespec_get(&ts, TIME_UTC) == TIME_UTC) {
+		*seconds     = ts.tv_sec;
+		*nanoseconds = ts.tv_nsec;
+		return (0);
+	}
+	return (nni_win_error(GetLastError()));
+#else
+	// legacy MinGW (non-UCRT) lacks C11 timespec_get(); use FILETIME instead
+	FILETIME       ft;
+	ULARGE_INTEGER ui;
+	uint64_t       ticks;
+	GetSystemTimeAsFileTime(&ft);
+	ui.LowPart   = ft.dwLowDateTime;
+	ui.HighPart  = ft.dwHighDateTime;
+	// FILETIME is 100ns ticks since 1601-01-01; rebase to the Unix epoch
+	ticks        = ui.QuadPart - 116444736000000000ULL;
+	*seconds     = ticks / 10000000ULL;
+	*nanoseconds = (uint32_t) ((ticks % 10000000ULL) * 100);
+	return (0);
+#endif
 }
 
 void

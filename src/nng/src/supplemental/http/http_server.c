@@ -1230,7 +1230,6 @@ static struct content_map {
 	const char *ext;
 	const char *typ;
 } content_map[] = {
-	// clang-format off
 	{ ".ai", "application/postscript" },
 	{ ".aif", "audio/aiff" },
 	{ ".aiff", "audio/aiff" },
@@ -1270,7 +1269,6 @@ static struct content_map {
 	{ ".woff2", "font/woff2" },
 	{ "README", "text/plain" },
 	{ NULL, NULL },
-	// clang-format on
 };
 
 const char *
@@ -1464,7 +1462,8 @@ http_handle_dir(nni_aio *aio)
 
 	rv = 0;
 	if (nni_file_is_dir(pn)) {
-		snprintf(dst, pnsz - strlen(pn), "%s%s", NNG_PLATFORM_DIR_SEP, "index.html");
+		snprintf(dst, pnsz - strlen(pn), "%s%s", NNG_PLATFORM_DIR_SEP,
+		    "index.html");
 		if (!nni_file_is_file(pn)) {
 			pn[strlen(pn) - 1] = '\0';
 			if (!nni_file_is_file(pn)) {

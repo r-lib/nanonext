@@ -255,8 +255,10 @@ static SEXP nano_stream_dial(SEXP url, SEXP textframes, SEXP headers, SEXP tls, 
       nst->tls = (nng_tls_config *) NANO_PTR(tls);
       nng_tls_config_hold(nst->tls);
 
-      if ((xc = nng_tls_config_server_name(nst->tls, up->u_hostname)) ||
-          (xc = nng_stream_dialer_set_ptr(nst->endpoint.dial, NNG_OPT_TLS_CONFIG, nst->tls)))
+      // tolerate NNG_EBUSY when re-applying server name (SNI) on a reused config
+      xc = nng_tls_config_server_name(nst->tls, up->u_hostname);
+      if (xc == NNG_EBUSY) xc = 0;
+      if (xc || (xc = nng_stream_dialer_set_ptr(nst->endpoint.dial, NNG_OPT_TLS_CONFIG, nst->tls)))
         goto fail;
     }
 
@@ -340,8 +342,10 @@ static SEXP nano_stream_listen(SEXP url, SEXP textframes, SEXP tls, SEXP buffer)
       nst->tls = (nng_tls_config *) NANO_PTR(tls);
       nng_tls_config_hold(nst->tls);
 
-      if ((xc = nng_tls_config_server_name(nst->tls, up->u_hostname)) ||
-          (xc = nng_stream_listener_set_ptr(nst->endpoint.list, NNG_OPT_TLS_CONFIG, nst->tls)))
+      // tolerate NNG_EBUSY when re-applying server name (SNI) on a reused config
+      xc = nng_tls_config_server_name(nst->tls, up->u_hostname);
+      if (xc == NNG_EBUSY) xc = 0;
+      if (xc || (xc = nng_stream_listener_set_ptr(nst->endpoint.list, NNG_OPT_TLS_CONFIG, nst->tls)))
         goto fail;
     }
 

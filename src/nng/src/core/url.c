@@ -219,7 +219,6 @@ static struct {
 	const char *scheme;
 	const char *port;
 } nni_url_default_ports[] = {
-	// clang-format off
 	{ "git", "9418" },
 	{ "gopher", "70" },
 	{ "http", "80" },
@@ -229,7 +228,6 @@ static struct {
 	{ "ws", "80" },
 	{ "wss", "443" },
 	{ NULL, NULL },
-	// clang-format on
 };
 
 const char *

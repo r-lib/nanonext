@@ -1,5 +1,5 @@
 //
-// Copyright 2023 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2024 Staysail Systems, Inc. <info@staysail.tech>
 // Copyright 2018 Capitar IT Group BV <info@capitar.com>
 // Copyright 2019 Nathan Kent <nate@nkent.net>
 //
@@ -263,6 +263,9 @@ sub0_pipe_start(void *arg)
 	sub0_pipe *p = arg;
 
 	if (nni_pipe_peer(p->pipe) != NNI_PROTO_PUB_V0) {
+		nng_log_warn("NNG-PEER-MISMATCH",
+		    "Peer protocol mismatch: %d != %d, rejected.",
+		    nni_pipe_peer(p->pipe), NNI_PROTO_PUB_V0);
 		return (NNG_EPROTO);
 	}
 
@@ -673,81 +676,85 @@ static nni_option sub0_sock_options[] = {
 int
 nng_sub0_socket_subscribe(nng_socket id, const void *buf, size_t sz)
 {
-  int        rv;
-  nni_sock  *s;
-  sub0_sock *sock;
-  if (((rv = nni_init()) != 0) ||
-      ((rv = nni_sock_find(&s, id.id)) != 0)) {
-    return (rv);
-  }
-  if (nni_sock_proto_ops(s)->sock_init != sub0_sock_init) {
-    nni_sock_rele(s);
-    return (NNG_ENOTSUP);
-  }
-  sock = nni_sock_proto_data(s);
-  rv   = sub0_ctx_subscribe(&sock->master, buf, sz, NNI_TYPE_OPAQUE);
-  nni_sock_rele(s);
-  return (rv);
+	int        rv;
+	nni_sock  *s;
+	sub0_sock *sock;
+
+	if (((rv = nni_init()) != 0) ||
+	    ((rv = nni_sock_find(&s, id.id)) != 0)) {
+		return (rv);
+	}
+	if (nni_sock_proto_ops(s)->sock_init != sub0_sock_init) {
+		nni_sock_rele(s);
+		return (NNG_ENOTSUP);
+	}
+	sock = nni_sock_proto_data(s);
+	rv   = sub0_ctx_subscribe(&sock->master, buf, sz, NNI_TYPE_OPAQUE);
+	nni_sock_rele(s);
+	return (rv);
 }
 
 int
 nng_sub0_socket_unsubscribe(nng_socket id, const void *buf, size_t sz)
 {
-  int        rv;
-  nni_sock  *s;
-  sub0_sock *sock;
-  if (((rv = nni_init()) != 0) ||
-      ((rv = nni_sock_find(&s, id.id)) != 0)) {
-    return (rv);
-  }
-  if (nni_sock_proto_ops(s)->sock_init != sub0_sock_init) {
-    nni_sock_rele(s);
-    return (NNG_ENOTSUP);
-  }
-  sock = nni_sock_proto_data(s);
-  rv   = sub0_ctx_unsubscribe(&sock->master, buf, sz, NNI_TYPE_OPAQUE);
-  nni_sock_rele(s);
-  return (rv);
+	int        rv;
+	nni_sock  *s;
+	sub0_sock *sock;
+
+	if (((rv = nni_init()) != 0) ||
+	    ((rv = nni_sock_find(&s, id.id)) != 0)) {
+		return (rv);
+	}
+	if (nni_sock_proto_ops(s)->sock_init != sub0_sock_init) {
+		nni_sock_rele(s);
+		return (NNG_ENOTSUP);
+	}
+	sock = nni_sock_proto_data(s);
+	rv   = sub0_ctx_unsubscribe(&sock->master, buf, sz, NNI_TYPE_OPAQUE);
+	nni_sock_rele(s);
+	return (rv);
 }
 
 int
 nng_sub0_ctx_subscribe(nng_ctx id, const void *buf, size_t sz)
 {
-  int       rv;
-  nni_ctx  *c;
-  sub0_ctx *ctx;
-  if (((rv = nni_init()) != 0) ||
-      ((rv = nni_ctx_find(&c, id.id, false)) != 0)) {
-    return (rv);
-  }
-  if (nni_ctx_proto_ops(c)->ctx_init != sub0_ctx_init) {
-    nni_ctx_rele(c);
-    return (NNG_ENOTSUP);
-  }
-  ctx = nni_ctx_proto_data(c);
-  rv  = sub0_ctx_subscribe(ctx, buf, sz, NNI_TYPE_OPAQUE);
-  nni_ctx_rele(c);
-  return (rv);
+	int       rv;
+	nni_ctx  *c;
+	sub0_ctx *ctx;
+
+	if (((rv = nni_init()) != 0) ||
+	    ((rv = nni_ctx_find(&c, id.id, false)) != 0)) {
+		return (rv);
+	}
+	if (nni_ctx_proto_ops(c)->ctx_init != sub0_ctx_init) {
+		nni_ctx_rele(c);
+		return (NNG_ENOTSUP);
+	}
+	ctx = nni_ctx_proto_data(c);
+	rv  = sub0_ctx_subscribe(ctx, buf, sz, NNI_TYPE_OPAQUE);
+	nni_ctx_rele(c);
+	return (rv);
 }
 
 int
 nng_sub0_ctx_unsubscribe(nng_ctx id, const void *buf, size_t sz)
 {
-  int       rv;
-  nni_ctx  *c;
-  sub0_ctx *ctx;
-  if (((rv = nni_init()) != 0) ||
-      ((rv = nni_ctx_find(&c, id.id, false)) != 0)) {
-    return (rv);
-  }
-  if (nni_ctx_proto_ops(c)->ctx_init != sub0_ctx_init) {
-    nni_ctx_rele(c);
-    return (NNG_ENOTSUP);
-  }
-  ctx = nni_ctx_proto_data(c);
-  rv  = sub0_ctx_unsubscribe(ctx, buf, sz, NNI_TYPE_OPAQUE);
-  nni_ctx_rele(c);
-  return (rv);
+	int       rv;
+	nni_ctx  *c;
+	sub0_ctx *ctx;
+
+	if (((rv = nni_init()) != 0) ||
+	    ((rv = nni_ctx_find(&c, id.id, false)) != 0)) {
+		return (rv);
+	}
+	if (nni_ctx_proto_ops(c)->ctx_init != sub0_ctx_init) {
+		nni_ctx_rele(c);
+		return (NNG_ENOTSUP);
+	}
+	ctx = nni_ctx_proto_data(c);
+	rv  = sub0_ctx_unsubscribe(ctx, buf, sz, NNI_TYPE_OPAQUE);
+	nni_ctx_rele(c);
+	return (rv);
 }
 
 static nni_proto_sock_ops sub0_sock_ops = {

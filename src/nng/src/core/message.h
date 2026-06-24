@@ -35,7 +35,6 @@ extern void     nni_msg_dump(const char *, const nni_msg *);
 extern void     nni_msg_header_append_u32(nni_msg *, uint32_t);
 extern uint32_t nni_msg_header_trim_u32(nni_msg *);
 extern uint32_t nni_msg_trim_u32(nni_msg *);
-
 extern uint32_t nni_msg_header_peek_u32(nni_msg *);
 extern void     nni_msg_header_poke_u32(nni_msg *, uint32_t);
 extern void     nni_msg_set_pipe(nni_msg *, uint32_t);

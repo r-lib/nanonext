@@ -85,9 +85,9 @@ static void tcp_listener_doaccept(nni_tcp_listener *l);
 static void
 tcp_accept_cb(nni_win_io *io, int rv, size_t cnt)
 {
-  nni_tcp_listener *l = io->ptr;
-  nni_aio          *aio;
-  nni_tcp_conn     *c;
+	nni_tcp_listener *l = io->ptr;
+	nni_aio          *aio;
+	nni_tcp_conn     *c;
 
 	NNI_ARG_UNUSED(cnt);
 
@@ -95,23 +95,23 @@ tcp_accept_cb(nni_win_io *io, int rv, size_t cnt)
 
 	l->running = false;
 	if ((rv == 0) && (!l->closed)) {
-	  tcp_listener_accepted(l);
+		tcp_listener_accepted(l);
 	} else {
-	  if (l->accept_rv != 0) {
-	    rv           = l->accept_rv;
-	    l->accept_rv = 0;
-	  } else if (l->closed) {
-	    rv = NNG_ECLOSED;
-	  }
-	  if ((aio = nni_list_first(&l->aios)) != NULL) {
-	    nni_aio_list_remove(aio);
-	    nni_aio_finish_error(aio, rv);
-	  }
+		if (l->accept_rv != 0) {
+			rv           = l->accept_rv;
+			l->accept_rv = 0;
+		} else if (l->closed) {
+			rv = NNG_ECLOSED;
+		}
+		if ((aio = nni_list_first(&l->aios)) != NULL) {
+			nni_aio_list_remove(aio);
+			nni_aio_finish_error(aio, rv);
+		}
 
-	  if ((c = l->pend_conn) != NULL) {
-	    l->pend_conn = NULL;
-	    nng_stream_free(&c->ops);
-	  }
+		if ((c = l->pend_conn) != NULL) {
+			l->pend_conn = NULL;
+			nng_stream_free(&c->ops);
+		}
 	}
 	tcp_listener_doaccept(l);
 	nni_mtx_unlock(&l->mtx);
@@ -146,24 +146,23 @@ nni_tcp_listener_init(nni_tcp_listener **lp)
 void
 nni_tcp_listener_close(nni_tcp_listener *l)
 {
-  nni_aio      *aio;
-  nni_tcp_conn *conn;
-
+	nni_aio      *aio;
+	nni_tcp_conn *conn;
 	nni_mtx_lock(&l->mtx);
 	if (!l->closed) {
 		l->closed = true;
-	  if (!nni_list_empty(&l->aios)) {
-	    CancelIoEx((HANDLE) l->s, &l->accept_io.olpd);
-	  }
-	  closesocket(l->s);
-	  if ((conn = l->pend_conn) != NULL) {
-	    l->pend_conn = NULL;
-	    nng_stream_free(&conn->ops);
-	  }
-	  while ((aio = nni_list_first(&l->aios)) != NULL) {
-	    nni_aio_list_remove(aio);
-	    nni_aio_finish_error(aio, NNG_ECLOSED);
-	  }
+		if (!nni_list_empty(&l->aios)) {
+			CancelIoEx((HANDLE) l->s, &l->accept_io.olpd);
+		}
+		closesocket(l->s);
+		if ((conn = l->pend_conn) != NULL) {
+			l->pend_conn = NULL;
+			nng_stream_free(&conn->ops);
+		}
+		while ((aio = nni_list_first(&l->aios)) != NULL) {
+			nni_aio_list_remove(aio);
+			nni_aio_finish_error(aio, NNG_ECLOSED);
+		}
 	}
 	nni_mtx_unlock(&l->mtx);
 }
@@ -256,16 +255,16 @@ tcp_accept_cancel(nni_aio *aio, void *arg, int rv)
 
 	nni_mtx_lock(&l->mtx);
 	if (aio == nni_list_first(&l->aios)) {
-	  l->accept_rv = rv;
-	  CancelIoEx((HANDLE) l->s, &l->accept_io.olpd);
+		l->accept_rv = rv;
+		CancelIoEx((HANDLE) l->s, &l->accept_io.olpd);
 	} else {
-	  nni_aio *srch;
-	  NNI_LIST_FOREACH (&l->aios, srch) {
-	    if (srch == aio) {
-	      nni_aio_list_remove(aio);
-	      nni_aio_finish_error(aio, rv);
-	      break;
-	    }
+		nni_aio *srch;
+		NNI_LIST_FOREACH (&l->aios, srch) {
+			if (srch == aio) {
+				nni_aio_list_remove(aio);
+				nni_aio_finish_error(aio, rv);
+				break;
+			}
 		}
 	}
 	nni_mtx_unlock(&l->mtx);
@@ -274,118 +273,118 @@ tcp_accept_cancel(nni_aio *aio, void *arg, int rv)
 static void
 tcp_listener_accepted(nni_tcp_listener *l)
 {
-  int           len1;
-  int           len2;
-  SOCKADDR     *sa1;
-  SOCKADDR     *sa2;
-  BOOL          nd;
-  BOOL          ka;
-  nni_tcp_conn *c;
-  nni_aio      *aio;
+	int           len1;
+	int           len2;
+	SOCKADDR     *sa1;
+	SOCKADDR     *sa2;
+	BOOL          nd;
+	BOOL          ka;
+	nni_tcp_conn *c;
+	nni_aio      *aio;
 
-  aio          = nni_list_first(&l->aios);
-  c            = l->pend_conn;
-  l->pend_conn = NULL;
-  len1         = (int) sizeof(c->sockname);
-  len2         = (int) sizeof(c->peername);
-  ka           = l->keepalive;
-  nd           = l->nodelay;
+	aio          = nni_list_first(&l->aios);
+	c            = l->pend_conn;
+	l->pend_conn = NULL;
+	len1         = (int) sizeof(c->sockname);
+	len2         = (int) sizeof(c->peername);
+	ka           = l->keepalive;
+	nd           = l->nodelay;
 
-  nni_aio_list_remove(aio);
-  l->getacceptexsockaddrs(c->buf, 0, 256, 256, &sa1, &len1, &sa2, &len2);
-  memcpy(&c->sockname, sa1, len1);
-  memcpy(&c->peername, sa2, len2);
+	nni_aio_list_remove(aio);
+	l->getacceptexsockaddrs(c->buf, 0, 256, 256, &sa1, &len1, &sa2, &len2);
+	memcpy(&c->sockname, sa1, len1);
+	memcpy(&c->peername, sa2, len2);
 
-  (void) setsockopt(c->s, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT,
-   (char *) &l->s, sizeof(l->s));
+	(void) setsockopt(c->s, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT,
+	    (char *) &l->s, sizeof(l->s));
 
-  (void) setsockopt(
-      c->s, SOL_SOCKET, SO_KEEPALIVE, (char *) &ka, sizeof(ka));
+	(void) setsockopt(
+	    c->s, SOL_SOCKET, SO_KEEPALIVE, (char *) &ka, sizeof(ka));
 
-  (void) setsockopt(
-      c->s, IPPROTO_TCP, TCP_NODELAY, (char *) &nd, sizeof(nd));
+	(void) setsockopt(
+	    c->s, IPPROTO_TCP, TCP_NODELAY, (char *) &nd, sizeof(nd));
 
-  nni_aio_set_output(aio, 0, c);
-  nni_aio_finish(aio, 0, 0);
+	nni_aio_set_output(aio, 0, c);
+	nni_aio_finish(aio, 0, 0);
 }
 
 static void
 tcp_listener_doaccept(nni_tcp_listener *l)
 {
-  nni_aio      *aio;
-  SOCKET        s;
-  nni_tcp_conn *c;
-  int           rv;
-  DWORD         cnt;
+	nni_aio      *aio;
+	SOCKET        s;
+	nni_tcp_conn *c;
+	int           rv;
+	DWORD         cnt;
 
-  while ((aio = nni_list_first(&l->aios)) != NULL) {
-    if (l->closed) {
-      nni_aio_list_remove(aio);
-      nni_aio_finish_error(aio, NNG_ECLOSED);
-      continue;
-    }
-    if ((s = socket(l->ss.ss_family, SOCK_STREAM, 0)) ==
-        INVALID_SOCKET) {
-      nni_aio_list_remove(aio);
-      rv = nni_win_error(GetLastError());
-      nni_aio_finish_error(aio, rv);
-      continue;
-    }
+	while ((aio = nni_list_first(&l->aios)) != NULL) {
+		if (l->closed) {
+			nni_aio_list_remove(aio);
+			nni_aio_finish_error(aio, NNG_ECLOSED);
+			continue;
+		}
+		if ((s = socket(l->ss.ss_family, SOCK_STREAM, 0)) ==
+		    INVALID_SOCKET) {
+			nni_aio_list_remove(aio);
+			rv = nni_win_error(GetLastError());
+			nni_aio_finish_error(aio, rv);
+			continue;
+		}
 
-    if ((rv = nni_win_tcp_init(&c, s)) != 0) {
-      nni_aio_list_remove(aio);
-      closesocket(s);
-      nni_aio_finish_error(aio, rv);
-      continue;
-    }
-    c->listener  = l;
-    l->pend_conn = c;
-    if (l->acceptex(l->s, s, c->buf, 0, 256, 256, &cnt,
-                    &l->accept_io.olpd)) {
-      tcp_listener_accepted(l);
-      continue;
-    }
+		if ((rv = nni_win_tcp_init(&c, s)) != 0) {
+			nni_aio_list_remove(aio);
+			closesocket(s);
+			nni_aio_finish_error(aio, rv);
+			continue;
+		}
+		c->listener  = l;
+		l->pend_conn = c;
+		if (l->acceptex(l->s, s, c->buf, 0, 256, 256, &cnt,
+		        &l->accept_io.olpd)) {
+			tcp_listener_accepted(l);
+			continue;
+		}
 
-    if ((rv = GetLastError()) == ERROR_IO_PENDING) {
-      l->running = true;
-      return;
-    }
+		if ((rv = GetLastError()) == ERROR_IO_PENDING) {
+			l->running = true;
+			return;
+		}
 
-    nni_aio_list_remove(aio);
-    nng_stream_free(&c->ops);
-    nni_aio_finish_error(aio, rv);
-  }
-  l->running = false;
+		nni_aio_list_remove(aio);
+		nng_stream_free(&c->ops);
+		nni_aio_finish_error(aio, rv);
+	}
+	l->running = false;
 }
 
 void
 nni_tcp_listener_accept(nni_tcp_listener *l, nni_aio *aio)
 {
-  int rv;
+	int rv;
 
-  if (nni_aio_begin(aio) != 0) {
-    return;
-  }
+	if (nni_aio_begin(aio) != 0) {
+		return;
+	}
 
-  nni_mtx_lock(&l->mtx);
-  if (!l->started) {
-    nni_mtx_unlock(&l->mtx);
-    nni_aio_finish_error(aio, NNG_ESTATE);
-    return;
-  }
+	nni_mtx_lock(&l->mtx);
+	if (!l->started) {
+		nni_mtx_unlock(&l->mtx);
+		nni_aio_finish_error(aio, NNG_ESTATE);
+		return;
+	}
 
-  if ((rv = nni_aio_schedule(aio, tcp_accept_cancel, l)) != 0) {
-    nni_mtx_unlock(&l->mtx);
-    nni_aio_finish_error(aio, rv);
-    return;
-  }
+	if ((rv = nni_aio_schedule(aio, tcp_accept_cancel, l)) != 0) {
+		nni_mtx_unlock(&l->mtx);
+		nni_aio_finish_error(aio, rv);
+		return;
+	}
 
-  nni_aio_list_append(&l->aios, aio);
+	nni_aio_list_append(&l->aios, aio);
 
-  if (aio == nni_list_first(&l->aios)) {
-    tcp_listener_doaccept(l);
-  }
-  nni_mtx_unlock(&l->mtx);
+	if (aio == nni_list_first(&l->aios)) {
+		tcp_listener_doaccept(l);
+	}
+	nni_mtx_unlock(&l->mtx);
 }
 
 static int

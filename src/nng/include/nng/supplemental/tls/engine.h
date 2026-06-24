@@ -1,5 +1,5 @@
 //
-// Copyright 2020 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2024 Staysail Systems, Inc. <info@staysail.tech>
 //
 // This software is supplied under the terms of the MIT License, a
 // copy of which should be located in the distribution where this
@@ -54,6 +54,9 @@ typedef struct nng_tls_engine_config_ops_s {
 	int (*own_cert)(
 	    nng_tls_engine_config *, const char *, const char *, const char *);
 
+	int (*psk)(
+	    nng_tls_engine_config *, const char *, const uint8_t *, size_t);
+
 	int (*version)(
 	    nng_tls_engine_config *, nng_tls_version, nng_tls_version);
 } nng_tls_engine_config_ops;
@@ -61,7 +64,8 @@ typedef struct nng_tls_engine_config_ops_s {
 typedef enum nng_tls_engine_version_e {
 	NNG_TLS_ENGINE_V0      = 0,
 	NNG_TLS_ENGINE_V1      = 1,
-	NNG_TLS_ENGINE_VERSION = NNG_TLS_ENGINE_V1,
+	NNG_TLS_ENGINE_V2      = 2,
+	NNG_TLS_ENGINE_VERSION = NNG_TLS_ENGINE_V2,
 } nng_tls_engine_version;
 
 typedef struct nng_tls_engine_s {

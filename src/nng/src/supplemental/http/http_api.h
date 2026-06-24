@@ -52,7 +52,6 @@ extern nni_http_chunk *nni_http_chunks_iter(
 extern size_t nni_http_chunks_size(nni_http_chunks *);
 
 extern size_t nni_http_chunk_size(nni_http_chunk *);
-
 extern void *nni_http_chunk_data(nni_http_chunk *);
 
 extern int nni_http_chunks_parse(nni_http_chunks *, void *, size_t, size_t *);

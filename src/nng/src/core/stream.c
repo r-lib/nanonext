@@ -52,11 +52,13 @@ static struct {
 	    .dialer_alloc   = nni_tcp_dialer_alloc,
 	    .listener_alloc = nni_tcp_listener_alloc,
 	},
+#ifdef NNG_ENABLE_IPV6
 	{
 	    .scheme         = "tcp6",
 	    .dialer_alloc   = nni_tcp_dialer_alloc,
 	    .listener_alloc = nni_tcp_listener_alloc,
 	},
+#endif
 	{
 	    .scheme         = "tls+tcp",
 	    .dialer_alloc   = nni_tls_dialer_alloc,
@@ -67,11 +69,13 @@ static struct {
 	    .dialer_alloc   = nni_tls_dialer_alloc,
 	    .listener_alloc = nni_tls_listener_alloc,
 	},
+#ifdef NNG_ENABLE_IPV6
 	{
 	    .scheme         = "tls+tcp6",
 	    .dialer_alloc   = nni_tls_dialer_alloc,
 	    .listener_alloc = nni_tls_listener_alloc,
 	},
+#endif
 	{
 	    .scheme         = "ws",
 	    .dialer_alloc   = nni_ws_dialer_alloc,
@@ -82,11 +86,13 @@ static struct {
 	    .dialer_alloc   = nni_ws_dialer_alloc,
 	    .listener_alloc = nni_ws_listener_alloc,
 	},
+#ifdef NNG_ENABLE_IPV6
 	{
 	    .scheme         = "ws6",
 	    .dialer_alloc   = nni_ws_dialer_alloc,
 	    .listener_alloc = nni_ws_listener_alloc,
 	},
+#endif
 	{
 	    .scheme         = "wss",
 	    .dialer_alloc   = nni_ws_dialer_alloc,
@@ -501,6 +507,14 @@ nng_stream_set_string(nng_stream *s, const char *n, const char *v)
 	return (nni_stream_set(
 	    s, n, v, v == NULL ? 0 : strlen(v) + 1, NNI_TYPE_STRING));
 }
+
+#ifndef NNG_ELIDE_DEPRECATED
+int
+nng_stream_set_addr(nng_stream *s, const char *n, const nng_sockaddr *v)
+{
+	return (nni_stream_set(s, n, v, sizeof(*v), NNI_TYPE_SOCKADDR));
+}
+#endif
 
 int
 nng_stream_dialer_set(

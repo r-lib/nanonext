@@ -33,7 +33,6 @@ struct tlstran_pipe {
 	nni_list        sendq;
 	nni_list        recvq;
 	tlstran_ep     *ep;
-	nni_sockaddr    sa;
 	nni_atomic_flag reaped;
 	nni_reap_node   reap;
 	uint8_t         txlen[sizeof(uint64_t)];
@@ -70,7 +69,6 @@ struct tlstran_ep {
 	nni_list             waitpipes;
 	nni_list             negopipes;
 	const char          *host;
-	nng_sockaddr         src;
 	nng_sockaddr         sa;
 	nni_stat_item        st_rcv_max;
 };
@@ -352,6 +350,20 @@ tlstran_pipe_recv_cb(void *arg)
 		NNI_GET64(p->rxlen, len);
 
 		if ((len > p->rcvmax) && (p->rcvmax > 0)) {
+			nng_sockaddr_storage ss;
+			nng_sockaddr        *sa = (nng_sockaddr *) &ss;
+			char                 peername[64] = "unknown";
+			if ((rv = nng_stream_get_addr(
+			         p->tls, NNG_OPT_REMADDR, sa)) == 0) {
+				(void) nng_str_sockaddr(
+				    sa, peername, sizeof(peername));
+			}
+			nng_log_warn("NNG-RCVMAX",
+			    "Oversize message of %lu bytes (> %lu) "
+			    "on socket<%u> pipe<%u> from TLS %s",
+			    (unsigned long) len, (unsigned long) p->rcvmax,
+			    nni_pipe_sock_id(p->npipe), nni_pipe_id(p->npipe),
+			    peername);
 			rv = NNG_EMSGSIZE;
 			goto recv_error;
 		}
@@ -658,8 +670,10 @@ tlstran_url_parse_source(nni_url *url, nng_sockaddr *sa, const nni_url *surl)
 		af = NNG_AF_UNSPEC;
 	} else if (strcmp(surl->u_scheme, "tls+tcp4") == 0) {
 		af = NNG_AF_INET;
+#ifdef NNG_ENABLE_IPV6
 	} else if (strcmp(surl->u_scheme, "tls+tcp6") == 0) {
 		af = NNG_AF_INET6;
+#endif
 	} else {
 		return (NNG_EADDRINVAL);
 	}
@@ -876,8 +890,10 @@ tlstran_ep_init_listener(void **lp, nni_url *url, nni_listener *nlistener)
 		af = NNG_AF_UNSPEC;
 	} else if (strcmp(url->u_scheme, "tls+tcp4") == 0) {
 		af = NNG_AF_INET;
+#ifdef NNG_ENABLE_IPV6
 	} else if (strcmp(url->u_scheme, "tls+tcp6") == 0) {
 		af = NNG_AF_INET6;
+#endif
 	} else {
 		return (NNG_EADDRINVAL);
 	}
@@ -1204,6 +1220,7 @@ static nni_sp_tran tls4_tran = {
 	.tran_fini     = tlstran_fini,
 };
 
+#ifdef NNG_ENABLE_IPV6
 static nni_sp_tran tls6_tran = {
 	.tran_scheme   = "tls+tcp6",
 	.tran_dialer   = &tlstran_dialer_ops,
@@ -1212,6 +1229,7 @@ static nni_sp_tran tls6_tran = {
 	.tran_init     = tlstran_init,
 	.tran_fini     = tlstran_fini,
 };
+#endif
 
 int
 nng_tls_register(void)
@@ -1224,5 +1242,7 @@ nni_sp_tls_register(void)
 {
 	nni_sp_tran_register(&tls_tran);
 	nni_sp_tran_register(&tls4_tran);
+#ifdef NNG_ENABLE_IPV6
 	nni_sp_tran_register(&tls6_tran);
+#endif
 }

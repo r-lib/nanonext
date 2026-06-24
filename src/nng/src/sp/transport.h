@@ -15,7 +15,6 @@
 #include "core/options.h"
 
 struct nni_sp_dialer_ops {
-
 	int (*d_init)(void **, nni_url *, nni_dialer *);
 
 	void (*d_fini)(void *);
@@ -32,7 +31,6 @@ struct nni_sp_dialer_ops {
 };
 
 struct nni_sp_listener_ops {
-
 	int (*l_init)(void **, nni_url *, nni_listener *);
 
 	void (*l_fini)(void *);
@@ -51,7 +49,6 @@ struct nni_sp_listener_ops {
 };
 
 struct nni_sp_pipe_ops {
-
 	int (*p_init)(void *, nni_pipe *);
 
 	void (*p_fini)(void *);
@@ -70,7 +67,6 @@ struct nni_sp_pipe_ops {
 };
 
 struct nni_sp_tran {
-
 	nni_list_node tran_link;
 
 	const char *tran_scheme;

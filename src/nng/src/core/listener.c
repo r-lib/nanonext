@@ -1,5 +1,5 @@
 //
-// Copyright 2023 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2024 Staysail Systems, Inc. <info@staysail.tech>
 // Copyright 2018 Capitar IT Group BV <info@capitar.com>
 // Copyright 2018 Devolutions <info@devolutions.net>
 //
@@ -10,6 +10,8 @@
 //
 
 #include "core/nng_impl.h"
+#include "core/strs.h"
+#include "nng/nng.h"
 #include "sockimpl.h"
 
 #include <stdio.h>
@@ -19,7 +21,7 @@ static void listener_accept_start(nni_listener *);
 static void listener_accept_cb(void *);
 static void listener_timer_cb(void *);
 
-static nni_id_map listeners = NNI_ID_MAP_INITIALIZER(1, 0x7fffffff, 0);
+static nni_id_map listeners    = NNI_ID_MAP_INITIALIZER(1, 0x7fffffff, 0);
 static nni_mtx    listeners_lk = NNI_MTX_INITIALIZER;
 
 uint32_t
@@ -215,12 +217,12 @@ nni_listener_create(nni_listener **lp, nni_sock *s, const char *url_str)
 		nni_url_free(url);
 		return (NNG_ENOMEM);
 	}
-	l->l_url     = url;
-	l->l_closed  = false;
-	l->l_data    = NULL;
-	l->l_ref     = 1;
-	l->l_sock    = s;
-	l->l_tran    = tran;
+	l->l_url    = url;
+	l->l_closed = false;
+	l->l_data   = NULL;
+	l->l_ref    = 1;
+	l->l_sock   = s;
+	l->l_tran   = tran;
 	nni_atomic_flag_reset(&l->l_started);
 
 	l->l_ops = *tran->tran_listener;
@@ -352,6 +354,10 @@ listener_accept_cb(void *arg)
 	case NNG_ECONNRESET:
 	case NNG_ETIMEDOUT:
 	case NNG_EPEERAUTH:
+		nng_log_warn("NNG-ACCEPT-FAIL",
+		    "Failed accepting for socket<%u> on %s: %s",
+		    nni_sock_id(l->l_sock), l->l_url->u_rawurl,
+		    nng_strerror(rv));
 		nni_listener_bump_error(l, rv);
 		listener_accept_start(l);
 		break;
@@ -375,7 +381,9 @@ listener_accept_start(nni_listener *l)
 int
 nni_listener_start(nni_listener *l, int flags)
 {
-	int rv;
+	int    rv;
+	char  *url;
+	size_t sz;
 	NNI_ARG_UNUSED(flags);
 
 	if (nni_atomic_flag_test_and_set(&l->l_started)) {
@@ -383,10 +391,20 @@ nni_listener_start(nni_listener *l, int flags)
 	}
 
 	if ((rv = l->l_ops.l_bind(l->l_data)) != 0) {
+		nng_log_warn("NNG-BIND-FAIL",
+		    "Failed binding socket<%u> to %s: %s",
+		    nni_sock_id(l->l_sock), l->l_url->u_rawurl,
+		    nng_strerror(rv));
 		nni_listener_bump_error(l, rv);
 		nni_atomic_flag_reset(&l->l_started);
 		return (rv);
 	}
+	sz = sizeof(url);
+	(void) (nni_listener_getopt(
+	    l, NNG_OPT_URL, &url, &sz, NNI_TYPE_STRING));
+	nng_log_info("NNG-LISTEN", "Starting listener for socket<%u> on %s",
+	    nni_sock_id(l->l_sock), url);
+	nni_strfree(url);
 
 	listener_accept_start(l);
 
@@ -466,6 +484,12 @@ nni_listener_getopt(
 	}
 
 	return (nni_sock_getopt(l->l_sock, name, val, szp, t));
+}
+
+const nng_url *
+nni_listener_url(nni_listener *l)
+{
+	return (l->l_url);
 }
 
 void

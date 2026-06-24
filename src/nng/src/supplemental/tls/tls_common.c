@@ -1,5 +1,5 @@
 //
-// Copyright 2021 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2024 Staysail Systems, Inc. <info@staysail.tech>
 // Copyright 2018 Capitar IT Group BV <info@capitar.com>
 // Copyright 2019 Devolutions <info@devolutions.net>
 //
@@ -32,10 +32,10 @@ static nni_atomic_ptr tls_engine;
 
 struct nng_tls_config {
 	nng_tls_engine_config_ops ops;
-	const nng_tls_engine *    engine;
+	const nng_tls_engine     *engine;
 	nni_mtx                   lock;
 	int                       ref;
-	int                       busy;
+	bool                      busy;
 	size_t                    size;
 
 };
@@ -43,21 +43,21 @@ struct nng_tls_config {
 typedef struct {
 	nng_stream              stream;
 	nng_tls_engine_conn_ops ops;
-	nng_tls_config *        cfg;
-	const nng_tls_engine *  engine;
+	nng_tls_config         *cfg;
+	const nng_tls_engine   *engine;
 	size_t                  size;
-	nni_aio *               user_aio;
+	nni_aio                *user_aio;
 	nni_aio                 conn_aio;
 	nni_mtx                 lock;
 	bool                    closed;
 	bool                    hs_done;
 	nni_list                send_queue;
 	nni_list                recv_queue;
-	nng_stream *            tcp;
+	nng_stream             *tcp;
 	nni_aio                 tcp_send;
 	nni_aio                 tcp_recv;
-	uint8_t *               tcp_send_buf;
-	uint8_t *               tcp_recv_buf;
+	uint8_t                *tcp_send_buf;
+	uint8_t                *tcp_recv_buf;
 	size_t                  tcp_recv_len;
 	size_t                  tcp_recv_off;
 	bool                    tcp_recv_pend;
@@ -88,7 +88,7 @@ static nni_reap_list tls_conn_reap_list = {
 typedef struct {
 	nng_stream_dialer  ops;
 	nng_stream_dialer *d;
-	nng_tls_config *   cfg;
+	nng_tls_config    *cfg;
 	nni_mtx            lk;
 } tls_dialer;
 
@@ -114,7 +114,7 @@ tls_dialer_free(void *arg)
 static void
 tls_conn_cb(void *arg)
 {
-	tls_conn *  conn = arg;
+	tls_conn   *conn = arg;
 	nng_stream *tcp;
 	int         rv;
 
@@ -151,7 +151,7 @@ tls_dialer_dial(void *arg, nng_aio *aio)
 {
 	tls_dialer *d = arg;
 	int         rv;
-	tls_conn *  conn;
+	tls_conn   *conn;
 
 	if (nni_aio_begin(aio) != 0) {
 		return;
@@ -191,7 +191,7 @@ tls_dialer_set_config(void *arg, const void *buf, size_t sz, nni_type t)
 {
 	int             rv;
 	nng_tls_config *cfg;
-	tls_dialer *    d = arg;
+	tls_dialer     *d = arg;
 	nng_tls_config *old;
 
 	if ((rv = nni_copyin_ptr((void **) &cfg, buf, sz, t)) != 0) {
@@ -214,7 +214,7 @@ tls_dialer_set_config(void *arg, const void *buf, size_t sz, nni_type t)
 static int
 tls_dialer_get_config(void *arg, void *buf, size_t *szp, nni_type t)
 {
-	tls_dialer *    d = arg;
+	tls_dialer     *d = arg;
 	nng_tls_config *cfg;
 	int             rv;
 	nni_mtx_lock(&d->lk);
@@ -387,7 +387,7 @@ nni_tls_dialer_alloc(nng_stream_dialer **dp, const nng_url *url)
 typedef struct {
 	nng_stream_listener  ops;
 	nng_stream_listener *l;
-	nng_tls_config *     cfg;
+	nng_tls_config      *cfg;
 	nni_mtx              lk;
 } tls_listener;
 
@@ -423,7 +423,7 @@ tls_listener_accept(void *arg, nng_aio *aio)
 {
 	tls_listener *l = arg;
 	int           rv;
-	tls_conn *    conn;
+	tls_conn     *conn;
 
 	if (nni_aio_begin(aio) != 0) {
 		return;
@@ -447,7 +447,7 @@ tls_listener_set_config(void *arg, const void *buf, size_t sz, nni_type t)
 {
 	int             rv;
 	nng_tls_config *cfg;
-	tls_listener *  l = arg;
+	tls_listener   *l = arg;
 	nng_tls_config *old;
 
 	if ((rv = nni_copyin_ptr((void **) &cfg, buf, sz, t)) != 0) {
@@ -472,7 +472,7 @@ tls_listener_set_config(void *arg, const void *buf, size_t sz, nni_type t)
 static int
 tls_listener_get_config(void *arg, void *buf, size_t *szp, nni_type t)
 {
-	tls_listener *  l = arg;
+	tls_listener   *l = arg;
 	nng_tls_config *cfg;
 	int             rv;
 	nni_mtx_lock(&l->lk);
@@ -786,7 +786,7 @@ static const nni_option tls_options[] = {
 static int
 tls_set(void *arg, const char *name, const void *buf, size_t sz, nni_type t)
 {
-	tls_conn *  conn = arg;
+	tls_conn   *conn = arg;
 	int         rv;
 	nng_stream *tcp;
 
@@ -814,11 +814,15 @@ tls_get(void *arg, const char *name, void *buf, size_t *szp, nni_type t)
 static int
 tls_alloc(tls_conn **conn_p, nng_tls_config *cfg, nng_aio *user_aio)
 {
-	tls_conn *            conn;
+	tls_conn             *conn;
 	const nng_tls_engine *eng;
 	size_t                size;
 
 	eng = cfg->engine;
+
+	nni_mtx_lock(&cfg->lock);
+	cfg->busy = true;
+	nni_mtx_unlock(&cfg->lock);
 
 	size = NNI_ALIGN_UP(sizeof(*conn)) + eng->conn_ops->size;
 
@@ -1030,7 +1034,7 @@ static void
 tls_tcp_send_cb(void *arg)
 {
 	tls_conn *conn = arg;
-	nng_aio * aio  = &conn->tcp_send;
+	nng_aio  *aio  = &conn->tcp_send;
 	int       rv;
 	size_t    count;
 
@@ -1062,7 +1066,7 @@ static void
 tls_tcp_recv_cb(void *arg)
 {
 	tls_conn *conn = arg;
-	nni_aio * aio  = &conn->tcp_recv;
+	nni_aio  *aio  = &conn->tcp_recv;
 	int       rv;
 
 	nni_mtx_lock(&conn->lock);
@@ -1231,9 +1235,9 @@ nng_tls_config_cert_key_file(
     nng_tls_config *cfg, const char *path, const char *pass)
 {
 	int    rv;
-	void * data;
+	void  *data;
 	size_t size;
-	char * pem;
+	char  *pem;
 
 	if ((rv = nni_file_get(path, &data, &size)) != 0) {
 		return (rv);
@@ -1253,9 +1257,9 @@ int
 nng_tls_config_ca_file(nng_tls_config *cfg, const char *path)
 {
 	int    rv;
-	void * data;
+	void  *data;
 	size_t size;
-	char * pem;
+	char  *pem;
 
 	if ((rv = nni_file_get(path, &data, &size)) != 0) {
 		return (rv);
@@ -1282,7 +1286,7 @@ nng_tls_config_version(
 	int rv;
 
 	nni_mtx_lock(&cfg->lock);
-	if (cfg->busy != 0) {
+	if (cfg->busy) {
 		rv = NNG_EBUSY;
 	} else {
 		rv = cfg->ops.version((void *) (cfg + 1), min_ver, max_ver);
@@ -1297,7 +1301,7 @@ nng_tls_config_server_name(nng_tls_config *cfg, const char *name)
 	int rv;
 
 	nni_mtx_lock(&cfg->lock);
-	if (cfg->busy != 0) {
+	if (cfg->busy) {
 		rv = NNG_EBUSY;
 	} else {
 		rv = cfg->ops.server((void *) (cfg + 1), name);
@@ -1313,7 +1317,7 @@ nng_tls_config_ca_chain(
 	int rv;
 
 	nni_mtx_lock(&cfg->lock);
-	if (cfg->busy != 0) {
+	if (cfg->busy) {
 		rv = NNG_EBUSY;
 	} else {
 		rv = cfg->ops.ca_chain((void *) (cfg + 1), certs, crl);
@@ -1328,10 +1332,25 @@ nng_tls_config_own_cert(
 {
 	int rv;
 	nni_mtx_lock(&cfg->lock);
-	if (cfg->busy != 0) {
+	if (cfg->busy) {
 		rv = NNG_EBUSY;
 	} else {
 		rv = cfg->ops.own_cert((void *) (cfg + 1), cert, key, pass);
+	}
+	nni_mtx_unlock(&cfg->lock);
+	return (rv);
+}
+
+int
+nng_tls_config_psk(nng_tls_config *cfg, const char *identity,
+    const uint8_t *key, size_t key_len)
+{
+	int rv;
+	nni_mtx_lock(&cfg->lock);
+	if (cfg->busy) {
+		rv = NNG_EBUSY;
+	} else {
+		rv = cfg->ops.psk((void *) (cfg + 1), identity, key, key_len);
 	}
 	nni_mtx_unlock(&cfg->lock);
 	return (rv);
@@ -1343,7 +1362,7 @@ nng_tls_config_auth_mode(nng_tls_config *cfg, nng_tls_auth_mode mode)
 	int rv;
 
 	nni_mtx_lock(&cfg->lock);
-	if (cfg->busy != 0) {
+	if (cfg->busy) {
 		rv = NNG_EBUSY;
 	} else {
 		rv = cfg->ops.auth((void *) (cfg + 1), mode);
@@ -1355,7 +1374,7 @@ nng_tls_config_auth_mode(nng_tls_config *cfg, nng_tls_auth_mode mode)
 int
 nng_tls_config_alloc(nng_tls_config **cfg_p, nng_tls_mode mode)
 {
-	nng_tls_config *      cfg;
+	nng_tls_config       *cfg;
 	const nng_tls_engine *eng;
 	size_t                size;
 	int                   rv;
@@ -1380,7 +1399,7 @@ nng_tls_config_alloc(nng_tls_config **cfg_p, nng_tls_mode mode)
 	cfg->size   = size;
 	cfg->engine = eng;
 	cfg->ref    = 1;
-	cfg->busy   = 0;
+	cfg->busy   = false;
 	nni_mtx_init(&cfg->lock);
 
 	if ((rv = cfg->ops.init((void *) (cfg + 1), mode)) != 0) {
@@ -1454,9 +1473,13 @@ int
 nng_tls_engine_register(const nng_tls_engine *engine)
 {
 	if (engine->version != NNG_TLS_ENGINE_VERSION) {
+		nng_log_err("NNG-TLS-ENGINE-VER",
+		    "TLS Engine version mismatch: %d != %d", engine->version,
+		    NNG_TLS_ENGINE_VERSION);
 		return (NNG_ENOTSUP);
 	}
-	nni_atomic_set_ptr(&tls_engine, (void *)engine);
+	nng_log_info("NNG-TLS-INFO", "TLS Engine: %s", engine->description);
+	nni_atomic_set_ptr(&tls_engine, (void *) engine);
 	return (0);
 }
 
@@ -1603,7 +1626,7 @@ nng_tls_config_alloc(nng_tls_config **cfgp, nng_tls_mode mode)
 void
 nng_tls_config_hold(nng_tls_config *cfg)
 {
-  NNI_ARG_UNUSED(cfg);
+	NNI_ARG_UNUSED(cfg);
 }
 
 void

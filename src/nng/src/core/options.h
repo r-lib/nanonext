@@ -13,7 +13,6 @@
 #define CORE_OPTIONS_H
 
 #define NNI_MAXINT (2147483647)
-
 #define NNI_MININT (-2147483647 - 1)
 
 #define NNI_MINSZ (0)
@@ -43,7 +42,6 @@ extern int nni_copyout_str(const char *, void *, size_t *, nni_type);
 
 typedef struct nni_option_s nni_option;
 struct nni_option_s {
-
 	const char *o_name;
 
 	int (*o_get)(void *, void *, size_t *, nni_type);

@@ -1,5 +1,5 @@
 //
-// Copyright 2021 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2024 Staysail Systems, Inc. <info@staysail.tech>
 // Copyright 2018 Capitar IT Group BV <info@capitar.com>
 //
 // This software is supplied under the terms of the MIT License, a
@@ -17,13 +17,13 @@ typedef struct xreq0_pipe xreq0_pipe;
 typedef struct xreq0_sock xreq0_sock;
 
 struct xreq0_sock {
-	nni_msgq *     uwq;
-	nni_msgq *     urq;
+	nni_msgq      *uwq;
+	nni_msgq      *urq;
 	nni_atomic_int ttl;
 };
 
 struct xreq0_pipe {
-	nni_pipe *  pipe;
+	nni_pipe   *pipe;
 	xreq0_sock *req;
 	nni_aio     aio_getq;
 	nni_aio     aio_send;
@@ -110,6 +110,9 @@ xreq0_pipe_start(void *arg)
 	xreq0_sock *s = p->req;
 
 	if (nni_pipe_peer(p->pipe) != NNG_REQ0_PEER) {
+		nng_log_warn("NNG-PEER-MISMATCH",
+		    "Peer protocol mismatch: %d != %d, rejected.",
+		    nni_pipe_peer(p->pipe), NNG_REQ0_PEER);
 		return (NNG_EPROTO);
 	}
 
@@ -181,7 +184,7 @@ xreq0_recv_cb(void *arg)
 {
 	xreq0_pipe *p    = arg;
 	xreq0_sock *sock = p->req;
-	nni_msg *   msg;
+	nni_msg    *msg;
 	bool        end;
 
 	if (nni_aio_result(&p->aio_recv) != 0) {
@@ -205,12 +208,12 @@ xreq0_recv_cb(void *arg)
 		body = nni_msg_body(msg);
 		end  = ((body[0] & 0x80u) != 0);
 
-		if (nng_msg_header_append(msg, body, sizeof (uint32_t)) != 0) {
+		if (nng_msg_header_append(msg, body, sizeof(uint32_t)) != 0) {
 			nni_msg_free(msg);
 			nni_pipe_close(p->pipe);
 			return;
 		}
-		nni_msg_trim(msg, sizeof (uint32_t));
+		nni_msg_trim(msg, sizeof(uint32_t));
 	}
 	nni_aio_set_msg(&p->aio_putq, msg);
 	nni_msgq_aio_put(sock->urq, &p->aio_putq);

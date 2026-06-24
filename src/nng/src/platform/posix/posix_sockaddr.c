@@ -22,17 +22,23 @@
 #include <sys/types.h>
 #include <sys/un.h>
 
+#ifndef NNG_HAVE_INET6
+#undef NNG_ENABLE_IPV6
+#endif
+
 size_t
 nni_posix_nn2sockaddr(void *sa, const nni_sockaddr *na)
 {
 	struct sockaddr_in          *sin;
-	struct sockaddr_in6         *sin6;
 	struct sockaddr_un          *spath;
 	const nng_sockaddr_in       *nsin;
-	const nng_sockaddr_in6      *nsin6;
 	const nng_sockaddr_path     *nspath;
 	const nng_sockaddr_abstract *nsabs;
 	size_t                       sz;
+#ifdef NNG_ENABLE_IPV6
+	struct sockaddr_in6    *sin6;
+	const nng_sockaddr_in6 *nsin6;
+#endif
 
 	if ((sa == NULL) || (na == NULL)) {
 		return (0);
@@ -47,6 +53,7 @@ nni_posix_nn2sockaddr(void *sa, const nni_sockaddr *na)
 		sin->sin_addr.s_addr = nsin->sa_addr;
 		return (sizeof(*sin));
 
+#ifdef NNG_ENABLE_IPV6
 	case NNG_AF_INET6:
 		sin6  = (void *) sa;
 		nsin6 = &na->s_in6;
@@ -59,6 +66,7 @@ nni_posix_nn2sockaddr(void *sa, const nni_sockaddr *na)
 		sin6->sin6_scope_id = nsin6->sa_scope;
 		memcpy(sin6->sin6_addr.s6_addr, nsin6->sa_addr, 16);
 		return (sizeof(*sin6));
+#endif
 
 	case NNG_AF_IPC:
 		spath  = (void *) sa;
@@ -95,13 +103,15 @@ nni_posix_nn2sockaddr(void *sa, const nni_sockaddr *na)
 int
 nni_posix_sockaddr2nn(nni_sockaddr *na, const void *sa, size_t sz)
 {
-	const struct sockaddr_in  *sin;
+	const struct sockaddr_in *sin;
+	const struct sockaddr_un *spath;
+	nng_sockaddr_in          *nsin;
+	nng_sockaddr_path        *nspath;
+	nng_sockaddr_abstract    *nsabs;
+#ifdef NNG_ENABLE_IPV6
 	const struct sockaddr_in6 *sin6;
-	const struct sockaddr_un  *spath;
-	nng_sockaddr_in           *nsin;
 	nng_sockaddr_in6          *nsin6;
-	nng_sockaddr_path         *nspath;
-	nng_sockaddr_abstract     *nsabs;
+#endif
 
 	if ((na == NULL) || (sa == NULL)) {
 		return (-1);
@@ -117,6 +127,8 @@ nni_posix_sockaddr2nn(nni_sockaddr *na, const void *sa, size_t sz)
 		nsin->sa_port   = sin->sin_port;
 		nsin->sa_addr   = sin->sin_addr.s_addr;
 		break;
+
+#ifdef NNG_ENABLE_IPV6
 	case AF_INET6:
 		if (sz < sizeof(*sin6)) {
 			return (-1);
@@ -128,6 +140,8 @@ nni_posix_sockaddr2nn(nni_sockaddr *na, const void *sa, size_t sz)
 		nsin6->sa_scope  = sin6->sin6_scope_id;
 		memcpy(nsin6->sa_addr, sin6->sin6_addr.s6_addr, 16);
 		break;
+#endif
+
 	case AF_UNIX:
 		spath = (void *) sa;
 		if ((sz < sizeof(sa_family_t)) || (sz > sizeof(*spath))) {
@@ -144,7 +158,7 @@ nni_posix_sockaddr2nn(nni_sockaddr *na, const void *sa, size_t sz)
 			nsabs->sa_len    = (uint16_t) (sz - 1);
 			memcpy(nsabs->sa_name, &spath->sun_path[1], sz - 1);
 		} else {
-		  nspath            = &na->s_ipc;
+			nspath            = &na->s_ipc;
 			nspath->sa_family = NNG_AF_IPC;
 			nni_strlcpy(nspath->sa_path, spath->sun_path,
 			    sizeof(nspath->sa_path));

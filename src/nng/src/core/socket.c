@@ -1,5 +1,5 @@
 //
-// Copyright 2023 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2024 Staysail Systems, Inc. <info@staysail.tech>
 // Copyright 2018 Capitar IT Group BV <info@capitar.com>
 //
 // This software is supplied under the terms of the MIT License, a
@@ -9,7 +9,9 @@
 //
 
 #include "core/nng_impl.h"
+#include "core/pipe.h"
 #include "list.h"
+#include "nng/nng.h"
 #include "nng/supplemental/tls/tls.h"
 #include "sockimpl.h"
 
@@ -816,7 +818,7 @@ nni_sock_peer_name(nni_sock *sock)
 bool
 nni_sock_raw(nni_sock *sock)
 {
-  return ((nni_sock_flags(sock) & NNI_PROTO_FLAG_RAW) != 0);
+	return ((nni_sock_flags(sock) & NNI_PROTO_FLAG_RAW) != 0);
 }
 
 struct nni_proto_pipe_ops *
@@ -828,13 +830,13 @@ nni_sock_proto_pipe_ops(nni_sock *sock)
 struct nni_proto_sock_ops *
 nni_sock_proto_ops(nni_sock *sock)
 {
-  return (&sock->s_sock_ops);
+	return (&sock->s_sock_ops);
 }
 
 struct nni_proto_ctx_ops *
 nni_ctx_proto_ops(nni_ctx *ctx)
 {
-  return (&ctx->c_ops);
+	return (&ctx->c_ops);
 }
 
 void *
@@ -846,7 +848,7 @@ nni_sock_proto_data(nni_sock *sock)
 void *
 nni_ctx_proto_data(nni_ctx *ctx)
 {
-  return (ctx->c_data);
+	return (ctx->c_data);
 }
 
 int
@@ -902,7 +904,7 @@ int
 nni_sock_add_dialer(nni_sock *s, nni_dialer *d)
 {
 	nni_sockopt *sopt;
-	int rv;
+	int          rv;
 
 	if ((rv = nni_dialer_hold(d)) != 0) {
 		return (rv);
@@ -1393,7 +1395,7 @@ dialer_timer_start_locked(nni_dialer *d)
 	}
 
 	nni_sleep_aio(back_off ? (nng_duration) (nni_random() % back_off) : 0,
-               &d->d_tmo_aio);
+	    &d->d_tmo_aio);
 }
 
 void
@@ -1435,6 +1437,12 @@ nni_dialer_add_pipe(nni_dialer *d, void *tpipe)
 		nni_stat_inc(&d->st_reject, 1);
 		nni_stat_inc(&s->st_rejects, 1);
 #endif
+		if (nng_log_get_level() >= NNG_LOG_DEBUG) {
+			char addr[NNG_MAXADDRSTRLEN];
+			nng_log_debug("NNG-PIPEREJECT",
+			    "Pipe on socket<%u> from %s rejected by callback",
+			    nni_pipe_sock_id(p), nni_pipe_peer_addr(p, addr));
+		}
 		nni_pipe_rele(p);
 		return;
 	}
@@ -1454,6 +1462,12 @@ nni_dialer_add_pipe(nni_dialer *d, void *tpipe)
 	nni_stat_register(&p->st_root);
 #endif
 	nni_pipe_run_cb(p, NNG_PIPE_EV_ADD_POST);
+	if (nng_log_get_level() >= NNG_LOG_DEBUG) {
+		char addr[NNG_MAXADDRSTRLEN];
+		nng_log_debug("NNG-CONNECT",
+		    "Connected pipe<%u> on socket<%u> to %s", nni_pipe_id(p),
+		    nni_sock_id(s), nni_pipe_peer_addr(p, addr));
+	}
 	nni_pipe_rele(p);
 }
 
@@ -1562,6 +1576,12 @@ nni_listener_add_pipe(nni_listener *l, void *tpipe)
 	nni_stat_register(&p->st_root);
 #endif
 	nni_pipe_run_cb(p, NNG_PIPE_EV_ADD_POST);
+	if (nng_log_get_level() >= NNG_LOG_DEBUG) {
+		char addr[NNG_MAXADDRSTRLEN];
+		nng_log_debug("NNG-ACCEPT",
+		    "Accepted pipe<%u> on socket<%u> from %s", nni_pipe_id(p),
+		    nni_sock_id(s), nni_pipe_peer_addr(p, addr));
+	}
 	nni_pipe_rele(p);
 }
 

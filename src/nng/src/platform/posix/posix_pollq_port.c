@@ -16,7 +16,7 @@
 #include <sched.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h> 
+#include <string.h>
 #include <unistd.h>
 
 #include "core/nng_impl.h"

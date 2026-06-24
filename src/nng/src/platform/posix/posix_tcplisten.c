@@ -1,5 +1,5 @@
 //
-// Copyright 2024 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2020 Staysail Systems, Inc. <info@staysail.tech>
 // Copyright 2018 Capitar IT Group BV <info@capitar.com>
 // Copyright 2018 Devolutions <info@devolutions.net>
 //
@@ -25,6 +25,10 @@
 
 #ifndef SOCK_CLOEXEC
 #define SOCK_CLOEXEC 0
+#endif
+
+#ifndef NNG_HAVE_INET6
+#undef NNG_ENABLE_IPV6
 #endif
 
 #include "posix_tcp.h"
@@ -200,7 +204,12 @@ nni_tcp_listener_listen(nni_tcp_listener *l, const nni_sockaddr *sa)
 	nni_posix_pfd          *pfd;
 
 	if (((len = (socklen_t) nni_posix_nn2sockaddr(&ss, sa)) == 0) ||
-	    ((ss.ss_family != AF_INET) && (ss.ss_family != AF_INET6))) {
+#ifdef NNG_ENABLE_IPV6
+	    ((ss.ss_family != AF_INET) && (ss.ss_family != AF_INET6))
+#else
+	    (ss.ss_family != AF_INET)
+#endif
+	) {
 		return (NNG_EADDRINVAL);
 	}
 

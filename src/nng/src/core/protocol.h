@@ -14,7 +14,6 @@
 #include "core/options.h"
 
 struct nni_proto_pipe_ops {
-
 	size_t pipe_size;
 
 	int (*pipe_init)(void *, nni_pipe *, void *);
@@ -29,7 +28,6 @@ struct nni_proto_pipe_ops {
 };
 
 struct nni_proto_ctx_ops {
-
 	size_t ctx_size;
 
 	void (*ctx_init)(void *, void *);
@@ -44,7 +42,6 @@ struct nni_proto_ctx_ops {
 };
 
 struct nni_proto_sock_ops {
-
 	size_t sock_size;
 
 	void (*sock_init)(void *, nni_sock *);

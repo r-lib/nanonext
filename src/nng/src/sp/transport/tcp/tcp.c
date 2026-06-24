@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "core/nng_impl.h"
+#include "nng/nng.h"
 
 typedef struct tcptran_pipe tcptran_pipe;
 typedef struct tcptran_ep   tcptran_ep;
@@ -52,7 +53,6 @@ struct tcptran_ep {
 	bool                 closed;
 	nng_url             *url;
 	const char          *host;
-	nng_sockaddr         src;
 	int                  refcnt;
 	nni_aio             *useraio;
 	nni_aio             *connaio;
@@ -362,6 +362,20 @@ tcptran_pipe_recv_cb(void *arg)
 		NNI_GET64(p->rxlen, len);
 
 		if ((len > p->rcvmax) && (p->rcvmax > 0)) {
+			nng_sockaddr_storage ss;
+			nng_sockaddr        *sa = (nng_sockaddr *) &ss;
+			char                 peername[64] = "unknown";
+			if ((rv = nng_stream_get_addr(
+			         p->conn, NNG_OPT_REMADDR, sa)) == 0) {
+				(void) nng_str_sockaddr(
+				    sa, peername, sizeof(peername));
+			}
+			nng_log_warn("NNG-RCVMAX",
+			    "Oversize message of %lu bytes (> %lu) "
+			    "on socket<%u> pipe<%u> from TCP %s",
+			    (unsigned long) len, (unsigned long) p->rcvmax,
+			    nni_pipe_sock_id(p->npipe), nni_pipe_id(p->npipe),
+			    peername);
 			rv = NNG_EMSGSIZE;
 			goto recv_error;
 		}
@@ -696,8 +710,10 @@ tcptran_url_parse_source(nng_url *url, nng_sockaddr *sa, const nng_url *surl)
 		af = NNG_AF_UNSPEC;
 	} else if (strcmp(surl->u_scheme, "tcp4") == 0) {
 		af = NNG_AF_INET;
+#ifdef NNG_ENABLE_IPV6
 	} else if (strcmp(surl->u_scheme, "tcp6") == 0) {
 		af = NNG_AF_INET6;
+#endif
 	} else {
 		return (NNG_EADDRINVAL);
 	}
@@ -1192,6 +1208,7 @@ static nni_sp_tran tcp4_tran = {
 	.tran_fini     = tcptran_fini,
 };
 
+#ifdef NNG_ENABLE_IPV6
 static nni_sp_tran tcp6_tran = {
 	.tran_scheme   = "tcp6",
 	.tran_dialer   = &tcptran_dialer_ops,
@@ -1200,6 +1217,7 @@ static nni_sp_tran tcp6_tran = {
 	.tran_init     = tcptran_init,
 	.tran_fini     = tcptran_fini,
 };
+#endif
 
 #ifndef NNG_ELIDE_DEPRECATED
 int
@@ -1214,5 +1232,7 @@ nni_sp_tcp_register(void)
 {
 	nni_sp_tran_register(&tcp_tran);
 	nni_sp_tran_register(&tcp4_tran);
+#ifdef NNG_ENABLE_IPV6
 	nni_sp_tran_register(&tcp6_tran);
+#endif
 }

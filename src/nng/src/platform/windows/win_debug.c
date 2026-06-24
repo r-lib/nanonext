@@ -48,7 +48,6 @@ static struct {
 	int sys_err;
 	int nng_err;
 } nni_plat_errnos[] = {
-	// clang-format off
 	{ ENOENT,	NNG_ENOENT },
 	{ EINTR,	NNG_EINTR },
 	{ EINVAL,	NNG_EINVAL },
@@ -61,7 +60,6 @@ static struct {
 	{ EPERM,	NNG_EPERM },
 	{ EPIPE,	NNG_ECLOSED },
 	{ 0,		0 }
-	// clang-format on
 };
 
 int
@@ -84,7 +82,6 @@ static struct {
 	int win_err;
 	int nng_err;
 } nni_win_errnos[] = {
-	// clang-format off
 	{ ERROR_FILE_NOT_FOUND,	    NNG_ENOENT	     },
 	{ ERROR_PATH_NOT_FOUND,	    NNG_ENOENT	     },
 	{ ERROR_ACCESS_DENIED,	    NNG_EPERM	     },
@@ -98,10 +95,10 @@ static struct {
 	{ ERROR_OUT_OF_STRUCTURES,  NNG_ENOMEM	     },
 	{ ERROR_INVALID_PARAMETER,  NNG_EINVAL	     },
 	{ ERROR_CONNECTION_REFUSED, NNG_ECONNREFUSED },
-  { ERROR_DUP_NAME,           NNG_EADDRINUSE   },
+        { ERROR_DUP_NAME,           NNG_EADDRINUSE   },
 	{ ERROR_BROKEN_PIPE,	    NNG_ECLOSED	     },
 	{ ERROR_BAD_PIPE,	    NNG_ECLOSED	     },
-	{ ERROR_NO_DATA,	    NNG_ECONNRESET	     },
+	{ ERROR_NO_DATA,	    NNG_ECONNRESET   },
 	{ ERROR_PIPE_NOT_CONNECTED, NNG_ECLOSED	     },
 	{ ERROR_OPERATION_ABORTED,  NNG_ECLOSED	     },
 	{ ERROR_SHARING_VIOLATION,  NNG_EBUSY        },
@@ -143,7 +140,6 @@ static struct {
 	{ WSANO_DATA,		    NNG_EADDRINVAL   },
 
 	{			 0,		   0 },
-	// clang-format on
 };
 
 int

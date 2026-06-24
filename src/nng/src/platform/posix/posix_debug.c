@@ -48,7 +48,6 @@ static struct {
 	int posix_err;
 	int nng_err;
 } nni_plat_errnos[] = {
-	// clang-format off
 	{ EINTR,	   NNG_EINTR	    },
 	{ EINVAL,	   NNG_EINVAL	    },
 	{ ENOMEM,	   NNG_ENOMEM	    },
@@ -86,7 +85,6 @@ static struct {
 	{ EMFILE,	   NNG_ENOFILES	    },
 	{ EEXIST,	   NNG_EEXIST	    },
 	{		0,		  0 },
-	// clang-format on
 };
 
 int

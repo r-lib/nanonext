@@ -13,7 +13,6 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <limits.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <poll.h>
@@ -46,8 +45,6 @@ tcp_dowrite(nni_tcp_conn *c)
 		nni_iov *     aiov;
 		struct msghdr hdr;
 		struct iovec  iovec[16];
-		size_t        count;
-		bool          clamped;
 
 		memset(&hdr, 0, sizeof(hdr));
 		nni_aio_get_iov(aio, &naiov, &aiov);
@@ -58,8 +55,8 @@ tcp_dowrite(nni_tcp_conn *c)
 			continue;
 		}
 
-		count   = 0;
-		clamped = false;
+		size_t count   = 0;
+		bool   clamped = false;
 		for (niov = 0, i = 0; !clamped && i < naiov; i++) {
 			if (aiov[i].iov_len > 0) {
 				iovec[niov].iov_base = aiov[i].iov_buf;
@@ -116,8 +113,6 @@ tcp_doread(nni_tcp_conn *c)
 		unsigned     naiov;
 		nni_iov *    aiov;
 		struct iovec iovec[16];
-		size_t       count;
-		bool         clamped;
 
 		nni_aio_get_iov(aio, &naiov, &aiov);
 		if (naiov > NNI_NUM_ELEMENTS(iovec)) {
@@ -125,8 +120,8 @@ tcp_doread(nni_tcp_conn *c)
 			nni_aio_finish_error(aio, NNG_EINVAL);
 			continue;
 		}
-		count   = 0;
-		clamped = false;
+		size_t count   = 0;
+		bool   clamped = false;
 		for (niov = 0, i = 0; !clamped && i < naiov; i++) {
 			if (aiov[i].iov_len != 0) {
 				iovec[niov].iov_base = aiov[i].iov_buf;

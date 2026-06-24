@@ -42,7 +42,7 @@ ipc_accept_done(ipc_listener *l, int rv)
 	nni_cv_wake(&l->cv);
 
 	if (l->closed) {
-	  rv = NNG_ECLOSED;
+		rv = NNG_ECLOSED;
 	}
 	if (rv != 0) {
 		DisconnectNamedPipe(l->f);
@@ -83,18 +83,18 @@ ipc_accept_start(ipc_listener *l)
 	while ((aio = nni_list_first(&l->aios)) != NULL) {
 		int rv;
 
-	  if (l->closed) {
-	    nni_aio_list_remove(aio);
-	    nni_aio_finish_error(aio, NNG_ECLOSED);
-	    rv = NNG_ECLOSED;
-	  } else if (ConnectNamedPipe(l->f, &l->io.olpd)) {
-	    rv = 0;
-	  } else if ((rv = GetLastError()) == ERROR_IO_PENDING) {
-	    return;
-	  } else if (rv == ERROR_PIPE_CONNECTED) {
-	    rv = 0;
-	  }
-	  ipc_accept_done(l, rv);
+		if (l->closed) {
+			nni_aio_list_remove(aio);
+			nni_aio_finish_error(aio, NNG_ECLOSED);
+			rv = NNG_ECLOSED;
+		} else if (ConnectNamedPipe(l->f, &l->io.olpd)) {
+			rv = 0;
+		} else if ((rv = GetLastError()) == ERROR_IO_PENDING) {
+			return;
+		} else if (rv == ERROR_PIPE_CONNECTED) {
+			rv = 0;
+		}
+		ipc_accept_done(l, rv);
 	}
 
 	nni_cv_wake(&l->cv);
@@ -256,7 +256,7 @@ static void
 ipc_listener_accept(void *arg, nni_aio *aio)
 {
 	ipc_listener *l = arg;
-  int           rv;
+	int           rv;
 	if (nni_aio_begin(aio) != 0) {
 		return;
 	}
@@ -267,12 +267,12 @@ ipc_listener_accept(void *arg, nni_aio *aio)
 		return;
 	}
 	if ((rv = nni_aio_schedule(aio, ipc_accept_cancel, l)) != 0) {
-	  nni_aio_finish_error(aio, rv);
+		nni_aio_finish_error(aio, rv);
 	} else {
-	  nni_list_append(&l->aios, aio);
-	  if (nni_list_first(&l->aios) == aio) {
-	    ipc_accept_start(l);
-	  }
+		nni_list_append(&l->aios, aio);
+		if (nni_list_first(&l->aios) == aio) {
+			ipc_accept_start(l);
+		}
 	}
 	nni_mtx_unlock(&l->mtx);
 }

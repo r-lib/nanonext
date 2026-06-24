@@ -59,7 +59,6 @@ extern void nni_aio_list_remove(nni_aio *);
 extern int  nni_aio_list_active(nni_aio *);
 
 extern void nni_aio_finish(nni_aio *, int, size_t);
-
 extern void nni_aio_finish_sync(nni_aio *, int, size_t);
 extern void nni_aio_finish_error(nni_aio *, int);
 extern void nni_aio_finish_msg(nni_aio *, nni_msg *);
@@ -70,7 +69,6 @@ extern int nni_aio_begin(nni_aio *);
 
 extern void *nni_aio_get_prov_data(nni_aio *);
 extern void  nni_aio_set_prov_data(nni_aio *, void *);
-
 extern size_t nni_aio_iov_advance(nni_aio *, size_t);
 extern size_t nni_aio_iov_count(nni_aio *);
 
@@ -113,6 +111,7 @@ struct nng_aio {
 	bool         a_expire_ok;
 	bool         a_expiring;
 	bool         a_use_expire;
+	bool         a_abort;
 	nni_task     a_task;
 
 	nni_iov  a_iov[8];
