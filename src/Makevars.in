@@ -184,8 +184,6 @@ $(MBED)/bignum.o: $(MBED)/bignum.c
 	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/bignum.c -o $@
 $(MBED)/bignum_core.o: $(MBED)/bignum_core.c
 	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/bignum_core.c -o $@
-$(MBED)/block_cipher.o: $(MBED)/block_cipher.c
-	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/block_cipher.c -o $@
 $(MBED)/ccm.o: $(MBED)/ccm.c
 	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/ccm.c -o $@
 $(MBED)/chacha20.o: $(MBED)/chacha20.c
@@ -218,8 +216,6 @@ $(MBED)/error.o: $(MBED)/error.c
 	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/error.c -o $@
 $(MBED)/gcm.o: $(MBED)/gcm.c
 	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/gcm.c -o $@
-$(MBED)/hkdf.o: $(MBED)/hkdf.c
-	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/hkdf.c -o $@
 $(MBED)/md.o: $(MBED)/md.c
 	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/md.c -o $@
 $(MBED)/md5.o: $(MBED)/md5.c
@@ -258,18 +254,12 @@ $(MBED)/sha256.o: $(MBED)/sha256.c
 	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/sha256.c -o $@
 $(MBED)/sha512.o: $(MBED)/sha512.c
 	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/sha512.c -o $@
-$(MBED)/ssl_cache.o: $(MBED)/ssl_cache.c
-	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/ssl_cache.c -o $@
 $(MBED)/ssl_ciphersuites.o: $(MBED)/ssl_ciphersuites.c
 	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/ssl_ciphersuites.c -o $@
 $(MBED)/ssl_client.o: $(MBED)/ssl_client.c
 	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/ssl_client.c -o $@
-$(MBED)/ssl_debug_helpers_generated.o: $(MBED)/ssl_debug_helpers_generated.c
-	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/ssl_debug_helpers_generated.c -o $@
 $(MBED)/ssl_msg.o: $(MBED)/ssl_msg.c
 	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/ssl_msg.c -o $@
-$(MBED)/ssl_ticket.o: $(MBED)/ssl_ticket.c
-	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/ssl_ticket.c -o $@
 $(MBED)/ssl_tls.o: $(MBED)/ssl_tls.c
 	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/ssl_tls.c -o $@
 $(MBED)/ssl_tls12_client.o: $(MBED)/ssl_tls12_client.c
@@ -294,8 +284,6 @@ $(MBED)/x509write.o: $(MBED)/x509write.c
 	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/x509write.c -o $@
 $(MBED)/x509write_crt.o: $(MBED)/x509write_crt.c
 	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/x509write_crt.c -o $@
-$(MBED)/x509write_csr.o: $(MBED)/x509write_csr.c
-	$(CC) $(MBED_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(MBED)/x509write_csr.c -o $@
 $(NNG)/platform/posix/posix_alloc.o: $(NNG)/platform/posix/posix_alloc.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/platform/posix/posix_alloc.c -o $@
 $(NNG)/platform/posix/posix_atomic.o: $(NNG)/platform/posix/posix_atomic.c
