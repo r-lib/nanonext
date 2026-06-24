@@ -47,10 +47,12 @@ done
 
 # Source paths (relative to nng/src) that nanonext does not bundle: the
 # deprecated nanomsg compat API, the wolfssl/zerotier back-ends we never build,
-# every unit test, and NNG's own CLI tools / test framework. These are removed
-# from the staged tree AND filtered from the derived object lists (and from
-# --verify), even though a default cmake build compiles them.
-PRUNE_RE='^(compat|testing|tools)/|/(zerotier|wolfssl)/|_test\.c$|^nng_legacy\.c$'
+# every unit test, NNG's own CLI tools / test framework, and the public
+# nng_id_map / nng_opts_parse helpers nanonext never calls (it uses the internal
+# nni_id_map from core/idhash.c instead). These are removed from the staged tree
+# AND filtered from the derived object lists (and from --verify), even though a
+# default cmake build compiles them.
+PRUNE_RE='^(compat|testing|tools)/|/(zerotier|wolfssl)/|_test\.c$|^nng_legacy\.c$|^supplemental/util/(idhash|options)\.c$'
 
 # The Mbed TLS engine nanonext always compiles. A default cmake configure has no
 # TLS engine (it needs a system Mbed TLS, which we deliberately do not require),
@@ -178,6 +180,13 @@ rm -rf "$STAGE/src/supplemental/tls/wolfssl"
 rm -rf "$STAGE/include/nng/compat"
 rm -rf "$STAGE/include/nng/transport/zerotier"
 find "$STAGE" \( -name '*_test.c' -o -name '*_test.h' \) -delete
+# The unused nng_id_map / nng_opts_parse helpers (.c mirrored in PRUNE_RE) and
+# their headers, which nothing else includes.
+rm -f "$STAGE/src/supplemental/util/idhash.c" "$STAGE/src/supplemental/util/options.c"
+rm -f "$STAGE/include/nng/supplemental/util/idhash.h" "$STAGE/include/nng/supplemental/util/options.h"
+# Drop the websocket "disabled" stub (upstream builds it only when WS is off;
+# nanonext always compiles the real websocket.c, so the stub is never built).
+rm -f "$STAGE/src/supplemental/websocket/stub.c"
 # Drop stray documentation that rides along in the source tree (README.adoc, ...).
 find "$STAGE" \( -name '*.adoc' -o -name '*.md' -o -name 'README*' \) -delete
 
