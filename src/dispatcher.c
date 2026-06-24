@@ -303,7 +303,7 @@ static int dispatch_prepare_init_template(nano_dispatcher *d, SEXP stream,
   SET_VECTOR_ELT(init_data, 1, serial);
 
   nano_buf buf;
-  nano_serialize(&buf, init_data, serial, 0);
+  nano_serialize(&buf, init_data, serial, 0, 0);
   UNPROTECT(1);
 
   memcpy(sdata + 1, saved, 6 * sizeof(int));
@@ -834,7 +834,7 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
   SEXP err;
   PROTECT(err = mk_error(19));
   nano_buf reset_buf;
-  nano_serialize(&reset_buf, err, R_NilValue, 0);
+  nano_serialize(&reset_buf, err, R_NilValue, 0, 0);
   UNPROTECT(1);
   d->conn_reset_buf = reset_buf.buf;
   d->conn_reset_len = reset_buf.cur;

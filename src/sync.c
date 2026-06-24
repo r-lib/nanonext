@@ -485,7 +485,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   if (raw) {
     nano_encode(&buf, data);
   } else {
-    nano_serialize(&buf, data, NANO_PROT(con), id);
+    nano_serialize(&buf, data, NANO_PROT(con), id, NANO_HEADROOM);
   }
 
   saio = calloc(1, sizeof(nano_saio));
@@ -510,7 +510,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
     goto fail;
   }
 
-  nano_msg_set_body(msg, &buf);
+  nano_msg_set_body(msg, &buf, raw ? 0 : NANO_HEADROOM);
 
   nng_aio_set_msg(saio->aio, msg);
   nng_ctx_send(*ctx, saio->aio);
