@@ -560,14 +560,14 @@ int nano_encode_mode(const SEXP mode) {
 
 }
 
-int nano_matcharg(const SEXP mode) {
+uint8_t nano_matcharg(const SEXP mode) {
 
   if (TYPEOF(mode) == INTSXP)
-    return NANO_INTEGER(mode);
+    return (uint8_t) NANO_INTEGER(mode);
 
   const char *mod = CHAR(STRING_ELT(mode, 0));
   size_t slen = strlen(mod);
-  int i;
+  uint8_t i;
   switch (slen) {
   case 3:
     if (!memcmp(mod, "raw", slen)) { i = 8; break; }
