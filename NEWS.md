@@ -2,6 +2,7 @@
 
 #### Updates
 
+* Fixes potential message corruption when built against a system 'libnng', regression in 1.9.0 (#301).
 * Removes the build-time dependency on 'cmake'. Compiling the bundled NNG and Mbed TLS sources now only require a C compiler.
 * Trims the bundled mbedTLS source to remove unused modules.
 * Falls back to a non-functional stub build on platforms that cannot compile the bundled NNG, keeping nanonext and its dependents installable everywhere.
