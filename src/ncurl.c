@@ -331,8 +331,10 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
       cfg = (nng_tls_config *) NANO_PTR(tls);
       nng_tls_config_hold(cfg);
 
-      if ((xc = nng_tls_config_server_name(cfg, url->u_hostname)) ||
-          (xc = nng_http_client_set_tls(client, cfg)))
+      // tolerate NNG_EBUSY when re-applying server name (SNI) on a reused config
+      xc = nng_tls_config_server_name(cfg, url->u_hostname);
+      if (xc == NNG_EBUSY) xc = 0;
+      if (xc || (xc = nng_http_client_set_tls(client, cfg)))
         goto fail;
     }
 
@@ -509,8 +511,10 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
       handle->cfg = (nng_tls_config *) NANO_PTR(tls);
       nng_tls_config_hold(handle->cfg);
 
-      if ((xc = nng_tls_config_server_name(handle->cfg, handle->url->u_hostname)) ||
-          (xc = nng_http_client_set_tls(handle->cli, handle->cfg)))
+      // tolerate NNG_EBUSY when re-applying server name (SNI) on a reused config
+      xc = nng_tls_config_server_name(handle->cfg, handle->url->u_hostname);
+      if (xc == NNG_EBUSY) xc = 0;
+      if (xc || (xc = nng_http_client_set_tls(handle->cli, handle->cfg)))
         goto fail;
     }
 
@@ -637,8 +641,10 @@ SEXP rnng_ncurl_session(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP
       handle->cfg = (nng_tls_config *) NANO_PTR(tls);
       nng_tls_config_hold(handle->cfg);
 
-      if ((xc = nng_tls_config_server_name(handle->cfg, handle->url->u_hostname)) ||
-          (xc = nng_http_client_set_tls(handle->cli, handle->cfg)))
+      // tolerate NNG_EBUSY when re-applying server name (SNI) on a reused config
+      xc = nng_tls_config_server_name(handle->cfg, handle->url->u_hostname);
+      if (xc == NNG_EBUSY) xc = 0;
+      if (xc || (xc = nng_http_client_set_tls(handle->cli, handle->cfg)))
         goto fail;
     }
 

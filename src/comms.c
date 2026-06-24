@@ -142,9 +142,13 @@ SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
   if (sec) {
     cfg = (nng_tls_config *) NANO_PTR(tls);
     if ((xc = nng_dialer_create(dp, *sock, ur)) ||
-        (xc = nng_url_parse(&up, ur)) ||
-        (xc = nng_tls_config_server_name(cfg, up->u_hostname)) ||
-        (xc = nng_dialer_set_ptr(*dp, NNG_OPT_TLS_CONFIG, cfg)))
+        (xc = nng_url_parse(&up, ur)))
+      goto fail;
+    // re-applying server name (SNI) to an already-used config returns
+    // NNG_EBUSY (config is read-only once in use); tolerate it on reuse
+    xc = nng_tls_config_server_name(cfg, up->u_hostname);
+    if (xc == NNG_EBUSY) xc = 0;
+    if (xc || (xc = nng_dialer_set_ptr(*dp, NNG_OPT_TLS_CONFIG, cfg)))
       goto fail;
     nng_url_free(up);
     if (start && (xc = nng_dialer_start(*dp, start == 1 ? NNG_FLAG_NONBLOCK : 0)))
