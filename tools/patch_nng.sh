@@ -127,6 +127,17 @@ patch_perl core/strs.c '
   }
 '
 
+# win_clock.c: upstream nni_time_get() uses C11 timespec_get()/TIME_UTC, which
+# legacy (non-UCRT) MinGW lacks; upstream cmake hard-requires UCRT. nanonext
+# still builds on non-UCRT toolchains (e.g. Rtools40 / R oldrel), so fall back
+# to a FILETIME-based clock when TIME_UTC is unavailable. Windows always uses
+# the bundled NNG, so this never affects a system libnng.
+patch_perl platform/windows/win_clock.c '
+  unless (/defined\(TIME_UTC\)/) {
+    s|(\tstruct timespec ts;\n\tif \(timespec_get\(&ts, TIME_UTC\) == TIME_UTC\) \{\n.*?\n\treturn \(nni_win_error\(GetLastError\(\)\)\);\n)|#if defined(TIME_UTC)\n$1#else\n\t// legacy MinGW (non-UCRT) lacks C11 timespec_get(); use FILETIME instead\n\tFILETIME       ft;\n\tULARGE_INTEGER ui;\n\tuint64_t       ticks;\n\tGetSystemTimeAsFileTime(&ft);\n\tui.LowPart   = ft.dwLowDateTime;\n\tui.HighPart  = ft.dwHighDateTime;\n\t// FILETIME is 100ns ticks since 1601-01-01; rebase to the Unix epoch\n\tticks        = ui.QuadPart - 116444736000000000ULL;\n\t*seconds     = ticks / 10000000ULL;\n\t*nanoseconds = (uint32_t) ((ticks % 10000000ULL) * 100);\n\treturn (0);\n#endif\n|s;
+  }
+'
+
 # ---------------------------------------------------------------------------
 echo "3. Removing compiler diagnostic pragmas (not permitted on CRAN) ..."
 # Strip every #pragma GCC/clang diagnostic line, then replay nanonext's portable
