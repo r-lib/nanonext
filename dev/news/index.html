@@ -51,6 +51,7 @@
 <div class="section level5">
 <h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
 <ul><li>Fixes potential message corruption when built against a system ‘libnng’, regression in 1.9.0 (<a href="https://github.com/r-lib/nanonext/issues/301" class="external-link">#301</a>).</li>
+<li>Fixes a ‘Resource busy’ error triggered by re-using a ‘tlsConfig’ object for more than one connection.</li>
 <li>Removes the build-time dependency on ‘cmake’. Compiling the bundled NNG and Mbed TLS sources now only require a C compiler.</li>
 <li>Trims the bundled mbedTLS source to remove unused modules.</li>
 <li>Falls back to a non-functional stub build on platforms that cannot compile the bundled NNG, keeping nanonext and its dependents installable everywhere.</li>
