@@ -64,6 +64,4 @@ $(NNG)/supplemental/http/http_server.o
 $(NNG)/supplemental/sha1/sha1.o
 $(NNG)/supplemental/tls/mbedtls/tls.o
 $(NNG)/supplemental/tls/tls_common.o
-$(NNG)/supplemental/util/idhash.o
-$(NNG)/supplemental/util/options.o
 $(NNG)/supplemental/websocket/websocket.o

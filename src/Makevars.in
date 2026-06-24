@@ -166,10 +166,6 @@ $(NNG)/supplemental/tls/mbedtls/tls.o: $(NNG)/supplemental/tls/mbedtls/tls.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/supplemental/tls/mbedtls/tls.c -o $@
 $(NNG)/supplemental/tls/tls_common.o: $(NNG)/supplemental/tls/tls_common.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/supplemental/tls/tls_common.c -o $@
-$(NNG)/supplemental/util/idhash.o: $(NNG)/supplemental/util/idhash.c
-	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/supplemental/util/idhash.c -o $@
-$(NNG)/supplemental/util/options.o: $(NNG)/supplemental/util/options.c
-	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/supplemental/util/options.c -o $@
 $(NNG)/supplemental/websocket/websocket.o: $(NNG)/supplemental/websocket/websocket.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/supplemental/websocket/websocket.c -o $@
 $(MBED)/aes.o: $(MBED)/aes.c
