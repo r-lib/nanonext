@@ -70,6 +70,7 @@ patch_perl platform/posix/posix_udp.c '
   s/\bcnt = sendmsg\(udp->udp_fd/cnt = (int) sendmsg(udp->udp_fd/;
   s/\blen = nni_posix_nn2sockaddr\(&ss, nni_aio_get_input/len = (int) nni_posix_nn2sockaddr(&ss, nni_aio_get_input/;
   s/\(salen = nni_posix_nn2sockaddr\(/(salen = (int) nni_posix_nn2sockaddr(/;
+  s/\bsz = nni_posix_nn2sockaddr\(&ss, sa\);/sz = (socklen_t) nni_posix_nn2sockaddr(&ss, sa);/;
 '
 patch_perl platform/posix/posix_tcpconn.c '
   s/\bn = sendmsg\(fd\b/n = (int) sendmsg(fd/;
@@ -106,6 +107,12 @@ patch_perl platform/posix/posix_sockaddr.c '
 '
 patch_perl platform/posix/posix_thread.c '
   s/return \(sysconf\(_SC_NPROCESSORS_ONLN\)\);/return ((int) sysconf(_SC_NPROCESSORS_ONLN));/;
+'
+# clock: tv_nsec (long) and the usec*1000 product narrowed to the uint32_t
+# *nsec out-param (both the timespec and gettimeofday code paths).
+patch_perl platform/posix/posix_clock.c '
+  s/\*nsec = ts\.tv_nsec;/*nsec = (uint32_t) ts.tv_nsec;/g;
+  s/\*nsec = tv\.tv_usec \* 1000;/*nsec = (uint32_t) (tv.tv_usec * 1000);/;
 '
 # signed char passed to toupper(); narrow the int result back to char.
 patch_perl core/url.c '

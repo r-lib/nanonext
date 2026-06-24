@@ -26,21 +26,21 @@ nni_time_get(uint64_t *sec, uint32_t *nsec)
 	struct timespec ts;
 	if ((rv = timespec_get(&ts, TIME_UTC)) == TIME_UTC) {
 		*sec  = ts.tv_sec;
-		*nsec = ts.tv_nsec;
+		*nsec = (uint32_t) ts.tv_nsec;
 		return (0);
 	}
 #elif defined(NNG_HAVE_CLOCK_GETTIME)
 	struct timespec ts;
 	if ((rv = clock_gettime(CLOCK_REALTIME, &ts)) == 0) {
 		*sec  = ts.tv_sec;
-		*nsec = ts.tv_nsec;
+		*nsec = (uint32_t) ts.tv_nsec;
 		return (0);
 	}
 #else
 	struct timeval tv;
 	if ((rv = gettimeofday(&tv, NULL)) == 0) {
 		*sec  = tv.tv_sec;
-		*nsec = tv.tv_usec * 1000;
+		*nsec = (uint32_t) (tv.tv_usec * 1000);
 		return (0);
 	}
 #endif
