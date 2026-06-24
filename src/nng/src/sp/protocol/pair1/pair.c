@@ -1,5 +1,5 @@
 //
-// Copyright 2021 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2024 Staysail Systems, Inc. <info@staysail.tech>
 // Copyright 2018 Capitar IT Group BV <info@capitar.com>
 //
 // This software is supplied under the terms of the MIT License, a
@@ -258,12 +258,18 @@ pair1_pipe_start(void *arg)
 
 	if (nni_pipe_peer(p->pipe) != NNG_PAIR1_PEER) {
 		BUMP_STAT(&s->stat_reject_mismatch);
+		nng_log_warn("NNG-PEER-MISMATCH",
+		    "Peer protocol mismatch: %d != %d, rejected.",
+		    nni_pipe_peer(p->pipe), NNG_PAIR1_PEER);
 		return (NNG_EPROTO);
 	}
 
 	nni_mtx_lock(&s->mtx);
 	if (s->p != NULL) {
 		nni_mtx_unlock(&s->mtx);
+		nng_log_warn("NNG-PAIR-BUSY",
+		    "Peer pipe protocol %d is already paired, rejected.",
+		    nni_pipe_peer(p->pipe));
 		BUMP_STAT(&s->stat_reject_already);
 		return (NNG_EBUSY);
 	}
@@ -378,7 +384,6 @@ pair1_send_sched(pair1_sock *s)
 		}
 
 	} else if ((a = nni_list_first(&s->waq)) != NULL) {
-
 		nni_aio_list_remove(a);
 
 		m = nni_aio_get_msg(a);
@@ -745,6 +750,12 @@ static nni_option pair1_sock_options[] = {
 	    .o_get  = pair1_get_recv_buf_len,
 	    .o_set  = pair1_set_recv_buf_len,
 	},
+#ifdef NNG_TEST_LIB
+	{
+	    .o_name = "pair1_test_inject_header",
+	    .o_set  = pair1_set_test_inject_header,
+	},
+#endif
 	{
 	    .o_name = NULL,
 	},

@@ -49,36 +49,37 @@ ipc_recv_start(ipc_conn *c)
 	int      rv;
 
 	while ((aio = nni_list_first(&c->recv_aios)) != NULL) {
-	  if (c->closed) {
-	    nni_aio_list_remove(aio);
+		if (c->closed) {
+			nni_aio_list_remove(aio);
 			nni_aio_finish_error(aio, NNG_ECLOSED);
 			continue;
 		}
-	  nni_aio_get_iov(aio, &naiov, &aiov);
 
-	  idx = 0;
-	  while ((idx < naiov) && (aiov[idx].iov_len == 0)) {
-	    idx++;
-	  }
-	  NNI_ASSERT(idx < naiov);
-	  buf = aiov[idx].iov_buf;
-	  len = (DWORD) aiov[idx].iov_len;
-	  NNI_ASSERT(buf != NULL);
-	  NNI_ASSERT(len != 0);
+		nni_aio_get_iov(aio, &naiov, &aiov);
 
-	  if (len > 0x1000000) {
-	    len = 0x1000000;
-	  }
+		idx = 0;
+		while ((idx < naiov) && (aiov[idx].iov_len == 0)) {
+			idx++;
+		}
+		NNI_ASSERT(idx < naiov);
+		buf = aiov[idx].iov_buf;
+		len = (DWORD) aiov[idx].iov_len;
+		NNI_ASSERT(buf != NULL);
+		NNI_ASSERT(len != 0);
 
-	  c->recving = true;
-	  if ((!ReadFile(c->f, buf, len, NULL, &c->recv_io.olpd)) &&
-       ((rv = GetLastError()) != ERROR_IO_PENDING)) {
-	    c->recving = false;
-	    nni_aio_list_remove(aio);
-	    nni_aio_finish_error(aio, nni_win_error(rv));
-	  } else {
-	    return;
-	  }
+		if (len > 0x1000000) {
+			len = 0x1000000;
+		}
+
+		c->recving = true;
+		if ((!ReadFile(c->f, buf, len, NULL, &c->recv_io.olpd)) &&
+		    ((rv = GetLastError()) != ERROR_IO_PENDING)) {
+			c->recving = false;
+			nni_aio_list_remove(aio);
+			nni_aio_finish_error(aio, nni_win_error(rv));
+		} else {
+			return;
+		}
 	}
 	nni_cv_wake(&c->cv);
 }
@@ -115,15 +116,15 @@ ipc_recv_cancel(nni_aio *aio, void *arg, int rv)
 		c->recv_rv = rv;
 		CancelIoEx(c->f, &c->recv_io.olpd);
 	} else {
-	  nni_aio *srch;
-	  NNI_LIST_FOREACH (&c->recv_aios, srch) {
-	    if (srch == aio) {
-	      nni_aio_list_remove(aio);
-	      nni_aio_finish_error(aio, rv);
-	      nni_cv_wake(&c->cv);
-	      break;
-	    }
-	  }
+		nni_aio *srch;
+		NNI_LIST_FOREACH (&c->recv_aios, srch) {
+			if (srch == aio) {
+				nni_aio_list_remove(aio);
+				nni_aio_finish_error(aio, rv);
+				nni_cv_wake(&c->cv);
+				break;
+			}
+		}
 	}
 	nni_mtx_unlock(&c->mtx);
 }
@@ -167,30 +168,32 @@ ipc_send_start(ipc_conn *c)
 	int      rv;
 
 	while ((aio = nni_list_first(&c->send_aios)) != NULL) {
-	  nni_aio_get_iov(aio, &naiov, &aiov);
-	  idx = 0;
-	  while ((idx < naiov) && (aiov[idx].iov_len == 0)) {
-	    idx++;
-	  }
-	  NNI_ASSERT(idx < naiov);
-	  buf = aiov[idx].iov_buf;
-	  len = (DWORD) aiov[idx].iov_len;
-	  NNI_ASSERT(buf != NULL);
-	  NNI_ASSERT(len != 0);
 
-	  if (len > 0x1000000) {
-	    len = 0x1000000;
-	  }
+		nni_aio_get_iov(aio, &naiov, &aiov);
 
-	  c->sending = true;
-	  if ((!WriteFile(c->f, buf, len, NULL, &c->send_io.olpd)) &&
-       ((rv = GetLastError()) != ERROR_IO_PENDING)) {
-	    c->sending = false;
-	    nni_aio_list_remove(aio);
-	    nni_aio_finish_error(aio, nni_win_error(rv));
-	  } else {
-	    return;
-	  }
+		idx = 0;
+		while ((idx < naiov) && (aiov[idx].iov_len == 0)) {
+			idx++;
+		}
+		NNI_ASSERT(idx < naiov);
+		buf = aiov[idx].iov_buf;
+		len = (DWORD) aiov[idx].iov_len;
+		NNI_ASSERT(buf != NULL);
+		NNI_ASSERT(len != 0);
+
+		if (len > 0x1000000) {
+			len = 0x1000000;
+		}
+
+		c->sending = true;
+		if ((!WriteFile(c->f, buf, len, NULL, &c->send_io.olpd)) &&
+		    ((rv = GetLastError()) != ERROR_IO_PENDING)) {
+			c->sending = false;
+			nni_aio_list_remove(aio);
+			nni_aio_finish_error(aio, nni_win_error(rv));
+		} else {
+			return;
+		}
 	}
 	nni_cv_wake(&c->cv);
 }
@@ -224,15 +227,15 @@ ipc_send_cancel(nni_aio *aio, void *arg, int rv)
 		c->send_rv = rv;
 		CancelIoEx(c->f, &c->send_io.olpd);
 	} else {
-	  nni_aio *srch;
-	  NNI_LIST_FOREACH (&c->recv_aios, srch) {
-	    if (srch == aio) {
-	      nni_aio_list_remove(aio);
-	      nni_aio_finish_error(aio, rv);
-	      nni_cv_wake(&c->cv);
-	      break;
-	    }
-	  }
+		nni_aio *srch;
+		NNI_LIST_FOREACH (&c->recv_aios, srch) {
+			if (srch == aio) {
+				nni_aio_list_remove(aio);
+				nni_aio_finish_error(aio, rv);
+				nni_cv_wake(&c->cv);
+				break;
+			}
+		}
 	}
 	nni_mtx_unlock(&c->mtx);
 }
@@ -263,27 +266,27 @@ static void
 ipc_close(void *arg)
 {
 	ipc_conn *c = arg;
-  nni_time  now;
+	nni_time  now;
 	nni_mtx_lock(&c->mtx);
 	if (!c->closed) {
-	  HANDLE f  = c->f;
+		HANDLE f  = c->f;
 		c->closed = true;
 
 		c->f = INVALID_HANDLE_VALUE;
 
 		if (f != INVALID_HANDLE_VALUE) {
-		  CancelIoEx(f, &c->send_io.olpd);
-		  CancelIoEx(f, &c->recv_io.olpd);
-		  DisconnectNamedPipe(f);
-		  CloseHandle(f);
+			CancelIoEx(f, &c->send_io.olpd);
+			CancelIoEx(f, &c->recv_io.olpd);
+			DisconnectNamedPipe(f);
+			CloseHandle(f);
 		}
 	}
 	now = nni_clock();
 	while ((c->recving || c->sending) &&
-        ((nni_clock() - now) < (NNI_SECOND * 10))) {
-	  nni_mtx_unlock(&c->mtx);
-	  nni_msleep(1);
-	  nni_mtx_lock(&c->mtx);
+	    ((nni_clock() - now) < (NNI_SECOND * 10))) {
+		nni_mtx_unlock(&c->mtx);
+		nni_msleep(1);
+		nni_mtx_lock(&c->mtx);
 	}
 	nni_mtx_unlock(&c->mtx);
 }

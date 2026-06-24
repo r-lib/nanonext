@@ -1,5 +1,5 @@
 //
-// Copyright 2024 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2025 Staysail Systems, Inc. <info@staysail.tech>
 // Copyright 2018 Capitar IT Group BV <info@capitar.com>
 //
 // This software is supplied under the terms of the MIT License, a
@@ -50,7 +50,7 @@ extern "C" {
 
 #define NNG_MAXADDRLEN (128)
 
-#define NNG_PROTOCOL_NUMBER(maj, min) (((x) * 16) + (y))
+#define NNG_PROTOCOL_NUMBER(maj, min) (((x) *16) + (y))
 
 typedef struct nng_ctx_s {
 	uint32_t id;
@@ -80,13 +80,11 @@ typedef struct nng_msg  nng_msg;
 typedef struct nng_stat nng_stat;
 typedef struct nng_aio  nng_aio;
 
-// clang-format off
 #define NNG_PIPE_INITIALIZER { 0 }
 #define NNG_SOCKET_INITIALIZER { 0 }
 #define NNG_DIALER_INITIALIZER { 0 }
 #define NNG_LISTENER_INITIALIZER { 0 }
 #define NNG_CTX_INITIALIZER { 0 }
-// clang-format on
 
 struct nng_sockaddr_inproc {
 	uint16_t sa_family;
@@ -171,6 +169,8 @@ NNG_DECL void nng_fini(void);
 
 NNG_DECL int nng_close(nng_socket);
 
+NNG_DECL int nng_socket_close(nng_socket);
+
 NNG_DECL int nng_socket_id(nng_socket);
 
 NNG_DECL int nng_socket_set(nng_socket, const char *, const void *, size_t);
@@ -199,6 +199,10 @@ NNG_DECL int nng_socket_peer_id(nng_socket id, uint16_t *);
 NNG_DECL int nng_socket_proto_name(nng_socket id, const char **);
 NNG_DECL int nng_socket_peer_name(nng_socket id, const char **);
 NNG_DECL int nng_socket_raw(nng_socket, bool *);
+
+#define NNG_MAXADDRSTRLEN (NNG_MAXADDRLEN + 16)
+NNG_DECL const char *nng_str_sockaddr(
+    const nng_sockaddr *sa, char *buf, size_t bufsz);
 
 typedef enum {
 	NNG_PIPE_EV_ADD_PRE,
@@ -284,7 +288,11 @@ NNG_DECL int nng_sendmsg(nng_socket, nng_msg *, int);
 
 NNG_DECL int nng_recvmsg(nng_socket, nng_msg **, int);
 
+NNG_DECL void nng_sock_send(nng_socket, nng_aio *);
+
 NNG_DECL void nng_send_aio(nng_socket, nng_aio *);
+
+NNG_DECL void nng_sock_recv(nng_socket, nng_aio *);
 
 NNG_DECL void nng_recv_aio(nng_socket, nng_aio *);
 
@@ -370,8 +378,7 @@ NNG_DECL bool nng_aio_begin(nng_aio *);
 
 NNG_DECL void nng_aio_finish(nng_aio *, int);
 
-typedef void  (*nng_aio_cancelfn)(nng_aio *, void *, int);
-
+typedef void (*nng_aio_cancelfn)(nng_aio *, void *, int);
 NNG_DECL void nng_aio_defer(nng_aio *, nng_aio_cancelfn, void *);
 
 NNG_DECL void nng_sleep_aio(nng_duration, nng_aio *);
@@ -747,19 +754,281 @@ NNG_DECL int nng_stream_listener_set_ptr(
 NNG_DECL int nng_stream_listener_set_addr(
     nng_stream_listener *, const char *, const nng_sockaddr *);
 
+typedef struct nng_udp nng_udp;
+
+NNG_DECL int nng_udp_open(nng_udp **udpp, nng_sockaddr *sa);
+
+NNG_DECL void nng_udp_close(nng_udp *udp);
+
+NNG_DECL int nng_udp_sockname(nng_udp *udp, nng_sockaddr *sa);
+
+NNG_DECL void nng_udp_send(nng_udp *udp, nng_aio *aio);
+
+NNG_DECL void nng_udp_recv(nng_udp *udp, nng_aio *aio);
+
+NNG_DECL int nng_udp_multicast_membership(
+    nng_udp *udp, nng_sockaddr *sa, bool join);
+
+#ifndef NNG_ELIDE_DEPRECATED
+
+NNG_DECL int nng_msg_getopt(nng_msg *, int, void *, size_t *) NNG_DEPRECATED;
+
+NNG_DECL int nng_getopt(
+    nng_socket, const char *, void *, size_t *) NNG_DEPRECATED;
+NNG_DECL int nng_getopt_bool(nng_socket, const char *, bool *) NNG_DEPRECATED;
+NNG_DECL int nng_getopt_int(nng_socket, const char *, int *) NNG_DEPRECATED;
+NNG_DECL int nng_getopt_ms(
+    nng_socket, const char *, nng_duration *) NNG_DEPRECATED;
+NNG_DECL int nng_getopt_size(
+    nng_socket, const char *, size_t *) NNG_DEPRECATED;
+NNG_DECL int nng_getopt_uint64(
+    nng_socket, const char *, uint64_t *) NNG_DEPRECATED;
+NNG_DECL int nng_getopt_ptr(nng_socket, const char *, void **) NNG_DEPRECATED;
+NNG_DECL int nng_getopt_string(
+    nng_socket, const char *, char **) NNG_DEPRECATED;
+NNG_DECL int nng_setopt(
+    nng_socket, const char *, const void *, size_t) NNG_DEPRECATED;
+NNG_DECL int nng_setopt_bool(nng_socket, const char *, bool) NNG_DEPRECATED;
+NNG_DECL int nng_setopt_int(nng_socket, const char *, int) NNG_DEPRECATED;
+NNG_DECL int nng_setopt_ms(
+    nng_socket, const char *, nng_duration) NNG_DEPRECATED;
+NNG_DECL int nng_setopt_size(nng_socket, const char *, size_t) NNG_DEPRECATED;
+NNG_DECL int nng_setopt_uint64(
+    nng_socket, const char *, uint64_t) NNG_DEPRECATED;
+NNG_DECL int nng_setopt_string(
+    nng_socket, const char *, const char *) NNG_DEPRECATED;
+NNG_DECL int nng_setopt_ptr(nng_socket, const char *, void *) NNG_DEPRECATED;
+
+NNG_DECL int nng_ctx_getopt(
+    nng_ctx, const char *, void *, size_t *) NNG_DEPRECATED;
+NNG_DECL int nng_ctx_getopt_bool(nng_ctx, const char *, bool *) NNG_DEPRECATED;
+NNG_DECL int nng_ctx_getopt_int(nng_ctx, const char *, int *) NNG_DEPRECATED;
+NNG_DECL int nng_ctx_getopt_ms(
+    nng_ctx, const char *, nng_duration *) NNG_DEPRECATED;
+NNG_DECL int nng_ctx_getopt_size(
+    nng_ctx, const char *, size_t *) NNG_DEPRECATED;
+NNG_DECL int nng_ctx_setopt(
+    nng_ctx, const char *, const void *, size_t) NNG_DEPRECATED;
+NNG_DECL int nng_ctx_setopt_bool(nng_ctx, const char *, bool) NNG_DEPRECATED;
+NNG_DECL int nng_ctx_setopt_int(nng_ctx, const char *, int) NNG_DEPRECATED;
+NNG_DECL int nng_ctx_setopt_ms(
+    nng_ctx, const char *, nng_duration) NNG_DEPRECATED;
+NNG_DECL int nng_ctx_setopt_size(nng_ctx, const char *, size_t) NNG_DEPRECATED;
+
+NNG_DECL int nng_dialer_getopt(
+    nng_dialer, const char *, void *, size_t *) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_getopt_bool(
+    nng_dialer, const char *, bool *) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_getopt_int(
+    nng_dialer, const char *, int *) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_getopt_ms(
+    nng_dialer, const char *, nng_duration *) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_getopt_size(
+    nng_dialer, const char *, size_t *) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_getopt_sockaddr(
+    nng_dialer, const char *, nng_sockaddr *) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_getopt_uint64(
+    nng_dialer, const char *, uint64_t *) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_getopt_ptr(
+    nng_dialer, const char *, void **) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_getopt_string(
+    nng_dialer, const char *, char **) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_setopt(
+    nng_dialer, const char *, const void *, size_t) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_setopt_bool(
+    nng_dialer, const char *, bool) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_setopt_int(
+    nng_dialer, const char *, int) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_setopt_ms(
+    nng_dialer, const char *, nng_duration) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_setopt_size(
+    nng_dialer, const char *, size_t) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_setopt_uint64(
+    nng_dialer, const char *, uint64_t) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_setopt_ptr(
+    nng_dialer, const char *, void *) NNG_DEPRECATED;
+NNG_DECL int nng_dialer_setopt_string(
+    nng_dialer, const char *, const char *) NNG_DEPRECATED;
+
+NNG_DECL int nng_listener_getopt(
+    nng_listener, const char *, void *, size_t *) NNG_DEPRECATED;
+NNG_DECL int nng_listener_getopt_bool(
+    nng_listener, const char *, bool *) NNG_DEPRECATED;
+NNG_DECL int nng_listener_getopt_int(
+    nng_listener, const char *, int *) NNG_DEPRECATED;
+NNG_DECL int nng_listener_getopt_ms(
+    nng_listener, const char *, nng_duration *) NNG_DEPRECATED;
+NNG_DECL int nng_listener_getopt_size(
+    nng_listener, const char *, size_t *) NNG_DEPRECATED;
+NNG_DECL int nng_listener_getopt_sockaddr(
+    nng_listener, const char *, nng_sockaddr *) NNG_DEPRECATED;
+NNG_DECL int nng_listener_getopt_uint64(
+    nng_listener, const char *, uint64_t *) NNG_DEPRECATED;
+NNG_DECL int nng_listener_getopt_ptr(
+    nng_listener, const char *, void **) NNG_DEPRECATED;
+NNG_DECL int nng_listener_getopt_string(
+    nng_listener, const char *, char **) NNG_DEPRECATED;
+NNG_DECL int nng_listener_setopt(
+    nng_listener, const char *, const void *, size_t) NNG_DEPRECATED;
+NNG_DECL int nng_listener_setopt_bool(
+    nng_listener, const char *, bool) NNG_DEPRECATED;
+NNG_DECL int nng_listener_setopt_int(
+    nng_listener, const char *, int) NNG_DEPRECATED;
+NNG_DECL int nng_listener_setopt_ms(
+    nng_listener, const char *, nng_duration) NNG_DEPRECATED;
+NNG_DECL int nng_listener_setopt_size(
+    nng_listener, const char *, size_t) NNG_DEPRECATED;
+NNG_DECL int nng_listener_setopt_uint64(
+    nng_listener, const char *, uint64_t) NNG_DEPRECATED;
+NNG_DECL int nng_listener_setopt_ptr(
+    nng_listener, const char *, void *) NNG_DEPRECATED;
+NNG_DECL int nng_listener_setopt_string(
+    nng_listener, const char *, const char *) NNG_DEPRECATED;
+
+NNG_DECL int nng_pipe_getopt(
+    nng_pipe, const char *, void *, size_t *) NNG_DEPRECATED;
+NNG_DECL int nng_pipe_getopt_bool(
+    nng_pipe, const char *, bool *) NNG_DEPRECATED;
+NNG_DECL int nng_pipe_getopt_int(nng_pipe, const char *, int *) NNG_DEPRECATED;
+NNG_DECL int nng_pipe_getopt_ms(
+    nng_pipe, const char *, nng_duration *) NNG_DEPRECATED;
+NNG_DECL int nng_pipe_getopt_size(
+    nng_pipe, const char *, size_t *) NNG_DEPRECATED;
+NNG_DECL int nng_pipe_getopt_sockaddr(
+    nng_pipe, const char *, nng_sockaddr *) NNG_DEPRECATED;
+NNG_DECL int nng_pipe_getopt_uint64(
+    nng_pipe, const char *, uint64_t *) NNG_DEPRECATED;
+NNG_DECL int nng_pipe_getopt_ptr(
+    nng_pipe, const char *, void **) NNG_DEPRECATED;
+NNG_DECL int nng_pipe_getopt_string(
+    nng_pipe, const char *, char **) NNG_DEPRECATED;
+
+NNG_DECL void nng_closeall(void) NNG_DEPRECATED;
+
+NNG_DECL int nng_stream_set_addr(
+    nng_stream *, const char *, const nng_sockaddr *) NNG_DEPRECATED;
+NNG_DECL int nng_ctx_get_addr(
+    nng_ctx, const char *, nng_sockaddr *) NNG_DEPRECATED;
+NNG_DECL int nng_ctx_set_addr(
+    nng_ctx, const char *, const nng_sockaddr *) NNG_DEPRECATED;
+
+#endif
+
 typedef int   nng_init_parameter;
 NNG_DECL void nng_init_set_parameter(nng_init_parameter, uint64_t);
 
 enum {
 	NNG_INIT_PARAMETER_NONE = 0,
+
 	NNG_INIT_NUM_TASK_THREADS,
+
 	NNG_INIT_NUM_EXPIRE_THREADS,
+
 	NNG_INIT_NUM_POLLER_THREADS,
+
 	NNG_INIT_NUM_RESOLVER_THREADS,
+
 	NNG_INIT_MAX_TASK_THREADS,
+
 	NNG_INIT_MAX_EXPIRE_THREADS,
+
 	NNG_INIT_MAX_POLLER_THREADS,
 };
+
+typedef enum nng_log_level {
+	NNG_LOG_NONE   = 0,
+	NNG_LOG_ERR    = 3,
+	NNG_LOG_WARN   = 4,
+	NNG_LOG_NOTICE = 5,
+	NNG_LOG_INFO   = 6,
+	NNG_LOG_DEBUG  = 7
+} nng_log_level;
+
+typedef enum nng_log_facility {
+	NNG_LOG_USER   = 1,
+	NNG_LOG_DAEMON = 3,
+	NNG_LOG_AUTH   = 10,
+	NNG_LOG_LOCAL0 = 16,
+	NNG_LOG_LOCAL1 = 17,
+	NNG_LOG_LOCAL2 = 18,
+	NNG_LOG_LOCAL3 = 19,
+	NNG_LOG_LOCAL4 = 20,
+	NNG_LOG_LOCAL5 = 21,
+	NNG_LOG_LOCAL6 = 22,
+	NNG_LOG_LOCAL7 = 23,
+} nng_log_facility;
+
+typedef void (*nng_logger)(nng_log_level level, nng_log_facility facility,
+    const char *msgid, const char *msg);
+
+NNG_DECL void nng_null_logger(
+    nng_log_level, nng_log_facility, const char *, const char *);
+
+NNG_DECL void nng_stderr_logger(
+    nng_log_level, nng_log_facility, const char *, const char *);
+
+NNG_DECL void nng_system_logger(
+    nng_log_level, nng_log_facility, const char *, const char *);
+
+NNG_DECL void nng_log_set_facility(nng_log_facility facility);
+
+NNG_DECL void nng_log_set_level(nng_log_level level);
+
+NNG_DECL nng_log_level nng_log_get_level(void);
+
+NNG_DECL void nng_log_set_logger(nng_logger logger);
+
+NNG_DECL void nng_log_err(const char *msgid, const char *msg, ...);
+NNG_DECL void nng_log_warn(const char *msgid, const char *msg, ...);
+NNG_DECL void nng_log_notice(const char *msgid, const char *msg, ...);
+NNG_DECL void nng_log_info(const char *msgid, const char *msg, ...);
+NNG_DECL void nng_log_debug(const char *msgid, const char *msg, ...);
+
+NNG_DECL void nng_log_auth(
+    nng_log_level level, const char *msgid, const char *msg, ...);
+
+NNG_DECL nng_time nng_clock(void);
+
+NNG_DECL void nng_msleep(nng_duration);
+
+NNG_DECL uint32_t nng_random(void);
+
+NNG_DECL int nng_socket_pair(int[2]);
+
+typedef struct nng_thread nng_thread;
+
+NNG_DECL int nng_thread_create(nng_thread **, void (*)(void *), void *);
+
+NNG_DECL void nng_thread_set_name(nng_thread *, const char *);
+
+NNG_DECL void nng_thread_destroy(nng_thread *);
+
+typedef struct nng_mtx nng_mtx;
+
+NNG_DECL int nng_mtx_alloc(nng_mtx **);
+
+NNG_DECL void nng_mtx_free(nng_mtx *);
+
+NNG_DECL void nng_mtx_lock(nng_mtx *);
+
+NNG_DECL void nng_mtx_unlock(nng_mtx *);
+
+typedef struct nng_cv nng_cv;
+
+NNG_DECL int nng_cv_alloc(nng_cv **, nng_mtx *);
+
+NNG_DECL void nng_cv_free(nng_cv *);
+
+NNG_DECL void nng_cv_wait(nng_cv *);
+
+NNG_DECL int nng_cv_until(nng_cv *, nng_time);
+
+NNG_DECL void nng_cv_wake(nng_cv *);
+
+NNG_DECL void nng_cv_wake1(nng_cv *);
+
+NNG_DECL int nng_dialer_get_url(nng_dialer, const nng_url **);
+NNG_DECL int nng_listener_get_url(nng_listener, const nng_url **);
 
 #ifdef __cplusplus
 }

@@ -35,7 +35,6 @@ nni_lmq_fini(nni_lmq *lmq)
 		return;
 	}
 
-	
 	while (lmq->lmq_len > 0) {
 		nng_msg *msg = lmq->lmq_msgs[lmq->lmq_get++];
 		lmq->lmq_get &= lmq->lmq_mask;

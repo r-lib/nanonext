@@ -1,5 +1,5 @@
 //
-// Copyright 2020 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2024 Staysail Systems, Inc. <info@staysail.tech>
 // Copyright 2018 Capitar IT Group BV <info@capitar.com>
 //
 // This software is supplied under the terms of the MIT License, a
@@ -17,6 +17,8 @@ extern "C" {
 
 #include <stddef.h>
 #include <stdint.h>
+
+#include <nng/nng.h>
 
 typedef struct nng_tls_config nng_tls_config;
 
@@ -62,6 +64,9 @@ NNG_DECL int nng_tls_config_ca_file(nng_tls_config *, const char *);
 
 NNG_DECL int nng_tls_config_cert_key_file(
     nng_tls_config *, const char *, const char *);
+
+NNG_DECL int nng_tls_config_psk(
+    nng_tls_config *, const char *, const uint8_t *, size_t);
 
 NNG_DECL int nng_tls_config_version(
     nng_tls_config *, nng_tls_version, nng_tls_version);

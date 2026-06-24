@@ -69,7 +69,6 @@ nni_msgq_fini(nni_msgq *mq)
 	}
 	nni_mtx_fini(&mq->mq_lock);
 
-	
 	while (mq->mq_len > 0) {
 		nni_msg *msg = mq->mq_msgs[mq->mq_get++];
 		if (mq->mq_get >= mq->mq_alloc) {

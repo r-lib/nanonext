@@ -56,6 +56,8 @@ $(NNG)/core/listener.o: $(NNG)/core/listener.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/core/listener.c -o $@
 $(NNG)/core/lmq.o: $(NNG)/core/lmq.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/core/lmq.c -o $@
+$(NNG)/core/log.o: $(NNG)/core/log.c
+	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/core/log.c -o $@
 $(NNG)/core/message.o: $(NNG)/core/message.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/core/message.c -o $@
 $(NNG)/core/msgqueue.o: $(NNG)/core/msgqueue.c
@@ -70,6 +72,8 @@ $(NNG)/core/pollable.o: $(NNG)/core/pollable.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/core/pollable.c -o $@
 $(NNG)/core/reap.o: $(NNG)/core/reap.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/core/reap.c -o $@
+$(NNG)/core/sockaddr.o: $(NNG)/core/sockaddr.c
+	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/core/sockaddr.c -o $@
 $(NNG)/core/socket.o: $(NNG)/core/socket.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/core/socket.c -o $@
 $(NNG)/core/sockfd.o: $(NNG)/core/sockfd.c
@@ -162,10 +166,10 @@ $(NNG)/supplemental/tls/mbedtls/tls.o: $(NNG)/supplemental/tls/mbedtls/tls.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/supplemental/tls/mbedtls/tls.c -o $@
 $(NNG)/supplemental/tls/tls_common.o: $(NNG)/supplemental/tls/tls_common.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/supplemental/tls/tls_common.c -o $@
+$(NNG)/supplemental/util/idhash.o: $(NNG)/supplemental/util/idhash.c
+	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/supplemental/util/idhash.c -o $@
 $(NNG)/supplemental/util/options.o: $(NNG)/supplemental/util/options.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/supplemental/util/options.c -o $@
-$(NNG)/supplemental/util/platform.o: $(NNG)/supplemental/util/platform.c
-	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/supplemental/util/platform.c -o $@
 $(NNG)/supplemental/websocket/websocket.o: $(NNG)/supplemental/websocket/websocket.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/supplemental/websocket/websocket.c -o $@
 $(MBED)/aes.o: $(MBED)/aes.c
@@ -334,14 +338,14 @@ $(NNG)/platform/posix/posix_thread.o: $(NNG)/platform/posix/posix_thread.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/platform/posix/posix_thread.c -o $@
 $(NNG)/platform/posix/posix_udp.o: $(NNG)/platform/posix/posix_udp.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/platform/posix/posix_udp.c -o $@
-$(NNG)/platform/posix/posix_pollq_port.o: $(NNG)/platform/posix/posix_pollq_port.c
-	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/platform/posix/posix_pollq_port.c -o $@
-$(NNG)/platform/posix/posix_pollq_kqueue.o: $(NNG)/platform/posix/posix_pollq_kqueue.c
-	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/platform/posix/posix_pollq_kqueue.c -o $@
 $(NNG)/platform/posix/posix_pollq_epoll.o: $(NNG)/platform/posix/posix_pollq_epoll.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/platform/posix/posix_pollq_epoll.c -o $@
+$(NNG)/platform/posix/posix_pollq_kqueue.o: $(NNG)/platform/posix/posix_pollq_kqueue.c
+	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/platform/posix/posix_pollq_kqueue.c -o $@
 $(NNG)/platform/posix/posix_pollq_poll.o: $(NNG)/platform/posix/posix_pollq_poll.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/platform/posix/posix_pollq_poll.c -o $@
+$(NNG)/platform/posix/posix_pollq_port.o: $(NNG)/platform/posix/posix_pollq_port.c
+	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/platform/posix/posix_pollq_port.c -o $@
 $(NNG)/platform/posix/posix_rand_arc4random.o: $(NNG)/platform/posix/posix_rand_arc4random.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/platform/posix/posix_rand_arc4random.c -o $@
 $(NNG)/platform/posix/posix_rand_getrandom.o: $(NNG)/platform/posix/posix_rand_getrandom.c

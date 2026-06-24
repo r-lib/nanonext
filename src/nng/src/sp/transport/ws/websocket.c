@@ -703,6 +703,7 @@ static nni_sp_tran wss4_tran = {
 	.tran_fini     = wstran_fini,
 };
 
+#ifdef NNG_ENABLE_IPV6
 static nni_sp_tran wss6_tran = {
 	.tran_scheme   = "wss6",
 	.tran_dialer   = &ws_dialer_ops,
@@ -711,13 +712,16 @@ static nni_sp_tran wss6_tran = {
 	.tran_init     = wstran_init,
 	.tran_fini     = wstran_fini,
 };
+#endif
 
 void
 nni_sp_wss_register(void)
 {
 	nni_sp_tran_register(&wss_tran);
 	nni_sp_tran_register(&wss4_tran);
+#ifdef NNG_ENABLE_IPV6
 	nni_sp_tran_register(&wss6_tran);
+#endif
 }
 
 #endif

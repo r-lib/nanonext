@@ -9,12 +9,43 @@
 //
 
 #include "core/nng_impl.h"
+#include "platform/posix/posix_impl.h"
 
 #ifdef NNG_PLATFORM_POSIX
 
 #include <errno.h>
 #include <string.h>
+#include <sys/time.h>
 #include <time.h>
+
+int
+nni_time_get(uint64_t *sec, uint32_t *nsec)
+{
+	int rv;
+#if defined(NNG_HAVE_TIMESPEC_GET)
+	struct timespec ts;
+	if ((rv = timespec_get(&ts, TIME_UTC)) == TIME_UTC) {
+		*sec  = ts.tv_sec;
+		*nsec = ts.tv_nsec;
+		return (0);
+	}
+#elif defined(NNG_HAVE_CLOCK_GETTIME)
+	struct timespec ts;
+	if ((rv = clock_gettime(CLOCK_REALTIME, &ts)) == 0) {
+		*sec  = ts.tv_sec;
+		*nsec = ts.tv_nsec;
+		return (0);
+	}
+#else
+	struct timeval tv;
+	if ((rv = gettimeofday(&tv, NULL)) == 0) {
+		*sec  = tv.tv_sec;
+		*nsec = tv.tv_usec * 1000;
+		return (0);
+	}
+#endif
+	return (nni_plat_errno(errno));
+}
 
 #if defined(NNG_HAVE_CLOCK_GETTIME) && !defined(NNG_USE_GETTIMEOFDAY)
 

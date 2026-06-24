@@ -15,7 +15,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h> 
+#include <string.h>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <unistd.h>

@@ -1,5 +1,5 @@
 //
-// Copyright 2021 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2024 Staysail Systems, Inc. <info@staysail.tech>
 // Copyright 2018 Capitar IT Group BV <info@capitar.com>
 //
 // This software is supplied under the terms of the MIT License, a
@@ -33,9 +33,9 @@ struct xsub0_sock {
 };
 
 struct xsub0_pipe {
-	nni_pipe *  pipe;
+	nni_pipe   *pipe;
 	xsub0_sock *sub;
-	nni_aio    aio_recv;
+	nni_aio     aio_recv;
 };
 
 static void
@@ -99,6 +99,9 @@ xsub0_pipe_start(void *arg)
 	xsub0_pipe *p = arg;
 
 	if (nni_pipe_peer(p->pipe) != NNI_PROTO_PUB_V0) {
+		nng_log_warn("NNG-PEER-MISMATCH",
+		    "Peer protocol mismatch: %d != %d, rejected.",
+		    nni_pipe_peer(p->pipe), NNI_PROTO_PUB_V0);
 		return (NNG_EPROTO);
 	}
 
@@ -119,8 +122,8 @@ xsub0_recv_cb(void *arg)
 {
 	xsub0_pipe *p   = arg;
 	xsub0_sock *s   = p->sub;
-	nni_msgq *  urq = s->urq;
-	nni_msg *   msg;
+	nni_msgq   *urq = s->urq;
+	nni_msg    *msg;
 
 	if (nni_aio_result(&p->aio_recv) != 0) {
 		nni_pipe_close(p->pipe);

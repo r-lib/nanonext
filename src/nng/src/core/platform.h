@@ -110,10 +110,12 @@ extern void nni_atomic_inc(nni_atomic_int *);
 extern bool nni_atomic_cas(nni_atomic_int *, int, int);
 
 typedef struct nni_atomic_ptr nni_atomic_ptr;
-extern void nni_atomic_set_ptr(nni_atomic_ptr *, void *);
-extern void *nni_atomic_get_ptr(nni_atomic_ptr *);
+extern void                   nni_atomic_set_ptr(nni_atomic_ptr *, void *);
+extern void                  *nni_atomic_get_ptr(nni_atomic_ptr *);
 
 extern nni_time nni_clock(void);
+
+extern int nni_time_get(uint64_t *seconds, uint32_t *nanoseconds);
 
 extern void nni_msleep(nni_duration);
 
@@ -183,6 +185,9 @@ extern void nni_plat_udp_send(nni_plat_udp *, nni_aio *);
 
 extern void nni_plat_udp_recv(nni_plat_udp *, nni_aio *);
 
+extern int nni_plat_udp_multicast_membership(
+    nni_plat_udp *udp, nni_sockaddr *sa, bool join);
+
 extern int nni_plat_pipe_open(int *, int *);
 
 extern void nni_plat_pipe_raise(int);
@@ -193,7 +198,7 @@ extern void nni_plat_pipe_close(int, int);
 
 extern int nni_plat_udp_sockname(nni_plat_udp *, nni_sockaddr *);
 
-extern int nni_socket_pair(int [2]);
+extern int nni_socket_pair(int[2]);
 
 extern int nni_plat_file_put(const char *, const void *, size_t);
 

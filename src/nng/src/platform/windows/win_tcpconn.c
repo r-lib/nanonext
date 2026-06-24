@@ -28,45 +28,43 @@ tcp_recv_start(nni_tcp_conn *c)
 	nni_iov *aiov;
 	WSABUF   iov[8];
 	DWORD    nrecv;
-	size_t   count;
-	bool     clamped;
 
 	c->recv_rv = 0;
 	while ((aio = nni_list_first(&c->recv_aios)) != NULL) {
 
-	  if (c->closed) {
-	    nni_aio_list_remove(aio);
-	    nni_aio_finish_error(aio, NNG_ECLOSED);
-	    continue;
-	  }
-	  nni_aio_get_iov(aio, &naiov, &aiov);
+		if (c->closed) {
+			nni_aio_list_remove(aio);
+			nni_aio_finish_error(aio, NNG_ECLOSED);
+			continue;
+		}
+		nni_aio_get_iov(aio, &naiov, &aiov);
 
-	  count   = 0;
-	  clamped = false;
-	  for (niov = 0, i = 0; !clamped && i < naiov; i++) {
-	    if (aiov[i].iov_len != 0) {
-	      size_t len = aiov[i].iov_len;
-	      clamped = nni_aio_iov_clamp_len(&len, &count);
-	      iov[niov].buf = aiov[i].iov_buf;
-	      iov[niov].len = (ULONG) len;
-	      niov++;
-	    }
-	  }
+		size_t count   = 0;
+		bool   clamped = false;
+		for (niov = 0, i = 0; !clamped && i < naiov; i++) {
+			if (aiov[i].iov_len != 0) {
+				size_t len = aiov[i].iov_len;
+				clamped =
+				    nni_aio_iov_clamp_len(&len, &count);
+				iov[niov].buf = aiov[i].iov_buf;
+				iov[niov].len = (ULONG) len;
+				niov++;
+			}
+		}
 
-	  flags = 0;
-	  c->recving = true;
-	  flags      = 0;
-	  rv         = WSARecv(
-	    c->s, iov, niov, &nrecv, &flags, &c->recv_io.olpd, NULL);
+		c->recving = true;
+		flags      = 0;
+		rv         = WSARecv(
+                    c->s, iov, niov, &nrecv, &flags, &c->recv_io.olpd, NULL);
 
-	  if ((rv == SOCKET_ERROR) &&
-       ((rv = GetLastError()) != ERROR_IO_PENDING)) {
-	    c->recving = false;
-	    nni_aio_list_remove(aio);
-	    nni_aio_finish_error(aio, nni_win_error(rv));
-	  } else {
-	    return;
-	  }
+		if ((rv == SOCKET_ERROR) &&
+		    ((rv = GetLastError()) != ERROR_IO_PENDING)) {
+			c->recving = false;
+			nni_aio_list_remove(aio);
+			nni_aio_finish_error(aio, nni_win_error(rv));
+		} else {
+			return;
+		}
 	}
 
 	nni_cv_wake(&c->cv);
@@ -81,6 +79,7 @@ tcp_recv_cb(nni_win_io *io, int rv, size_t num)
 	nni_mtx_lock(&c->mtx);
 	aio = nni_list_first(&c->recv_aios);
 	NNI_ASSERT(aio != NULL);
+
 	if (c->recv_rv != 0) {
 		rv         = c->recv_rv;
 		c->recv_rv = 0;
@@ -105,15 +104,15 @@ tcp_recv_cancel(nni_aio *aio, void *arg, int rv)
 		c->recv_rv = rv;
 		CancelIoEx((HANDLE) c->s, &c->recv_io.olpd);
 	} else {
-	  nni_aio *srch;
-	  NNI_LIST_FOREACH (&c->recv_aios, srch) {
-	    if (aio == srch) {
-	      nni_aio_list_remove(aio);
-	      nni_aio_finish_error(aio, rv);
-	      nni_cv_wake(&c->cv);
-	      break;
-	    }
-	  }
+		nni_aio *srch;
+		NNI_LIST_FOREACH (&c->recv_aios, srch) {
+			if (aio == srch) {
+				nni_aio_list_remove(aio);
+				nni_aio_finish_error(aio, rv);
+				nni_cv_wake(&c->cv);
+				break;
+			}
+		}
 	}
 	nni_mtx_unlock(&c->mtx);
 }
@@ -146,44 +145,43 @@ tcp_send_start(nni_tcp_conn *c)
 	nni_aio *aio;
 	int      rv;
 	DWORD    niov;
-	size_t   count;
 	unsigned i;
 	unsigned naiov;
 	nni_iov *aiov;
 	WSABUF   iov[8];
-	bool     clamped;
 
 	while ((aio = nni_list_first(&c->send_aios)) != NULL) {
-	  if (c->closed) {
-	    nni_aio_list_remove(aio);
-	    nni_aio_finish_error(aio, NNG_ECLOSED);
-	    continue;
-	  }
-	  nni_aio_get_iov(aio, &naiov, &aiov);
+		if (c->closed) {
+			nni_aio_list_remove(aio);
+			nni_aio_finish_error(aio, NNG_ECLOSED);
+			continue;
+		}
+		nni_aio_get_iov(aio, &naiov, &aiov);
 
-	  count   = 0;
-	  clamped = false;
-	  for (niov = 0, i = 0; !clamped && i < naiov; i++) {
-	    if (aiov[i].iov_len != 0) {
-	      size_t len = aiov[i].iov_len;
-	      clamped = nni_aio_iov_clamp_len(&len, &count);
-	      iov[niov].buf = aiov[i].iov_buf;
-	      iov[niov].len = (ULONG) len;
-	      niov++;
-	    }
-	  }
+		size_t count   = 0;
+		bool   clamped = false;
+		for (niov = 0, i = 0; !clamped && i < naiov; i++) {
+			if (aiov[i].iov_len != 0) {
+				size_t len = aiov[i].iov_len;
+				clamped =
+				    nni_aio_iov_clamp_len(&len, &count);
+				iov[niov].buf = aiov[i].iov_buf;
+				iov[niov].len = (ULONG) len;
+				niov++;
+			}
+		}
 
-	  c->sending = true;
-	  rv = WSASend(c->s, iov, niov, NULL, 0, &c->send_io.olpd, NULL);
+		c->sending = true;
+		rv = WSASend(c->s, iov, niov, NULL, 0, &c->send_io.olpd, NULL);
 
-	  if ((rv == SOCKET_ERROR) &&
-       ((rv = GetLastError()) != ERROR_IO_PENDING)) {
-	    c->sending = false;
-	    nni_aio_list_remove(aio);
-	    nni_aio_finish_error(aio, nni_win_error(rv));
-	  } else {
-	    return;
-	  }
+		if ((rv == SOCKET_ERROR) &&
+		    ((rv = GetLastError()) != ERROR_IO_PENDING)) {
+			c->sending = false;
+			nni_aio_list_remove(aio);
+			nni_aio_finish_error(aio, nni_win_error(rv));
+		} else {
+			return;
+		}
 	}
 }
 
@@ -196,15 +194,15 @@ tcp_send_cancel(nni_aio *aio, void *arg, int rv)
 		c->send_rv = rv;
 		CancelIoEx((HANDLE) c->s, &c->send_io.olpd);
 	} else {
-	  nni_aio *srch;
-	  NNI_LIST_FOREACH (&c->send_aios, srch) {
-	    if (srch == aio) {
-	      nni_aio_list_remove(aio);
-	      nni_aio_finish_error(aio, rv);
-	      nni_cv_wake(&c->cv);
-	      break;
-	    }
-	  }
+		nni_aio *srch;
+		NNI_LIST_FOREACH (&c->send_aios, srch) {
+			if (srch == aio) {
+				nni_aio_list_remove(aio);
+				nni_aio_finish_error(aio, rv);
+				nni_cv_wake(&c->cv);
+				break;
+			}
+		}
 	}
 	nni_mtx_unlock(&c->mtx);
 }
@@ -259,23 +257,24 @@ tcp_close(void *arg)
 	nni_mtx_lock(&c->mtx);
 	nni_time now;
 	if (!c->closed) {
-	  SOCKET s = c->s;
+		SOCKET s = c->s;
 
 		c->closed = true;
 		c->s      = INVALID_SOCKET;
+
 		if (s != INVALID_SOCKET) {
-		  CancelIoEx((HANDLE) s, &c->send_io.olpd);
-		  CancelIoEx((HANDLE) s, &c->recv_io.olpd);
-		  shutdown(s, SD_BOTH);
-		  closesocket(s);
+			CancelIoEx((HANDLE) s, &c->send_io.olpd);
+			CancelIoEx((HANDLE) s, &c->recv_io.olpd);
+			shutdown(s, SD_BOTH);
+			closesocket(s);
 		}
 	}
 	now = nni_clock();
 	while ((c->recving || c->sending) &&
-        ((nni_clock() - now) < (NNI_SECOND * 10))) {
-	  nni_mtx_unlock(&c->mtx);
-	  nni_msleep(1);
-	  nni_mtx_lock(&c->mtx);
+	    ((nni_clock() - now) < (NNI_SECOND * 10))) {
+		nni_mtx_unlock(&c->mtx);
+		nni_msleep(1);
+		nni_mtx_lock(&c->mtx);
 	}
 	nni_mtx_unlock(&c->mtx);
 }

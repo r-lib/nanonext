@@ -1,5 +1,5 @@
 //
-// Copyright 2023 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2024 Staysail Systems, Inc. <info@staysail.tech>
 // Copyright 2018 Capitar IT Group BV <info@capitar.com>
 //
 // This software is supplied under the terms of the MIT License, a
@@ -185,6 +185,9 @@ req0_pipe_start(void *arg)
 	req0_sock *s = p->req;
 
 	if (nni_pipe_peer(p->pipe) != NNG_REQ0_PEER) {
+		nng_log_warn("NNG-PEER-MISMATCH",
+		    "Peer protocol mismatch: %d != %d, rejected.",
+		    nni_pipe_peer(p->pipe), NNG_REQ0_PEER);
 		return (NNG_EPROTO);
 	}
 
@@ -310,9 +313,7 @@ req0_recv_cb(void *arg)
 	nni_id_remove(&s->requests, id);
 	ctx->request_id = 0;
 	if (ctx->req_msg != NULL) {
-	  if (ctx->retry > 0) {
-	    nni_msg_free(ctx->req_msg);
-	  }
+		nni_msg_free(ctx->req_msg);
 		ctx->req_msg = NULL;
 	}
 
@@ -460,9 +461,7 @@ req0_run_send_queue(req0_sock *s, nni_aio_completions *sent_list)
 			}
 		}
 
-		if (ctx->retry > 0) {
-		  nni_msg_clone(ctx->req_msg);
-		}
+		nni_msg_clone(ctx->req_msg);
 		nni_aio_set_msg(&p->aio_send, ctx->req_msg);
 		nni_pipe_send(p->pipe, &p->aio_send);
 	}
@@ -481,9 +480,7 @@ req0_ctx_reset(req0_ctx *ctx)
 		ctx->request_id = 0;
 	}
 	if (ctx->req_msg != NULL) {
-	  if (ctx->retry > 0) {
-	    nni_msg_free(ctx->req_msg);
-	  }
+		nni_msg_free(ctx->req_msg);
 		ctx->req_msg = NULL;
 	}
 	if (ctx->rep_msg != NULL) {

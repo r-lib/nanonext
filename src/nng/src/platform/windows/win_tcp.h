@@ -31,9 +31,9 @@ struct nni_tcp_conn {
 	int               send_rv;
 	int               conn_rv;
 	bool              closed;
+	char              buf[512];
 	bool              sending;
 	bool              recving;
-	char              buf[512];
 	nni_mtx           mtx;
 	nni_cv            cv;
 };

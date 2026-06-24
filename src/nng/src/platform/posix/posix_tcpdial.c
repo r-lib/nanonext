@@ -23,6 +23,10 @@
 
 #include "posix_tcp.h"
 
+#ifndef NNG_HAVE_INET6
+#undef NNG_ENABLE_IPV6
+#endif
+
 int
 nni_tcp_dialer_init(nni_tcp_dialer **dp)
 {
@@ -326,9 +330,11 @@ tcp_dialer_set_locaddr(void *arg, const void *buf, size_t sz, nni_type t)
 	nng_sockaddr            sa;
 	struct sockaddr_storage ss;
 	struct sockaddr_in     *sin;
-	struct sockaddr_in6    *sin6;
 	size_t                  len;
 	int                     rv;
+#ifdef NNG_ENABLE_IPV6
+	struct sockaddr_in6 *sin6;
+#endif
 
 	if ((rv = nni_copyin_sockaddr(&sa, buf, sz, t)) != 0) {
 		return (rv);
@@ -343,12 +349,16 @@ tcp_dialer_set_locaddr(void *arg, const void *buf, size_t sz, nni_type t)
 			return (NNG_EADDRINVAL);
 		}
 		break;
+
+#ifdef NNG_ENABLE_IPV6
 	case AF_INET6:
 		sin6 = (void *) &ss;
 		if (sin6->sin6_port != 0) {
 			return (NNG_EADDRINVAL);
 		}
 		break;
+#endif
+
 	default:
 		return (NNG_EADDRINVAL);
 	}
