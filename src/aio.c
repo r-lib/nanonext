@@ -843,7 +843,7 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP clo) {
 
   if ((sock = !NANO_PTR_CHECK(con, nano_SocketSymbol)) || !NANO_PTR_CHECK(con, nano_ContextSymbol)) {
 
-    const uint8_t mod = (uint8_t) nano_matcharg(mode);
+    const uint8_t mod = nano_matcharg(mode);
     raio = calloc(1, sizeof(nano_aio));
     NANO_ENSURE_ALLOC(raio);
     raio->next = ncv;
@@ -862,7 +862,9 @@ SEXP rnng_recv_aio(SEXP con, SEXP mode, SEXP timeout, SEXP cvar, SEXP clo) {
 
   } else if (!NANO_PTR_CHECK(con, nano_StreamSymbol)) {
 
-    const uint8_t mod = (uint8_t) (nano_matcharg(mode) == 1 ? 2 : nano_matcharg(mode));
+    uint8_t mod = nano_matcharg(mode);
+    if (mod == 1)
+      mod = 2;
     nano_stream *nst = (nano_stream *) NANO_PTR(con);
     nng_stream *sp = nst->stream;
 

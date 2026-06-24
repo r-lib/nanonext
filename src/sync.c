@@ -468,7 +468,7 @@ SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeou
   nng_ctx *ctx = (nng_ctx *) NANO_PTR(con);
 
   const nng_duration dur = timeout == R_NilValue ? NNG_DURATION_DEFAULT : (nng_duration) nano_integer(timeout);
-  const uint8_t mod = (uint8_t) nano_matcharg(recvmode);
+  const uint8_t mod = nano_matcharg(recvmode);
   const int raw = nano_encode_mode(sendmode);
   const int id = nng_ctx_id(*ctx);
   const int signal = cvar != R_NilValue && !NANO_PTR_CHECK(cvar, nano_CvSymbol);

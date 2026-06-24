@@ -397,7 +397,7 @@ nni_plat_udp_multicast_membership(
 	socklen_t               sz;
 	int                     rv;
 
-	sz = nni_posix_nn2sockaddr(&ss, sa);
+	sz = (socklen_t) nni_posix_nn2sockaddr(&ss, sa);
 	if (sz < 1) {
 		return (NNG_EADDRINVAL);
 	}

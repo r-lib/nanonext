@@ -442,7 +442,7 @@ SEXP nano_decode(unsigned char *, const size_t, const uint8_t, SEXP);
 SEXP nano_url_with_port(nng_url *, int);
 void nano_encode(nano_buf *, const SEXP);
 int nano_encode_mode(const SEXP);
-int nano_matcharg(const SEXP);
+uint8_t nano_matcharg(const SEXP);
 SEXP nano_aio_result(SEXP);
 SEXP nano_aio_get_msg(SEXP);
 SEXP nano_aio_http_status(SEXP);

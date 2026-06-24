@@ -479,7 +479,7 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block) {
 
   if (!NANO_PTR_CHECK(con, nano_SocketSymbol)) {
 
-    const int mod = nano_matcharg(mode);
+    const uint8_t mod = nano_matcharg(mode);
     nng_socket *sock = (nng_socket *) NANO_PTR(con);
     nng_msg *msgp = NULL;
 
@@ -510,7 +510,7 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block) {
 
   } else if (!NANO_PTR_CHECK(con, nano_ContextSymbol)) {
 
-    const int mod = nano_matcharg(mode);
+    const uint8_t mod = nano_matcharg(mode);
     nng_ctx *ctxp = (nng_ctx *) NANO_PTR(con);
     nng_msg *msgp = NULL;
 
@@ -550,7 +550,9 @@ SEXP rnng_recv(SEXP con, SEXP mode, SEXP block) {
 
   } else if (!NANO_PTR_CHECK(con, nano_StreamSymbol)) {
 
-    const int mod = nano_matcharg(mode) == 1 ? 2 : nano_matcharg(mode);
+    uint8_t mod = nano_matcharg(mode);
+    if (mod == 1)
+      mod = 2;
     nano_stream *nst = (nano_stream *) NANO_PTR(con);
     nng_stream *sp = nst->stream;
     nng_aio *aiop = NULL;
