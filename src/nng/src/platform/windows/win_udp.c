@@ -291,7 +291,7 @@ nni_plat_udp_sockname(nni_plat_udp *udp, nni_sockaddr *sa)
 static int
 ip4_multicast_member(nni_plat_udp *udp, SOCKADDR *sa, bool join)
 {
-	IP_MREQ          mreq;
+	struct ip_mreq   mreq;
 	SOCKADDR_IN     *sin;
 	SOCKADDR_STORAGE local;
 	int              sz = sizeof(local);
@@ -321,7 +321,7 @@ ip4_multicast_member(nni_plat_udp *udp, SOCKADDR *sa, bool join)
 static int
 ip6_multicast_member(nni_plat_udp *udp, SOCKADDR *sa, bool join)
 {
-	IPV6_MREQ        mreq;
+	struct ipv6_mreq mreq;
 	SOCKADDR_IN6    *sin6;
 	SOCKADDR_STORAGE local;
 	int              sz = sizeof(local);

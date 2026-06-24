@@ -138,6 +138,14 @@ patch_perl platform/windows/win_clock.c '
   }
 '
 
+# win_udp.c: upstream multicast support uses the Windows-SDK uppercase typedefs
+# IP_MREQ / IPV6_MREQ, which legacy (non-UCRT) MinGW headers do not define. Use
+# the portable struct tags (as NNG'\''s own POSIX code does); members are identical.
+patch_perl platform/windows/win_udp.c '
+  s/\bIP_MREQ\s+mreq;/struct ip_mreq   mreq;/;
+  s/\bIPV6_MREQ\s+mreq;/struct ipv6_mreq mreq;/;
+'
+
 # ---------------------------------------------------------------------------
 echo "3. Removing compiler diagnostic pragmas (not permitted on CRAN) ..."
 # Strip every #pragma GCC/clang diagnostic line, then replay nanonext's portable
