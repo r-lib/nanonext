@@ -731,7 +731,7 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
     if (raw) {
       nano_encode(&buf, data);
     } else {
-      nano_serialize(&buf, data, NANO_PROT(con), 0);
+      nano_serialize(&buf, data, NANO_PROT(con), 0, NANO_HEADROOM);
     }
     nng_msg *msg = NULL;
 
@@ -745,7 +745,7 @@ SEXP rnng_send_aio(SEXP con, SEXP data, SEXP mode, SEXP timeout, SEXP pipe, SEXP
       goto fail;
     }
 
-    nano_msg_set_body(msg, &buf);
+    nano_msg_set_body(msg, &buf, raw ? 0 : NANO_HEADROOM);
 
     if (pipeid) {
       nng_pipe p;

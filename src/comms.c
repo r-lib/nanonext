@@ -365,14 +365,14 @@ SEXP rnng_send(SEXP con, SEXP data, SEXP mode, SEXP block, SEXP pipe) {
     if (raw) {
       nano_encode(&buf, data);
     } else {
-      nano_serialize(&buf, data, NANO_PROT(con), 0);
+      nano_serialize(&buf, data, NANO_PROT(con), 0, NANO_HEADROOM);
     }
     nng_msg *msgp = NULL;
 
     if ((xc = nng_msg_alloc(&msgp, 0)))
       goto fail;
 
-    nano_msg_set_body(msgp, &buf);
+    nano_msg_set_body(msgp, &buf, raw ? 0 : NANO_HEADROOM);
 
     if (pipeid) {
       nng_pipe p;

@@ -302,17 +302,21 @@ SEXP nano_url_with_port(nng_url *up, int port) {
 
 }
 
-void nano_serialize(nano_buf *buf, SEXP object, SEXP hook, int header) {
+void nano_serialize(nano_buf *buf, SEXP object, SEXP hook, int header, size_t headroom) {
 
   NANO_ALLOC(buf, NANONEXT_INIT_BUFSIZE);
   struct R_outpstream_st output_stream;
 
+  // Reserve headroom so a zero-copy body (nano_msg_set_body) leaves room for
+  // NNG to prepend protocol headers in place, as a native nng_msg would.
+  buf->cur = headroom;
+
   if (header || special_marker) {
-    memset(buf->buf, 0, 8);
-    buf->buf[0] = 0x7;
-    buf->buf[3] = (uint8_t) special_marker;
+    memset(buf->buf + headroom, 0, 8);
+    buf->buf[headroom] = 0x7;
+    buf->buf[headroom + 3] = (uint8_t) special_marker;
     if (header)
-      memcpy(buf->buf + 4, &header, sizeof(int));
+      memcpy(buf->buf + headroom + 4, &header, sizeof(int));
     buf->cur += 8;
   }
 
@@ -336,15 +340,15 @@ void nano_serialize(nano_buf *buf, SEXP object, SEXP hook, int header) {
 
 }
 
-void nano_msg_set_body(nng_msg *msg, nano_buf *buf) {
+void nano_msg_set_body(nng_msg *msg, nano_buf *buf, size_t headroom) {
 
   if (buf->len) {
     nano_nng_msg *m = (nano_nng_msg *) msg;
     free(m->body.buf);
     m->body.buf = buf->buf;
-    m->body.ptr = buf->buf;
-    m->body.len = buf->cur;
-    m->body.cap = buf->len;
+    m->body.ptr = buf->buf + headroom;
+    m->body.len = buf->cur - headroom;
+    m->body.cap = buf->cur;
     buf->len = 0;
   } else {
     nng_msg_append(msg, buf->buf, buf->cur);
