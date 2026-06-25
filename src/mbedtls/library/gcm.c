@@ -363,7 +363,7 @@ int mbedtls_gcm_starts(mbedtls_gcm_context *ctx,
     memset(ctx->y, 0x00, sizeof(ctx->y));
     memset(ctx->buf, 0x00, sizeof(ctx->buf));
 
-    ctx->mode = mode;
+    ctx->mode = (unsigned char) mode;
     ctx->len = 0;
     ctx->add_len = 0;
 

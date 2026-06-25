@@ -212,7 +212,7 @@ static int asn1_write_tagged_int(unsigned char **p, const unsigned char *start, 
         len += 1;
     }
 
-    return mbedtls_asn1_write_len_and_tag(p, start, len, tag);
+    return mbedtls_asn1_write_len_and_tag(p, start, len, (unsigned char) tag);
 }
 
 int mbedtls_asn1_write_int(unsigned char **p, const unsigned char *start, int val)
@@ -235,7 +235,7 @@ int mbedtls_asn1_write_tagged_string(unsigned char **p, const unsigned char *sta
                                                             (const unsigned char *) text,
                                                             text_len));
 
-    return mbedtls_asn1_write_len_and_tag(p, start, len, tag);
+    return mbedtls_asn1_write_len_and_tag(p, start, len, (unsigned char) tag);
 }
 
 int mbedtls_asn1_write_utf8_string(unsigned char **p, const unsigned char *start,

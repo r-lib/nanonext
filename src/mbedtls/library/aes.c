@@ -311,7 +311,7 @@ MBEDTLS_MAYBE_UNUSED static uint32_t RT3[256];
 MBEDTLS_MAYBE_UNUSED static uint32_t round_constants[10];
 
 #define ROTL8(x) (((x) << 8) & 0xFFFFFFFF) | ((x) >> 24)
-#define XTIME(x) (((x) << 1) ^ (((x) & 0x80) ? 0x1B : 0x00))
+#define XTIME(x) ((uint8_t) (((x) << 1) ^ (((x) & 0x80) ? 0x1B : 0x00)))
 #define MUL(x, y) (((x) && (y)) ? pow[(log[(x)]+log[(y)]) % 255] : 0)
 
 MBEDTLS_MAYBE_UNUSED static int aes_init_done = 0;
@@ -342,10 +342,10 @@ MBEDTLS_MAYBE_UNUSED static void aes_gen_tables(void)
     for (i = 1; i < 256; i++) {
         x = pow[255 - log[i]];
 
-        y  = x; y = (y << 1) | (y >> 7);
-        x ^= y; y = (y << 1) | (y >> 7);
-        x ^= y; y = (y << 1) | (y >> 7);
-        x ^= y; y = (y << 1) | (y >> 7);
+        y  = x; y = (uint8_t) ((y << 1) | (y >> 7));
+        x ^= y; y = (uint8_t) ((y << 1) | (y >> 7));
+        x ^= y; y = (uint8_t) ((y << 1) | (y >> 7));
+        x ^= y; y = (uint8_t) ((y << 1) | (y >> 7));
         x ^= y ^ 0x63;
 
         FSb[i] = x;

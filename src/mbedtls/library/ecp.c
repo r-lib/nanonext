@@ -570,7 +570,7 @@ int mbedtls_ecp_point_write_binary(const mbedtls_ecp_group *grp,
                 return MBEDTLS_ERR_ECP_BUFFER_TOO_SMALL;
             }
 
-            buf[0] = 0x02 + mbedtls_mpi_get_bit(&P->Y, 0);
+            buf[0] = (unsigned char) (0x02 + mbedtls_mpi_get_bit(&P->Y, 0));
             MBEDTLS_MPI_CHK(mbedtls_mpi_write_binary(&P->X, buf + 1, plen));
         }
     }
@@ -1357,7 +1357,7 @@ static int ecp_precompute_comb(const mbedtls_ecp_group *grp,
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     unsigned char i;
     size_t j = 0;
-    const unsigned char T_size = 1U << (w - 1);
+    const unsigned char T_size = (unsigned char) (1U << (w - 1));
     mbedtls_ecp_point *cur, *TT[COMB_MAX_PRE - 1] = { NULL };
 
     mbedtls_mpi tmp[4];
@@ -1405,7 +1405,7 @@ dbl:
     for (; j < d * (w - 1); j++) {
         MBEDTLS_ECP_BUDGET(MBEDTLS_ECP_OPS_DBL);
 
-        i = 1U << (j / d);
+        i = (unsigned char) (1U << (j / d));
         cur = T + i;
 
         if (j % d == 0) {
@@ -1701,7 +1701,7 @@ static int ecp_mul_comb(mbedtls_ecp_group *grp, mbedtls_ecp_point *R,
 #endif
 
     w = ecp_pick_window_size(grp, p_eq_g);
-    T_size = 1U << (w - 1);
+    T_size = (unsigned char) (1U << (w - 1));
     d = (grp->nbits + w - 1) / w;
 
     if (p_eq_g && grp->T != NULL) {
@@ -1917,7 +1917,7 @@ static int ecp_mul_mxz(mbedtls_ecp_group *grp, mbedtls_ecp_point *R,
 
     i = grp->nbits + 1;
     while (i-- > 0) {
-        b = mbedtls_mpi_get_bit(m, i);
+        b = (unsigned char) mbedtls_mpi_get_bit(m, i);
 
         MPI_ECP_COND_SWAP(&R->X, &RP.X, b);
         MPI_ECP_COND_SWAP(&R->Z, &RP.Z, b);
