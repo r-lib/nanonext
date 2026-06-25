@@ -53,11 +53,11 @@ emit_rules() {
     esac
     src=$(printf '%s' "$obj" | sed 's/\.o$/.c/')
     case "$obj" in
-      '$(MBED)'*) grp='$(MBED_CPPFLAGS)' ;;
-      *)          grp='$(NNG_CPPFLAGS)' ;;
+      '$(MBED)'*) grp='$(MBED_CPPFLAGS)'; xtra=' $(MBED_CFLAGS)' ;;
+      *)          grp='$(NNG_CPPFLAGS)';  xtra='' ;;
     esac
-    printf '%s: %s\n\t$(CC) %s $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c %s -o $@\n' \
-      "$obj" "$src" "$grp" "$src"
+    printf '%s: %s\n\t$(CC) %s $(ALL_CPPFLAGS) $(ALL_CFLAGS)%s -c %s -o $@\n' \
+      "$obj" "$src" "$grp" "$xtra" "$src"
   done
 }
 
@@ -95,6 +95,7 @@ MBED = mbedtls/library
 NNG = nng/src
 
 MBED_CPPFLAGS = -Imbedtls/include -Imbedtls/library
+MBED_CFLAGS = -Wno-conversion
 NNG_CPPFLAGS = -Inng/src -Inng/include @nng_defs@
 
 # Top-level package sources (built by R's own suffix rules)
@@ -144,6 +145,7 @@ write_windows_makevars() {
     printf 'MBED = mbedtls/library\n'
     printf 'NNG = nng/src\n\n'
     printf 'MBED_CPPFLAGS = -Imbedtls/include -Imbedtls/library\n'
+    printf 'MBED_CFLAGS =\n'
     printf 'NNG_CPPFLAGS = -Inng/src -Inng/include -Imbedtls/include %s %s%s\n\n' \
       "$NNG_COMMON_DEFS" "$WIN_PLATFORM_DEFS" "${extra_defs:+ $extra_defs}"
     printf 'P_OBJECTS = aio.o comms.o core.o dispatcher.o init.o ncurl.o net.o proto.o server.o sync.o thread.o tls.o utils.o\n'
