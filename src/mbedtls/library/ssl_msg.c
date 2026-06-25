@@ -1878,7 +1878,7 @@ static int ssl_flight_append(mbedtls_ssl_context *ssl)
 
     memcpy(msg->p, ssl->out_msg, ssl->out_msglen);
     msg->len = ssl->out_msglen;
-    msg->type = ssl->out_msgtype;
+    msg->type = (unsigned char) ssl->out_msgtype;
     msg->next = NULL;
 
     if (ssl->handshake->flight == NULL) {
@@ -2302,7 +2302,7 @@ int mbedtls_ssl_write_record(mbedtls_ssl_context *ssl, int force_flush)
 
             memcpy(&rec.ctr[0], ssl->out_ctr, sizeof(rec.ctr));
             mbedtls_ssl_write_version(rec.ver, ssl->conf->transport, tls_ver);
-            rec.type = ssl->out_msgtype;
+            rec.type = (uint8_t) ssl->out_msgtype;
 
 #if defined(MBEDTLS_SSL_DTLS_CONNECTION_ID)
 
@@ -5074,7 +5074,7 @@ void mbedtls_ssl_buffering_free(mbedtls_ssl_context *ssl)
     ssl_free_buffered_record(ssl);
 
     for (offset = 0; offset < MBEDTLS_SSL_MAX_BUFFERED_HS; offset++) {
-        ssl_buffering_free_slot(ssl, offset);
+        ssl_buffering_free_slot(ssl, (uint8_t) offset);
     }
 }
 
@@ -5104,7 +5104,7 @@ void mbedtls_ssl_write_version(unsigned char version[2], int transport,
 #if defined(MBEDTLS_SSL_PROTO_DTLS)
     if (transport == MBEDTLS_SSL_TRANSPORT_DATAGRAM) {
         tls_version_formatted =
-            ~(tls_version - (tls_version == 0x0302 ? 0x0202 : 0x0201));
+            (uint16_t) (uint16_t) (uint16_t) (uint16_t) ~(tls_version - (tls_version == 0x0302 ? 0x0202 : 0x0201));
     } else
 #else
     ((void) transport);
@@ -5122,7 +5122,7 @@ uint16_t mbedtls_ssl_read_version(const unsigned char version[2],
 #if defined(MBEDTLS_SSL_PROTO_DTLS)
     if (transport == MBEDTLS_SSL_TRANSPORT_DATAGRAM) {
         tls_version =
-            ~(tls_version - (tls_version == 0xfeff ? 0x0202 : 0x0201));
+            (uint16_t) (uint16_t) (uint16_t) (uint16_t) ~(tls_version - (tls_version == 0xfeff ? 0x0202 : 0x0201));
     }
 #else
     ((void) transport);

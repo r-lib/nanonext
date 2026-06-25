@@ -88,7 +88,7 @@ int mbedtls_ssl_conf_cid(mbedtls_ssl_config *conf,
         return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
     }
 
-    conf->ignore_unexpected_cid = ignore_other_cid;
+    conf->ignore_unexpected_cid = (uint8_t) ignore_other_cid;
     conf->cid_len = len;
     return 0;
 }
@@ -102,7 +102,7 @@ int mbedtls_ssl_set_cid(mbedtls_ssl_context *ssl,
         return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
     }
 
-    ssl->negotiate_cid = enable;
+    ssl->negotiate_cid = (uint8_t) enable;
     if (enable == MBEDTLS_SSL_CID_DISABLED) {
         MBEDTLS_SSL_DEBUG_MSG(3, ("Disable use of CID extension."));
         return 0;
@@ -1206,11 +1206,11 @@ static int ssl_handshake_init(mbedtls_ssl_context *ssl)
                 continue;
             }
 #if defined(MBEDTLS_KEY_EXCHANGE_ECDSA_CERT_REQ_ALLOWED_ENABLED)
-            *p = ((hash << 8) | MBEDTLS_SSL_SIG_ECDSA);
+            *p = (uint16_t) ((hash << 8) | MBEDTLS_SSL_SIG_ECDSA);
             p++;
 #endif
 #if defined(MBEDTLS_RSA_C)
-            *p = ((hash << 8) | MBEDTLS_SSL_SIG_RSA);
+            *p = (uint16_t) ((hash << 8) | MBEDTLS_SSL_SIG_RSA);
             p++;
 #endif
         }
@@ -1536,12 +1536,12 @@ int mbedtls_ssl_session_reset(mbedtls_ssl_context *ssl)
 
 void mbedtls_ssl_conf_endpoint(mbedtls_ssl_config *conf, int endpoint)
 {
-    conf->endpoint   = endpoint;
+    conf->endpoint   = (uint8_t) endpoint;
 }
 
 void mbedtls_ssl_conf_transport(mbedtls_ssl_config *conf, int transport)
 {
-    conf->transport = transport;
+    conf->transport = (uint8_t) transport;
 }
 
 #if defined(MBEDTLS_SSL_DTLS_ANTI_REPLAY)
@@ -1574,7 +1574,7 @@ void mbedtls_ssl_conf_handshake_timeout(mbedtls_ssl_config *conf,
 
 void mbedtls_ssl_conf_authmode(mbedtls_ssl_config *conf, int authmode)
 {
-    conf->authmode   = authmode;
+    conf->authmode   = (uint8_t) authmode;
 }
 
 #if defined(MBEDTLS_X509_CRT_PARSE_C)
@@ -1853,7 +1853,7 @@ void mbedtls_ssl_set_hs_dn_hints(mbedtls_ssl_context *ssl,
 void mbedtls_ssl_set_hs_authmode(mbedtls_ssl_context *ssl,
                                  int authmode)
 {
-    ssl->handshake->sni_authmode = authmode;
+    ssl->handshake->sni_authmode = (uint8_t) authmode;
 }
 #endif
 
@@ -2873,13 +2873,13 @@ int mbedtls_ssl_conf_max_frag_len(mbedtls_ssl_config *conf, unsigned char mfl_co
 
 void mbedtls_ssl_conf_legacy_renegotiation(mbedtls_ssl_config *conf, int allow_legacy)
 {
-    conf->allow_legacy_renegotiation = allow_legacy;
+    conf->allow_legacy_renegotiation = (uint8_t) allow_legacy;
 }
 
 #if defined(MBEDTLS_SSL_RENEGOTIATION)
 void mbedtls_ssl_conf_renegotiation(mbedtls_ssl_config *conf, int renegotiation)
 {
-    conf->disable_renegotiation = renegotiation;
+    conf->disable_renegotiation = (uint8_t) renegotiation;
 }
 
 void mbedtls_ssl_conf_renegotiation_enforced(mbedtls_ssl_config *conf, int max_records)

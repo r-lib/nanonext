@@ -145,7 +145,7 @@ static int parse_attribute_value_string(const char *s,
                 if (n == 0) {
                     return MBEDTLS_ERR_X509_INVALID_NAME;
                 }
-                *(d++) = n;
+                *(d++) = (unsigned char) n;
                 c++;
             } else if (c < end && strchr(" ,=+<>#;\"\\", *c)) {
                 *(d++) = *c;
@@ -196,7 +196,7 @@ static int parse_attribute_value_hex_der_encoded(const char *s,
         if (c < 0) {
             goto error;
         }
-        der[i] = c;
+        der[i] = (unsigned char) c;
     }
 
     *tag = der[0];
@@ -340,7 +340,7 @@ int mbedtls_x509_set_extension(mbedtls_asn1_named_data **head, const char *oid, 
         return MBEDTLS_ERR_X509_ALLOC_FAILED;
     }
 
-    cur->val.p[0] = critical;
+    cur->val.p[0] = (unsigned char) critical;
     memcpy(cur->val.p + 1, val, val_len);
 
     return 0;

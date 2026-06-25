@@ -196,7 +196,7 @@ int mbedtls_ccm_starts(mbedtls_ccm_context *ctx,
     ctx->q = 16 - 1 - (unsigned char) iv_len;
 
     memset(ctx->ctr, 0, 16);
-    ctx->ctr[0] = ctx->q - 1;
+    ctx->ctr[0] = (unsigned char) (ctx->q - 1);
     memcpy(ctx->ctr + 1, iv, iv_len);
     memset(ctx->ctr + 1 + iv_len, 0, ctx->q);
     ctx->ctr[15] = 1;

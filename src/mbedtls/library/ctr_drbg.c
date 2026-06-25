@@ -177,7 +177,7 @@ static int block_cipher_df(unsigned char *output,
     buf_len = MBEDTLS_CTR_DRBG_BLOCKSIZE + 8 + data_len + 1;
 
     for (i = 0; i < MBEDTLS_CTR_DRBG_KEYSIZE; i++) {
-        key[i] = i;
+        key[i] = (unsigned char) i;
     }
 
 #if defined(MBEDTLS_CTR_DRBG_USE_PSA_CRYPTO)

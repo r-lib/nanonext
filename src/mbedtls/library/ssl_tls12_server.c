@@ -3791,7 +3791,7 @@ int mbedtls_ssl_handshake_server_step(mbedtls_ssl_context *ssl)
 
 void mbedtls_ssl_conf_preference_order(mbedtls_ssl_config *conf, int order)
 {
-    conf->respect_cli_pref = order;
+    conf->respect_cli_pref = (uint8_t) order;
 }
 
 #endif

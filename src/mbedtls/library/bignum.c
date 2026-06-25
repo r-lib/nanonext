@@ -104,7 +104,7 @@ int mbedtls_mpi_safe_cond_swap(mbedtls_mpi *X,
 
     s = X->s;
     X->s = mbedtls_ct_mpi_sign_if(do_swap, Y->s, X->s);
-    Y->s = mbedtls_ct_mpi_sign_if(do_swap, s, Y->s);
+    Y->s = mbedtls_ct_mpi_sign_if(do_swap, (short) s, Y->s);
 
     mbedtls_mpi_core_cond_swap(X->p, Y->p, X->n, do_swap);
 
@@ -272,7 +272,7 @@ static inline mbedtls_mpi_uint mpi_sint_abs(mbedtls_mpi_sint z)
     return (mbedtls_mpi_uint) 0 - (mbedtls_mpi_uint) z;
 }
 
-#define TO_SIGN(x) ((mbedtls_mpi_sint) (((mbedtls_mpi_uint) x) >> (biL - 1)) * -2 + 1)
+#define TO_SIGN(x) ((short) ((mbedtls_mpi_sint) (((mbedtls_mpi_uint) x) >> (biL - 1)) * -2 + 1))
 
 int mbedtls_mpi_lset(mbedtls_mpi *X, mbedtls_mpi_sint z)
 {
@@ -909,15 +909,15 @@ static int add_sub_mpi(mbedtls_mpi *X,
         if (cmp >= 0) {
             MBEDTLS_MPI_CHK(mbedtls_mpi_sub_abs(X, A, B));
 
-            X->s = cmp == 0 ? 1 : s;
+            X->s = (short) (cmp == 0 ? 1 : s);
         } else {
             MBEDTLS_MPI_CHK(mbedtls_mpi_sub_abs(X, B, A));
 
-            X->s = -s;
+            X->s = (short) -s;
         }
     } else {
         MBEDTLS_MPI_CHK(mbedtls_mpi_add_abs(X, A, B));
-        X->s = s;
+        X->s = (short) s;
     }
 
 cleanup:

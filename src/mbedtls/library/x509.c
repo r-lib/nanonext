@@ -665,7 +665,7 @@ int mbedtls_x509_get_ext(unsigned char **p, const unsigned char *end,
 
 static char nibble_to_hex_digit(int i)
 {
-    return (i < 10) ? (i + '0') : (i - 10 + 'A');
+    return (char) ((i < 10) ? (i + '0') : (i - 10 + 'A'));
 }
 
 int mbedtls_x509_dn_gets(char *buf, size_t size, const mbedtls_x509_name *dn)
@@ -727,7 +727,7 @@ int mbedtls_x509_dn_gets(char *buf, size_t size, const mbedtls_x509_name *dn)
                 return MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
             }
             asn1_len_size = ret;
-            if ((ret = mbedtls_asn1_write_tag(&asn1_len_p, asn1_tag_len_buf, name->val.tag)) < 0) {
+            if ((ret = mbedtls_asn1_write_tag(&asn1_len_p, asn1_tag_len_buf, (unsigned char) name->val.tag)) < 0) {
                 return MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
             }
             asn1_tag_size = ret;
