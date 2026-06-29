@@ -117,8 +117,8 @@ install.packages("nanonext", repos = "https://r-lib.r-universe.dev")
 
 #### Linux / Mac / Solaris
 
-Uses a system ‘libnng’ \>= v1.11.0 and ‘libmbedtls’ \>= 2.5.0 if
-present, otherwise compiles the bundled sources (libnng v1.11.1-pre,
+Uses a system ‘libnng’ \>= v1.12.0 and ‘libmbedtls’ \>= 2.5.0 if
+present, otherwise compiles the bundled sources (libnng v1.12.0,
 libmbedtls v3.6.5) directly into the package - requiring only a C
 compiler.
 
