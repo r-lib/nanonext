@@ -5104,7 +5104,7 @@ void mbedtls_ssl_write_version(unsigned char version[2], int transport,
 #if defined(MBEDTLS_SSL_PROTO_DTLS)
     if (transport == MBEDTLS_SSL_TRANSPORT_DATAGRAM) {
         tls_version_formatted =
-            (uint16_t) (uint16_t) (uint16_t) (uint16_t) ~(tls_version - (tls_version == 0x0302 ? 0x0202 : 0x0201));
+            (uint16_t) ~(tls_version - (tls_version == 0x0302 ? 0x0202 : 0x0201));
     } else
 #else
     ((void) transport);
@@ -5122,7 +5122,7 @@ uint16_t mbedtls_ssl_read_version(const unsigned char version[2],
 #if defined(MBEDTLS_SSL_PROTO_DTLS)
     if (transport == MBEDTLS_SSL_TRANSPORT_DATAGRAM) {
         tls_version =
-            (uint16_t) (uint16_t) (uint16_t) (uint16_t) ~(tls_version - (tls_version == 0xfeff ? 0x0202 : 0x0201));
+            (uint16_t) ~(tls_version - (tls_version == 0xfeff ? 0x0202 : 0x0201));
     }
 #else
     ((void) transport);

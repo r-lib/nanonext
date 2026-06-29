@@ -24,6 +24,11 @@
 #      implicit narrowings Mbed TLS performs (assignments to small-int struct
 #      members, etc.), so the bundled sources compile cleanly under strict
 #      diagnostics (-Wconversion). The casts are behaviour-neutral.
+#   3. Undeprecate in-use API -- drop the MBEDTLS_DEPRECATED_REMOVED guard and the
+#      MBEDTLS_DEPRECATED attribute from mbedtls_ssl_conf_{min,max}_version in
+#      ssl.h. NNG's mbedtls TLS backend still calls both, so leaving them
+#      deprecated emits -Wdeprecated-declarations warnings when NNG is built
+#      against the bundled headers.
 
 set -e
 
@@ -37,16 +42,21 @@ if [ ! -f "$CONFIG" ]; then
   exit 1
 fi
 
-# Apply an idempotent perl program (whole-file slurp mode) to a library source
-# file given relative to $LIB, reporting whether it changed anything.
-patch_perl() {
-  rel=$1; prog=$2
-  f="$LIB/$rel"
-  if [ ! -f "$f" ]; then echo "  skip (absent): $rel"; return 0; fi
+# Apply an idempotent perl program (whole-file slurp mode) to FILE, reporting
+# under LABEL whether it changed anything.
+patch_perl_file() {
+  f=$1; prog=$2; label=$3
+  if [ ! -f "$f" ]; then echo "  skip (absent): $label"; return 0; fi
   cp "$f" "$f.prepatch"
   perl -0777 -i -pe "$prog" "$f"
-  if cmp -s "$f" "$f.prepatch"; then echo "  unchanged: $rel"; else echo "  patched:   $rel"; fi
+  if cmp -s "$f" "$f.prepatch"; then echo "  unchanged: $label"; else echo "  patched:   $label"; fi
   rm -f "$f.prepatch"
+}
+
+# Same, for a library source file given relative to $LIB.
+patch_perl() {
+  rel=$1; prog=$2
+  patch_perl_file "$LIB/$rel" "$prog" "$rel"
 }
 
 # ---------------------------------------------------------------------------
@@ -114,8 +124,8 @@ patch_perl ssl_msg.c '
   s/\Qmsg->type = ssl->out_msgtype;\E/msg->type = (unsigned char) ssl->out_msgtype;/;
   s/\Qrec.type = ssl->out_msgtype;\E/rec.type = (uint8_t) ssl->out_msgtype;/;
   s/\Qssl_buffering_free_slot(ssl, offset);\E/ssl_buffering_free_slot(ssl, (uint8_t) offset);/;
-  s/\Q~(tls_version - (tls_version == 0x0302 ? 0x0202 : 0x0201));\E/(uint16_t) ~(tls_version - (tls_version == 0x0302 ? 0x0202 : 0x0201));/;
-  s/\Q~(tls_version - (tls_version == 0xfeff ? 0x0202 : 0x0201));\E/(uint16_t) ~(tls_version - (tls_version == 0xfeff ? 0x0202 : 0x0201));/;
+  s/(tls_version_formatted =\s*)(?:\(uint16_t\) )*(~\(tls_version - \(tls_version == 0x0302 \? 0x0202 : 0x0201\)\);)/${1}(uint16_t) $2/;
+  s/(tls_version =\s*)(?:\(uint16_t\) )*(~\(tls_version - \(tls_version == 0xfeff \? 0x0202 : 0x0201\)\);)/${1}(uint16_t) $2/;
 '
 patch_perl ssl_tls.c '
   s/\Qconf->ignore_unexpected_cid = ignore_other_cid;\E/conf->ignore_unexpected_cid = (uint8_t) ignore_other_cid;/;
@@ -144,5 +154,11 @@ patch_perl x509_create.c '
 patch_perl x509write.c '
   s/\QMBEDTLS_ASN1_CONTEXT_SPECIFIC | cur->node.type));\E/(unsigned char) (MBEDTLS_ASN1_CONTEXT_SPECIFIC | cur->node.type)));/;
 '
+
+# ---------------------------------------------------------------------------
+echo "3. Undeprecate in-use API (mbedtls_ssl_conf_{min,max}_version) ..."
+patch_perl_file "$MBEDTLS_DIR/include/mbedtls/ssl.h" '
+  s/#if !defined\(MBEDTLS_DEPRECATED_REMOVED\)\n\nvoid MBEDTLS_DEPRECATED (mbedtls_ssl_conf_m(?:ax|in)_version\(mbedtls_ssl_config \*conf, int major,\s+int minor\);)\n#endif\n/void $1\n/g;
+' "include/mbedtls/ssl.h"
 
 echo "=== patch_mbedtls.sh complete ==="
