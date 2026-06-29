@@ -27,7 +27,7 @@ Rscript dev/vignettes/precompile.R
 
 ### Compilation
 
-The `configure` script detects a system `libmbedtls` (>= 2.5.0) and `libnng` (>= 1.11.0); if not found, the bundled sources are compiled **directly into `nanonext.so`** via explicit per-object rules in `src/Makevars` (no cmake, no static archives, no install step). To force compilation of the bundled libraries: `Sys.setenv(NANONEXT_LIBS = 1)`.
+The `configure` script detects a system `libmbedtls` (>= 3.0.0) and `libnng` (>= 1.12.0); if not found, the bundled sources are compiled **directly into `nanonext.so`** via explicit per-object rules in `src/Makevars` (no cmake, no static archives, no install step). To force compilation of the bundled libraries: `Sys.setenv(NANONEXT_LIBS = 1)`.
 
 `configure` ports NNG's POSIX feature probes to portable shell (setting the `NNG_HAVE_*` macros and selecting the poller / random-source variant), then substitutes the include flags, defines, link flags and bundled object lists into `src/Makevars.in`. Windows uses fully static `src/Makevars.win` / `src/Makevars.ucrt` (no configure step). All three Makevars are **generated artifacts** ("do not edit by hand") produced by `tools/generate_makevars.sh` from the `tools/*.list` source lists — the single source of truth. See `## Build System` below.
 
@@ -79,7 +79,7 @@ Key files:
 ### External Dependencies
 
 Bundled in source:
-- `libnng` v1.11.0 (messaging library) - in `src/nng/`
+- `libnng` v1.12.0 (messaging library) - in `src/nng/`
 - `libmbedtls` v3.6.5 (TLS implementation) - in `src/mbedtls/`
 
 ### Thread-to-R Callback Pattern

@@ -11,14 +11,13 @@
 # re-vendoring a new upstream tag is just: stage upstream -> run this script.
 #
 # Sections:
-#   1. Version bump        -- nanonext ships a "-pre" snapshot of upstream.
-#   2. Compiler-warning fixes -- surgical narrowing / sign-conversion casts and
+#   1. Compiler-warning fixes -- surgical narrowing / sign-conversion casts and
 #      a defensive NULL guard nanonext carries so the bundled sources compile
 #      cleanly under strict diagnostics (-Wconversion / -Wsign-conversion).
-#   3. Diagnostic-pragma removal -- CRAN does not permit compiler
+#   2. Diagnostic-pragma removal -- CRAN does not permit compiler
 #      diagnostic-suppression pragmas (#pragma GCC/clang diagnostic) in compiled
 #      code, so strip them and replay nanonext's portable equivalent.
-#   4. Diagnostics neutering -- route NNG's debug abort/printf/println (the
+#   3. Diagnostics neutering -- route NNG's debug abort/printf/println (the
 #      abort/vprintf/stderr symbols R's tools:::check_compiled_code() flags) to
 #      __builtin_trap() / no-ops. These fire only on internal NNG panics, which
 #      run on background threads where the R API is off-limits, so this is a
@@ -28,7 +27,6 @@ set -e
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 NNG_SRC="${1:-$SCRIPT_DIR/../src/nng/src}"
-NNG_INC="$NNG_SRC/../include"
 
 if [ ! -d "$NNG_SRC" ]; then
   echo "Error: NNG source dir not found: $NNG_SRC" >&2
@@ -48,21 +46,7 @@ patch_perl() {
 }
 
 # ---------------------------------------------------------------------------
-echo "1. Version bump (NNG release suffix -> -pre) ..."
-# nanonext ships a pre-release snapshot a notch above the vendored upstream tag.
-nngh="$NNG_INC/nng/nng.h"
-if [ -f "$nngh" ]; then
-  perl -0777 -i -pe '
-    s/#define NNG_PATCH_VERSION 0\b/#define NNG_PATCH_VERSION 1/;
-    s/#define NNG_RELEASE_SUFFIX ""/#define NNG_RELEASE_SUFFIX "-pre"/;
-  ' "$nngh"
-  echo "  $(grep -E "NNG_PATCH_VERSION|NNG_RELEASE_SUFFIX" "$nngh" | tr "\n" " ")"
-else
-  echo "  skip (absent): include/nng/nng.h"
-fi
-
-# ---------------------------------------------------------------------------
-echo "2. Compiler-warning fixes (narrowing / sign-conversion casts) ..."
+echo "1. Compiler-warning fixes (narrowing / sign-conversion casts) ..."
 
 # POSIX I/O return values (ssize_t) narrowed to int.
 patch_perl platform/posix/posix_udp.c '
@@ -153,8 +137,33 @@ patch_perl platform/windows/win_udp.c '
   s/\bIPV6_MREQ\s+mreq;/struct ipv6_mreq mreq;/;
 '
 
+# mbedtls TLS backend: use the non-deprecated mbedtls_ssl_conf_{min,max}_tls_version
+# API with the mbedtls_ssl_protocol_version enum (MBEDTLS_SSL_VERSION_TLS1_2 / _3),
+# replacing the deprecated major/minor mbedtls_ssl_conf_{min,max}_version forms
+# (-Wdeprecated-declarations). nanonext requires Mbed TLS >= 3 (see configure), where
+# TLS 1.0/1.1 are unsupported and the legacy MBEDTLS_SSL_{MAJOR,MINOR}_VERSION_* macros
+# are gated behind MBEDTLS_DEPRECATED_REMOVED -- so the version handling is rewritten to
+# use the protocol-version enum throughout (config struct fields included), dropping the
+# now-dead 1.0/1.1 switch cases.
+patch_perl supplemental/tls/mbedtls/tls.c '
+  s/\tint +min_ver;\n\tint +max_ver;/\tmbedtls_ssl_protocol_version min_ver;\n\tmbedtls_ssl_protocol_version max_ver;/;
+  s/cfg->min_ver = MBEDTLS_SSL_MINOR_VERSION_3;\n#ifdef MBEDTLS_SSL_PROTO_TLS1_3\n\tcfg->max_ver = MBEDTLS_SSL_MINOR_VERSION_4;\n#else\n\tcfg->max_ver = MBEDTLS_SSL_MINOR_VERSION_3;\n#endif\n\n\tmbedtls_ssl_conf_min_version\(\n\t    &cfg->cfg_ctx, MBEDTLS_SSL_MAJOR_VERSION_3, cfg->min_ver\);\n\tmbedtls_ssl_conf_max_version\(\n\t    &cfg->cfg_ctx, MBEDTLS_SSL_MAJOR_VERSION_3, cfg->max_ver\);/cfg->min_ver = MBEDTLS_SSL_VERSION_TLS1_2;\n#ifdef MBEDTLS_SSL_PROTO_TLS1_3\n\tcfg->max_ver = MBEDTLS_SSL_VERSION_TLS1_3;\n#else\n\tcfg->max_ver = MBEDTLS_SSL_VERSION_TLS1_2;\n#endif\n\n\tmbedtls_ssl_conf_min_tls_version(&cfg->cfg_ctx, cfg->min_ver);\n\tmbedtls_ssl_conf_max_tls_version(&cfg->cfg_ctx, cfg->max_ver);/;
+  s/\tint v1, v2;\n\tint maj = MBEDTLS_SSL_MAJOR_VERSION_3;\n/\tmbedtls_ssl_protocol_version v1, v2;\n/;
+  s/switch \(min_ver\) \{\n#ifdef MBEDTLS_SSL_MINOR_VERSION_1\n\tcase NNG_TLS_1_0:\n\t\tv1 = MBEDTLS_SSL_MINOR_VERSION_1;\n\t\tbreak;\n#endif\n#ifdef MBEDTLS_SSL_MINOR_VERSION_2\n\tcase NNG_TLS_1_1:\n\t\tv1 = MBEDTLS_SSL_MINOR_VERSION_2;\n\t\tbreak;\n#endif\n#ifdef MBEDTLS_SSL_MINOR_VERSION_3\n\tcase NNG_TLS_1_2:\n\t\tv1 = MBEDTLS_SSL_MINOR_VERSION_3;\n\t\tbreak;\n#endif\n#ifdef MBEDTLS_SSL_PROTO_TLS1_3\n\tcase NNG_TLS_1_3:\n\t\tv1 = MBEDTLS_SSL_MINOR_VERSION_4;\n\t\tbreak;\n#endif\n/switch (min_ver) {\n\tcase NNG_TLS_1_2:\n\t\tv1 = MBEDTLS_SSL_VERSION_TLS1_2;\n\t\tbreak;\n#ifdef MBEDTLS_SSL_PROTO_TLS1_3\n\tcase NNG_TLS_1_3:\n\t\tv1 = MBEDTLS_SSL_VERSION_TLS1_3;\n\t\tbreak;\n#endif\n/;
+  s/switch \(max_ver\) \{\n#ifdef MBEDTLS_SSL_MINOR_VERSION_1\n\tcase NNG_TLS_1_0:\n\t\tv2 = MBEDTLS_SSL_MINOR_VERSION_1;\n\t\tbreak;\n#endif\n#ifdef MBEDTLS_SSL_MINOR_VERSION_2\n\tcase NNG_TLS_1_1:\n\t\tv2 = MBEDTLS_SSL_MINOR_VERSION_2;\n\t\tbreak;\n#endif\n#ifdef MBEDTLS_SSL_MINOR_VERSION_3\n\tcase NNG_TLS_1_2:\n\t\tv2 = MBEDTLS_SSL_MINOR_VERSION_3;\n\t\tbreak;\n#endif\n\tcase NNG_TLS_1_3:\n#ifdef MBEDTLS_SSL_PROTO_TLS1_3\n\t\tv2 = MBEDTLS_SSL_MINOR_VERSION_4;\n#else\n\t\tv2 = MBEDTLS_SSL_MINOR_VERSION_3;\n#endif\n\t\tbreak;\n/switch (max_ver) {\n\tcase NNG_TLS_1_2:\n\t\tv2 = MBEDTLS_SSL_VERSION_TLS1_2;\n\t\tbreak;\n\tcase NNG_TLS_1_3:\n#ifdef MBEDTLS_SSL_PROTO_TLS1_3\n\t\tv2 = MBEDTLS_SSL_VERSION_TLS1_3;\n#else\n\t\tv2 = MBEDTLS_SSL_VERSION_TLS1_2;\n#endif\n\t\tbreak;\n/;
+  s/mbedtls_ssl_conf_min_version\(&cfg->cfg_ctx, maj, cfg->min_ver\);\n\tmbedtls_ssl_conf_max_version\(&cfg->cfg_ctx, maj, cfg->max_ver\);/mbedtls_ssl_conf_min_tls_version(&cfg->cfg_ctx, cfg->min_ver);\n\tmbedtls_ssl_conf_max_tls_version(&cfg->cfg_ctx, cfg->max_ver);/;
+'
+
+# mbedtls_pk_parse_key gained f_rng/p_rng parameters in Mbed TLS 3 and dropped them
+# again in Mbed TLS 4. Upstream guards the 2.x form with MBEDTLS_VERSION_MAJOR < 3;
+# nanonext requires >= 3, so retarget the guard to < 4 -- the 3.x (with-RNG) form for
+# 3.x, the parameterless form for 4.x -- keeping the bundled backend buildable on both.
+patch_perl supplemental/tls/mbedtls/tls.c '
+  s/#if MBEDTLS_VERSION_MAJOR < 3\n\trv = mbedtls_pk_parse_key\(&p->key, pem, len, \(const uint8_t \*\) pass,\n\t    pass != NULL \? strlen\(pass\) : 0\);\n#else\n\trv = mbedtls_pk_parse_key\(&p->key, pem, len, \(const uint8_t \*\) pass,\n\t    pass != NULL \? strlen\(pass\) : 0, tls_random, NULL\);\n#endif/#if MBEDTLS_VERSION_MAJOR < 4\n\trv = mbedtls_pk_parse_key(&p->key, pem, len, (const uint8_t *) pass,\n\t    pass != NULL ? strlen(pass) : 0, tls_random, NULL);\n#else\n\trv = mbedtls_pk_parse_key(&p->key, pem, len, (const uint8_t *) pass,\n\t    pass != NULL ? strlen(pass) : 0);\n#endif/;
+'
+
 # ---------------------------------------------------------------------------
-echo "3. Removing compiler diagnostic pragmas (not permitted on CRAN) ..."
+echo "2. Removing compiler diagnostic pragmas (not permitted on CRAN) ..."
 # Strip every #pragma GCC/clang diagnostic line, then replay nanonext's portable
 # substitutes for the warnings those pragmas had suppressed.
 pragma_files=$(grep -rlE '#[[:space:]]*pragma[[:space:]]+(GCC|clang)[[:space:]]+diagnostic' "$NNG_SRC" 2>/dev/null || true)
@@ -173,7 +182,7 @@ patch_perl platform/posix/posix_pipe.c '
 '
 
 # ---------------------------------------------------------------------------
-echo "4. Neutering NNG debug diagnostics (abort / printf / println) ..."
+echo "3. Neutering NNG debug diagnostics (abort / printf / println) ..."
 neuter_debug() {
   f=$1
   [ -f "$f" ] || { echo "  skip (absent): $f"; return 0; }
