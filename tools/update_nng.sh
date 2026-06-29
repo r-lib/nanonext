@@ -28,8 +28,8 @@ set -e
 # Upstream repo. Override with NNG_REPO=/path/to/local/clone for an offline run.
 NNG_REPO="${NNG_REPO:-https://github.com/nanomsg/nng.git}"
 # Pinned upstream ref -- update together with the vendored tree. Any git ref
-# (tag, branch, or commit) is accepted. This is NNG's 'stable' branch 6 commits
-# past the v1.11.0 tag, which carries the sendmsg/readv EINVAL fix (#2244).
+# (tag, branch, or commit) is accepted. This is NNG's 'stable' branch at the
+# v1.12.0 tag.
 NNG_DEFAULT_VERSION="45f8116f2dd1b0438ab77344a75628d77656c61a"
 
 PKG_ROOT=$(cd "$(dirname "$0")/.." && pwd)
