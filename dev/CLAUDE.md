@@ -32,8 +32,8 @@ Rscript dev/vignettes/precompile.R
 
 ### Compilation
 
-The `configure` script detects a system `libmbedtls` (\>= 2.5.0) and
-`libnng` (\>= 1.11.0); if not found, the bundled sources are compiled
+The `configure` script detects a system `libmbedtls` (\>= 3.0.0) and
+`libnng` (\>= 1.12.0); if not found, the bundled sources are compiled
 **directly into `nanonext.so`** via explicit per-object rules in
 `src/Makevars` (no cmake, no static archives, no install step). To force
 compilation of the bundled libraries: `Sys.setenv(NANONEXT_LIBS = 1)`.
@@ -121,7 +121,7 @@ definitions
 
 ### External Dependencies
 
-Bundled in source: - `libnng` v1.11.0 (messaging library) - in
+Bundled in source: - `libnng` v1.12.0 (messaging library) - in
 `src/nng/` - `libmbedtls` v3.6.5 (TLS implementation) - in
 `src/mbedtls/`
 

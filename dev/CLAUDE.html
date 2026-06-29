@@ -71,7 +71,7 @@
 <span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a><span class="ex">Rscript</span> dev/vignettes/precompile.R</span></code></pre></div>
 <div class="section level3">
 <h3 id="compilation">Compilation<a class="anchor" aria-label="anchor" href="#compilation"></a></h3>
-<p>The <code>configure</code> script detects a system <code>libmbedtls</code> (&gt;= 2.5.0) and <code>libnng</code> (&gt;= 1.11.0); if not found, the bundled sources are compiled <strong>directly into <code>nanonext.so</code></strong> via explicit per-object rules in <code>src/Makevars</code> (no cmake, no static archives, no install step). To force compilation of the bundled libraries: <code>Sys.setenv(NANONEXT_LIBS = 1)</code>.</p>
+<p>The <code>configure</code> script detects a system <code>libmbedtls</code> (&gt;= 3.0.0) and <code>libnng</code> (&gt;= 1.12.0); if not found, the bundled sources are compiled <strong>directly into <code>nanonext.so</code></strong> via explicit per-object rules in <code>src/Makevars</code> (no cmake, no static archives, no install step). To force compilation of the bundled libraries: <code>Sys.setenv(NANONEXT_LIBS = 1)</code>.</p>
 <p><code>configure</code> ports NNG’s POSIX feature probes to portable shell (setting the <code>NNG_HAVE_*</code> macros and selecting the poller / random-source variant), then substitutes the include flags, defines, link flags and bundled object lists into <code>src/Makevars.in</code>. Windows uses fully static <code>src/Makevars.win</code> / <code>src/Makevars.ucrt</code> (no configure step). All three Makevars are <strong>generated artifacts</strong> (“do not edit by hand”) produced by <code>tools/generate_makevars.sh</code> from the <code>tools/*.list</code> source lists — the single source of truth. See <code>## Build System</code> below.</p>
 </div>
 <div class="section level3">
@@ -125,7 +125,7 @@
 </ul></div>
 <div class="section level3">
 <h3 id="external-dependencies">External Dependencies<a class="anchor" aria-label="anchor" href="#external-dependencies"></a></h3>
-<p>Bundled in source: - <code>libnng</code> v1.11.0 (messaging library) - in <code>src/nng/</code> - <code>libmbedtls</code> v3.6.5 (TLS implementation) - in <code>src/mbedtls/</code></p>
+<p>Bundled in source: - <code>libnng</code> v1.12.0 (messaging library) - in <code>src/nng/</code> - <code>libmbedtls</code> v3.6.5 (TLS implementation) - in <code>src/mbedtls/</code></p>
 </div>
 <div class="section level3">
 <h3 id="thread-to-r-callback-pattern">Thread-to-R Callback Pattern<a class="anchor" aria-label="anchor" href="#thread-to-r-callback-pattern"></a></h3>

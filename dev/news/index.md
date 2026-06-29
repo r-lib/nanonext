@@ -8,9 +8,10 @@
   ‘libnng’, regression in 1.9.0.
 - Fixes a ‘Resource busy’ error triggered by re-using a ‘tlsConfig’
   object for more than one connection.
-- Updates the bundled NNG version to 1.12.0 and pins this as the minimum
-  required version.
-- Updates the bundled Mbed TLS sources to remove unused modules.
+- Updates the bundled NNG version to 1.12.0, and the bundled Mbed TLS
+  sources to remove unused modules.
+- Increases the minimum supported system `libnng` version to \>= 1.12.0,
+  and ‘libmbedtls’ version to \>= 3.0.
 - Removes the build-time dependency on ‘cmake’. Compiling the bundled
   NNG and Mbed TLS sources now only require a C compiler.
 
