@@ -4,9 +4,9 @@
 
 * Fixes potential message corruption when built against a system 'libnng', regression in 1.9.0.
 * Fixes a 'Resource busy' error triggered by re-using a 'tlsConfig' object for more than one connection.
+* Updates the bundled NNG version to 1.12.0 and pins this as the minimum required version.
+* Updates the bundled Mbed TLS sources to remove unused modules.
 * Removes the build-time dependency on 'cmake'. Compiling the bundled NNG and Mbed TLS sources now only require a C compiler.
-* Trims the bundled NNG and mbedTLS sources to remove unused modules.
-* Falls back to a non-functional stub build on platforms that cannot compile the bundled NNG, keeping nanonext and its dependents installable everywhere.
 
 # nanonext 1.9.1
 
