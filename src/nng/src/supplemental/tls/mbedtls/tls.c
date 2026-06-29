@@ -82,8 +82,8 @@ struct nng_tls_engine_config {
 	char              *server_name;
 	mbedtls_x509_crt   ca_certs;
 	mbedtls_x509_crl   crl;
-	int                min_ver;
-	int                max_ver;
+	mbedtls_ssl_protocol_version min_ver;
+	mbedtls_ssl_protocol_version max_ver;
 	nng_tls_mode       mode;
 	nni_list           pairs;
 	nni_list           psks;
@@ -447,17 +447,15 @@ config_init(nng_tls_engine_config *cfg, enum nng_tls_mode mode)
 
 	mbedtls_ssl_conf_authmode(&cfg->cfg_ctx, auth_mode);
 
-	cfg->min_ver = MBEDTLS_SSL_MINOR_VERSION_3;
+	cfg->min_ver = MBEDTLS_SSL_VERSION_TLS1_2;
 #ifdef MBEDTLS_SSL_PROTO_TLS1_3
-	cfg->max_ver = MBEDTLS_SSL_MINOR_VERSION_4;
+	cfg->max_ver = MBEDTLS_SSL_VERSION_TLS1_3;
 #else
-	cfg->max_ver = MBEDTLS_SSL_MINOR_VERSION_3;
+	cfg->max_ver = MBEDTLS_SSL_VERSION_TLS1_2;
 #endif
 
-	mbedtls_ssl_conf_min_version(
-	    &cfg->cfg_ctx, MBEDTLS_SSL_MAJOR_VERSION_3, cfg->min_ver);
-	mbedtls_ssl_conf_max_version(
-	    &cfg->cfg_ctx, MBEDTLS_SSL_MAJOR_VERSION_3, cfg->max_ver);
+	mbedtls_ssl_conf_min_tls_version(&cfg->cfg_ctx, cfg->min_ver);
+	mbedtls_ssl_conf_max_tls_version(&cfg->cfg_ctx, cfg->max_ver);
 
 	mbedtls_ssl_conf_rng(&cfg->cfg_ctx, tls_random, cfg);
 	mbedtls_ssl_conf_dbg(&cfg->cfg_ctx, tls_dbg, cfg);
@@ -617,12 +615,12 @@ config_own_cert(nng_tls_engine_config *cfg, const char *cert, const char *key,
 
 	pem = (const uint8_t *) key;
 	len = strlen(key) + 1;
-#if MBEDTLS_VERSION_MAJOR < 3
-	rv = mbedtls_pk_parse_key(&p->key, pem, len, (const uint8_t *) pass,
-	    pass != NULL ? strlen(pass) : 0);
-#else
+#if MBEDTLS_VERSION_MAJOR < 4
 	rv = mbedtls_pk_parse_key(&p->key, pem, len, (const uint8_t *) pass,
 	    pass != NULL ? strlen(pass) : 0, tls_random, NULL);
+#else
+	rv = mbedtls_pk_parse_key(&p->key, pem, len, (const uint8_t *) pass,
+	    pass != NULL ? strlen(pass) : 0);
 #endif
 	if (rv != 0) {
 		tls_log_err("NNG-TLS-KEY", "Failure parsing private key", rv);
@@ -652,8 +650,7 @@ static int
 config_version(nng_tls_engine_config *cfg, nng_tls_version min_ver,
     nng_tls_version max_ver)
 {
-	int v1, v2;
-	int maj = MBEDTLS_SSL_MAJOR_VERSION_3;
+	mbedtls_ssl_protocol_version v1, v2;
 
 	if (min_ver > max_ver) {
 		nng_log_err("TLS-CFG-VER",
@@ -661,24 +658,12 @@ config_version(nng_tls_engine_config *cfg, nng_tls_version min_ver,
 		return (NNG_ENOTSUP);
 	}
 	switch (min_ver) {
-#ifdef MBEDTLS_SSL_MINOR_VERSION_1
-	case NNG_TLS_1_0:
-		v1 = MBEDTLS_SSL_MINOR_VERSION_1;
-		break;
-#endif
-#ifdef MBEDTLS_SSL_MINOR_VERSION_2
-	case NNG_TLS_1_1:
-		v1 = MBEDTLS_SSL_MINOR_VERSION_2;
-		break;
-#endif
-#ifdef MBEDTLS_SSL_MINOR_VERSION_3
 	case NNG_TLS_1_2:
-		v1 = MBEDTLS_SSL_MINOR_VERSION_3;
+		v1 = MBEDTLS_SSL_VERSION_TLS1_2;
 		break;
-#endif
 #ifdef MBEDTLS_SSL_PROTO_TLS1_3
 	case NNG_TLS_1_3:
-		v1 = MBEDTLS_SSL_MINOR_VERSION_4;
+		v1 = MBEDTLS_SSL_VERSION_TLS1_3;
 		break;
 #endif
 	default:
@@ -688,26 +673,14 @@ config_version(nng_tls_engine_config *cfg, nng_tls_version min_ver,
 	}
 
 	switch (max_ver) {
-#ifdef MBEDTLS_SSL_MINOR_VERSION_1
-	case NNG_TLS_1_0:
-		v2 = MBEDTLS_SSL_MINOR_VERSION_1;
-		break;
-#endif
-#ifdef MBEDTLS_SSL_MINOR_VERSION_2
-	case NNG_TLS_1_1:
-		v2 = MBEDTLS_SSL_MINOR_VERSION_2;
-		break;
-#endif
-#ifdef MBEDTLS_SSL_MINOR_VERSION_3
 	case NNG_TLS_1_2:
-		v2 = MBEDTLS_SSL_MINOR_VERSION_3;
+		v2 = MBEDTLS_SSL_VERSION_TLS1_2;
 		break;
-#endif
 	case NNG_TLS_1_3:
 #ifdef MBEDTLS_SSL_PROTO_TLS1_3
-		v2 = MBEDTLS_SSL_MINOR_VERSION_4;
+		v2 = MBEDTLS_SSL_VERSION_TLS1_3;
 #else
-		v2 = MBEDTLS_SSL_MINOR_VERSION_3;
+		v2 = MBEDTLS_SSL_VERSION_TLS1_2;
 #endif
 		break;
 	default:
@@ -718,8 +691,8 @@ config_version(nng_tls_engine_config *cfg, nng_tls_version min_ver,
 
 	cfg->min_ver = v1;
 	cfg->max_ver = v2;
-	mbedtls_ssl_conf_min_version(&cfg->cfg_ctx, maj, cfg->min_ver);
-	mbedtls_ssl_conf_max_version(&cfg->cfg_ctx, maj, cfg->max_ver);
+	mbedtls_ssl_conf_min_tls_version(&cfg->cfg_ctx, cfg->min_ver);
+	mbedtls_ssl_conf_max_tls_version(&cfg->cfg_ctx, cfg->max_ver);
 	return (0);
 }
 

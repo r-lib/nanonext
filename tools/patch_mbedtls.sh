@@ -24,11 +24,6 @@
 #      implicit narrowings Mbed TLS performs (assignments to small-int struct
 #      members, etc.), so the bundled sources compile cleanly under strict
 #      diagnostics (-Wconversion). The casts are behaviour-neutral.
-#   3. Undeprecate in-use API -- drop the MBEDTLS_DEPRECATED_REMOVED guard and the
-#      MBEDTLS_DEPRECATED attribute from mbedtls_ssl_conf_{min,max}_version in
-#      ssl.h. NNG's mbedtls TLS backend still calls both, so leaving them
-#      deprecated emits -Wdeprecated-declarations warnings when NNG is built
-#      against the bundled headers.
 
 set -e
 
@@ -154,11 +149,5 @@ patch_perl x509_create.c '
 patch_perl x509write.c '
   s/\QMBEDTLS_ASN1_CONTEXT_SPECIFIC | cur->node.type));\E/(unsigned char) (MBEDTLS_ASN1_CONTEXT_SPECIFIC | cur->node.type)));/;
 '
-
-# ---------------------------------------------------------------------------
-echo "3. Undeprecate in-use API (mbedtls_ssl_conf_{min,max}_version) ..."
-patch_perl_file "$MBEDTLS_DIR/include/mbedtls/ssl.h" '
-  s/#if !defined\(MBEDTLS_DEPRECATED_REMOVED\)\n\nvoid MBEDTLS_DEPRECATED (mbedtls_ssl_conf_m(?:ax|in)_version\(mbedtls_ssl_config \*conf, int major,\s+int minor\);)\n#endif\n/void $1\n/g;
-' "include/mbedtls/ssl.h"
 
 echo "=== patch_mbedtls.sh complete ==="

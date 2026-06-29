@@ -72,9 +72,6 @@ typedef struct nano_handle_s {
 
 #ifdef NANONEXT_TLS
 #include <mbedtls/version.h>
-#if MBEDTLS_VERSION_MAJOR < 3
-#include <mbedtls/config.h>
-#endif
 #include <mbedtls/platform.h>
 #include <mbedtls/pk.h>
 #include <mbedtls/rsa.h>

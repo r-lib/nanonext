@@ -185,7 +185,7 @@ SEXP rnng_write_cert(SEXP cn, SEXP valid) {
 #else
       (xc = mbedtls_mpi_read_string(&serial, 10, serialvalue)) ||
 #endif
-#if MBEDTLS_VERSION_MAJOR >= 3
+#if MBEDTLS_VERSION_MAJOR < 4
       (xc = mbedtls_pk_parse_key(&loaded_issuer_key, key_buf, klen + 1, NULL, 0, mbedtls_ctr_drbg_random, &ctr_drbg)))
 #else
       (xc = mbedtls_pk_parse_key(&loaded_issuer_key, key_buf, klen + 1, NULL, 0)))
@@ -234,7 +234,7 @@ SEXP rnng_write_cert(SEXP cn, SEXP valid) {
   mbedtls_x509_crt_free(&issuer_crt);
   mbedtls_x509write_crt_free(&crt);
   mbedtls_pk_free(&loaded_issuer_key);
-#if MBEDTLS_VERSION_MAJOR == 3 && MBEDTLS_VERSION_MINOR < 4 || MBEDTLS_VERSION_MAJOR < 3
+#if MBEDTLS_VERSION_MAJOR == 3 && MBEDTLS_VERSION_MINOR < 4
   mbedtls_mpi_free(&serial);
 #endif
   mbedtls_pk_free(&key);

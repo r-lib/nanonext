@@ -51,5 +51,5 @@ Config/roxygen2/markdown: TRUE
 Config/roxygen2/version: 8.0.0
 Config/usethis/last-upkeep: 2025-04-23
 Encoding: UTF-8
-SystemRequirements: 'libnng' >= 1.12 and 'libmbedtls' >= 2.5 (optional,
+SystemRequirements: 'libnng' >= 1.12 and 'libmbedtls' >= 3.0 (optional,
     bundled sources compiled otherwise)
