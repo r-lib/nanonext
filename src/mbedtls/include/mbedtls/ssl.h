@@ -1681,11 +1681,8 @@ void mbedtls_ssl_get_dtls_srtp_negotiation_result(const mbedtls_ssl_context *ssl
                                                   mbedtls_dtls_srtp_info *dtls_srtp_info);
 #endif
 
-#if !defined(MBEDTLS_DEPRECATED_REMOVED)
-
-void MBEDTLS_DEPRECATED mbedtls_ssl_conf_max_version(mbedtls_ssl_config *conf, int major,
+void mbedtls_ssl_conf_max_version(mbedtls_ssl_config *conf, int major,
                                                      int minor);
-#endif
 
 static inline void mbedtls_ssl_conf_max_tls_version(mbedtls_ssl_config *conf,
                                                     mbedtls_ssl_protocol_version tls_version)
@@ -1693,11 +1690,8 @@ static inline void mbedtls_ssl_conf_max_tls_version(mbedtls_ssl_config *conf,
     conf->MBEDTLS_PRIVATE(max_tls_version) = tls_version;
 }
 
-#if !defined(MBEDTLS_DEPRECATED_REMOVED)
-
-void MBEDTLS_DEPRECATED mbedtls_ssl_conf_min_version(mbedtls_ssl_config *conf, int major,
+void mbedtls_ssl_conf_min_version(mbedtls_ssl_config *conf, int major,
                                                      int minor);
-#endif
 
 static inline void mbedtls_ssl_conf_min_tls_version(mbedtls_ssl_config *conf,
                                                     mbedtls_ssl_protocol_version tls_version)
