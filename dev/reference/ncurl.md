@@ -43,10 +43,12 @@ ncurl(
 
 - headers:
 
-  (optional) a named character vector specifying the HTTP request
-  headers, for example:  
-  `c(Authorization = "Bearer APIKEY", "Content-Type" = "text/plain")`  
-  A non-character or non-named vector will be ignored.
+  (optional) a named character vector or named list specifying the HTTP
+  request headers, for example:  
+  `c(Authorization = "Bearer APIKEY", "Content-Type" = "text/plain")`
+  or  
+  `list(Authorization = "Bearer APIKEY", "Content-Type" = "text/plain")`  
+  An unnamed vector or list will be ignored.
 
 - data:
 
@@ -58,10 +60,11 @@ ncurl(
 
 - response:
 
-  (optional) a character vector specifying the response headers to
-  return e.g. `c("date", "server")`. These are case-insensitive and will
-  return NULL if not present. Specify `TRUE` to return all response
-  headers. A non-character vector will be ignored (other than `TRUE`).
+  (optional) `TRUE` to return all response headers, or a character
+  vector specifying the response headers to return e.g.
+  `c("date", "server")`. These are case-insensitive and will return NULL
+  if not present. A non-character vector will be ignored (other than
+  `TRUE`).
 
 - timeout:
 
@@ -123,7 +126,7 @@ ncurl(
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Tue, 30 Jun 2026 16:43:21 GMT"
+#> [1] "Tue, 30 Jun 2026 21:42:06 GMT"
 #> 
 #> $headers$`content-type`
 #> [1] "application/json; charset=utf-8"
@@ -148,7 +151,7 @@ ncurl(
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Tue, 30 Jun 2026 16:43:21 GMT"
+#> [1] "Tue, 30 Jun 2026 21:42:06 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -172,13 +175,13 @@ ncurl(
 #> [1] "DYNAMIC"
 #> 
 #> $headers$`Set-Cookie`
-#> [1] "sails.sid=s%3Aye-Gvqc53Y0gRWosjuFj4KgvZ4fDQRf2.eH7iGFjR5OmQt02cIWiTxXDmMBgU25nTtWa8SKF91v0; Path=/; HttpOnly, __cf_bm=K7WYaxBm9sqmQvHJLipw2QjXO7hTgZZMEB9T8Ka0WTY-1782837801.6283073-1.0.1.1-T28S1vmnlTBZ6ksbGgDrToVJGn30T9EM3F1CvhBPGbmGdZGUjvmTO0lf9yMuJeyFmPNVPlrgHN6Lr4KIP0RptpaaM0Up.LtQkJIgfBaP5ZwHcYpob_ClWKhEpHyZ_8Og; HttpOnly; Secure; Path=/; Domain=postman-echo.com; Expires=Tue, 30 Jun 2026 17:13:21 GMT, _cfuvid=Tfc84ePujTqNhF2cx17zhtD2EV4DEddxGgAWWIJzZ.4-1782837801.6283073-1.0.1.1-3PnI9NkdCXzeufl1rEH9t.LCYoyT..WQPb4MLr3X29k; HttpOnly; SameSite=None; Secure; Path=/; Domain=postman-echo.com"
+#> [1] "sails.sid=s%3Azco_hC0M_YnyI7s4UTZ6QMDBPwIA_5pW.iRoBKL4uir6QLZfRBeNF0QMkBZYUVhUeJxCb%2BCV8fXI; Path=/; HttpOnly, __cf_bm=mHAqf_G2569H9wfmXOmCY.bj_fs4F3in7W0zaVXvxyQ-1782855726.4030414-1.0.1.1-dzDg6tCgvxosY.Qk7ym1cG2kwvkBo6dDm_c4FsEcyc.vm1JwpFhbp9RfI_qFdBE_EznDqRKw.vxPT7dtMCd8T2IqcWZvMdbS3avjsOvQWCYK6OhIXsWNBlwgYNYEgzMf; HttpOnly; Secure; Path=/; Domain=postman-echo.com; Expires=Tue, 30 Jun 2026 22:12:06 GMT, _cfuvid=lTTZcqwyuv6lcXmXulf2MmKBrsJUa0maaOs2LNySxZo-1782855726.4030414-1.0.1.1-ezvNBbQ9QO23PKC8qwH5V9h3TAAmRQ8mu1Q2yf9qwH0; HttpOnly; SameSite=None; Secure; Path=/; Domain=postman-echo.com"
 #> 
 #> $headers$Server
 #> [1] "cloudflare"
 #> 
 #> $headers$`CF-RAY`
-#> [1] "a13ea1242f9215ac-SJC"
+#> [1] "a14056c1fab5edb1-LAX"
 #> 
 #> 
 #> $data

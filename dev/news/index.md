@@ -4,6 +4,12 @@
 
 ##### Updates
 
+- [`ncurl()`](https://nanonext.r-lib.org/dev/reference/ncurl.md),
+  [`ncurl_aio()`](https://nanonext.r-lib.org/dev/reference/ncurl_aio.md)
+  and
+  [`ncurl_session()`](https://nanonext.r-lib.org/dev/reference/ncurl_session.md)
+  again accept a named list (as well as a named character vector) for
+  the `headers` argument.
 - Fixes receiving using `mode = 'character'` so that a received
   character vector is exactly that which was sent, preserving empty
   strings in all positions (previously trailing empty strings were

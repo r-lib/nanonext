@@ -96,9 +96,9 @@ downloading non-text data.</p></dd>
 
 
 <dt id="arg-headers">headers<a class="anchor" aria-label="anchor" href="#arg-headers"></a></dt>
-<dd><p>(optional) a named character vector specifying the HTTP
-request headers, for example: <br><code>c(Authorization = "Bearer APIKEY", "Content-Type" = "text/plain")</code> <br>
-A non-character or non-named vector will be ignored.</p></dd>
+<dd><p>(optional) a named character vector or named list specifying
+the HTTP request headers, for example: <br><code>c(Authorization = "Bearer APIKEY", "Content-Type" = "text/plain")</code> or <br><code>list(Authorization = "Bearer APIKEY", "Content-Type" = "text/plain")</code> <br>
+An unnamed vector or list will be ignored.</p></dd>
 
 
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
@@ -110,10 +110,10 @@ format.</p></dd>
 
 
 <dt id="arg-response">response<a class="anchor" aria-label="anchor" href="#arg-response"></a></dt>
-<dd><p>(optional) a character vector specifying the response headers
-to return e.g. <code>c("date", "server")</code>. These are case-insensitive and
-will return NULL if not present. Specify <code>TRUE</code> to return all response
-headers. A non-character vector will be ignored (other than <code>TRUE</code>).</p></dd>
+<dd><p>(optional) <code>TRUE</code> to return all response headers, or a
+character vector specifying the response headers to return e.g.
+<code>c("date", "server")</code>. These are case-insensitive and will return NULL if
+not present. A non-character vector will be ignored (other than <code>TRUE</code>).</p></dd>
 
 
 <dt id="arg-timeout">timeout<a class="anchor" aria-label="anchor" href="#arg-timeout"></a></dt>
@@ -175,7 +175,7 @@ asynchronous http requests.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $headers$date</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Tue, 30 Jun 2026 16:43:23 GMT"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Tue, 30 Jun 2026 21:42:08 GMT"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $data</span>
