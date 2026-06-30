@@ -941,6 +941,10 @@ if (later && NOT_CRAN) {
   test_true("X-Another-Header" %in% names(received_headers))
   test_equal(received_headers[["X-Custom-Header"]], "test123")
   test_equal(received_headers[["X-Another-Header"]], "value456")
+  received_headers <- NULL
+  aio <- ncurl_aio(paste0(base_url, "/headers"), headers = list("ignored"), timeout = 2000)
+  while (unresolved(aio)) later::run_now(1)
+  test_zero(sum(received_headers == "ignored"))
   aio <- ncurl_aio(paste0(base_url, "/error"), timeout = 2000)
   while (unresolved(aio)) later::run_now(1)
   test_equal(aio$status, 500L)
