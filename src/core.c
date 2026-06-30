@@ -243,8 +243,8 @@ SEXP mk_error_data(const int xc) {
 SEXP nano_raw_char(const unsigned char *buf, const size_t sz) {
 
   SEXP out;
-  int i;
-  for (i = 0; i < sz; i++) if (!buf[i]) break;
+  const unsigned char *nul = sz ? memchr(buf, 0, sz) : NULL;
+  size_t i = nul == NULL ? sz : (size_t) (nul - buf);
   if (sz - i > 1) {
     Rf_warningcall_immediate(R_NilValue, "data could not be converted to a character string");
     out = Rf_allocVector(RAWSXP, sz);
@@ -253,7 +253,7 @@ SEXP nano_raw_char(const unsigned char *buf, const size_t sz) {
   }
 
   PROTECT(out = Rf_allocVector(STRSXP, 1));
-  SET_STRING_ELT(out, 0, Rf_mkCharLenCE((const char *) buf, i, CE_NATIVE));
+  SET_STRING_ELT(out, 0, Rf_mkCharLenCE((const char *) buf, (int) i, CE_NATIVE));
 
   UNPROTECT(1);
   return out;
@@ -409,28 +409,28 @@ SEXP nano_decode(unsigned char *buf, const size_t sz, const uint8_t mod, SEXP ho
   size_t size;
 
   switch (mod) {
-  case 2:
-    size = sz / 2 + 1;
-    PROTECT(data = Rf_allocVector(STRSXP, size));
-    R_xlen_t i, m, nbytes = sz, np = 0;
-    for (i = 0, m = 0; i < size; i++) {
-      unsigned char *p;
-      R_xlen_t j;
-      SEXP res;
-
-      for (j = np, p = buf + np; j < nbytes; p++, j++)
-        if (*p == '\0') break;
-
-      res = Rf_mkCharLenCE((const char *) (buf + np), (int) (j - np), CE_NATIVE);
+  case 2: {
+    R_xlen_t n = 0;
+    for (size_t k = 0; k < sz; k++)
+      n += (buf[k] == '\0');
+    if (sz && buf[sz - 1] != '\0')
+      n++;
+    PROTECT(data = Rf_allocVector(STRSXP, n));
+    R_xlen_t i;
+    size_t np = 0;
+    for (i = 0; i < n; i++) {
+      const unsigned char *nul = memchr(buf + np, 0, sz - np);
+      size_t j = nul == NULL ? sz : (size_t) (nul - buf);
+      SEXP res = Rf_mkCharLenCE((const char *) (buf + np), (int) (j - np), CE_NATIVE);
       if (res == R_NilValue) break;
       SET_STRING_ELT(data, i, res);
-      if (XLENGTH(res) > 0) m = i;
-      np = j < nbytes ? j + 1 : nbytes;
+      np = j < sz ? j + 1 : sz;
     }
-    if (i)
-      data = Rf_xlengthgets(data, m + 1);
+    if (i < n)
+      data = Rf_xlengthgets(data, i);
     UNPROTECT(1);
     return data;
+  }
   case 3:
     size = 2 * sizeof(double);
     if (sz % size) {

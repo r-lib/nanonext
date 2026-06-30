@@ -126,7 +126,7 @@ static void request_complete(void *arg) {
 
 }
 
-void delayed_sigterm(void *arg) {
+static void delayed_sigterm(void *arg) {
   (void) arg;
   nng_msleep(NANONEXT_SLEEP_DUR);
 #ifdef _WIN32

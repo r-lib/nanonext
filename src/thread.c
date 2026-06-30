@@ -71,7 +71,7 @@ static void rnng_wait_thread_single(void *args) {
 
 }
 
-void single_wait_thread_create(SEXP x) {
+static void single_wait_thread_create(SEXP x) {
 
   nano_aio *aiop = (nano_aio *) NANO_PTR(x);
 
@@ -365,7 +365,7 @@ SEXP rnng_signal_thread_create(SEXP cv, SEXP cv2) {
 
 }
 
-char *nano_readline(void) {
+static char *nano_readline(void) {
 
   size_t sz = NANONEXT_INIT_BUFSIZE;
   size_t cur = 0;
@@ -399,7 +399,7 @@ char *nano_readline(void) {
 
 }
 
-void nano_read_thread(void *arg) {
+static void nano_read_thread(void *arg) {
 
   int xc = 0;
   nng_socket sock = {0};

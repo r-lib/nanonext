@@ -187,66 +187,34 @@ nano <- function(
 
   nano[["stat"]] <- function(name) stat(socket, name = name)
 
+  context_open <- function() {
+    if (is.null(sock2)) sock2 <<- socket
+    nano[["context_close"]] <- function() if (length(sock2)) {
+      r <- close(socket)
+      socket <<- sock2
+      sock2 <<- NULL
+      rm(list = c("context", "context_close"), envir = nano)
+      r
+    }
+    socket <<- nano[["context"]] <- context(sock2)
+  }
+
   switch(attr(socket, "protocol"),
          req = ,
-         rep = {
-           nano[["context_open"]] <- function() {
-             if (is.null(sock2)) sock2 <<- socket
-             nano[["context_close"]] <- function() if (length(sock2)) {
-               r <- close(socket)
-               socket <<- sock2
-               sock2 <<- NULL
-               rm(list = c("context", "context_close"), envir = nano)
-               r
-             }
-            socket <<- nano[["context"]] <- context(sock2)
-           }
-         },
+         rep = nano[["context_open"]] <- context_open,
          sub = {
-           nano[["context_open"]] <- function() {
-             if (is.null(sock2)) sock2 <<- socket
-             nano[["context_close"]] <- function() if (length(sock2)) {
-               r <- close(socket)
-               socket <<- sock2
-               sock2 <<- NULL
-               rm(list = c("context", "context_close"), envir = nano)
-               r
-             }
-             socket <<- nano[["context"]] <- context(sock2)
-           }
+           nano[["context_open"]] <- context_open
            nano[["subscribe"]] <- function(topic = NULL)
              subscribe(socket, topic = topic)
            nano[["unsubscribe"]] <- function(topic = NULL)
              unsubscribe(socket, topic = topic)
          },
          surveyor = {
-           nano[["context_open"]] <- function() {
-             if (is.null(sock2)) sock2 <<- socket
-             nano[["context_close"]] <- function() if (length(sock2)) {
-               r <- close(socket)
-               socket <<- sock2
-               sock2 <<- NULL
-               rm(list = c("context", "context_close"), envir = nano)
-               r
-             }
-             socket <<- nano[["context"]] <- context(sock2)
-           }
+           nano[["context_open"]] <- context_open
            nano[["survey_time"]] <- function(value = 1000L)
              survey_time(socket, value = value)
          },
-         respondent = {
-           nano[["context_open"]] <- function() {
-             if (is.null(sock2)) sock2 <<- socket
-             nano[["context_close"]] <- function() if (length(sock2)) {
-               r <- close(socket)
-               socket <<- sock2
-               sock2 <<- NULL
-               rm(list = c("context", "context_close"), envir = nano)
-               r
-             }
-             socket <<- nano[["context"]] <- context(sock2)
-           }
-         },
+         respondent = nano[["context_open"]] <- context_open,
          NULL)
 
   nano

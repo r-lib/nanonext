@@ -535,9 +535,9 @@ SEXP rnng_ncurl_aio(SEXP http, SEXP convert, SEXP method, SEXP headers, SEXP dat
   for (SEXP fnlist = nano_aioNFuncs; fnlist != R_NilValue; fnlist = CDR(fnlist)) {
     PROTECT(fun = R_mkClosure(R_NilValue, CAR(fnlist), clo));
     switch (++i) {
-    case 1: R_MakeActiveBinding(nano_StatusSymbol, fun, env);
-    case 2: R_MakeActiveBinding(nano_HeadersSymbol, fun, env);
-    case 3: R_MakeActiveBinding(nano_DataSymbol, fun, env);
+    case 1: R_MakeActiveBinding(nano_StatusSymbol, fun, env); break;
+    case 2: R_MakeActiveBinding(nano_HeadersSymbol, fun, env); break;
+    case 3: R_MakeActiveBinding(nano_DataSymbol, fun, env); break;
     }
     UNPROTECT(1);
   }
