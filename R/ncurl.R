@@ -13,19 +13,20 @@
 #'   address is returned as response header 'Location'.
 #' @param method (optional) the HTTP method as a character string. Defaults to
 #'   'GET' if not specified, and could also be 'POST', 'PUT' etc.
-#' @param headers (optional) a named character vector specifying the HTTP
-#'   request headers, for example: \cr
-#'   `c(Authorization = "Bearer APIKEY", "Content-Type" = "text/plain")` \cr
-#'   A non-character or non-named vector will be ignored.
+#' @param headers (optional) a named character vector or named list specifying
+#'   the HTTP request headers, for example: \cr
+#'   `c(Authorization = "Bearer APIKEY", "Content-Type" = "text/plain")` or \cr
+#'   `list(Authorization = "Bearer APIKEY", "Content-Type" = "text/plain")` \cr
+#'   An unnamed vector or list will be ignored.
 #' @param data (optional) request data to be submitted. Must be a character
 #'   string or raw vector, and other objects are ignored. If a character vector,
 #'   only the first element is taken. When supplying binary data, the
 #'   appropriate 'Content-Type' header should be set to specify the binary
 #'   format.
-#' @param response (optional) a character vector specifying the response headers
-#'   to return e.g. `c("date", "server")`. These are case-insensitive and
-#'   will return NULL if not present. Specify `TRUE` to return all response
-#'   headers. A non-character vector will be ignored (other than `TRUE`).
+#' @param response (optional) `TRUE` to return all response headers, or a
+#'   character vector specifying the response headers to return e.g.
+#'   `c("date", "server")`. These are case-insensitive and will return NULL if
+#'   not present. A non-character vector will be ignored (other than `TRUE`).
 #' @param timeout (optional) integer value in milliseconds after which the
 #'   transaction times out if not yet complete.
 #' @param tls (optional) applicable to secure HTTPS sites only, a client TLS
