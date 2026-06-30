@@ -63,7 +63,7 @@ static inline nano_http_header_s *nano_http_header_next(void *msg,
 // Used by nano_msg_set_body() to install a realloc'd serialization buffer
 // directly as the message body, avoiding a redundant allocation + memcpy.
 //
-// Assumed NNG internal layout (stable since NNG 1.6, required >= 1.11.0):
+// Assumed NNG internal layout (stable since NNG 1.6, required >= 1.12.0):
 //
 //   struct nng_msg {                          // src/nng/src/core/message.c
 //     uint32_t       m_header_buf[16];        // NNI_MAX_MAX_TTL (15) + 1
