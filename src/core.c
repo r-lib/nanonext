@@ -243,7 +243,7 @@ SEXP mk_error_data(const int xc) {
 SEXP nano_raw_char(const unsigned char *buf, const size_t sz) {
 
   SEXP out;
-  const unsigned char *nul = memchr(buf, 0, sz);
+  const unsigned char *nul = sz ? memchr(buf, 0, sz) : NULL;
   size_t i = nul == NULL ? sz : (size_t) (nul - buf);
   if (sz - i > 1) {
     Rf_warningcall_immediate(R_NilValue, "data could not be converted to a character string");
