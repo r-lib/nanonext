@@ -4,6 +4,11 @@
 
 ##### Updates
 
+- Fixes receiving using `mode = 'character'` so that a received
+  character vector is exactly that which was sent, preserving empty
+  strings in all positions (previously trailing empty strings were
+  dropped, and elements could be lost when leading empty strings were
+  present).
 - Fixes potential message corruption when built against a system
   ‘libnng’, regression in 1.9.0.
 - Fixes a ‘Resource busy’ error triggered by re-using a ‘tlsConfig’
