@@ -18,10 +18,11 @@
 #      diagnostic-suppression pragmas (#pragma GCC/clang diagnostic) in compiled
 #      code, so strip them and replay nanonext's portable equivalent.
 #   3. Diagnostics neutering -- route NNG's debug abort/printf/println (the
-#      abort/vprintf/stderr symbols R's tools:::check_compiled_code() flags) to
+#      abort/vprintf symbols R's tools:::check_compiled_code() flags) to
 #      __builtin_trap() / no-ops. These fire only on internal NNG panics, which
 #      run on background threads where the R API is off-limits, so this is a
-#      no-op in normal use.
+#      no-op in normal use. Also stub the nng/nng.h logging API to static inline
+#      no-ops so every call compiles away and core/log.c can be pruned.
 
 set -e
 
@@ -182,7 +183,7 @@ patch_perl platform/posix/posix_pipe.c '
 '
 
 # ---------------------------------------------------------------------------
-echo "3. Neutering NNG debug diagnostics (abort / printf / println) ..."
+echo "3. Neutering NNG debug diagnostics (abort / printf / println / logging) ..."
 neuter_debug() {
   f=$1
   [ -f "$f" ] || { echo "  skip (absent): $f"; return 0; }
@@ -200,12 +201,18 @@ neuter_debug() {
 neuter_debug "$NNG_SRC/platform/posix/posix_debug.c"
 neuter_debug "$NNG_SRC/platform/windows/win_debug.c"
 
-# core/log.c: stub the stderr logger. It is the only stderr reference in the
-# tree (check_compiled_code() flags the stderr symbol). nanonext never enables
-# NNG logging, so this is a no-op in normal use; nng_stderr_logger /
-# nng_system_logger keep their symbols but become silent through the stub.
-patch_perl core/log.c '
-  s/(\nstderr_logger\([^{]*\bbool timechk\)\n\{).*?(\n\}\n\nvoid\nnng_stderr_logger)/${1}\n\t(void) level;\n\t(void) facility;\n\t(void) msgid;\n\t(void) msg;\n\t(void) timechk;${2}/s;
+# NNG logging (never enabled by nanonext): turn the nng/nng.h log entry points
+# into static inline no-ops, so calls compile away and nng_log_get_level() folds
+# its debug guards to dead code -- leaving core/log.c unreferenced and prunable.
+# Idempotent: the NNG_DECL forms are gone after the first pass.
+patch_perl ../include/nng/nng.h '
+  s/NNG_DECL nng_log_level nng_log_get_level\(void\);/static inline nng_log_level nng_log_get_level(void) { return NNG_LOG_NONE; }/;
+  s/NNG_DECL void nng_log_err\(const char \*msgid, const char \*msg, \.\.\.\);/static inline void nng_log_err(const char *msgid, const char *msg, ...) { (void) msgid; (void) msg; }/;
+  s/NNG_DECL void nng_log_warn\(const char \*msgid, const char \*msg, \.\.\.\);/static inline void nng_log_warn(const char *msgid, const char *msg, ...) { (void) msgid; (void) msg; }/;
+  s/NNG_DECL void nng_log_notice\(const char \*msgid, const char \*msg, \.\.\.\);/static inline void nng_log_notice(const char *msgid, const char *msg, ...) { (void) msgid; (void) msg; }/;
+  s/NNG_DECL void nng_log_info\(const char \*msgid, const char \*msg, \.\.\.\);/static inline void nng_log_info(const char *msgid, const char *msg, ...) { (void) msgid; (void) msg; }/;
+  s/NNG_DECL void nng_log_debug\(const char \*msgid, const char \*msg, \.\.\.\);/static inline void nng_log_debug(const char *msgid, const char *msg, ...) { (void) msgid; (void) msg; }/;
+  s/NNG_DECL void nng_log_auth\(\n    nng_log_level level, const char \*msgid, const char \*msg, \.\.\.\);/static inline void nng_log_auth(nng_log_level level, const char *msgid, const char *msg, ...) { (void) level; (void) msgid; (void) msg; }/;
 '
 
 echo "=== patch_nng.sh complete ==="

@@ -9,7 +9,6 @@ $(NNG)/core/init.o
 $(NNG)/core/list.o
 $(NNG)/core/listener.o
 $(NNG)/core/lmq.o
-$(NNG)/core/log.o
 $(NNG)/core/message.o
 $(NNG)/core/msgqueue.o
 $(NNG)/core/options.o

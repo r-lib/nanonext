@@ -974,18 +974,17 @@ NNG_DECL void nng_log_set_facility(nng_log_facility facility);
 
 NNG_DECL void nng_log_set_level(nng_log_level level);
 
-NNG_DECL nng_log_level nng_log_get_level(void);
+static inline nng_log_level nng_log_get_level(void) { return NNG_LOG_NONE; }
 
 NNG_DECL void nng_log_set_logger(nng_logger logger);
 
-NNG_DECL void nng_log_err(const char *msgid, const char *msg, ...);
-NNG_DECL void nng_log_warn(const char *msgid, const char *msg, ...);
-NNG_DECL void nng_log_notice(const char *msgid, const char *msg, ...);
-NNG_DECL void nng_log_info(const char *msgid, const char *msg, ...);
-NNG_DECL void nng_log_debug(const char *msgid, const char *msg, ...);
+static inline void nng_log_err(const char *msgid, const char *msg, ...) { (void) msgid; (void) msg; }
+static inline void nng_log_warn(const char *msgid, const char *msg, ...) { (void) msgid; (void) msg; }
+static inline void nng_log_notice(const char *msgid, const char *msg, ...) { (void) msgid; (void) msg; }
+static inline void nng_log_info(const char *msgid, const char *msg, ...) { (void) msgid; (void) msg; }
+static inline void nng_log_debug(const char *msgid, const char *msg, ...) { (void) msgid; (void) msg; }
 
-NNG_DECL void nng_log_auth(
-    nng_log_level level, const char *msgid, const char *msg, ...);
+static inline void nng_log_auth(nng_log_level level, const char *msgid, const char *msg, ...) { (void) level; (void) msgid; (void) msg; }
 
 NNG_DECL nng_time nng_clock(void);
 

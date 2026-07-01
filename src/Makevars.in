@@ -56,8 +56,6 @@ $(NNG)/core/listener.o: $(NNG)/core/listener.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/core/listener.c -o $@
 $(NNG)/core/lmq.o: $(NNG)/core/lmq.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/core/lmq.c -o $@
-$(NNG)/core/log.o: $(NNG)/core/log.c
-	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/core/log.c -o $@
 $(NNG)/core/message.o: $(NNG)/core/message.c
 	$(CC) $(NNG_CPPFLAGS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $(NNG)/core/message.c -o $@
 $(NNG)/core/msgqueue.o: $(NNG)/core/msgqueue.c
