@@ -17,6 +17,8 @@
   [`ncurl_session()`](https://nanonext.r-lib.org/dev/reference/ncurl_session.md)
   again accept a named list (as well as a named character vector) for
   the `headers` argument.
+- An error signalled by an HTTP server request handler, which maps to a
+  500 response, no longer additionally prints the error to the console.
 - Fixes receiving using `mode = 'character'` so that a received
   character vector is exactly that which was sent, preserving empty
   strings in all positions (previously trailing empty strings were
