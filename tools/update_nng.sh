@@ -47,12 +47,13 @@ done
 
 # Source paths (relative to nng/src) that nanonext does not bundle: the
 # deprecated nanomsg compat API, the wolfssl/zerotier back-ends we never build,
-# every unit test, NNG's own CLI tools / test framework, and the public
+# every unit test, NNG's own CLI tools / test framework, the public
 # nng_id_map / nng_opts_parse helpers nanonext never calls (it uses the internal
-# nni_id_map from core/idhash.c instead). These are removed from the staged tree
-# AND filtered from the derived object lists (and from --verify), even though a
-# default cmake build compiles them.
-PRUNE_RE='^(compat|testing|tools)/|/(zerotier|wolfssl)/|_test\.c$|^nng_legacy\.c$|^supplemental/util/(idhash|options)\.c$'
+# nni_id_map from core/idhash.c instead), and core/log.c (unreferenced once
+# tools/patch_nng.sh stubs the nng/nng.h logging API to no-ops). These are
+# removed from the staged tree AND filtered from the derived object lists (and
+# from --verify), even though a default cmake build compiles them.
+PRUNE_RE='^(compat|testing|tools)/|/(zerotier|wolfssl)/|_test\.c$|^nng_legacy\.c$|^supplemental/util/(idhash|options)\.c$|^core/log\.c$'
 
 # The Mbed TLS engine nanonext always compiles. A default cmake configure has no
 # TLS engine (it needs a system Mbed TLS, which we deliberately do not require),
