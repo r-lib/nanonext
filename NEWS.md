@@ -1,5 +1,9 @@
 # nanonext (development version)
 
+#### New Features
+
+* Adds `device_aio()` to run an asynchronous device: a zero-copy forwarder that relays raw messages between two Sockets, for building brokers and proxies.
+
 #### Updates
 
 * `ncurl()`, `ncurl_aio()` and `ncurl_session()` again accept a named list (as well as a named character vector) for the `headers` argument.

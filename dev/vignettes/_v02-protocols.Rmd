@@ -156,3 +156,44 @@ close(res2)
 `msleep()` is an uninterruptible sleep function (using NNG) that takes a time in milliseconds.
 
 The final value resolves to a timeout error (integer 5 classed as 'errorValue'). All error codes are classed as 'errorValue' for easy distinction from integer message values.
+
+### 4. Device (Broker / Proxy)
+
+A device is a zero-copy forwarder that relays raw messages between two Sockets, providing the building block for brokers and proxies. `device_aio()` runs the device asynchronously on background threads, returning immediately.
+
+The two Sockets must be opened in raw mode and use complementary protocols. Here a pair of raw 'pair' Sockets bridges two endpoints: a message arriving on one side is relayed out of the other.
+
+```{r}
+#| label: device
+front <- socket("pair", listen = "inproc://frontend", raw = TRUE)
+back <- socket("pair", listen = "inproc://backend", raw = TRUE)
+
+# start the forwarder; it runs in the background until stopped
+d <- device_aio(front, back)
+
+# a client on each side of the bridge
+c1 <- socket("pair", dial = "inproc://frontend")
+c2 <- socket("pair", dial = "inproc://backend")
+
+# a message sent by c1 is relayed through the device and received by c2
+c1 |> send("relayed via the device", mode = "raw")
+c2 |> recv(mode = "character", block = 500)
+
+close(c1)
+close(c2)
+
+```
+
+While the device runs, its `$result` is 'unresolved' (logical NA). Stop it with `stop_aio()`, or by closing either Socket, and the result resolves to an 'errorValue'.
+
+```{r}
+#| label: device2
+d$result
+
+stop_aio(d)
+d$result
+
+close(front)
+close(back)
+
+```

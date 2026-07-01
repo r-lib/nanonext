@@ -20,6 +20,7 @@ reference:
   - listen
   - start
   - close
+  - reap
   - protocols
   - transports
 
@@ -47,6 +48,7 @@ reference:
   - is_aio
   - as.promise.recvAio
   - as.promise.ncurlAio
+  - device_aio
 
 - title: Synchronization
   desc: Condition variables and pipe events
@@ -111,7 +113,6 @@ reference:
   - random
   - mclock
   - msleep
-  - reap
   - read_stdin
   - write_stdout
 authors:
