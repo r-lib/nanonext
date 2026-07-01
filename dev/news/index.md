@@ -2,6 +2,13 @@
 
 ## nanonext (development version)
 
+##### New Features
+
+- Adds
+  [`device_aio()`](https://nanonext.r-lib.org/dev/reference/device_aio.md)
+  to run an asynchronous device: a zero-copy forwarder that relays raw
+  messages between two Sockets, for building brokers and proxies.
+
 ##### Updates
 
 - [`ncurl()`](https://nanonext.r-lib.org/dev/reference/ncurl.md),

@@ -91,8 +91,8 @@ listen(socket, url = "inproc://nanolisten", autostart = FALSE)
 socket$listener
 #> [[1]]
 #> < nanoListener >
-#>  - id: 5
-#>  - socket: 12
+#>  - id: 7
+#>  - socket: 14
 #>  - state: not started
 #>  - url: inproc://nanolisten
 #> 
@@ -100,8 +100,8 @@ start(socket$listener[[1]])
 socket$listener
 #> [[1]]
 #> < nanoListener >
-#>  - id: 5
-#>  - socket: 12
+#>  - id: 7
+#>  - socket: 14
 #>  - state: started
 #>  - url: inproc://nanolisten
 #> 
@@ -113,8 +113,8 @@ nano$listen(url = "inproc://nanolisten", autostart = FALSE)
 nano$listener
 #> [[1]]
 #> < nanoListener >
-#>  - id: 6
-#>  - socket: 13
+#>  - id: 8
+#>  - socket: 15
 #>  - state: not started
 #>  - url: inproc://nanolisten
 #> 
@@ -122,8 +122,8 @@ nano$listener_start()
 nano$listener
 #> [[1]]
 #> < nanoListener >
-#>  - id: 6
-#>  - socket: 13
+#>  - id: 8
+#>  - socket: 15
 #>  - state: started
 #>  - url: inproc://nanolisten
 #> 

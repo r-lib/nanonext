@@ -106,22 +106,22 @@ existing context and revert to using the socket.
 nano <- nano("bus", listen = "inproc://nanonext")
 nano
 #> < nano object >
-#>  - socket id: 16
+#>  - socket id: 18
 #>  - state: opened
 #>  - protocol: bus
 #>  - listener:
 #>     inproc://nanonext
 nano$socket
 #> < nanoSocket >
-#>  - id: 16
+#>  - id: 18
 #>  - state: opened
 #>  - protocol: bus
 #>  - listener:
 #>     inproc://nanonext
 nano$listener[[1]]
 #> < nanoListener >
-#>  - id: 8
-#>  - socket: 16
+#>  - id: 10
+#>  - socket: 18
 #>  - state: started
 #>  - url: inproc://nanonext
 
@@ -133,15 +133,15 @@ nano$listen(url = "inproc://nanonextgen")
 nano$listener
 #> [[1]]
 #> < nanoListener >
-#>  - id: 8
-#>  - socket: 16
+#>  - id: 10
+#>  - socket: 18
 #>  - state: started
 #>  - url: inproc://nanonext
 #> 
 #> [[2]]
 #> < nanoListener >
-#>  - id: 9
-#>  - socket: 16
+#>  - id: 11
+#>  - socket: 18
 #>  - state: started
 #>  - url: inproc://nanonextgen
 #> 
