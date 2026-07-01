@@ -129,6 +129,52 @@ recv_aio <- function(
 )
   data <- .Call(rnng_recv_aio, con, mode, timeout, cv, environment())
 
+# device -----------------------------------------------------------------------
+
+#' Device (Async)
+#'
+#' Create an asynchronous device: a zero-copy forwarder that relays raw messages
+#' between two Sockets. This is the building block for brokers and proxies, such
+#' as a publisher/subscriber relay or a pair-to-pair bridge.
+#'
+#' A device runs on background threads and relays messages until it is stopped or
+#' an error occurs. The returned 'sendAio' resolves only at that point: its
+#' `$result` is an 'unresolved' logical NA while the device is running, and
+#' otherwise the integer exit code (usually the error that caused it to stop,
+#' such as a Socket being closed).
+#'
+#' Both Sockets must be opened in raw mode (see [socket()]) and use complementary
+#' protocols, that is the peer protocol of each must be the protocol of the other
+#' (for example two 'pair' Sockets, or a 'pub' and a 'sub' Socket). The same
+#' Socket may be supplied for both arguments to create a reflector.
+#'
+#' To stop the device, use [stop_aio()], or close either of the Sockets. To block
+#' and wait for the device to stop, use [call_aio()].
+#'
+#' @param s1 a Socket, in raw mode.
+#' @param s2 a Socket, in raw mode, using the complementary protocol to `s1`. If
+#'   not supplied, defaults to `s1` to create a reflector.
+#'
+#' @return A 'sendAio' (object of class 'sendAio') (invisibly).
+#'
+#' @seealso [send_aio()] for the structure of the returned 'sendAio'.
+#'
+#' @examples
+#' s1 <- socket("pair", listen = "inproc://device1", raw = TRUE)
+#' s2 <- socket("pair", listen = "inproc://device2", raw = TRUE)
+#'
+#' dev <- device_aio(s1, s2)
+#' dev
+#'
+#' stop_aio(dev)
+#' close(s1)
+#' close(s2)
+#'
+#' @export
+#'
+device_aio <- function(s1, s2 = s1)
+  data <- .Call(rnng_device_aio, s1, s2, environment())
+
 # Core aio functions -----------------------------------------------------------
 
 #' Call the Value of an Asynchronous Aio Operation

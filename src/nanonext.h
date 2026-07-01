@@ -481,6 +481,7 @@ SEXP rnng_cv_until_safe(SEXP, SEXP);
 SEXP rnng_cv_value(SEXP);
 SEXP rnng_cv_wait(SEXP);
 SEXP rnng_cv_wait_safe(SEXP);
+SEXP rnng_device_aio(SEXP, SEXP, SEXP);
 SEXP rnng_dial(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_dialer_close(SEXP);
 SEXP rnng_dialer_start(SEXP, SEXP);
