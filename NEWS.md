@@ -7,6 +7,7 @@
 #### Updates
 
 * `ncurl()`, `ncurl_aio()` and `ncurl_session()` again accept a named list (as well as a named character vector) for the `headers` argument.
+* An error signalled by an HTTP server request handler, which maps to a 500 response, no longer additionally prints the error to the console.
 * Fixes receiving using `mode = 'character'` so that a received character vector is exactly that which was sent, preserving empty strings in all positions (previously trailing empty strings were dropped, and elements could be lost when leading empty strings were present).
 * Fixes potential message corruption when built against a system 'libnng', regression in 1.9.0.
 * Fixes a 'Resource busy' error triggered by re-using a 'tlsConfig' object for more than one connection.

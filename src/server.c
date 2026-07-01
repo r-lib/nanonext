@@ -354,7 +354,7 @@ static void http_invoke_callback(void *arg) {
   PROTECT(req_list = make_request_list(r->req));
   PROTECT(call = Rf_lang2(r->callback, req_list));
   int err;
-  SEXP result = R_tryEval(call, R_GlobalEnv, &err);
+  SEXP result = R_tryEvalSilent(call, R_GlobalEnv, &err);
   UNPROTECT(2);
 
   nng_http_res *res = NULL;
