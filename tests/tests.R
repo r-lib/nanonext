@@ -1177,7 +1177,6 @@ if (later && NOT_CRAN) {
   test_zero(wss_srv$close())
 }
 
-# Test multiple WebSocket endpoints and concurrent connections
 if (later && NOT_CRAN) {
   echo_msgs <- list()
   upper_msgs <- list()
@@ -1245,7 +1244,6 @@ if (later && NOT_CRAN) {
   test_error(multi_ws_srv$start(), "valid HTTP Server")
 }
 
-# Test static handlers, redirects, and prefix parameter
 if (later && NOT_CRAN) {
   test_class("list", suppressWarnings(handler_directory("/bad", "/nonexistent/directory")))
 

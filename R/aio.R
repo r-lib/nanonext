@@ -164,9 +164,10 @@ recv_aio <- function(
 #' s2 <- socket("pair", listen = "inproc://device2", raw = TRUE)
 #'
 #' dev <- device_aio(s1, s2)
-#' dev
+#' dev$result
 #'
 #' stop_aio(dev)
+#' dev$result
 #' close(s1)
 #' close(s2)
 #'
