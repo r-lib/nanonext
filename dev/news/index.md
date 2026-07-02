@@ -2,6 +2,10 @@
 
 ## nanonext (development version)
 
+## nanonext 1.10.0
+
+CRAN release: 2026-07-02
+
 ##### New Features
 
 - Adds
