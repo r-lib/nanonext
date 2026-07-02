@@ -184,6 +184,9 @@ static inline psa_algorithm_t mbedtls_psa_translate_cipher_mode(
 }
 #endif
 
+#if defined(__GNUC__) && !defined(__clang__)
+__attribute__((noinline, noclone))
+#endif
 void mbedtls_cipher_init(mbedtls_cipher_context_t *ctx)
 {
     memset(ctx, 0, sizeof(mbedtls_cipher_context_t));
