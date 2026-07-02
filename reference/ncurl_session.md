@@ -41,10 +41,12 @@ transact(session)
 
 - headers:
 
-  (optional) a named character vector specifying the HTTP request
-  headers, for example:  
-  `c(Authorization = "Bearer APIKEY", "Content-Type" = "text/plain")`  
-  A non-character or non-named vector will be ignored.
+  (optional) a named character vector or named list specifying the HTTP
+  request headers, for example:  
+  `c(Authorization = "Bearer APIKEY", "Content-Type" = "text/plain")`
+  or  
+  `list(Authorization = "Bearer APIKEY", "Content-Type" = "text/plain")`  
+  An unnamed vector or list will be ignored.
 
 - data:
 
@@ -56,10 +58,11 @@ transact(session)
 
 - response:
 
-  (optional) a character vector specifying the response headers to
-  return e.g. `c("date", "server")`. These are case-insensitive and will
-  return NULL if not present. Specify `TRUE` to return all response
-  headers. A non-character vector will be ignored (other than `TRUE`).
+  (optional) `TRUE` to return all response headers, or a character
+  vector specifying the response headers to return e.g.
+  `c("date", "server")`. These are case-insensitive and will return NULL
+  if not present. A non-character vector will be ignored (other than
+  `TRUE`).
 
 - timeout:
 
@@ -128,7 +131,7 @@ if (is_ncurl_session(s)) transact(s)
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Mon, 01 Jun 2026 13:41:36 GMT"
+#> [1] "Thu, 02 Jul 2026 08:11:55 GMT"
 #> 
 #> 
 #> $data

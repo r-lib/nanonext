@@ -28,7 +28,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.9.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,7 +79,7 @@
       <img src="../logo.png" class="logo" alt=""><h1>nanonext - Scalability Protocols</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/v1.9.1/vignettes/v02-protocols.Rmd" class="external-link"><code>vignettes/v02-protocols.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/main/vignettes/v02-protocols.Rmd" class="external-link"><code>vignettes/v02-protocols.Rmd</code></a></small>
       <div class="d-none name"><code>v02-protocols.Rmd</code></div>
     </div>
 
@@ -118,7 +118,7 @@ request.</p>
 <code><a href="../reference/call_aio.html">call_aio()</a></code> to retrieve the value at <code>$data</code>.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/call_aio.html">call_aio</a></span><span class="op">(</span><span class="va">aio</span><span class="op">)</span><span class="op">$</span><span class="va">data</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  num [1:100000000] -0.63 0.883 1.134 -0.474 -0.237 ...</span></span></code></pre></div>
+<span><span class="co">#&gt;  num [1:100000000] -0.75 -0.524 0.122 1.186 1.651 ...</span></span></code></pre></div>
 <p>Since <code><a href="../reference/call_aio.html">call_aio()</a></code> blocks, alternatively query
 <code>aio$data</code> directly, which returns ‘unresolved’ (logical NA)
 if incomplete.</p>
@@ -239,6 +239,49 @@ NNG) that takes a time in milliseconds.</p>
 <p>The final value resolves to a timeout error (integer 5 classed as
 ‘errorValue’). All error codes are classed as ‘errorValue’ for easy
 distinction from integer message values.</p>
+</div>
+<div class="section level3">
+<h3 id="device-broker-proxy">4. Device (Broker / Proxy)<a class="anchor" aria-label="anchor" href="#device-broker-proxy"></a>
+</h3>
+<p>A device is a zero-copy forwarder that relays raw messages between
+two Sockets, providing the building block for brokers and proxies.
+<code><a href="../reference/device_aio.html">device_aio()</a></code> runs the device asynchronously on background
+threads, returning immediately.</p>
+<p>The two Sockets must be opened in raw mode and use complementary
+protocols. Here a pair of raw ‘pair’ Sockets bridges two endpoints: a
+message arriving on one side is relayed out of the other.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">front</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pair"</span>, listen <span class="op">=</span> <span class="st">"inproc://frontend"</span>, raw <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">back</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pair"</span>, listen <span class="op">=</span> <span class="st">"inproc://backend"</span>, raw <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># start the forwarder; it runs in the background until stopped</span></span>
+<span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/device_aio.html">device_aio</a></span><span class="op">(</span><span class="va">front</span>, <span class="va">back</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># a client on each side of the bridge</span></span>
+<span><span class="va">c1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pair"</span>, dial <span class="op">=</span> <span class="st">"inproc://frontend"</span><span class="op">)</span></span>
+<span><span class="va">c2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/socket.html">socket</a></span><span class="op">(</span><span class="st">"pair"</span>, dial <span class="op">=</span> <span class="st">"inproc://backend"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># a message sent by c1 is relayed through the device and received by c2</span></span>
+<span><span class="va">c1</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/send.html">send</a></span><span class="op">(</span><span class="st">"relayed via the device"</span>, mode <span class="op">=</span> <span class="st">"raw"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="va">c2</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/recv.html">recv</a></span><span class="op">(</span>mode <span class="op">=</span> <span class="st">"character"</span>, block <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "relayed via the device"</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">c1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">c2</span><span class="op">)</span></span></code></pre></div>
+<p>While the device runs, its <code>$result</code> is ‘unresolved’
+(logical NA). Stop it with <code><a href="../reference/stop_aio.html">stop_aio()</a></code>, or by closing either
+Socket, and the result resolves to an ‘errorValue’.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">d</span><span class="op">$</span><span class="va">result</span></span>
+<span><span class="co">#&gt; 'unresolved' logi NA</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/stop_aio.html">stop_aio</a></span><span class="op">(</span><span class="va">d</span><span class="op">)</span></span>
+<span><span class="va">d</span><span class="op">$</span><span class="va">result</span></span>
+<span><span class="co">#&gt; 'errorValue' int 20 | Operation canceled</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">front</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/close.html">close</a></span><span class="op">(</span><span class="va">back</span><span class="op">)</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

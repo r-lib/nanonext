@@ -1,5 +1,41 @@
 # Changelog
 
+## nanonext 1.10.0
+
+CRAN release: 2026-07-02
+
+##### New Features
+
+- Adds
+  [`device_aio()`](https://nanonext.r-lib.org/reference/device_aio.md)
+  to run an asynchronous device: a zero-copy forwarder that relays raw
+  messages between two Sockets, for building brokers and proxies.
+
+##### Updates
+
+- [`ncurl()`](https://nanonext.r-lib.org/reference/ncurl.md),
+  [`ncurl_aio()`](https://nanonext.r-lib.org/reference/ncurl_aio.md) and
+  [`ncurl_session()`](https://nanonext.r-lib.org/reference/ncurl_session.md)
+  again accept a named list (as well as a named character vector) for
+  the `headers` argument.
+- An error signalled by an HTTP server request handler, which maps to a
+  500 response, no longer additionally prints the error to the console.
+- Fixes receiving using `mode = 'character'` so that a received
+  character vector is exactly that which was sent, preserving empty
+  strings in all positions (previously trailing empty strings were
+  dropped, and elements could be lost when leading empty strings were
+  present).
+- Fixes potential message corruption when built against a system
+  ‘libnng’, regression in 1.9.0.
+- Fixes a ‘Resource busy’ error triggered by re-using a ‘tlsConfig’
+  object for more than one connection.
+- Updates the bundled NNG version to 1.12.0, and the bundled Mbed TLS
+  sources to remove unused modules.
+- Increases the minimum supported system `libnng` version to \>= 1.12.0,
+  and ‘libmbedtls’ version to \>= 3.0.
+- Removes the build-time dependency on ‘cmake’. Compiling the bundled
+  NNG and Mbed TLS sources now only require a C compiler.
+
 ## nanonext 1.9.1
 
 CRAN release: 2026-06-01

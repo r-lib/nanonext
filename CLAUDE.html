@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.9.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,7 +43,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="logo.png" class="logo" alt=""><h1>CLAUDE.md</h1>
-      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/v1.9.1/CLAUDE.md" class="external-link"><code>CLAUDE.md</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/main/CLAUDE.md" class="external-link"><code>CLAUDE.md</code></a></small>
     </div>
 
 <div id="claudemd" class="section level1">
@@ -71,7 +71,8 @@
 <span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a><span class="ex">Rscript</span> dev/vignettes/precompile.R</span></code></pre></div>
 <div class="section level3">
 <h3 id="compilation">Compilation<a class="anchor" aria-label="anchor" href="#compilation"></a></h3>
-<p>The configure script detects or compiles <code>libmbedtls</code> (&gt;= 2.5.0) and <code>libnng</code> (&gt;= 1.11.0), then generates <code>src/Makevars</code>. To force compilation of bundled libraries: <code>Sys.setenv(NANONEXT_LIBS = 1)</code>.</p>
+<p>The <code>configure</code> script detects a system <code>libmbedtls</code> (&gt;= 3.0.0) and <code>libnng</code> (&gt;= 1.12.0); if not found, the bundled sources are compiled <strong>directly into <code>nanonext.so</code></strong> via explicit per-object rules in <code>src/Makevars</code> (no cmake, no static archives, no install step). To force compilation of the bundled libraries: <code>Sys.setenv(NANONEXT_LIBS = 1)</code>.</p>
+<p><code>configure</code> ports NNG’s POSIX feature probes to portable shell (setting the <code>NNG_HAVE_*</code> macros and selecting the poller / random-source variant), then substitutes the include flags, defines, link flags and bundled object lists into <code>src/Makevars.in</code>. Windows uses fully static <code>src/Makevars.win</code> / <code>src/Makevars.ucrt</code> (no configure step). All three Makevars are <strong>generated artifacts</strong> (“do not edit by hand”) produced by <code>tools/generate_makevars.sh</code> from the <code>tools/*.list</code> source lists — the single source of truth. See <code>## Build System</code> below.</p>
 </div>
 <div class="section level3">
 <h3 id="testing">Testing<a class="anchor" aria-label="anchor" href="#testing"></a></h3>
@@ -124,7 +125,7 @@
 </ul></div>
 <div class="section level3">
 <h3 id="external-dependencies">External Dependencies<a class="anchor" aria-label="anchor" href="#external-dependencies"></a></h3>
-<p>Bundled in source: - <code>libnng</code> v1.11.0 (messaging library) - in <code>src/nng/</code> - <code>libmbedtls</code> v3.6.5 (TLS implementation) - in <code>src/mbedtls/</code></p>
+<p>Bundled in source: - <code>libnng</code> v1.12.0 (messaging library) - in <code>src/nng/</code> - <code>libmbedtls</code> v3.6.5 (TLS implementation) - in <code>src/mbedtls/</code></p>
 </div>
 <div class="section level3">
 <h3 id="thread-to-r-callback-pattern">Thread-to-R Callback Pattern<a class="anchor" aria-label="anchor" href="#thread-to-r-callback-pattern"></a></h3>
@@ -164,13 +165,25 @@
 </div>
 <div class="section level2">
 <h2 id="build-system">Build System<a class="anchor" aria-label="anchor" href="#build-system"></a></h2>
+<p>The bundled NNG and Mbed TLS sources compile directly into <code>nanonext.so</code>/<code>.dll</code> (no cmake, no static archives, no install step). cmake is <strong>not</strong> a build dependency; it is used only by the vendoring tooling as a verification oracle.</p>
 <ul><li>
-<code>configure</code> - POSIX shell script for Unix-like systems</li>
+<code>configure</code> - POSIX shell script for Unix-like systems. Detects system libs; if absent, ports NNG’s POSIX feature probes (<code>nng_check_func</code>/<code>sym</code>/<code>lib</code>/<code>struct_member</code>) to set the <code>NNG_HAVE_*</code> macros, selects the poller (<code>port_create</code>/<code>kqueue</code>/<code>epoll</code>+<code>eventfd</code>/<code>poll</code>) and random source (<code>arc4random</code>/<code>getrandom</code>/<code>urandom</code>), and substitutes flags + object lists into <code>src/Makevars.in</code>. No <code>configure.win</code>/<code>configure.ucrt</code> (Windows Makevars are static).</li>
+<li>Unsupported-platform fallback: when the bundled NNG is needed but the target lacks NNG’s POSIX threading/socket headers (a genuinely non-POSIX OS), <code>configure</code> builds a <strong>stub</strong> instead of failing. The probe is compile-only (header presence) by design — WebAssembly/Emscripten provides these headers and builds fine (<code>-pthread</code> only enables runtime threading), so a wasm build must not stub. <code>generate_stub</code> emits <code>src/stub.c</code> (a generated artifact) registering every routine from <code>src/init.c</code>’s <code>callMethods[]</code> bound to a single <code>Rf_error</code> stub, plus a trivial <code>OBJECTS = stub.o</code> Makevars; the package installs and loads but its functions error when called, keeping dependents installable. The probe only fires when a trivial compile succeeds (a broken compiler fails the real build loudly, not silently stubbed). Every platform CRAN checks has the POSIX layer, so the stub never displaces the real build there.</li>
 <li>
-<code>configure.win</code> / <code>configure.ucrt</code> - Windows configurations</li>
-<li>Requires <code>cmake</code> if compiling bundled libraries</li>
-<li>Environment variables: <code>INCLUDE_DIR</code>, <code>LIB_DIR</code>, <code>NANONEXT_LIBS</code>
-</li>
+<code>src/Makevars.in</code> (POSIX template), <code>src/Makevars.win</code> / <code>src/Makevars.ucrt</code> (static, identical, biarch via R’s per-sub-arch build) - <strong>generated artifacts</strong>, “do not edit by hand”.</li>
+<li>
+<code>tools/</code> - the single source of truth and maintenance contract:
+<ul><li>
+<code>tools/*.list</code> - authoritative object lists (the only hand-/auto-maintained build inputs).</li>
+<li>
+<code>tools/generate_makevars.sh</code> - emits the three Makevars from the <code>.list</code> files.</li>
+<li>
+<code>tools/update_nng.sh</code> / <code>tools/update_mbedtls.sh</code> - re-vendor a pinned upstream tag, strip cmake, apply patches, regenerate lists + Makevars. <code>--verify</code> diffs the lists against a fresh cmake oracle (drift guard).</li>
+<li>
+<code>tools/patch_nng.sh</code> / <code>tools/patch_mbedtls.sh</code> - idempotent patches neutering the compiled-code diagnostics (NNG debug <code>abort</code>/<code>vprintf</code>/<code>stderr</code> → <code>__builtin_trap</code>/no-ops; Mbed TLS <code>printf</code>/<code>fprintf</code>/<code>exit</code> → no-op <code>*_MACRO</code>s) so <code>tools:::check_compiled_code()</code> is clean.</li>
+</ul></li>
+<li>Symbol visibility: <code>PKG_CFLAGS = $(C_VISIBILITY)</code> (<code>-fvisibility=hidden</code>) reaches every object via <code>$(ALL_CFLAGS)</code>, hiding the bundled <code>nng_*</code>/<code>mbedtls_*</code> symbols (verify with <code>nm</code>).</li>
+<li>Environment variables: <code>INCLUDE_DIR</code>, <code>LIB_DIR</code>, <code>NANONEXT_LIBS</code> (force-bundled build).</li>
 </ul></div>
 <div class="section level2">
 <h2 id="code-style">Code Style<a class="anchor" aria-label="anchor" href="#code-style"></a></h2>

@@ -52,7 +52,7 @@ retrieve the value at `$data`.
 ``` r
 
 call_aio(aio)$data |> str()
-#>  num [1:100000000] -0.63 0.883 1.134 -0.474 -0.237 ...
+#>  num [1:100000000] -0.75 -0.524 0.122 1.186 1.651 ...
 ```
 
 Since [`call_aio()`](https://nanonext.r-lib.org/reference/call_aio.md)
@@ -187,3 +187,55 @@ milliseconds.
 The final value resolves to a timeout error (integer 5 classed as
 ‘errorValue’). All error codes are classed as ‘errorValue’ for easy
 distinction from integer message values.
+
+### 4. Device (Broker / Proxy)
+
+A device is a zero-copy forwarder that relays raw messages between two
+Sockets, providing the building block for brokers and proxies.
+[`device_aio()`](https://nanonext.r-lib.org/reference/device_aio.md)
+runs the device asynchronously on background threads, returning
+immediately.
+
+The two Sockets must be opened in raw mode and use complementary
+protocols. Here a pair of raw ‘pair’ Sockets bridges two endpoints: a
+message arriving on one side is relayed out of the other.
+
+``` r
+
+front <- socket("pair", listen = "inproc://frontend", raw = TRUE)
+back <- socket("pair", listen = "inproc://backend", raw = TRUE)
+
+# start the forwarder; it runs in the background until stopped
+d <- device_aio(front, back)
+
+# a client on each side of the bridge
+c1 <- socket("pair", dial = "inproc://frontend")
+c2 <- socket("pair", dial = "inproc://backend")
+
+# a message sent by c1 is relayed through the device and received by c2
+c1 |> send("relayed via the device", mode = "raw")
+#> [1] 0
+c2 |> recv(mode = "character", block = 500)
+#> [1] "relayed via the device"
+
+close(c1)
+close(c2)
+```
+
+While the device runs, its `$result` is ‘unresolved’ (logical NA). Stop
+it with
+[`stop_aio()`](https://nanonext.r-lib.org/reference/stop_aio.md), or by
+closing either Socket, and the result resolves to an ‘errorValue’.
+
+``` r
+
+d$result
+#> 'unresolved' logi NA
+
+stop_aio(d)
+d$result
+#> 'errorValue' int 20 | Operation canceled
+
+close(front)
+close(back)
+```

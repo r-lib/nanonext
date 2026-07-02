@@ -96,7 +96,7 @@ socket$dialer
 #> [[1]]
 #> < nanoDialer >
 #>  - id: 3
-#>  - socket: 7
+#>  - socket: 9
 #>  - state: not started
 #>  - url: inproc://nanodial
 #> 
@@ -105,7 +105,7 @@ socket$dialer
 #> [[1]]
 #> < nanoDialer >
 #>  - id: 3
-#>  - socket: 7
+#>  - socket: 9
 #>  - state: started
 #>  - url: inproc://nanodial
 #> 
@@ -118,7 +118,7 @@ nano$dialer
 #> [[1]]
 #> < nanoDialer >
 #>  - id: 4
-#>  - socket: 8
+#>  - socket: 10
 #>  - state: not started
 #>  - url: inproc://nanodial
 #> 
@@ -127,7 +127,7 @@ nano$dialer
 #> [[1]]
 #> < nanoDialer >
 #>  - id: 4
-#>  - socket: 8
+#>  - socket: 10
 #>  - state: started
 #>  - url: inproc://nanodial
 #> 

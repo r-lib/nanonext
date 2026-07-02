@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.9.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,9 +43,28 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/r-lib/nanonext/blob/v1.9.1/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/r-lib/nanonext/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.10.0" id="nanonext-1100">nanonext 1.10.0<a class="anchor" aria-label="anchor" href="#nanonext-1100"></a></h2><p class="text-muted">CRAN release: 2026-07-02</p>
+<div class="section level5">
+<h5 id="new-features-1-10-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-1-10-0"></a></h5>
+<ul><li>Adds <code><a href="../reference/device_aio.html">device_aio()</a></code> to run an asynchronous device: a zero-copy forwarder that relays raw messages between two Sockets, for building brokers and proxies.</li>
+</ul></div>
+<div class="section level5">
+<h5 id="updates-1-10-0">Updates<a class="anchor" aria-label="anchor" href="#updates-1-10-0"></a></h5>
+<ul><li>
+<code><a href="../reference/ncurl.html">ncurl()</a></code>, <code><a href="../reference/ncurl_aio.html">ncurl_aio()</a></code> and <code><a href="../reference/ncurl_session.html">ncurl_session()</a></code> again accept a named list (as well as a named character vector) for the <code>headers</code> argument.</li>
+<li>An error signalled by an HTTP server request handler, which maps to a 500 response, no longer additionally prints the error to the console.</li>
+<li>Fixes receiving using <code>mode = 'character'</code> so that a received character vector is exactly that which was sent, preserving empty strings in all positions (previously trailing empty strings were dropped, and elements could be lost when leading empty strings were present).</li>
+<li>Fixes potential message corruption when built against a system ‘libnng’, regression in 1.9.0.</li>
+<li>Fixes a ‘Resource busy’ error triggered by re-using a ‘tlsConfig’ object for more than one connection.</li>
+<li>Updates the bundled NNG version to 1.12.0, and the bundled Mbed TLS sources to remove unused modules.</li>
+<li>Increases the minimum supported system <code>libnng</code> version to &gt;= 1.12.0, and ‘libmbedtls’ version to &gt;= 3.0.</li>
+<li>Removes the build-time dependency on ‘cmake’. Compiling the bundled NNG and Mbed TLS sources now only require a C compiler.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.9.1" id="nanonext-191">nanonext 1.9.1<a class="anchor" aria-label="anchor" href="#nanonext-191"></a></h2><p class="text-muted">CRAN release: 2026-06-01</p>
 <div class="section level5">

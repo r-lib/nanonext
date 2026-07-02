@@ -28,6 +28,7 @@ Socket and nano object creation
   [`close(`*`<nanoSocket>`*`)`](https://nanonext.r-lib.org/reference/close.md)
   [`close(`*`<nanoStream>`*`)`](https://nanonext.r-lib.org/reference/close.md)
   : Close Connection
+- [`reap()`](https://nanonext.r-lib.org/reference/reap.md) : Reap
 - [`protocols`](https://nanonext.r-lib.org/reference/protocols.md) :
   Protocols (Documentation)
 - [`transports`](https://nanonext.r-lib.org/reference/transports.md) :
@@ -79,6 +80,8 @@ Asynchronous operations and promises
   : Make recvAio Promise
 - [`as.promise(`*`<ncurlAio>`*`)`](https://nanonext.r-lib.org/reference/as.promise.ncurlAio.md)
   : Make ncurlAio Promise
+- [`device_aio()`](https://nanonext.r-lib.org/reference/device_aio.md) :
+  Device (Async)
 
 ## Synchronization
 
@@ -193,7 +196,6 @@ Helper functions
   Utility
 - [`msleep()`](https://nanonext.r-lib.org/reference/msleep.md) : Sleep
   Utility
-- [`reap()`](https://nanonext.r-lib.org/reference/reap.md) : Reap
 - [`read_stdin()`](https://nanonext.r-lib.org/reference/read_stdin.md) :
   Read stdin
 - [`write_stdout()`](https://nanonext.r-lib.org/reference/write_stdout.md)

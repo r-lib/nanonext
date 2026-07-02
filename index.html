@@ -31,7 +31,7 @@
 
     <a class="navbar-brand me-2" href="index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.9.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -218,7 +218,7 @@
 <div class="section level4">
 <h4 id="linux--mac--solaris">Linux / Mac / Solaris<a class="anchor" aria-label="anchor" href="#linux--mac--solaris"></a>
 </h4>
-<p>Requires ‘libnng’ &gt;= v1.11.0 and ‘libmbedtls’ &gt;= 2.5.0, or ‘cmake’ to compile bundled libraries (libnng v1.11.1-pre, libmbedtls v3.6.5).</p>
+<p>Uses a system ‘libnng’ &gt;= v1.12.0 and ‘libmbedtls’ &gt;= v3.0.0 if present, otherwise compiles the bundled sources (libnng v1.12.0, libmbedtls v3.6.5) directly into the package - requiring only a C compiler.</p>
 <p>Recommended: Let the package compile bundled libraries for optimal performance:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>NANONEXT_LIBS <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
@@ -228,7 +228,7 @@
 <div class="section level4">
 <h4 id="windows">Windows<a class="anchor" aria-label="anchor" href="#windows"></a>
 </h4>
-<p>Requires Rtools. For R &gt;= 4.2, cmake is included. Earlier versions need cmake installed separately and added to PATH.</p>
+<p>Requires Rtools. The bundled libraries are compiled directly by Rtools - no additional tools are needed.</p>
 </div>
 </div>
 <div class="section level3">

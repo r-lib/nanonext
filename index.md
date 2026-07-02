@@ -117,8 +117,10 @@ install.packages("nanonext", repos = "https://r-lib.r-universe.dev")
 
 #### Linux / Mac / Solaris
 
-Requires ‘libnng’ \>= v1.11.0 and ‘libmbedtls’ \>= 2.5.0, or ‘cmake’ to
-compile bundled libraries (libnng v1.11.1-pre, libmbedtls v3.6.5).
+Uses a system ‘libnng’ \>= v1.12.0 and ‘libmbedtls’ \>= v3.0.0 if
+present, otherwise compiles the bundled sources (libnng v1.12.0,
+libmbedtls v3.6.5) directly into the package - requiring only a C
+compiler.
 
 Recommended: Let the package compile bundled libraries for optimal
 performance:
@@ -134,8 +136,8 @@ libmbedtls-devel. Set `INCLUDE_DIR` and `LIB_DIR` for custom locations.
 
 #### Windows
 
-Requires Rtools. For R \>= 4.2, cmake is included. Earlier versions need
-cmake installed separately and added to PATH.
+Requires Rtools. The bundled libraries are compiled directly by Rtools -
+no additional tools are needed.
 
 ### Links
 

@@ -32,9 +32,20 @@ Rscript dev/vignettes/precompile.R
 
 ### Compilation
 
-The configure script detects or compiles `libmbedtls` (\>= 2.5.0) and
-`libnng` (\>= 1.11.0), then generates `src/Makevars`. To force
-compilation of bundled libraries: `Sys.setenv(NANONEXT_LIBS = 1)`.
+The `configure` script detects a system `libmbedtls` (\>= 3.0.0) and
+`libnng` (\>= 1.12.0); if not found, the bundled sources are compiled
+**directly into `nanonext.so`** via explicit per-object rules in
+`src/Makevars` (no cmake, no static archives, no install step). To force
+compilation of the bundled libraries: `Sys.setenv(NANONEXT_LIBS = 1)`.
+
+`configure` ports NNG’s POSIX feature probes to portable shell (setting
+the `NNG_HAVE_*` macros and selecting the poller / random-source
+variant), then substitutes the include flags, defines, link flags and
+bundled object lists into `src/Makevars.in`. Windows uses fully static
+`src/Makevars.win` / `src/Makevars.ucrt` (no configure step). All three
+Makevars are **generated artifacts** (“do not edit by hand”) produced by
+`tools/generate_makevars.sh` from the `tools/*.list` source lists — the
+single source of truth. See `## Build System` below.
 
 ### Testing
 
@@ -109,7 +120,7 @@ definitions
 
 ### External Dependencies
 
-Bundled in source: - `libnng` v1.11.0 (messaging library) - in
+Bundled in source: - `libnng` v1.12.0 (messaging library) - in
 `src/nng/` - `libmbedtls` v3.6.5 (TLS implementation) - in
 `src/mbedtls/`
 
@@ -169,10 +180,55 @@ regenerate.
 
 ## Build System
 
-- `configure` - POSIX shell script for Unix-like systems
-- `configure.win` / `configure.ucrt` - Windows configurations
-- Requires `cmake` if compiling bundled libraries
+The bundled NNG and Mbed TLS sources compile directly into
+`nanonext.so`/`.dll` (no cmake, no static archives, no install step).
+cmake is **not** a build dependency; it is used only by the vendoring
+tooling as a verification oracle.
+
+- `configure` - POSIX shell script for Unix-like systems. Detects system
+  libs; if absent, ports NNG’s POSIX feature probes
+  (`nng_check_func`/`sym`/`lib`/`struct_member`) to set the `NNG_HAVE_*`
+  macros, selects the poller
+  (`port_create`/`kqueue`/`epoll`+`eventfd`/`poll`) and random source
+  (`arc4random`/`getrandom`/`urandom`), and substitutes flags + object
+  lists into `src/Makevars.in`. No `configure.win`/`configure.ucrt`
+  (Windows Makevars are static).
+- Unsupported-platform fallback: when the bundled NNG is needed but the
+  target lacks NNG’s POSIX threading/socket headers (a genuinely
+  non-POSIX OS), `configure` builds a **stub** instead of failing. The
+  probe is compile-only (header presence) by design —
+  WebAssembly/Emscripten provides these headers and builds fine
+  (`-pthread` only enables runtime threading), so a wasm build must not
+  stub. `generate_stub` emits `src/stub.c` (a generated artifact)
+  registering every routine from `src/init.c`’s `callMethods[]` bound to
+  a single `Rf_error` stub, plus a trivial `OBJECTS = stub.o` Makevars;
+  the package installs and loads but its functions error when called,
+  keeping dependents installable. The probe only fires when a trivial
+  compile succeeds (a broken compiler fails the real build loudly, not
+  silently stubbed). Every platform CRAN checks has the POSIX layer, so
+  the stub never displaces the real build there.
+- `src/Makevars.in` (POSIX template), `src/Makevars.win` /
+  `src/Makevars.ucrt` (static, identical, biarch via R’s per-sub-arch
+  build) - **generated artifacts**, “do not edit by hand”.
+- `tools/` - the single source of truth and maintenance contract:
+  - `tools/*.list` - authoritative object lists (the only
+    hand-/auto-maintained build inputs).
+  - `tools/generate_makevars.sh` - emits the three Makevars from the
+    `.list` files.
+  - `tools/update_nng.sh` / `tools/update_mbedtls.sh` - re-vendor a
+    pinned upstream tag, strip cmake, apply patches, regenerate lists +
+    Makevars. `--verify` diffs the lists against a fresh cmake oracle
+    (drift guard).
+  - `tools/patch_nng.sh` / `tools/patch_mbedtls.sh` - idempotent patches
+    neutering the compiled-code diagnostics (NNG debug
+    `abort`/`vprintf`/`stderr` → `__builtin_trap`/no-ops; Mbed TLS
+    `printf`/`fprintf`/`exit` → no-op `*_MACRO`s) so
+    `tools:::check_compiled_code()` is clean.
+- Symbol visibility: `PKG_CFLAGS = $(C_VISIBILITY)`
+  (`-fvisibility=hidden`) reaches every object via `$(ALL_CFLAGS)`,
+  hiding the bundled `nng_*`/`mbedtls_*` symbols (verify with `nm`).
 - Environment variables: `INCLUDE_DIR`, `LIB_DIR`, `NANONEXT_LIBS`
+  (force-bundled build).
 
 ## Code Style
 
