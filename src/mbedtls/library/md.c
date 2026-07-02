@@ -233,6 +233,9 @@ static int md_can_use_psa(const mbedtls_md_info_t *info)
 }
 #endif
 
+#if defined(__GNUC__) && !defined(__clang__)
+__attribute__((noinline, noclone))
+#endif
 void mbedtls_md_init(mbedtls_md_context_t *ctx)
 {
 
