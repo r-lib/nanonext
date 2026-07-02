@@ -150,4 +150,20 @@ patch_perl x509write.c '
   s/\QMBEDTLS_ASN1_CONTEXT_SPECIFIC | cur->node.type));\E/(unsigned char) (MBEDTLS_ASN1_CONTEXT_SPECIFIC | cur->node.type)));/;
 '
 
+# ---------------------------------------------------------------------------
+echo "3. GCC LTO false-positive guard (mbedtls_md_init) ..."
+# The CRAN gcc-SAN build (GCC + -flto) reports a -Wstringop-overflow false
+# positive on the memset in mbedtls_md_init: "writing 24 bytes into a region
+# of size 0". Under LTO, GCC's interprocedural analysis propagates a spurious
+# zero object-size from a caller into the memset. noinline/noclone keep a
+# single function body with an opaque pointer parameter, so __builtin_object_size
+# stays unknown and the propagation cannot happen -- rewriting the memset as
+# member assignments does NOT help (it merely relocates the warning to
+# -Warray-bounds). Guarded to real GCC: clang defines __GNUC__ too but has no
+# such false positive and would emit -Wunknown-attributes on noclone. The regex
+# tolerates an already-present block, so re-running is a no-op.
+patch_perl md.c '
+  s/(?:#if defined\(__GNUC__\) && !defined\(__clang__\)\n__attribute__\(\(noinline, noclone\)\)\n#endif\n)?(void mbedtls_md_init\(mbedtls_md_context_t \*ctx\)\n\{)/#if defined(__GNUC__) && !defined(__clang__)\n__attribute__((noinline, noclone))\n#endif\n$1/;
+'
+
 echo "=== patch_mbedtls.sh complete ==="
