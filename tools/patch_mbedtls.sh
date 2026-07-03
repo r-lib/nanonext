@@ -150,4 +150,27 @@ patch_perl x509write.c '
   s/\QMBEDTLS_ASN1_CONTEXT_SPECIFIC | cur->node.type));\E/(unsigned char) (MBEDTLS_ASN1_CONTEXT_SPECIFIC | cur->node.type)));/;
 '
 
+# ---------------------------------------------------------------------------
+echo "3. GCC LTO false-positive guard (context-init memsets) ..."
+# CRAN gcc-SAN (GCC 15 + -flto) reports -Wstringop-overflow false positives on the
+# context-init memsets md.c:239 (24 bytes) and cipher.c:189 (88 bytes): the inlining
+# chain (lto1: "destination object is likely at address zero") roots in
+# ssl_handshake_init, which mbedtls_calloc()s ssl->handshake / ssl->transform_negotiate
+# and returns on NULL, but LTO loses the non-NULL fact for the inlined init memset.
+#
+# The guard must sit on the *leaf* initialisers, not the ssl_tls.c helpers that call
+# them: the helpers have a single caller, so IPA-CP propagates the poisoned pointer
+# into the one body regardless of noinline/noclone. md_init / cipher_init have many
+# callers, so noinline/noclone keeps their parameter opaque (unknown object size) and
+# no caller can trip it. These are the only two reachable leaves (ssl_session_init is
+# not inlined). Rewriting the memset as member stores does NOT help (moves it to
+# -Warray-bounds). Guarded to real GCC -- clang has no such positive and warns
+# -Wunknown-attributes on noclone. The regex tolerates a present block (re-run = no-op).
+patch_perl md.c '
+  s/(?:#if defined\(__GNUC__\) && !defined\(__clang__\)\n__attribute__\(\(noinline, noclone\)\)\n#endif\n)?(void mbedtls_md_init\(mbedtls_md_context_t \*ctx\)\n\{)/#if defined(__GNUC__) && !defined(__clang__)\n__attribute__((noinline, noclone))\n#endif\n$1/;
+'
+patch_perl cipher.c '
+  s/(?:#if defined\(__GNUC__\) && !defined\(__clang__\)\n__attribute__\(\(noinline, noclone\)\)\n#endif\n)?(void mbedtls_cipher_init\(mbedtls_cipher_context_t \*ctx\)\n\{)/#if defined(__GNUC__) && !defined(__clang__)\n__attribute__((noinline, noclone))\n#endif\n$1/;
+'
+
 echo "=== patch_mbedtls.sh complete ==="
