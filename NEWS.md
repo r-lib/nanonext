@@ -1,5 +1,7 @@
 # nanonext (development version)
 
+* Updates the package hex logo.
+
 # nanonext 1.10.0
 
 #### New Features

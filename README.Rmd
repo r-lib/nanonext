@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# nanonext <a href="https://nanonext.r-lib.org/" alt="nanonext"><img src="man/figures/logo.png" alt="nanonext logo" align="right" width="120" /></a>
+# nanonext <a href="https://nanonext.r-lib.org/" alt="nanonext"><img src="man/figures/logo.svg" alt="nanonext logo" align="right" width="120" /></a>
 
 <!-- badges: start -->
 [![CRAN status](https://www.r-pkg.org/badges/version/nanonext)](https://CRAN.R-project.org/package=nanonext)

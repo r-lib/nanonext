@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# nanonext <a href="https://nanonext.r-lib.org/" alt="nanonext"><img src="man/figures/logo.png" alt="nanonext logo" align="right" width="120" /></a>
+# nanonext <a href="https://nanonext.r-lib.org/" alt="nanonext"><img src="man/figures/logo.svg" alt="nanonext logo" align="right" width="120" /></a>
 
 <!-- badges: start -->
 
