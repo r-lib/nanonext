@@ -1,6 +1,6 @@
 # nanonext (development version)
 
-* Updates the package hex logo.
+* Updates the nanonext hex logo.
 
 # nanonext 1.10.0
 
