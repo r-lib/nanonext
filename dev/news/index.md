@@ -2,6 +2,8 @@
 
 ## nanonext (development version)
 
+- Updates the nanonext hex logo.
+
 ## nanonext 1.10.0
 
 CRAN release: 2026-07-02
