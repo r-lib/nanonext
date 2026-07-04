@@ -2,9 +2,4 @@
 
 0 errors | 0 warnings | 0 notes
 
-## revdepcheck results
-
-We checked 8 reverse dependencies, comparing R CMD check results across CRAN and dev versions of this package.
-
- * We saw 0 new problems
- * We failed to check 0 packages
+This submission fixes the warning from the GCC-ASAN machine. It is a known false positive arising from the use of LTO on that machine. We prevent inlining by the compiler for those specific cases.
