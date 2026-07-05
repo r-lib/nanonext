@@ -2,7 +2,11 @@
 
 ## nanonext (development version)
 
-- Updates the nanonext hex logo.
+- Adds
+  [`run_event_loop()`](https://nanonext.r-lib.org/dev/reference/run_event_loop.md)
+  for running the ‘later’ event loop to process HTTP/WebSocket server
+  ([`http_server()`](https://nanonext.r-lib.org/dev/reference/http_server.md))
+  callbacks on R’s main thread.
 
 ## nanonext 1.10.0
 
