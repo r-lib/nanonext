@@ -84,6 +84,7 @@ reference:
   - handler_inline
   - handler_redirect
   - format_sse
+  - run_event_loop
 
 - title: TLS
   desc: Secure connections

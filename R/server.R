@@ -25,7 +25,7 @@
 #'
 #' WebSocket and streaming callbacks are executed on R's main thread via the
 #' \pkg{later} package. To process callbacks, you must run the event loop
-#' (e.g., using `later::run_now()` in a loop), or use `$serve()` which
+#' (e.g., using `run_event_loop()` in a loop), or use `$serve()` which
 #' handles this automatically.
 #'
 #' Requires the \pkg{later} package.
@@ -48,7 +48,7 @@
 #'   )
 #' )
 #' server$start()
-#' # Run event loop: repeat later::run_now(Inf)
+#' # Run event loop: repeat run_event_loop(1)
 #' server$close()
 #'
 #' # HTTP + WebSocket server
@@ -91,7 +91,7 @@
 #'   tls = tls_config(client = cert$client),
 #'   timeout = 2000
 #' )
-#' while (unresolved(aio)) later::run_now(0.1)
+#' while (unresolved(aio)) run_event_loop(1)
 #'
 #' aio$status
 #' aio$data
@@ -114,10 +114,28 @@ http_server <- function(url, handlers = list(), tls = NULL) {
     on.exit(.Call(rnng_http_server_close, srv))
     .Call(rnng_http_server_start, srv)
     cat(sprintf("Serving at %s - press Ctrl+C to stop\n", attr(srv, "url")))
-    repeat later::run_now(Inf)
+    repeat run_event_loop()
   }
   srv
 }
+
+#' Run the Event Loop
+#'
+#' Runs the \pkg{later} event loop, blocking until the next event and
+#' dispatching any scheduled callbacks. Used to process a server's (see
+#' [http_server()]) or other asynchronous operations' callbacks on R's main
+#' thread.
+#'
+#' @param timeout maximum time to wait in seconds. The default `Inf` blocks
+#'   until an event occurs.
+#'
+#' @return Logical `TRUE` if a callback was executed, `FALSE` otherwise.
+#'
+#' @details Requires the \pkg{later} package.
+#'
+#' @export
+#'
+run_event_loop <- function(timeout = Inf) later::run_now(timeout)
 
 #' Create HTTP Handler
 #'
