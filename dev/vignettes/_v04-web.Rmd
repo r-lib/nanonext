@@ -166,7 +166,7 @@ server$serve()
 
 ```
 
-`$serve()` is a blocking call that starts the server, runs the event loop to process requests, and automatically closes the server on interrupt (Ctrl+C). For non-blocking use, call `$start()` and `$close()` separately, with `repeat later::run_now(Inf)` to run the event loop manually.
+`$serve()` is a blocking call that starts the server, runs the event loop to process requests, and automatically closes the server on interrupt (Ctrl+C). For non-blocking use, call `$start()` and `$close()` separately, with `repeat run_event_loop()` to run the event loop manually.
 
 Specifying port `0` in the URL lets the OS assign an available port. The actual port is reflected in `server$url` after `$start()` or `$serve()`, making it easy to set up test servers without port conflicts.
 
@@ -389,7 +389,7 @@ server
 
 # HTTPS client request
 aio <- ncurl_aio(paste0(server$url, "/"), tls = cli)
-while (unresolved(aio)) later::run_now(1)
+while (unresolved(aio)) run_event_loop(1)
 aio$status
 aio$data
 
