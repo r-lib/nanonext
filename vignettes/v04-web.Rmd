@@ -470,7 +470,7 @@ server
 
 # HTTPS client request
 aio <- ncurl_aio(paste0(server$url, "/"), tls = cli)
-while (unresolved(aio)) run_event_loop(1)
+while (unresolved(aio)) run_event_loop(1000)
 #> {"args":{},"headers":{"host":"postman-echo.com","accept-encoding":"gzip, br","x-forwarded-proto":"https"},"url":"https://postman-echo.com/get"}
 aio$status
 #> [1] 200

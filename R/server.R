@@ -48,7 +48,7 @@
 #'   )
 #' )
 #' server$start()
-#' # Run event loop: repeat run_event_loop(1)
+#' # Run event loop: repeat run_event_loop(1000)
 #' server$close()
 #'
 #' # HTTP + WebSocket server
@@ -91,7 +91,7 @@
 #'   tls = tls_config(client = cert$client),
 #'   timeout = 2000
 #' )
-#' while (unresolved(aio)) run_event_loop(1)
+#' while (unresolved(aio)) run_event_loop(1000)
 #'
 #' aio$status
 #' aio$data
@@ -126,7 +126,7 @@ http_server <- function(url, handlers = list(), tls = NULL) {
 #' [http_server()]) or other asynchronous operations' callbacks on R's main
 #' thread.
 #'
-#' @param timeout maximum time to wait in seconds. The default `Inf` blocks
+#' @param timeout maximum time to wait in milliseconds. The default `Inf` blocks
 #'   until an event occurs.
 #'
 #' @return Logical `TRUE` if a callback was executed, `FALSE` otherwise.
@@ -135,7 +135,7 @@ http_server <- function(url, handlers = list(), tls = NULL) {
 #'
 #' @export
 #'
-run_event_loop <- function(timeout = Inf) later::run_now(timeout)
+run_event_loop <- function(timeout = Inf) later::run_now(timeout / 1000)
 
 #' Create HTTP Handler
 #'

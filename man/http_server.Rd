@@ -59,7 +59,7 @@ server <- http_server(
   )
 )
 server$start()
-# Run event loop: repeat run_event_loop(1)
+# Run event loop: repeat run_event_loop(1000)
 server$close()
 
 # HTTP + WebSocket server
@@ -102,7 +102,7 @@ aio <- ncurl_aio(
   tls = tls_config(client = cert$client),
   timeout = 2000
 )
-while (unresolved(aio)) run_event_loop(1)
+while (unresolved(aio)) run_event_loop(1000)
 
 aio$status
 aio$data

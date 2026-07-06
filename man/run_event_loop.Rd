@@ -7,7 +7,7 @@
 run_event_loop(timeout = Inf)
 }
 \arguments{
-\item{timeout}{maximum time to wait in seconds. The default \code{Inf} blocks
+\item{timeout}{maximum time to wait in milliseconds. The default \code{Inf} blocks
 until an event occurs.}
 }
 \value{
