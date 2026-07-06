@@ -15,8 +15,8 @@ run_event_loop(timeout = Inf)
 
 - timeout:
 
-  maximum time to wait in seconds. The default `Inf` blocks until an
-  event occurs.
+  maximum time to wait in milliseconds. The default `Inf` blocks until
+  an event occurs.
 
 ## Value
 

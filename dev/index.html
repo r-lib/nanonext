@@ -161,7 +161,7 @@
 <span></span>
 <span><span class="co"># Async HTTPS client</span></span>
 <span><span class="va">aio</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ncurl_aio.html">ncurl_aio</a></span><span class="op">(</span><span class="va">server</span><span class="op">$</span><span class="va">url</span>, tls <span class="op">=</span> <span class="fu"><a href="reference/tls_config.html">tls_config</a></span><span class="op">(</span>client <span class="op">=</span> <span class="va">cert</span><span class="op">$</span><span class="va">client</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="kw">while</span> <span class="op">(</span><span class="fu"><a href="reference/unresolved.html">unresolved</a></span><span class="op">(</span><span class="va">aio</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="reference/run_event_loop.html">run_event_loop</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="kw">while</span> <span class="op">(</span><span class="fu"><a href="reference/unresolved.html">unresolved</a></span><span class="op">(</span><span class="va">aio</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="reference/run_event_loop.html">run_event_loop</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span></span>
 <span><span class="va">aio</span><span class="op">$</span><span class="va">data</span></span>
 <span><span class="co">#&gt; [1] "{\"status\":\"ok\"}"</span></span>
 <span></span>
