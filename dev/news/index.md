@@ -2,6 +2,10 @@
 
 ## nanonext (development version)
 
+## nanonext 1.10.1
+
+##### New Features
+
 - Adds
   [`run_event_loop()`](https://nanonext.r-lib.org/dev/reference/run_event_loop.md)
   for running the ‘later’ event loop to process HTTP/WebSocket server
