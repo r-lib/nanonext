@@ -15,7 +15,7 @@ NIST SP800-90A: Recommendation for Random Number Generation Using
 Deterministic Random Bit Generators. The implementation uses AES-256 as the
 underlying block cipher, with a derivation function, and an entropy collector
 combining entropy from multiple sources including at least one strong entropy
-source."><meta property="og:image" content="https://nanonext.r-lib.org/logo.png"><script src="https://cdn.jsdelivr.net/gh/posit-dev/supported-by-posit/js/badge.min.js" data-max-height="43" data-light-bg="#666f76" data-light-fg="#f9f9f9"></script><script defer data-domain="nanonext.r-lib.org,all.tidyverse.org" src="https://plausible.io/js/plausible.js"></script></head><body>
+source."><meta property="og:image" content="https://nanonext.r-lib.org/logo.svg"><script src="https://cdn.jsdelivr.net/gh/posit-dev/supported-by-posit/js/badge.min.js" data-max-height="43" data-light-bg="#666f76" data-light-fg="#f9f9f9"></script><script defer data-domain="nanonext.r-lib.org,all.tidyverse.org" src="https://plausible.io/js/plausible.js"></script></head><body>
     <a href="#container" class="visually-hidden-focusable">Skip to content</a>
 
 
@@ -23,7 +23,7 @@ source."><meta property="og:image" content="https://nanonext.r-lib.org/logo.png"
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.10.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.10.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -58,8 +58,8 @@ source."><meta property="og:image" content="https://nanonext.r-lib.org/logo.png"
 </nav><div class="container template-reference-topic" id="container">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Random Data Generation</h1>
-      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/v1.10.0/R/utils.R" class="external-link"><code>R/utils.R</code></a></small>
+      <img src="../logo.svg" class="logo" alt=""><h1>Random Data Generation</h1>
+      <small class="dont-index">Source: <a href="https://github.com/r-lib/nanonext/blob/main/R/utils.R" class="external-link"><code>R/utils.R</code></a></small>
       <div class="d-none name"><code>random.Rd</code></div>
     </div>
 
@@ -108,11 +108,11 @@ own pseudo-random number generators.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">random</span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "28"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "fe"</span>
 <span class="r-in"><span><span class="fu">random</span><span class="op">(</span><span class="fl">8L</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "d1c73224a8063877"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "0b14df9cdd78fd37"</span>
 <span class="r-in"><span><span class="fu">random</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">8L</span>, convert <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] fa d7 72 4a 46 53 8a a5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 76 0c 75 08 75 e9 df 46</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
@@ -127,7 +127,7 @@ own pseudo-random number generators.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
   </div></footer></body></html>

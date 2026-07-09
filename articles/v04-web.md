@@ -44,11 +44,11 @@ ncurl("https://postman-echo.com/post",
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Mon, 30 Mar 2026 22:16:56 GMT"
+#> [1] "Sun, 05 Jul 2026 19:15:16 GMT"
 #> 
 #> 
 #> $data
-#> [1] "{\"args\":{},\"data\":{\"key\":\"value\"},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"content-length\":\"16\",\"authorization\":\"Bearer APIKEY\",\"content-type\":\"application/json\",\"x-forwarded-proto\":\"https\"},\"json\":{\"key\":\"value\"},\"url\":\"https://postman-echo.com/post\"}"
+#> [1] "{\"args\":{},\"data\":{\"key\":\"value\"},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"content-length\":\"16\",\"accept-encoding\":\"gzip, br\",\"authorization\":\"Bearer APIKEY\",\"content-type\":\"application/json\",\"x-forwarded-proto\":\"https\"},\"json\":{\"key\":\"value\"},\"url\":\"https://postman-echo.com/post\"}"
 ```
 
 Specify `response = TRUE` to return all response headers.
@@ -62,7 +62,7 @@ ncurl("https://postman-echo.com/get",
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Mon, 30 Mar 2026 22:16:56 GMT"
+#> [1] "Sun, 05 Jul 2026 19:15:16 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -86,13 +86,13 @@ ncurl("https://postman-echo.com/get",
 #> [1] "DYNAMIC"
 #> 
 #> $headers$`Set-Cookie`
-#> [1] "sails.sid=s%3AtfbN2TazlwshVuIc_Y-l_CKCt7WScK3s.5Z30lz615FemZ1kCseuVIUD4G%2BEAGJfIiYaJhfFDiGU; Path=/; HttpOnly, __cf_bm=mX8EtQ27DKZ2X6uAi8_krT8AN00Bf9rEnI4aauRi_.Q-1774909016.466189-1.0.1.1-Wtzs3qUkHi8sLuARpkSeFbJ8vXysEL7bXJdqKa3EqeWEanTLfzrcxvOudXHbpT8moKuZq5KuQXmZr0dSvqRdXUuc_yS8Ms47TY9OL3jb0muL_3gxejNDW7cDvtDcmLKh; HttpOnly; Secure; Path=/; Domain=postman-echo.com; Expires=Mon, 30 Mar 2026 22:46:56 GMT, _cfuvid=PgOu7XWt97qqSBedwhgeqXxkMVIYi18WzlBWroe865k-1774909016.466189-1.0.1.1-z9Y3X8DXI.zgMtblcU7939qcoMyvq2dQUGtA9Mbi59o; HttpOnly; SameSite=None; Secure; Path=/; Domain=postman-echo.com"
+#> [1] "sails.sid=s%3AJIdUH3NucudRVnQSLVN7QfVEQU33l0RN.wc7HBFcv4XLsZ3G9eU9Ciu9%2FBel%2B6e%2BNsXhUj3EV9Ks; Path=/; HttpOnly, __cf_bm=a1KzDWBH09YSc2rP_ebFWq8XOfEvClkixjfDNiNTxh4-1783278916.2187917-1.0.1.1-yX1QjB79cofq5s6Pk_Cd.gdmhJkW5MMHcfteqjXy6K9v0ny_S1KSizHcKCdstu7oNgXRWbI5jT7E2ofybX.Q6l4kpI21QUxuPSC3.BrcEC0UcI7Ch9jij52vI.EYv0KN; HttpOnly; Secure; Path=/; Domain=postman-echo.com; Expires=Sun, 05 Jul 2026 19:45:16 GMT, _cfuvid=WI07rjRKmhgxa9V_aeSjLvL_MkJBjoZhMy0.jjGo4Vc-1783278916.2187917-1.0.1.1-yolJaR2uA.9DJfZ4VytqkOIgMUIH82OcidMtO3d8738; HttpOnly; SameSite=None; Secure; Path=/; Domain=postman-echo.com"
 #> 
 #> $headers$Server
 #> [1] "cloudflare"
 #> 
 #> $headers$`CF-RAY`
-#> [1] "9e4a7b48ed31cd3a-LHR"
+#> [1] "a168b28a5de3d29e-FRA"
 #> 
 #> 
 #> $data
@@ -117,13 +117,13 @@ res
 
 call_aio(res)$headers
 #> $date
-#> [1] "Mon, 30 Mar 2026 22:16:56 GMT"
+#> [1] "Sun, 05 Jul 2026 19:15:16 GMT"
 
 res$status
 #> [1] 200
 
 res$data
-#> [1] "{\"args\":{},\"data\":{\"async\":true},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"content-type\":\"application/json\",\"content-length\":\"15\",\"x-forwarded-proto\":\"https\"},\"json\":{\"async\":true},\"url\":\"https://postman-echo.com/post\"}"
+#> [1] "{\"args\":{},\"data\":{\"async\":true},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"content-length\":\"15\",\"content-type\":\"application/json\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"json\":{\"async\":true},\"url\":\"https://postman-echo.com/post\"}"
 ```
 
 ##### Promises Integration
@@ -163,21 +163,19 @@ transact(sess)
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Mon, 30 Mar 2026 22:16:57 GMT"
+#> [1] "Sun, 05 Jul 2026 19:15:17 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
 #> 
 #> 
 #> $data
-#>   [1] 7b 22 61 72 67 73 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b 22 68 6f
-#>  [26] 73 74 22 3a 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 63
-#>  [51] 6f 6e 74 65 6e 74 2d 74 79 70 65 22 3a 22 61 70 70 6c 69 63 61 74 69 6f 6e
-#>  [76] 2f 6a 73 6f 6e 22 2c 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 72 6f 74 6f
-#> [101] 22 3a 22 68 74 74 70 73 22 2c 22 61 63 63 65 70 74 2d 65 6e 63 6f 64 69 6e
-#> [126] 67 22 3a 22 67 7a 69 70 2c 20 62 72 22 7d 2c 22 75 72 6c 22 3a 22 68 74 74
-#> [151] 70 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 2f 67 65 74
-#> [176] 22 7d
+#>   [1] 7b 22 61 72 67 73 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b 22 68 6f 73 74 22 3a 22 70 6f
+#>  [33] 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 63 6f 6e 74 65 6e 74 2d 74 79 70 65 22 3a 22
+#>  [65] 61 70 70 6c 69 63 61 74 69 6f 6e 2f 6a 73 6f 6e 22 2c 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70
+#>  [97] 72 6f 74 6f 22 3a 22 68 74 74 70 73 22 2c 22 61 63 63 65 70 74 2d 65 6e 63 6f 64 69 6e 67 22 3a
+#> [129] 22 67 7a 69 70 2c 20 62 72 22 7d 2c 22 75 72 6c 22 3a 22 68 74 74 70 73 3a 2f 2f 70 6f 73 74 6d
+#> [161] 61 6e 2d 65 63 68 6f 2e 63 6f 6d 2f 67 65 74 22 7d
 
 close(sess)
 ```
@@ -269,7 +267,7 @@ server$serve()
 `$serve()` is a blocking call that starts the server, runs the event
 loop to process requests, and automatically closes the server on
 interrupt (Ctrl+C). For non-blocking use, call `$start()` and `$close()`
-separately, with `repeat later::run_now(Inf)` to run the event loop
+separately, with `repeat run_event_loop()` to run the event loop
 manually.
 
 Specifying port `0` in the URL lets the OS assign an available port. The
@@ -515,12 +513,12 @@ server <- http_server(
 server$start()
 server
 #> < nanoServer >
-#>  - url: https://127.0.0.1:55055 
+#>  - url: https://127.0.0.1:49772 
 #>  - state: started
 
 # HTTPS client request
 aio <- ncurl_aio(paste0(server$url, "/"), tls = cli)
-while (unresolved(aio)) later::run_now(1)
+while (unresolved(aio)) run_event_loop(1000)
 #> {"args":{},"headers":{"host":"postman-echo.com","accept-encoding":"gzip, br","x-forwarded-proto":"https"},"url":"https://postman-echo.com/get"}
 aio$status
 #> [1] 200

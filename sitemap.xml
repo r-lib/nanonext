@@ -72,6 +72,7 @@
 <url><loc>https://nanonext.r-lib.org/reference/recv_aio.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/reply.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/request.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/reference/run_event_loop.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/send.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/send_aio.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/serial_config.html</loc></url>

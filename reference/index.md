@@ -148,6 +148,8 @@ Server creation and request handlers
   : Create HTTP Redirect Handler
 - [`format_sse()`](https://nanonext.r-lib.org/reference/format_sse.md) :
   Format Server-Sent Event
+- [`run_event_loop()`](https://nanonext.r-lib.org/reference/run_event_loop.md)
+  : Run the Event Loop
 
 ## TLS
 

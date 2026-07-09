@@ -51,8 +51,8 @@ HTTP upgrade handshake and all WebSocket framing (RFC 6455).
 WebSocket and streaming callbacks are executed on R's main thread via
 the later package. To process callbacks, you must run the event loop
 (e.g., using
-[`later::run_now()`](https://later.r-lib.org/reference/run_now.html) in
-a loop), or use `$serve()` which handles this automatically.
+[`run_event_loop()`](https://nanonext.r-lib.org/reference/run_event_loop.md)
+in a loop), or use `$serve()` which handles this automatically.
 
 Requires the later package.
 
@@ -77,7 +77,7 @@ server <- http_server(
   )
 )
 server$start()
-# Run event loop: repeat later::run_now(Inf)
+# Run event loop: repeat run_event_loop(1000)
 server$close()
 
 # HTTP + WebSocket server
@@ -120,7 +120,7 @@ aio <- ncurl_aio(
   tls = tls_config(client = cert$client),
   timeout = 2000
 )
-while (unresolved(aio)) later::run_now(0.1)
+while (unresolved(aio)) run_event_loop(1000)
 
 aio$status
 aio$data

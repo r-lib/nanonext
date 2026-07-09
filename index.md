@@ -85,7 +85,7 @@ server$start()
 
 # Async HTTPS client
 aio <- ncurl_aio(server$url, tls = tls_config(client = cert$client))
-while (unresolved(aio)) later::run_now(1)
+while (unresolved(aio)) run_event_loop(1000)
 aio$data
 #> [1] "{\"status\":\"ok\"}"
 
