@@ -34,7 +34,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/r-lib/nanonext/blob/v1.10.1/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/r-lib/nanonext/blob/release/DESCRIPTION)
 
 Gao C (2026). *nanonext: Lightweight Toolkit for Messaging, Concurrency
 and the Web*. R package version 1.10.1, <https://nanonext.r-lib.org>.
