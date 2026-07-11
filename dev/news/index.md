@@ -4,6 +4,8 @@
 
 ## nanonext 1.10.1
 
+CRAN release: 2026-07-09
+
 ##### New Features
 
 - Adds
