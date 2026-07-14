@@ -150,6 +150,8 @@ parse_url <- function(url) .Call(rnng_url_parse, url)
 #'
 #' Is the object an ncurlSession (object of class 'ncurlSession').
 #'
+#' Is the object an ncurlStream (object of class 'ncurlStream').
+#'
 #' Is the object a Condition Variable (object of class 'conditionVariable').
 #'
 #' @param x an object.
@@ -186,6 +188,19 @@ is_nano <- function(x) inherits(x, c("nano", "nanoObject"))
 #' @export
 #'
 is_ncurl_session <- function(x) inherits(x, "ncurlSession")
+
+#' @examples
+#' opening <- ncurl_stream_aio("https://postman-echo.com/get", timeout = 1000L)
+#' head <- opening[]
+#' if (!is_error_value(head)) {
+#'   is_ncurl_stream(head$stream)
+#'   close(head$stream)
+#' }
+#'
+#' @rdname is_aio
+#' @export
+#'
+is_ncurl_stream <- function(x) inherits(x, "ncurlStream")
 
 #' Error Validators
 #'

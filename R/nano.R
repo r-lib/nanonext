@@ -370,11 +370,32 @@ print.ncurlAio <- function(x, ...) {
 
 #' @export
 #'
+print.ncurlStreamAio <- function(x, ...) {
+  cat("< ncurlStreamAio | $data >\n", file = stdout())
+  invisible(x)
+}
+
+#' @export
+#'
 print.ncurlSession <- function(x, ...) {
   cat(
     sprintf(
       "< ncurlSession > - %s\n",
       if (is.null(attr(x, "state"))) "transact() to return data" else "not active"
+    ),
+    file = stdout()
+  )
+  invisible(x)
+}
+
+#' @export
+#'
+print.ncurlStream <- function(x, ...) {
+  cat(
+    sprintf(
+      "< ncurlStream >\n - state: %s\n - url: %s\n",
+      attr(x, "state"),
+      attr(x, "url")
     ),
     file = stdout()
   )

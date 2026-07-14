@@ -280,6 +280,93 @@ as.promise.ncurlAio <- function(x) {
   promise
 }
 
+#' ncurl Stream Async
+#'
+#' Opens an HTTP(S) request asynchronously and resolves when the response head
+#' is available without consuming the response body. Body bytes are read with
+#' [ncurl_stream_recv()] as they arrive. Chunked transfer coding is decoded by
+#' the client, so each receive returns entity-body bytes only.
+#'
+#' @inheritParams ncurl
+#' @param buffer positive integer maximum number of transport bytes read by one
+#'   receive operation.
+#' @param timeout (optional) integer value in milliseconds. For
+#'   `ncurl_stream_aio()`, this bounds opening the request through receipt of the
+#'   response head. For `ncurl_stream_recv()`, it bounds that receive.
+#'
+#' @return `ncurl_stream_aio()` returns an 'ncurlStreamAio' (also a 'recvAio').
+#'   Its value is a named list containing `status`, `headers`, and `stream`,
+#'   where `stream` is an 'ncurlStream'. `ncurl_stream_recv()` returns a
+#'   'recvAio' whose value is a named list containing raw `data` and logical
+#'   `complete`.
+#'
+#' @section Lifecycle:
+#'
+#' Only one receive may be active for a stream. A receive resolves when body
+#' data is available, the response body is complete, an error occurs, or its
+#' timeout elapses. A receive error, including a timeout, is terminal for the
+#' stream. Close the stream after completion or error to release the HTTP
+#' connection. Closing a stream cancels an active receive.
+#'
+#' @section Signalling:
+#'
+#' Supplying `cv` signals the condition variable when the receive resolves,
+#' using the same signalling contract as [recv_aio()].
+#'
+#' @inheritSection ncurl Public Internet HTTPS
+#' @seealso [ncurl_aio()] for asynchronous transactions that collect the full
+#'   response body.
+#'
+#' @examplesIf interactive()
+#' opening <- ncurl_stream_aio(
+#'   "https://postman-echo.com/server-events/3",
+#'   timeout = 2000L
+#' )
+#' head <- opening[]
+#' if (!is_error_value(head)) {
+#'   chunk <- ncurl_stream_recv(head$stream, timeout = 2000L)[]
+#'   close(head$stream)
+#' }
+#'
+#' @export
+#'
+ncurl_stream_aio <- function(
+  url,
+  method = NULL,
+  headers = NULL,
+  data = NULL,
+  timeout = NULL,
+  tls = NULL,
+  buffer = 65536L
+)
+  data <- .Call(
+    rnng_ncurl_stream_aio,
+    url,
+    method,
+    headers,
+    data,
+    timeout,
+    tls,
+    buffer,
+    environment()
+  )
+
+#' @param stream an active 'ncurlStream'.
+#' @param cv (optional) a 'conditionVariable' to signal when the receive is
+#'   complete.
+#'
+#' @rdname ncurl_stream_aio
+#' @export
+#'
+ncurl_stream_recv <- function(stream, timeout = NULL, cv = NULL)
+  data <- .Call(rnng_ncurl_stream_recv, stream, timeout, cv, environment())
+
+#' @rdname close
+#' @method close ncurlStream
+#' @export
+#'
+close.ncurlStream <- function(con, ...) invisible(.Call(rnng_ncurl_stream_close, con))
+
 #' @exportS3Method promises::is.promising
 #'
 is.promising.ncurlAio <- function(x) TRUE

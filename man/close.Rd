@@ -6,6 +6,7 @@
 \alias{close.nanoDialer}
 \alias{close.nanoListener}
 \alias{close.ncurlSession}
+\alias{close.ncurlStream}
 \alias{close.nanoServer}
 \alias{close}
 \alias{close.nanoSocket}
@@ -19,6 +20,8 @@
 \method{close}{nanoListener}(con, ...)
 
 \method{close}{ncurlSession}(con, ...)
+
+\method{close}{ncurlStream}(con, ...)
 
 \method{close}{nanoServer}(con, ...)
 

@@ -4,6 +4,7 @@
 \alias{is_aio}
 \alias{is_nano}
 \alias{is_ncurl_session}
+\alias{is_ncurl_stream}
 \title{Validators}
 \usage{
 is_aio(x)
@@ -11,6 +12,8 @@ is_aio(x)
 is_nano(x)
 
 is_ncurl_session(x)
+
+is_ncurl_stream(x)
 }
 \arguments{
 \item{x}{an object.}
@@ -30,6 +33,8 @@ Object.
 
 Is the object an ncurlSession (object of class 'ncurlSession').
 
+Is the object an ncurlStream (object of class 'ncurlStream').
+
 Is the object a Condition Variable (object of class 'conditionVariable').
 }
 \examples{
@@ -46,5 +51,12 @@ n$close()
 s <- ncurl_session("https://postman-echo.com/get", timeout = 1000L)
 is_ncurl_session(s)
 if (is_ncurl_session(s)) close(s)
+
+opening <- ncurl_stream_aio("https://postman-echo.com/get", timeout = 1000L)
+head <- opening[]
+if (!is_error_value(head)) {
+  is_ncurl_stream(head$stream)
+  close(head$stream)
+}
 
 }
