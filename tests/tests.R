@@ -1168,6 +1168,26 @@ if (later && NOT_CRAN) {
   wss_aio <- ncurl_aio(paste0(wss_base_url, "/secure"), tls = wss_tls_client, timeout = 2000)
   while (unresolved(wss_aio)) run_event_loop(1000)
   if (wss_aio$status == 200L) test_equal(wss_aio$data, "secure")
+  wss_stream_aio <- ncurl_stream_aio(
+    paste0(wss_base_url, "/secure"),
+    tls = wss_tls_client,
+    timeout = 2000L,
+    buffer = 2L
+  )
+  while (unresolved(wss_stream_aio)) run_event_loop(1000)
+  wss_stream_head <- wss_stream_aio$data
+  if (!is_error_value(wss_stream_head)) {
+    wss_stream_data <- raw()
+    repeat {
+      wss_stream_receive <- ncurl_stream_recv(wss_stream_head$stream, timeout = 2000L)
+      while (unresolved(wss_stream_receive)) run_event_loop(1000)
+      wss_stream_chunk <- wss_stream_receive$data
+      wss_stream_data <- c(wss_stream_data, wss_stream_chunk$data)
+      if (wss_stream_chunk$complete) break
+    }
+    test_equal(rawToChar(wss_stream_data), "secure")
+    test_zero(close(wss_stream_head$stream))
+  }
   wss_client <- tryCatch(stream(dial = paste0(wss_ws_url, "/wss"), tls = wss_tls_client, textframes = TRUE), error = identity)
   if (is_nano(wss_client)) {
     while (length(wss_msgs) < 1L) run_event_loop(1000)
@@ -1322,6 +1342,8 @@ if (later && NOT_CRAN) {
 
 if (later && NOT_CRAN) {
   stream_conn <- NULL
+  client_stream_conn <- NULL
+  pending_stream_conn <- NULL
   stream_closed <- FALSE
   received_methods <- character()
   test_class("nanoServer", stream_srv <- http_server(
@@ -1350,6 +1372,21 @@ if (later && NOT_CRAN) {
         }
       ),
       handler_stream(
+        "/client-events",
+        on_request = function(conn, req) {
+          client_stream_conn <<- conn
+          conn$set_status(200L)
+          conn$set_header("Content-Type", "text/event-stream")
+          conn$send(format_sse(data = "one"))
+        }
+      ),
+      handler_stream(
+        "/client-pending",
+        on_request = function(conn, req) {
+          pending_stream_conn <<- conn
+        }
+      ),
+      handler_stream(
         "/prefix-stream",
         on_request = function(conn, req) {
           conn$set_header("Content-Type", "text/plain")
@@ -1363,6 +1400,11 @@ if (later && NOT_CRAN) {
   test_zero(stream_srv$start())
   base_url <- stream_srv$url
   Sys.sleep(0.1)
+
+  invalid_opening <- ncurl_stream_aio("not a URL")
+  test_class("ncurlStreamAio", invalid_opening)
+  test_class("errorValue", invalid_opening$data)
+  test_error(ncurl_stream_aio(base_url, buffer = 0L), "positive integer")
 
   sse_client <- tryCatch(stream(dial = paste0("tcp://", sub("^http://", "", base_url), "/events")), error = identity)
   if (is_nano(sse_client)) {
@@ -1398,6 +1440,135 @@ if (later && NOT_CRAN) {
 
     close(sse_client)
   }
+
+  opening <- ncurl_stream_aio(
+    paste0(base_url, "/client-events"),
+    headers = c(Accept = "text/event-stream"),
+    timeout = 2000L,
+    buffer = 1L
+  )
+  test_class("ncurlStreamAio", opening)
+  test_true(is_aio(opening))
+  test_print(opening)
+  while (unresolved(opening)) later::run_now(1)
+  response_head <- opening$data
+  test_equal(response_head$status, 200L)
+  test_equal(response_head$headers[["Content-Type"]], "text/event-stream")
+  test_class("ncurlStream", response_head$stream)
+  test_true(is_ncurl_stream(response_head$stream))
+  test_identical(attr(response_head$stream, "state"), "open")
+
+  collect_stream_event <- function(stream, bytes = raw()) {
+    repeat {
+      if (endsWith(rawToChar(bytes), "\n\n"))
+        return(list(data = rawToChar(bytes), complete = FALSE))
+      receiving <- ncurl_stream_recv(stream, timeout = 2000L)
+      while (unresolved(receiving)) later::run_now(1)
+      chunk <- receiving$data
+      bytes <- c(bytes, chunk$data)
+      if (endsWith(rawToChar(bytes), "\n\n") || chunk$complete)
+        return(list(data = rawToChar(bytes), complete = chunk$complete))
+    }
+  }
+
+  stream_cv <- cv()
+  first_receive <- ncurl_stream_recv(
+    response_head$stream,
+    timeout = 2000L,
+    cv = stream_cv
+  )
+  test_true(until(stream_cv, 2000L))
+  first_chunk <- first_receive$data
+  first_event <- collect_stream_event(response_head$stream, first_chunk$data)
+  test_equal(first_event$data, format_sse(data = "one"))
+  test_false(first_event$complete)
+  test_error(
+    ncurl_stream_recv(response_head$stream, cv = "invalid"),
+    "Condition Variable"
+  )
+
+  test_zero(client_stream_conn$send(format_sse(data = "two")))
+  second_event <- collect_stream_event(response_head$stream)
+  test_equal(second_event$data, format_sse(data = "two"))
+  test_false(second_event$complete)
+
+  test_zero(client_stream_conn$close())
+  ending <- ncurl_stream_recv(response_head$stream, timeout = 2000L)
+  while (unresolved(ending)) later::run_now(1)
+  test_identical(ending$data$data, raw())
+  test_true(ending$data$complete)
+  test_identical(attr(response_head$stream, "state"), "complete")
+  ended <- ncurl_stream_recv(response_head$stream, timeout = 2000L)
+  test_identical(ended$data$data, raw())
+  test_true(ended$data$complete)
+  complete_cv <- cv()
+  complete_receive <- ncurl_stream_recv(response_head$stream, cv = complete_cv)
+  test_true(until(complete_cv, 2000L))
+  test_true(complete_receive$data$complete)
+  test_zero(close(response_head$stream))
+  test_identical(attr(response_head$stream, "state"), "closed")
+  closed_cv <- cv()
+  closed_receive <- ncurl_stream_recv(response_head$stream, cv = closed_cv)
+  test_true(until(closed_cv, 2000L))
+  test_class("errorValue", closed_receive$data)
+  test_class("errorValue", close(response_head$stream))
+
+  pending_opening <- ncurl_stream_aio(
+    paste0(base_url, "/client-pending"),
+    timeout = 2000L
+  )
+  while (is.null(pending_stream_conn)) run_event_loop(1000)
+  test_true(unresolved(pending_opening))
+  stop_aio(pending_opening)
+  test_class("errorValue", pending_opening$data)
+  test_zero(pending_stream_conn$close())
+
+  cancel_opening <- ncurl_stream_aio(
+    paste0(base_url, "/client-events"),
+    timeout = 2000L,
+    buffer = 1L
+  )
+  while (unresolved(cancel_opening)) later::run_now(1)
+  cancel_head <- cancel_opening$data
+  cancel_event <- collect_stream_event(cancel_head$stream)
+  test_equal(cancel_event$data, format_sse(data = "one"))
+  pending_receive <- ncurl_stream_recv(cancel_head$stream, timeout = 2000L)
+  test_error(ncurl_stream_recv(cancel_head$stream), "active receive")
+  test_zero(close(cancel_head$stream))
+  while (unresolved(pending_receive)) later::run_now(1)
+  test_class("errorValue", pending_receive$data)
+
+  stop_opening <- ncurl_stream_aio(
+    paste0(base_url, "/client-events"),
+    timeout = 2000L,
+    buffer = 1L
+  )
+  while (unresolved(stop_opening)) later::run_now(1)
+  stop_head <- stop_opening$data
+  stop_event <- collect_stream_event(stop_head$stream)
+  test_equal(stop_event$data, format_sse(data = "one"))
+  stopped_receive <- ncurl_stream_recv(stop_head$stream, timeout = 2000L)
+  stop_aio(stopped_receive)
+  test_class("errorValue", stopped_receive$data)
+  stopped_again <- ncurl_stream_recv(stop_head$stream, timeout = 2000L)
+  test_class("errorValue", stopped_again$data)
+  test_zero(close(stop_head$stream))
+
+  timeout_opening <- ncurl_stream_aio(
+    paste0(base_url, "/client-events"),
+    timeout = 2000L,
+    buffer = 1L
+  )
+  while (unresolved(timeout_opening)) later::run_now(1)
+  timeout_head <- timeout_opening$data
+  timeout_event <- collect_stream_event(timeout_head$stream)
+  test_equal(timeout_event$data, format_sse(data = "one"))
+  timed_receive <- ncurl_stream_recv(timeout_head$stream, timeout = 1L)
+  while (unresolved(timed_receive)) later::run_now(1)
+  test_class("errorValue", timed_receive$data)
+  failed_receive <- ncurl_stream_recv(timeout_head$stream, timeout = 2000L)
+  test_class("errorValue", failed_receive$data)
+  test_zero(close(timeout_head$stream))
 
   get_aio <- ncurl_aio(paste0(base_url, "/stream"))
   while (unresolved(get_aio)) run_event_loop(1000)
