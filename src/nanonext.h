@@ -181,7 +181,9 @@ typedef enum nano_aio_typ {
   HTTP_AIO,
   RECVAIOS,
   REQAIOS,
-  IOV_RECVAIOS
+  IOV_RECVAIOS,
+  HTTP_STREAM_START_AIO,
+  HTTP_STREAM_RECV_AIO
 } nano_aio_typ;
 
 typedef struct nano_aio_s {
@@ -380,6 +382,7 @@ extern SEXP nano_TlsSymbol;
 extern SEXP nano_UrlSymbol;
 extern SEXP nano_ValueSymbol;
 extern SEXP nano_HttpServerSymbol;
+extern SEXP nano_HttpStreamSymbol;
 extern SEXP nano_ConnSymbol;
 
 extern SEXP nano_aioFuncMsg;
@@ -443,6 +446,7 @@ uint8_t nano_matcharg(const SEXP);
 SEXP nano_aio_result(SEXP);
 SEXP nano_aio_get_msg(SEXP);
 SEXP nano_aio_http_status(SEXP);
+SEXP nano_aio_http_stream_value(SEXP);
 
 void pipe_cb_signal(nng_pipe, nng_pipe_ev, void *);
 void pipe_cb_monitor(nng_pipe, nng_pipe_ev, void *);
@@ -511,6 +515,9 @@ SEXP rnng_monitor_create(SEXP, SEXP);
 SEXP rnng_monitor_read(SEXP);
 SEXP rnng_ncurl(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_ncurl_aio(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP rnng_ncurl_stream_aio(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP rnng_ncurl_stream_close(SEXP);
+SEXP rnng_ncurl_stream_recv(SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_ncurl_session(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_ncurl_session_close(SEXP);
 SEXP rnng_ncurl_transact(SEXP);

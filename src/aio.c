@@ -277,6 +277,9 @@ SEXP nano_aio_get_msg(SEXP env) {
   const SEXP aio = nano_findVarInFrame(env, nano_AioSymbol, NULL);
   nano_aio *raio = (nano_aio *) NANO_PTR(aio);
 
+  if (raio->type == HTTP_STREAM_START_AIO || raio->type == HTTP_STREAM_RECV_AIO)
+    return nano_aio_http_stream_value(env);
+
   int res;
   switch (raio->type) {
   case RECVAIO:
@@ -326,6 +329,9 @@ SEXP rnng_aio_get_msg(SEXP env) {
 
   const SEXP aio = nano_findVarInFrame(env, nano_AioSymbol, NULL);
   nano_aio *raio = (nano_aio *) NANO_PTR(aio);
+
+  if (raio->type == HTTP_STREAM_START_AIO || raio->type == HTTP_STREAM_RECV_AIO)
+    return nano_aio_http_stream_value(env);
 
   int res;
   switch (raio->type) {
@@ -382,6 +388,8 @@ SEXP rnng_aio_call(SEXP x) {
     case RECVAIOS:
     case REQAIOS:
     case IOV_RECVAIOS:
+    case HTTP_STREAM_START_AIO:
+    case HTTP_STREAM_RECV_AIO:
       nano_aio_get_msg(x);
       break;
     case SENDAIO:

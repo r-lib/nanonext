@@ -578,6 +578,8 @@ SEXP rnng_set_promise_context(SEXP x, SEXP ctx) {
   case IOV_RECVAIO:
   case IOV_RECVAIOS:
   case HTTP_AIO:
+  case HTTP_STREAM_START_AIO:
+  case HTTP_STREAM_RECV_AIO:
     NANO_SET_ENCLOS(x, ctx);
     raio->cb = nano_PreserveObject(x);
     break;

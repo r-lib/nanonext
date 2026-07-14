@@ -3,6 +3,9 @@
 #define NANONEXT_HTTP
 #include "nanonext.h"
 
+#include <ctype.h>
+#include <limits.h>
+
 // internals -------------------------------------------------------------------
 
 // Helper to build named list of all response headers
@@ -109,6 +112,19 @@ static SEXP mk_error_ncurlaio(const int xc) {
 
 }
 
+static SEXP mk_error_ncurl_stream_aio(const int xc) {
+  SEXP env, err;
+  PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
+  NANO_CLASS2(env, "ncurlStreamAio", "recvAio");
+  PROTECT(err = Rf_ScalarInteger(xc));
+  Rf_classgets(err, nano_error);
+  Rf_defineVar(nano_ValueSymbol, err, env);
+  Rf_defineVar(nano_DataSymbol, err, env);
+  Rf_defineVar(nano_AioSymbol, R_NilValue, env);
+  UNPROTECT(2);
+  return env;
+}
+
 static nano_buf nano_char_buf(const SEXP data) {
 
   nano_buf buf = {0};
@@ -184,6 +200,486 @@ static void session_finalizer(SEXP xptr) {
   free(handle);
   free(xp);
 
+}
+
+// ncurl stream internals ------------------------------------------------------
+
+#define NANO_HTTP_CHUNK_LINE_MAX 1024
+
+typedef enum nano_http_body_mode_e {
+  NANO_HTTP_BODY_NONE,
+  NANO_HTTP_BODY_LENGTH,
+  NANO_HTTP_BODY_CHUNKED,
+  NANO_HTTP_BODY_CLOSE
+} nano_http_body_mode;
+
+typedef enum nano_http_chunk_state_e {
+  NANO_HTTP_CHUNK_SIZE,
+  NANO_HTTP_CHUNK_SIZE_LF,
+  NANO_HTTP_CHUNK_DATA,
+  NANO_HTTP_CHUNK_DATA_CR,
+  NANO_HTTP_CHUNK_DATA_LF,
+  NANO_HTTP_CHUNK_TRAILER,
+  NANO_HTTP_CHUNK_TRAILER_LF,
+  NANO_HTTP_CHUNK_DONE
+} nano_http_chunk_state;
+
+typedef enum nano_http_stream_state_e {
+  NANO_HTTP_STREAM_OPENING,
+  NANO_HTTP_STREAM_OPEN,
+  NANO_HTTP_STREAM_ERROR,
+  NANO_HTTP_STREAM_CLOSED
+} nano_http_stream_state;
+
+typedef struct nano_http_stream_s {
+  nng_url *url;
+  nng_http_client *client;
+  nng_http_req *request;
+  nng_http_res *response;
+  nng_tls_config *tls;
+  nng_http_conn *connection;
+  nng_mtx *mtx;
+  size_t buffer_size;
+  uint64_t remaining;
+  uint64_t chunk_remaining;
+  char chunk_line[NANO_HTTP_CHUNK_LINE_MAX];
+  size_t chunk_line_length;
+  nano_http_body_mode body_mode;
+  nano_http_chunk_state chunk_state;
+  nano_http_stream_state state;
+  int reading;
+  int complete;
+  int error;
+} nano_http_stream;
+
+typedef struct nano_http_stream_recv_s {
+  nano_aio aio;
+  nano_cv *cv;
+  unsigned char *input;
+  unsigned char *output;
+  size_t output_size;
+  int complete;
+} nano_http_stream_recv;
+
+static int nano_ascii_case_equal(const char left, const char right) {
+  return tolower((unsigned char) left) == tolower((unsigned char) right);
+}
+
+static int nano_http_header_has_token(const char *header, const char *token) {
+  if (header == NULL)
+    return 0;
+
+  const size_t token_length = strlen(token);
+  const char *cursor = header;
+  while (*cursor != '\0') {
+    while (*cursor == ' ' || *cursor == '\t' || *cursor == ',')
+      cursor++;
+    const char *start = cursor;
+    while (*cursor != '\0' && *cursor != ',' && *cursor != ';')
+      cursor++;
+    const char *end = cursor;
+    while (end > start && (end[-1] == ' ' || end[-1] == '\t'))
+      end--;
+    if ((size_t) (end - start) == token_length) {
+      size_t index = 0;
+      while (index < token_length && nano_ascii_case_equal(start[index], token[index]))
+        index++;
+      if (index == token_length)
+        return 1;
+    }
+    while (*cursor != '\0' && *cursor != ',')
+      cursor++;
+  }
+  return 0;
+}
+
+static int nano_http_content_length(const char *header, uint64_t *value) {
+  if (header == NULL)
+    return 0;
+
+  const unsigned char *cursor = (const unsigned char *) header;
+  while (*cursor == ' ' || *cursor == '\t')
+    cursor++;
+  if (!isdigit(*cursor))
+    return -1;
+
+  uint64_t length = 0;
+  do {
+    const unsigned int digit = (unsigned int) (*cursor - '0');
+    if (length > (UINT64_MAX - digit) / 10u)
+      return -1;
+    length = length * 10u + digit;
+    cursor++;
+  } while (isdigit(*cursor));
+
+  while (*cursor == ' ' || *cursor == '\t')
+    cursor++;
+  if (*cursor != '\0')
+    return -1;
+
+  *value = length;
+  return 1;
+}
+
+static int nano_http_chunk_size(nano_http_stream *stream, uint64_t *value) {
+  size_t end = 0;
+  while (end < stream->chunk_line_length && stream->chunk_line[end] != ';')
+    end++;
+  if (end == 0)
+    return NNG_EPROTO;
+
+  uint64_t size = 0;
+  for (size_t index = 0; index < end; index++) {
+    const unsigned char byte = (unsigned char) stream->chunk_line[index];
+    unsigned int digit;
+    if (byte >= '0' && byte <= '9') {
+      digit = (unsigned int) (byte - '0');
+    } else if (byte >= 'a' && byte <= 'f') {
+      digit = (unsigned int) (byte - 'a') + 10u;
+    } else if (byte >= 'A' && byte <= 'F') {
+      digit = (unsigned int) (byte - 'A') + 10u;
+    } else {
+      return NNG_EPROTO;
+    }
+    if (size > (UINT64_MAX - digit) / 16u)
+      return NNG_EPROTO;
+    size = size * 16u + digit;
+  }
+  *value = size;
+  return 0;
+}
+
+static int nano_http_stream_configure_body(nano_http_stream *stream) {
+  const uint16_t status = nng_http_res_get_status(stream->response);
+  const char *method = nng_http_req_get_method(stream->request);
+  if (!strcmp(method, "HEAD") || (status >= 100 && status < 200) ||
+      status == 204 || status == 304) {
+    stream->body_mode = NANO_HTTP_BODY_NONE;
+    stream->complete = 1;
+    return 0;
+  }
+
+  const char *encoding = nng_http_res_get_header(stream->response, "Transfer-Encoding");
+  if (nano_http_header_has_token(encoding, "chunked")) {
+    stream->body_mode = NANO_HTTP_BODY_CHUNKED;
+    stream->chunk_state = NANO_HTTP_CHUNK_SIZE;
+    return 0;
+  }
+  if (encoding != NULL) {
+    stream->body_mode = NANO_HTTP_BODY_CLOSE;
+    return 0;
+  }
+
+  const char *content_length = nng_http_res_get_header(stream->response, "Content-Length");
+  const int length_result = nano_http_content_length(content_length, &stream->remaining);
+  if (length_result < 0)
+    return NNG_EPROTO;
+  if (length_result > 0) {
+    stream->body_mode = NANO_HTTP_BODY_LENGTH;
+    stream->complete = stream->remaining == 0;
+    return 0;
+  }
+
+  stream->body_mode = NANO_HTTP_BODY_CLOSE;
+  return 0;
+}
+
+static int nano_http_stream_parse_chunked(
+  nano_http_stream *stream,
+  const unsigned char *input,
+  const size_t input_size,
+  unsigned char *output,
+  size_t *output_size
+) {
+  size_t input_index = 0;
+  size_t output_index = 0;
+
+  while (input_index < input_size && !stream->complete) {
+    switch (stream->chunk_state) {
+    case NANO_HTTP_CHUNK_SIZE: {
+      const unsigned char byte = input[input_index++];
+      if (byte == '\r') {
+        stream->chunk_state = NANO_HTTP_CHUNK_SIZE_LF;
+      } else if (byte == '\n' || stream->chunk_line_length == NANO_HTTP_CHUNK_LINE_MAX) {
+        return NNG_EPROTO;
+      } else {
+        stream->chunk_line[stream->chunk_line_length++] = (char) byte;
+      }
+      break;
+    }
+    case NANO_HTTP_CHUNK_SIZE_LF: {
+      if (input[input_index++] != '\n')
+        return NNG_EPROTO;
+      int result = nano_http_chunk_size(stream, &stream->chunk_remaining);
+      if (result != 0)
+        return result;
+      stream->chunk_line_length = 0;
+      stream->chunk_state = stream->chunk_remaining == 0
+        ? NANO_HTTP_CHUNK_TRAILER
+        : NANO_HTTP_CHUNK_DATA;
+      break;
+    }
+    case NANO_HTTP_CHUNK_DATA: {
+      const size_t available = input_size - input_index;
+      const size_t take = stream->chunk_remaining < available
+        ? (size_t) stream->chunk_remaining
+        : available;
+      memcpy(output + output_index, input + input_index, take);
+      input_index += take;
+      output_index += take;
+      stream->chunk_remaining -= take;
+      if (stream->chunk_remaining == 0)
+        stream->chunk_state = NANO_HTTP_CHUNK_DATA_CR;
+      break;
+    }
+    case NANO_HTTP_CHUNK_DATA_CR:
+      if (input[input_index++] != '\r')
+        return NNG_EPROTO;
+      stream->chunk_state = NANO_HTTP_CHUNK_DATA_LF;
+      break;
+    case NANO_HTTP_CHUNK_DATA_LF:
+      if (input[input_index++] != '\n')
+        return NNG_EPROTO;
+      stream->chunk_state = NANO_HTTP_CHUNK_SIZE;
+      break;
+    case NANO_HTTP_CHUNK_TRAILER: {
+      const unsigned char byte = input[input_index++];
+      if (byte == '\r') {
+        stream->chunk_state = NANO_HTTP_CHUNK_TRAILER_LF;
+      } else if (byte == '\n' || stream->chunk_line_length == NANO_HTTP_CHUNK_LINE_MAX) {
+        return NNG_EPROTO;
+      } else {
+        stream->chunk_line_length++;
+      }
+      break;
+    }
+    case NANO_HTTP_CHUNK_TRAILER_LF:
+      if (input[input_index++] != '\n')
+        return NNG_EPROTO;
+      if (stream->chunk_line_length == 0) {
+        stream->chunk_state = NANO_HTTP_CHUNK_DONE;
+        stream->complete = 1;
+      } else {
+        stream->chunk_line_length = 0;
+        stream->chunk_state = NANO_HTTP_CHUNK_TRAILER;
+      }
+      break;
+    case NANO_HTTP_CHUNK_DONE:
+      stream->complete = 1;
+      break;
+    }
+  }
+
+  *output_size = output_index;
+  return 0;
+}
+
+static void nano_http_stream_release(nano_http_stream *stream) {
+  if (stream == NULL)
+    return;
+  if (stream->connection != NULL && stream->state != NANO_HTTP_STREAM_CLOSED)
+    nng_http_conn_close(stream->connection);
+  if (stream->tls != NULL)
+    nng_tls_config_free(stream->tls);
+  if (stream->response != NULL)
+    nng_http_res_free(stream->response);
+  if (stream->request != NULL)
+    nng_http_req_free(stream->request);
+  if (stream->client != NULL)
+    nng_http_client_free(stream->client);
+  if (stream->url != NULL)
+    nng_url_free(stream->url);
+  if (stream->mtx != NULL)
+    nng_mtx_free(stream->mtx);
+  free(stream);
+}
+
+static void nano_http_stream_finalizer(SEXP xptr) {
+  if (NANO_PTR(xptr) == NULL)
+    return;
+  nano_http_stream_release((nano_http_stream *) NANO_PTR(xptr));
+  R_ClearExternalPtr(xptr);
+}
+
+static void nano_http_stream_start_aio_finalizer(SEXP xptr) {
+  if (NANO_PTR(xptr) == NULL)
+    return;
+  nano_aio *aio = (nano_aio *) NANO_PTR(xptr);
+  nng_aio_free(aio->aio);
+  free(aio);
+  R_ClearExternalPtr(xptr);
+}
+
+static void nano_http_stream_recv_aio_finalizer(SEXP xptr) {
+  if (NANO_PTR(xptr) == NULL)
+    return;
+  nano_http_stream_recv *receive = (nano_http_stream_recv *) NANO_PTR(xptr);
+  nng_aio_free(receive->aio.aio);
+  free(receive->input);
+  free(receive->output);
+  free(receive);
+  R_ClearExternalPtr(xptr);
+}
+
+static void nano_http_stream_start_complete(void *arg) {
+  nano_aio *aio = (nano_aio *) arg;
+  nano_http_stream *stream = (nano_http_stream *) aio->next;
+  const int result = nng_aio_result(aio->aio);
+  if (result != 0) {
+    aio->result = result;
+    goto complete;
+  }
+
+  switch (aio->mode) {
+  case 0:
+    stream->connection = nng_aio_get_output(aio->aio, 0);
+    aio->mode = 1;
+    nng_http_conn_write_req(stream->connection, stream->request, aio->aio);
+    aio->result = nng_aio_result(aio->aio);
+    if (aio->result != 0)
+      goto complete;
+    return;
+  case 1:
+    aio->mode = 2;
+    nng_http_conn_read_res(stream->connection, stream->response, aio->aio);
+    aio->result = nng_aio_result(aio->aio);
+    if (aio->result != 0)
+      goto complete;
+    return;
+  default:
+    nng_mtx_lock(stream->mtx);
+    aio->result = nano_http_stream_configure_body(stream);
+    if (aio->result == 0) {
+      stream->state = NANO_HTTP_STREAM_OPEN;
+      aio->result = -1;
+    }
+    nng_mtx_unlock(stream->mtx);
+  }
+
+complete:
+  if (aio->result > 0) {
+    nng_mtx_lock(stream->mtx);
+    if (stream->state == NANO_HTTP_STREAM_OPENING) {
+      stream->state = NANO_HTTP_STREAM_ERROR;
+      stream->error = aio->result;
+    }
+    nng_mtx_unlock(stream->mtx);
+  }
+  if (aio->cb != NULL)
+    later2(raio_invoke_cb, aio->cb);
+}
+
+static void nano_http_stream_signal(nano_cv *cv);
+
+static void nano_http_stream_receive_complete(void *arg) {
+  nano_http_stream_recv *receive = (nano_http_stream_recv *) arg;
+  nano_aio *aio = &receive->aio;
+  nano_http_stream *stream = (nano_http_stream *) aio->next;
+  const int result = nng_aio_result(aio->aio);
+  nng_mtx_lock(stream->mtx);
+
+  if (result != 0) {
+    if (result == NNG_ECLOSED && stream->body_mode == NANO_HTTP_BODY_CLOSE &&
+        stream->state == NANO_HTTP_STREAM_OPEN) {
+      stream->complete = 1;
+      receive->complete = 1;
+      aio->result = -1;
+    } else {
+      if (stream->state == NANO_HTTP_STREAM_OPEN) {
+        stream->state = NANO_HTTP_STREAM_ERROR;
+        stream->error = result;
+      }
+      aio->result = result;
+    }
+    goto complete;
+  }
+
+  const size_t input_size = nng_aio_count(aio->aio);
+  int parse_result = 0;
+  switch (stream->body_mode) {
+  case NANO_HTTP_BODY_NONE:
+    stream->complete = 1;
+    break;
+  case NANO_HTTP_BODY_LENGTH:
+    if ((uint64_t) input_size > stream->remaining) {
+      parse_result = NNG_EPROTO;
+      break;
+    }
+    memcpy(receive->output, receive->input, input_size);
+    receive->output_size = input_size;
+    stream->remaining -= input_size;
+    stream->complete = stream->remaining == 0;
+    break;
+  case NANO_HTTP_BODY_CHUNKED:
+    parse_result = nano_http_stream_parse_chunked(
+      stream,
+      receive->input,
+      input_size,
+      receive->output,
+      &receive->output_size
+    );
+    break;
+  case NANO_HTTP_BODY_CLOSE:
+    memcpy(receive->output, receive->input, input_size);
+    receive->output_size = input_size;
+    break;
+  }
+
+  if (parse_result != 0) {
+    if (stream->state == NANO_HTTP_STREAM_OPEN) {
+      stream->state = NANO_HTTP_STREAM_ERROR;
+      stream->error = parse_result;
+    }
+    aio->result = parse_result;
+    goto complete;
+  }
+  receive->complete = stream->complete;
+  if (receive->output_size == 0 && !receive->complete) {
+    if (stream->state != NANO_HTTP_STREAM_OPEN) {
+      aio->result = NNG_ECLOSED;
+      goto complete;
+    }
+    nng_iov iov = {
+      .iov_buf = receive->input,
+      .iov_len = stream->buffer_size
+    };
+    const int iov_result = nng_aio_set_iov(aio->aio, 1u, &iov);
+    if (iov_result != 0) {
+      stream->state = NANO_HTTP_STREAM_ERROR;
+      stream->error = iov_result;
+      aio->result = iov_result;
+      goto complete;
+    }
+    nng_http_conn_read(stream->connection, aio->aio);
+    const int read_result = nng_aio_result(aio->aio);
+    if (read_result != 0) {
+      if (stream->state == NANO_HTTP_STREAM_OPEN) {
+        stream->state = NANO_HTTP_STREAM_ERROR;
+        stream->error = read_result;
+      }
+      aio->result = read_result;
+      goto complete;
+    }
+    nng_mtx_unlock(stream->mtx);
+    return;
+  }
+  aio->result = -1;
+
+complete:
+  stream->reading = 0;
+  nng_mtx_unlock(stream->mtx);
+  nano_http_stream_signal(receive->cv);
+  if (aio->cb != NULL)
+    later2(raio_invoke_cb, aio->cb);
+}
+
+static void nano_http_stream_signal(nano_cv *cv) {
+  if (cv == NULL)
+    return;
+  nng_mtx_lock(cv->mtx);
+  cv->condition++;
+  nng_cv_wake(cv->cv);
+  nng_mtx_unlock(cv->mtx);
 }
 
 // ncurl - internal ------------------------------------------------------------
@@ -583,6 +1079,323 @@ SEXP rnng_aio_http_headers(SEXP env) {
 
 SEXP rnng_aio_http_data(SEXP env) {
   return nano_aio_http_impl(env, 2);
+}
+
+// ncurl stream ---------------------------------------------------------------
+
+static SEXP nano_http_stream_chunk_value(
+  const unsigned char *data,
+  const size_t size,
+  const int complete
+) {
+  const char *names[] = {"data", "complete", ""};
+  SEXP out, bytes;
+  PROTECT(out = Rf_mkNamed(VECSXP, names));
+  PROTECT(bytes = Rf_allocVector(RAWSXP, size));
+  if (size > 0)
+    memcpy(NANO_DATAPTR(bytes), data, size);
+  SET_VECTOR_ELT(out, 0, bytes);
+  SET_VECTOR_ELT(out, 1, Rf_ScalarLogical(complete));
+  UNPROTECT(2);
+  return out;
+}
+
+static void nano_http_stream_set_r_state(SEXP stream_xptr, const nano_http_stream *stream) {
+  const char *state;
+  switch (stream->state) {
+  case NANO_HTTP_STREAM_OPENING:
+    state = "opening";
+    break;
+  case NANO_HTTP_STREAM_ERROR:
+    state = "error";
+    break;
+  case NANO_HTTP_STREAM_CLOSED:
+    state = "closed";
+    break;
+  default:
+    state = stream->complete ? "complete" : "open";
+  }
+  Rf_setAttrib(stream_xptr, nano_StateSymbol, Rf_mkString(state));
+}
+
+SEXP nano_aio_http_stream_value(SEXP env) {
+  int found;
+  SEXP exist = nano_findVarInFrame(env, nano_ValueSymbol, &found);
+  if (found)
+    return exist;
+
+  const SEXP aio_xptr = nano_findVarInFrame(env, nano_AioSymbol, NULL);
+  nano_aio *aio = (nano_aio *) NANO_PTR(aio_xptr);
+  if (nng_aio_busy(aio->aio))
+    return nano_unresolved;
+  if (aio->result > 0) {
+    SEXP stream_xptr = NANO_PROT(aio_xptr);
+    if (!NANO_PTR_CHECK(stream_xptr, nano_HttpStreamSymbol))
+      nano_http_stream_set_r_state(stream_xptr, (nano_http_stream *) NANO_PTR(stream_xptr));
+    return mk_error_haio(aio->result, env);
+  }
+
+  SEXP out;
+  if (aio->type == HTTP_STREAM_START_AIO) {
+    nano_http_stream *stream = (nano_http_stream *) aio->next;
+    const char *names[] = {"status", "headers", "stream", ""};
+    PROTECT(out = Rf_mkNamed(VECSXP, names));
+    SET_VECTOR_ELT(out, 0, Rf_ScalarInteger(nng_http_res_get_status(stream->response)));
+    SET_VECTOR_ELT(out, 1, build_all_headers(stream->response));
+    SET_VECTOR_ELT(out, 2, NANO_PROT(aio_xptr));
+    nano_http_stream_set_r_state(NANO_PROT(aio_xptr), stream);
+  } else {
+    nano_http_stream_recv *receive = (nano_http_stream_recv *) aio;
+    nano_http_stream_set_r_state(
+      NANO_PROT(aio_xptr),
+      (nano_http_stream *) receive->aio.next
+    );
+    PROTECT(out = nano_http_stream_chunk_value(
+      receive->output,
+      receive->output_size,
+      receive->complete
+    ));
+  }
+
+  Rf_defineVar(nano_ValueSymbol, out, env);
+  Rf_defineVar(nano_AioSymbol, R_NilValue, env);
+  UNPROTECT(1);
+  return out;
+}
+
+SEXP rnng_ncurl_stream_aio(
+  SEXP http,
+  SEXP method,
+  SEXP headers,
+  SEXP data,
+  SEXP timeout,
+  SEXP tls,
+  SEXP buffer,
+  SEXP clo
+) {
+  const char *address = CHAR(STRING_ELT(http, 0));
+  const char *request_method = method != R_NilValue ? CHAR(STRING_ELT(method, 0)) : NULL;
+  const nng_duration duration = timeout == R_NilValue
+    ? NNG_DURATION_DEFAULT
+    : (nng_duration) nano_integer(timeout);
+  const int buffer_size = nano_integer(buffer);
+  if (buffer_size <= 0)
+    Rf_error("`buffer` must be a positive integer");
+  if (tls != R_NilValue && NANO_PTR_CHECK(tls, nano_TlsSymbol))
+    Rf_error("`tls` is not a valid TLS Configuration");
+
+  int result;
+  SEXP stream_xptr, aio_xptr, env, fun;
+  nano_http_stream *stream = calloc(1, sizeof(nano_http_stream));
+  nano_aio *aio = calloc(1, sizeof(nano_aio));
+  if (stream == NULL || aio == NULL) {
+    result = NNG_ENOMEM;
+    goto fail;
+  }
+  stream->buffer_size = (size_t) buffer_size;
+  aio->type = HTTP_STREAM_START_AIO;
+  aio->next = stream;
+
+  if ((result = nng_mtx_alloc(&stream->mtx)) ||
+      (result = nng_url_parse(&stream->url, address)) ||
+      (result = nng_http_client_alloc(&stream->client, stream->url)) ||
+      (result = nng_http_req_alloc(&stream->request, stream->url)) ||
+      (result = nng_http_res_alloc(&stream->response)) ||
+      (result = nng_aio_alloc(&aio->aio, nano_http_stream_start_complete, aio)))
+    goto fail;
+
+  if (request_method != NULL && (result = nng_http_req_set_method(stream->request, request_method)))
+    goto fail;
+
+  if ((result = nano_set_req_headers(stream->request, headers)))
+    goto fail;
+  if ((result = nng_http_req_set_header(stream->request, "Connection", "close")))
+    goto fail;
+
+  if (data != R_NilValue) {
+    nano_buf encoded = nano_char_buf(data);
+    if (encoded.cur && (result = nng_http_req_copy_data(
+      stream->request,
+      encoded.buf,
+      encoded.cur
+    )))
+      goto fail;
+  }
+
+  if (!strcmp(stream->url->u_scheme, "https")) {
+    if (tls == R_NilValue) {
+      if ((result = nng_tls_config_alloc(&stream->tls, NNG_TLS_MODE_CLIENT)) ||
+          (result = nng_tls_config_server_name(stream->tls, stream->url->u_hostname)) ||
+          (result = nng_tls_config_auth_mode(stream->tls, NNG_TLS_AUTH_MODE_NONE)) ||
+          (result = nng_http_client_set_tls(stream->client, stream->tls)))
+        goto fail;
+    } else {
+      stream->tls = (nng_tls_config *) NANO_PTR(tls);
+      nng_tls_config_hold(stream->tls);
+      result = nng_tls_config_server_name(stream->tls, stream->url->u_hostname);
+      if (result == NNG_EBUSY) result = 0;
+      if (result || (result = nng_http_client_set_tls(stream->client, stream->tls)))
+        goto fail;
+    }
+  }
+
+  nng_aio_set_timeout(aio->aio, duration);
+  nng_http_client_connect(stream->client, aio->aio);
+
+  PROTECT(stream_xptr = R_MakeExternalPtr(stream, nano_HttpStreamSymbol, R_NilValue));
+  R_RegisterCFinalizerEx(stream_xptr, nano_http_stream_finalizer, TRUE);
+  Rf_classgets(stream_xptr, Rf_mkString("ncurlStream"));
+  Rf_setAttrib(stream_xptr, nano_StateSymbol, Rf_mkString("opening"));
+  Rf_setAttrib(stream_xptr, nano_UrlSymbol, http);
+
+  PROTECT(aio_xptr = R_MakeExternalPtr(aio, nano_AioSymbol, stream_xptr));
+  R_RegisterCFinalizerEx(aio_xptr, nano_http_stream_start_aio_finalizer, TRUE);
+
+  PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
+  SEXP classes;
+  PROTECT(classes = Rf_allocVector(STRSXP, 2));
+  SET_STRING_ELT(classes, 0, Rf_mkChar("ncurlStreamAio"));
+  SET_STRING_ELT(classes, 1, Rf_mkChar("recvAio"));
+  Rf_classgets(env, classes);
+  Rf_defineVar(nano_AioSymbol, aio_xptr, env);
+
+  PROTECT(fun = R_mkClosure(R_NilValue, nano_aioFuncMsg, clo));
+  R_MakeActiveBinding(nano_DataSymbol, fun, env);
+
+  UNPROTECT(5);
+  return env;
+
+fail:
+  if (aio != NULL) {
+    if (aio->aio != NULL)
+      nng_aio_free(aio->aio);
+    free(aio);
+  }
+  nano_http_stream_release(stream);
+  return mk_error_ncurl_stream_aio(result);
+}
+
+SEXP rnng_ncurl_stream_recv(SEXP stream_xptr, SEXP timeout, SEXP cvar, SEXP clo) {
+  if (NANO_PTR_CHECK(stream_xptr, nano_HttpStreamSymbol))
+    Rf_error("`stream` is not a valid ncurlStream");
+
+  const int signal = cvar != R_NilValue && !NANO_PTR_CHECK(cvar, nano_CvSymbol);
+  if (cvar != R_NilValue && !signal)
+    Rf_error("`cv` is not a valid Condition Variable");
+  nano_cv *cv = signal ? (nano_cv *) NANO_PTR(cvar) : NULL;
+
+  nano_http_stream *stream = (nano_http_stream *) NANO_PTR(stream_xptr);
+  nng_mtx_lock(stream->mtx);
+  if (stream->state == NANO_HTTP_STREAM_OPENING) {
+    nng_mtx_unlock(stream->mtx);
+    Rf_error("`stream` response headers are not ready");
+  }
+  if (stream->state == NANO_HTTP_STREAM_CLOSED) {
+    nng_mtx_unlock(stream->mtx);
+    nano_http_stream_signal(cv);
+    return mk_error_data(NNG_ECLOSED);
+  }
+  if (stream->state == NANO_HTTP_STREAM_ERROR) {
+    const int error = stream->error;
+    nng_mtx_unlock(stream->mtx);
+    nano_http_stream_signal(cv);
+    return mk_error_data(error);
+  }
+  if (stream->reading) {
+    nng_mtx_unlock(stream->mtx);
+    Rf_error("`stream` already has an active receive");
+  }
+
+  if (stream->complete) {
+    SEXP env, out;
+    nng_mtx_unlock(stream->mtx);
+    nano_http_stream_signal(cv);
+    PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
+    Rf_classgets(env, nano_recvAio);
+    PROTECT(out = nano_http_stream_chunk_value(NULL, 0, 1));
+    Rf_defineVar(nano_DataSymbol, out, env);
+    Rf_defineVar(nano_ValueSymbol, out, env);
+    Rf_defineVar(nano_AioSymbol, nano_success, env);
+    UNPROTECT(2);
+    return env;
+  }
+  nng_mtx_unlock(stream->mtx);
+
+  const nng_duration duration = timeout == R_NilValue
+    ? NNG_DURATION_DEFAULT
+    : (nng_duration) nano_integer(timeout);
+  int result;
+  SEXP aio_xptr, env, fun;
+  nano_http_stream_recv *receive = calloc(1, sizeof(nano_http_stream_recv));
+  if (receive == NULL) {
+    nano_http_stream_signal(cv);
+    return mk_error_data(NNG_ENOMEM);
+  }
+  receive->aio.type = HTTP_STREAM_RECV_AIO;
+  receive->aio.next = stream;
+  receive->cv = cv;
+  receive->input = malloc(stream->buffer_size);
+  receive->output = malloc(stream->buffer_size);
+  if (receive->input == NULL || receive->output == NULL) {
+    result = NNG_ENOMEM;
+    goto fail;
+  }
+
+  nng_iov iov = {
+    .iov_buf = receive->input,
+    .iov_len = stream->buffer_size
+  };
+  if ((result = nng_aio_alloc(
+    &receive->aio.aio,
+    nano_http_stream_receive_complete,
+    receive
+  )) || (result = nng_aio_set_iov(receive->aio.aio, 1u, &iov)))
+    goto fail;
+
+  nng_aio_set_timeout(receive->aio.aio, duration);
+  nng_mtx_lock(stream->mtx);
+  stream->reading = 1;
+  nng_http_conn_read(stream->connection, receive->aio.aio);
+  nng_mtx_unlock(stream->mtx);
+
+  PROTECT(aio_xptr = R_MakeExternalPtr(&receive->aio, nano_AioSymbol, stream_xptr));
+  R_RegisterCFinalizerEx(aio_xptr, nano_http_stream_recv_aio_finalizer, TRUE);
+  PROTECT(env = R_NewEnv(R_NilValue, 0, 0));
+  Rf_classgets(env, nano_recvAio);
+  Rf_defineVar(nano_AioSymbol, aio_xptr, env);
+  PROTECT(fun = R_mkClosure(R_NilValue, nano_aioFuncMsg, clo));
+  R_MakeActiveBinding(nano_DataSymbol, fun, env);
+  UNPROTECT(3);
+  return env;
+
+fail:
+  if (receive->aio.aio != NULL)
+    nng_aio_free(receive->aio.aio);
+  free(receive->input);
+  free(receive->output);
+  free(receive);
+  nano_http_stream_signal(cv);
+  return mk_error_data(result);
+}
+
+SEXP rnng_ncurl_stream_close(SEXP stream_xptr) {
+  if (NANO_PTR_CHECK(stream_xptr, nano_HttpStreamSymbol))
+    Rf_error("`stream` is not a valid or active ncurlStream");
+
+  nano_http_stream *stream = (nano_http_stream *) NANO_PTR(stream_xptr);
+  nng_mtx_lock(stream->mtx);
+  if (stream->state == NANO_HTTP_STREAM_CLOSED) {
+    nng_mtx_unlock(stream->mtx);
+    return mk_error(NNG_ECLOSED);
+  }
+  stream->state = NANO_HTTP_STREAM_CLOSED;
+  nng_http_conn *connection = stream->connection;
+  stream->connection = NULL;
+  nng_mtx_unlock(stream->mtx);
+  if (connection != NULL)
+    nng_http_conn_close(connection);
+  Rf_setAttrib(stream_xptr, nano_StateSymbol, Rf_mkString("closed"));
+  return nano_success;
 }
 
 // ncurl session ---------------------------------------------------------------

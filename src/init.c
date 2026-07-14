@@ -27,6 +27,7 @@ SEXP nano_TlsSymbol;
 SEXP nano_UrlSymbol;
 SEXP nano_ValueSymbol;
 SEXP nano_HttpServerSymbol;
+SEXP nano_HttpStreamSymbol;
 SEXP nano_ConnSymbol;
 
 SEXP nano_aioFuncMsg;
@@ -50,6 +51,7 @@ static void RegisterSymbols(void) {
   nano_DotcallSymbol = Rf_install(".Call");
   nano_HeadersSymbol = Rf_install("headers");
   nano_HttpServerSymbol = Rf_install("httpServer");
+  nano_HttpStreamSymbol = Rf_install("httpStream");
   nano_IdSymbol = Rf_install("id");
   nano_ListenerSymbol = Rf_install("listener");
   nano_MonitorSymbol = Rf_install("monitor");
@@ -158,6 +160,9 @@ static const R_CallMethodDef callMethods[] = {
   {"rnng_monitor_read", (DL_FUNC) &rnng_monitor_read, 1},
   {"rnng_ncurl", (DL_FUNC) &rnng_ncurl, 9},
   {"rnng_ncurl_aio", (DL_FUNC) &rnng_ncurl_aio, 9},
+  {"rnng_ncurl_stream_aio", (DL_FUNC) &rnng_ncurl_stream_aio, 8},
+  {"rnng_ncurl_stream_close", (DL_FUNC) &rnng_ncurl_stream_close, 1},
+  {"rnng_ncurl_stream_recv", (DL_FUNC) &rnng_ncurl_stream_recv, 4},
   {"rnng_ncurl_session", (DL_FUNC) &rnng_ncurl_session, 8},
   {"rnng_ncurl_session_close", (DL_FUNC) &rnng_ncurl_session_close, 1},
   {"rnng_ncurl_transact", (DL_FUNC) &rnng_ncurl_transact, 1},

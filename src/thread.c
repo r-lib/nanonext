@@ -241,6 +241,8 @@ SEXP rnng_wait_thread_create(SEXP x) {
     case RECVAIOS:
     case REQAIOS:
     case IOV_RECVAIOS:
+    case HTTP_STREAM_START_AIO:
+    case HTTP_STREAM_RECV_AIO:
       nano_aio_get_msg(x);
       break;
     case SENDAIO:
