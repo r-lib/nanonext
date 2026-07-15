@@ -64,6 +64,7 @@ reference:
   contents:
   - ncurl
   - ncurl_aio
+  - ncurl_stream_aio
   - ncurl_session
   - status_code
 
