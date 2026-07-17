@@ -2,7 +2,7 @@
 
 #### Updates
 
-* `race_aio()` detects aio resolution more efficiently, and no longer misses (or delays detection of) a resolution that races with entry to the function.
+* `race_aio()` is more efficient, and no longer resets the supplied condition variable or consumes its signals.
 
 # nanonext 1.10.1
 

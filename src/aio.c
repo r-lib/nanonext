@@ -638,6 +638,24 @@ SEXP rnng_unresolved2(SEXP x) {
 
 }
 
+static R_xlen_t race_scan(SEXP x, const R_xlen_t xlen, R_xlen_t *unresolved) {
+
+  R_xlen_t n = 0;
+  for (R_xlen_t i = 0; i < xlen; i++) {
+    const SEXP elem = VECTOR_PTR_RO(x)[i];
+    if (TYPEOF(elem) != ENVSXP)
+      continue;
+    const SEXP coreaio = nano_findVarInFrame(elem, nano_AioSymbol, NULL);
+    if (NANO_PTR_CHECK(coreaio, nano_AioSymbol) ||
+        ((nano_aio *) NANO_PTR(coreaio))->result)
+      return i + 1;
+    n++;
+  }
+  *unresolved = n;
+  return 0;
+
+}
+
 SEXP rnng_race_aio(SEXP x, SEXP cvar) {
 
   if (TYPEOF(x) != VECSXP)
@@ -647,68 +665,50 @@ SEXP rnng_race_aio(SEXP x, SEXP cvar) {
   if (xlen == 0)
     return Rf_ScalarInteger(0);
 
-  SEXP aios;
-  R_xlen_t live = 0;
-  PROTECT(aios = Rf_allocVector(VECSXP, xlen));
-  for (R_xlen_t i = 0; i < xlen; i++) {
-    const SEXP elem = VECTOR_PTR_RO(x)[i];
-    if (TYPEOF(elem) != ENVSXP)
-      continue;
-    const SEXP coreaio = nano_findVarInFrame(elem, nano_AioSymbol, NULL);
-    if (NANO_PTR_CHECK(coreaio, nano_AioSymbol) ||
-        ((nano_aio *) NANO_PTR(coreaio))->result) {
-      UNPROTECT(1);
-      return Rf_ScalarInteger((int) (i + 1));
-    }
-    SET_VECTOR_ELT(aios, i, coreaio);
-    live++;
-  }
+  R_xlen_t unresolved;
+  R_xlen_t idx = race_scan(x, xlen, &unresolved);
+  if (idx)
+    return Rf_ScalarInteger((int) idx);
 
-  if (live == 0 || NANO_PTR_CHECK(cvar, nano_CvSymbol)) {
-    UNPROTECT(1);
+  if (unresolved == 0 || NANO_PTR_CHECK(cvar, nano_CvSymbol))
     return Rf_ScalarInteger(0);
-  }
 
   nano_cv *ncv = (nano_cv *) NANO_PTR(cvar);
   nng_cv *cv = ncv->cv;
   nng_mtx *mtx = ncv->mtx;
 
+  // observe only: the cv may be shared, e.g. with the dispatcher event loop
+  int snap, flag;
   nng_mtx_lock(mtx);
-  ncv->flag = ncv->flag < 0;
-  ncv->condition = 0;
+  snap = ncv->condition;
+  flag = ncv->flag;
   nng_mtx_unlock(mtx);
 
-  while (1) {
-    for (R_xlen_t i = 0; i < xlen; i++) {
-      const SEXP coreaio = VECTOR_PTR_RO(aios)[i];
-      if (coreaio != R_NilValue && ((nano_aio *) NANO_PTR(coreaio))->result) {
-        UNPROTECT(1);
-        return Rf_ScalarInteger((int) (i + 1));
-      }
-    }
+  while (flag >= 0) {
+
+    idx = race_scan(x, xlen, &unresolved);
+    if (idx)
+      return Rf_ScalarInteger((int) idx);
 
     const nng_time time = nng_clock() + 400;
-    int signalled = 1, flag;
+    int signalled = 1;
     nng_mtx_lock(mtx);
-    while (ncv->condition == 0) {
+    while (ncv->condition == snap && ncv->flag >= 0) {
       if (nng_cv_until(cv, time) == NNG_ETIMEDOUT) {
         signalled = 0;
         break;
       }
     }
-    ncv->condition = 0;
+    snap = ncv->condition;
     flag = ncv->flag;
     nng_mtx_unlock(mtx);
-
-    if (flag < 0) {
-      UNPROTECT(1);
-      return Rf_ScalarInteger(0);
-    }
 
     if (!signalled)
       R_CheckUserInterrupt();
 
   }
+
+  return Rf_ScalarInteger(0);
 
 }
 
