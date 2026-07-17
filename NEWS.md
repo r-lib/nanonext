@@ -1,5 +1,9 @@
 # nanonext (development version)
 
+#### Updates
+
+* `race_aio()` is more efficient, and no longer resets the supplied condition variable or consumes its signals.
+
 # nanonext 1.10.1
 
 #### New Features

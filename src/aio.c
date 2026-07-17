@@ -638,20 +638,22 @@ SEXP rnng_unresolved2(SEXP x) {
 
 }
 
-static inline R_xlen_t race_find_resolved(SEXP x, R_xlen_t xlen) {
-  for (R_xlen_t i = 0; i < xlen; i++) {
-    SEXP elem = VECTOR_PTR_RO(x)[i];
-    if (TYPEOF(elem) == ENVSXP && !rnng_unresolved2_impl(elem))
-      return i + 1;
-  }
-  return 0;
-}
+static R_xlen_t race_scan(SEXP x, const R_xlen_t xlen, R_xlen_t *unresolved) {
 
-static inline int race_count_unresolved(SEXP x, R_xlen_t xlen) {
-  int n = 0;
-  for (R_xlen_t i = 0; i < xlen; i++)
-    n += rnng_unresolved2_impl(VECTOR_PTR_RO(x)[i]);
-  return n;
+  R_xlen_t n = 0;
+  for (R_xlen_t i = 0; i < xlen; i++) {
+    const SEXP elem = VECTOR_PTR_RO(x)[i];
+    if (TYPEOF(elem) != ENVSXP)
+      continue;
+    const SEXP coreaio = nano_findVarInFrame(elem, nano_AioSymbol, NULL);
+    if (NANO_PTR_CHECK(coreaio, nano_AioSymbol) ||
+        ((nano_aio *) NANO_PTR(coreaio))->result)
+      return i + 1;
+    n++;
+  }
+  *unresolved = n;
+  return 0;
+
 }
 
 SEXP rnng_race_aio(SEXP x, SEXP cvar) {
@@ -663,54 +665,50 @@ SEXP rnng_race_aio(SEXP x, SEXP cvar) {
   if (xlen == 0)
     return Rf_ScalarInteger(0);
 
-  R_xlen_t idx = race_find_resolved(x, xlen);
+  R_xlen_t unresolved;
+  R_xlen_t idx = race_scan(x, xlen, &unresolved);
   if (idx)
     return Rf_ScalarInteger((int) idx);
 
-  if (NANO_PTR_CHECK(cvar, nano_CvSymbol))
+  if (unresolved == 0 || NANO_PTR_CHECK(cvar, nano_CvSymbol))
     return Rf_ScalarInteger(0);
 
   nano_cv *ncv = (nano_cv *) NANO_PTR(cvar);
   nng_cv *cv = ncv->cv;
   nng_mtx *mtx = ncv->mtx;
 
+  // observe only: the cv may be shared, e.g. with the dispatcher event loop
+  int snap, flag;
   nng_mtx_lock(mtx);
-  ncv->flag = ncv->flag < 0;
-  ncv->condition = 0;
-  int n = race_count_unresolved(x, xlen);
+  snap = ncv->condition;
+  flag = ncv->flag;
   nng_mtx_unlock(mtx);
-  if (n == 0)
-    return Rf_ScalarInteger((int) race_find_resolved(x, xlen));
 
-  nng_time time = nng_clock();
-  int current_n, flag;
+  while (flag >= 0) {
 
-  do {
-    time = time + 400;
+    idx = race_scan(x, xlen, &unresolved);
+    if (idx)
+      return Rf_ScalarInteger((int) idx);
+
+    const nng_time time = nng_clock() + 400;
     int signalled = 1;
     nng_mtx_lock(mtx);
-    while (ncv->condition == 0) {
+    while (ncv->condition == snap && ncv->flag >= 0) {
       if (nng_cv_until(cv, time) == NNG_ETIMEDOUT) {
         signalled = 0;
         break;
       }
     }
-    if (signalled)
-      ncv->condition--;
+    snap = ncv->condition;
     flag = ncv->flag;
     nng_mtx_unlock(mtx);
-
-    if (flag < 0)
-      return Rf_ScalarInteger(0);
 
     if (!signalled)
       R_CheckUserInterrupt();
 
-    current_n = race_count_unresolved(x, xlen);
+  }
 
-  } while (current_n == n);
-
-  return Rf_ScalarInteger((int) race_find_resolved(x, xlen));
+  return Rf_ScalarInteger(0);
 
 }
 
