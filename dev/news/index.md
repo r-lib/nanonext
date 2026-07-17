@@ -2,6 +2,12 @@
 
 ## nanonext (development version)
 
+##### Updates
+
+- [`race_aio()`](https://nanonext.r-lib.org/dev/reference/race_aio.md)
+  is more efficient, and no longer resets the supplied condition
+  variable or consumes its signals.
+
 ## nanonext 1.10.1
 
 CRAN release: 2026-07-09
