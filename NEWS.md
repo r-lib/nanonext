@@ -1,5 +1,9 @@
 # nanonext (development version)
 
+#### Updates
+
+* `race_aio()` detects aio resolution more efficiently, and no longer misses (or delays detection of) a resolution that races with entry to the function.
+
 # nanonext 1.10.1
 
 #### New Features
