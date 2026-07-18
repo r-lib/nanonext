@@ -91,6 +91,7 @@ typedef struct nano_dispatcher_s {
   int connections;
   int count;
   int executing;
+  int stopped;
   nng_aio *host_aio;
   nng_aio *daemon_aio;
   nng_ctx host_ctx;
@@ -432,7 +433,8 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
     nng_ctx_recv(d->host_ctx, d->host_aio);
   } else {
     nng_mtx_lock(d->cv->mtx);
-    d->cv->flag = -1;
+    d->stopped = 1;
+    nng_cv_wake(d->cv->cv);
     nng_mtx_unlock(d->cv->mtx);
   }
 
@@ -577,9 +579,9 @@ static int dispatch_wait_cv(nano_dispatcher *d, int *host_ready,
   int stop;
 
   nng_mtx_lock(mtx);
-  while (d->cv->condition == 0 && d->cv->flag >= 0)
+  while (d->cv->condition == 0 && !d->stopped)
     nng_cv_wait(cv);
-  stop = d->cv->flag < 0;
+  stop = d->stopped;
   d->cv->condition = 0;
   *host_ready = d->host_recv_ready;
   *daemon_ready = d->daemon_recv_ready;
@@ -693,7 +695,7 @@ static void dispatcher_handle_release(nano_dispatcher_handle *h) {
   if (!h->owns_resources) return;
 
   nng_mtx_lock(h->priv_cv->mtx);
-  h->priv_cv->flag = -1;
+  h->d->stopped = 1;
   nng_cv_wake(h->priv_cv->cv);
   nng_mtx_unlock(h->priv_cv->mtx);
 
@@ -708,6 +710,8 @@ static void dispatcher_handle_release(nano_dispatcher_handle *h) {
     free(h->monitor->ids);
     free(h->monitor);
   }
+  nng_cv_free(h->priv_cv->cv);
+  nng_mtx_free(h->priv_cv->mtx);
   free(h->priv_cv);
   h->owns_resources = 0;
 
@@ -771,12 +775,15 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
   if (d == NULL) { xc = 2; goto fail; }
   h->d = d;
 
-  // Private CV sharing mutex/cv with shared CV
-  nano_cv *shared = (nano_cv *) NANO_PTR(cvar);
+  // Private mutex/cv owned by the dispatcher (cvar accepted for signature
+  // stability; unused pending mirai update)
+  (void) cvar;
   priv = calloc(1, sizeof(nano_cv));
   if (priv == NULL) { xc = 2; goto fail; }
-  priv->mtx = shared->mtx;
-  priv->cv = shared->cv;
+  if ((xc = nng_mtx_alloc(&priv->mtx)))
+    goto fail;
+  if ((xc = nng_cv_alloc(&priv->cv, priv->mtx)))
+    goto fail;
   h->priv_cv = priv;
   d->cv = priv;
   if (capacity == R_NilValue) {
@@ -900,7 +907,11 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
     if (h->monitor) { free(h->monitor->ids); free(h->monitor); }
     free(h);
   }
-  free(priv);
+  if (priv) {
+    if (priv->cv) nng_cv_free(priv->cv);
+    if (priv->mtx) nng_mtx_free(priv->mtx);
+    free(priv);
+  }
   ERROR_OUT(xc);
 
 }
@@ -932,7 +943,7 @@ SEXP rnng_dispatcher_wait(SEXP disp, SEXP n) {
   nng_mtx *mtx = d->cv->mtx;
 
   nng_mtx_lock(mtx);
-  while (d->outq_count < target && d->cv->flag >= 0) {
+  while (d->outq_count < target && !d->stopped) {
     nng_time time = nng_clock() + 400;
     nng_cv_until(cv, time);
     nng_mtx_unlock(mtx);
@@ -1013,7 +1024,7 @@ SEXP rnng_dispatcher_gate(SEXP disp) {
 
   if (d->limit_bytes > 0) {
     nng_mtx_lock(d->cv->mtx);
-    while (d->queued_bytes >= d->limit_bytes) {
+    while (d->queued_bytes >= d->limit_bytes && !d->stopped) {
       nng_time time = nng_clock() + 400;
       nng_cv_until(d->cv->cv, time);
       nng_mtx_unlock(d->cv->mtx);
