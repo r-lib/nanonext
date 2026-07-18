@@ -60,8 +60,14 @@ static void next_rng_stream_c(int *seed) {
 // data structures -------------------------------------------------------------
 
 #define DISPATCH_INITIAL_SIZE 16
+#define DISPATCH_RECV_POOL 4
 
 typedef struct nano_dispatcher_s nano_dispatcher;
+
+typedef struct nano_drecv_s {
+  nano_dispatcher *d;
+  nng_aio *aio;
+} nano_drecv;
 
 typedef struct nano_dispatch_task_s {
   nng_ctx ctx;
@@ -119,7 +125,7 @@ struct nano_dispatcher_s {
   int executing;
   int stopped;
   nng_aio *host_aio;
-  nng_aio *daemon_aio;
+  nano_drecv drecv[DISPATCH_RECV_POOL];
   nng_ctx host_ctx;
   nng_aio *sig_aio;
   int sig_active;
@@ -147,7 +153,7 @@ static void dispatch_shutdown(nano_dispatcher *d);
 static void dispatch_handle_connect(nano_dispatcher *d, int pipe);
 static void dispatch_handle_disconnect(nano_dispatcher *d, int pipe);
 static void dispatch_handle_host_recv(nano_dispatcher *d);
-static void dispatch_handle_daemon_recv(nano_dispatcher *d);
+static void dispatch_handle_daemon_recv(nano_dispatcher *d, nano_drecv *r);
 static void dispatch_drain_locked(nano_dispatcher *d);
 static int dispatch_cancel_inq(nano_dispatcher *d, int id);
 static nano_dispatch_daemon *dispatch_find_idle_daemon(nano_dispatcher *d);
@@ -480,8 +486,9 @@ static void host_recv_cb(void *arg) {
 
 static void daemon_recv_cb(void *arg) {
 
-  nano_dispatcher *d = (nano_dispatcher *) arg;
-  const int res = nng_aio_result(d->daemon_aio);
+  nano_drecv *r = (nano_drecv *) arg;
+  nano_dispatcher *d = r->d;
+  const int res = nng_aio_result(r->aio);
 
   if (res != 0) {
     if (res == NNG_ECLOSED || res == NNG_ECANCELED)
@@ -490,11 +497,11 @@ static void daemon_recv_cb(void *arg) {
     const int stopped = d->stopped;
     nng_mtx_unlock(d->mtx);
     if (!stopped)
-      nng_recv_aio(*d->poly_sock, d->daemon_aio);
+      nng_recv_aio(*d->poly_sock, r->aio);
     return;
   }
 
-  dispatch_handle_daemon_recv(d);
+  dispatch_handle_daemon_recv(d, r);
 
 }
 
@@ -704,9 +711,9 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
 
 }
 
-static void dispatch_handle_daemon_recv(nano_dispatcher *d) {
+static void dispatch_handle_daemon_recv(nano_dispatcher *d, nano_drecv *dr) {
 
-  nng_msg *msg = nng_aio_get_msg(d->daemon_aio);
+  nng_msg *msg = nng_aio_get_msg(dr->aio);
   nng_pipe pipe = nng_msg_get_pipe(msg);
   int pipe_id = (int) pipe.id;
   int dummy, is_marker;
@@ -736,7 +743,7 @@ static void dispatch_handle_daemon_recv(nano_dispatcher *d) {
     nng_msg_free(msg);
   }
 
-  nng_recv_aio(*d->poly_sock, d->daemon_aio);
+  nng_recv_aio(*d->poly_sock, dr->aio);
 
 }
 
@@ -826,7 +833,8 @@ static void dispatch_shutdown(nano_dispatcher *d) {
   // stop intake and signal aios (each waits for any in-flight callback);
   // d->stopped is already set, so callbacks no longer start operations
   nng_aio_stop(d->host_aio);
-  nng_aio_stop(d->daemon_aio);
+  for (int i = 0; i < DISPATCH_RECV_POOL; i++)
+    nng_aio_stop(d->drecv[i].aio);
   nng_aio_stop(d->sig_aio);
 
   // close the poly socket: daemon pipes close and in-flight per-daemon sends
@@ -888,7 +896,8 @@ static void dispatch_shutdown(nano_dispatcher *d) {
   }
 
   nng_aio_free(d->host_aio);
-  nng_aio_free(d->daemon_aio);
+  for (int i = 0; i < DISPATCH_RECV_POOL; i++)
+    nng_aio_free(d->drecv[i].aio);
   nng_aio_free(d->sig_aio);
   free(d->init_template);
   free(d->conn_reset_buf);
@@ -1011,9 +1020,13 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
 
   // Allocate AIOs
   if ((xc = nng_aio_alloc(&d->host_aio, host_recv_cb, d)) ||
-      (xc = nng_aio_alloc(&d->daemon_aio, daemon_recv_cb, d)) ||
       (xc = nng_aio_alloc(&d->sig_aio, dispatch_sig_cb, d)))
     goto fail;
+  for (int i = 0; i < DISPATCH_RECV_POOL; i++) {
+    d->drecv[i].d = d;
+    if ((xc = nng_aio_alloc(&d->drecv[i].aio, daemon_recv_cb, &d->drecv[i])))
+      goto fail;
+  }
 
   // POLY socket for daemon connections; all dispatcher state must be in
   // place before the listener starts, as pipe callbacks fire immediately
@@ -1048,7 +1061,8 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
 
   // Start initial receive operations
   nng_ctx_recv(d->host_ctx, d->host_aio);
-  nng_recv_aio(*d->poly_sock, d->daemon_aio);
+  for (int i = 0; i < DISPATCH_RECV_POOL; i++)
+    nng_recv_aio(*d->poly_sock, d->drecv[i].aio);
 
   h->owns_resources = 1;
 
@@ -1077,7 +1091,8 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
   // pre-listener failure: no pipes can exist, so free directly
   if (d) {
     if (d->sig_aio) { nng_aio_stop(d->sig_aio); nng_aio_free(d->sig_aio); }
-    if (d->daemon_aio) { nng_aio_stop(d->daemon_aio); nng_aio_free(d->daemon_aio); }
+    for (int i = 0; i < DISPATCH_RECV_POOL; i++)
+      if (d->drecv[i].aio) { nng_aio_stop(d->drecv[i].aio); nng_aio_free(d->drecv[i].aio); }
     if (d->host_aio) { nng_aio_stop(d->host_aio); nng_aio_free(d->host_aio); }
     nng_close(h->poly_sock);
     free(d->daemons);
