@@ -82,13 +82,13 @@ enum { DAEMON_INIT, DAEMON_IDLE, DAEMON_BUSY };
 typedef struct nano_dsend_s {
   nano_dispatcher *d;
   nng_aio *aio;
+  nng_aio *init_aio;
   int pipe;
   int sending;
   struct nano_dsend_s *next;
 } nano_dsend;
 
 typedef struct nano_reply_s {
-  nano_dispatcher *d;
   nng_aio *aio;
   nng_ctx ctx;
   struct nano_reply_s *next;
@@ -132,8 +132,8 @@ struct nano_dispatcher_s {
   nano_signode *sig_head;
   nano_signode *sig_tail;
   nano_dsend *retired;
+  nano_reply *reply_active;
   nano_reply *reply_free;
-  int replies_active;
   int rng_seed[6];
   unsigned char *init_template;
   size_t init_template_len;
@@ -259,43 +259,52 @@ static void dispatch_free_task(nano_dispatch_task *t) {
 //
 // All sends from callback context are asynchronous: a blocking send from an
 // NNG task thread can occupy the entire task pool and deadlock the socket's
-// own send cycle. Per-pipe invariant on the poly socket: at most one task
-// send plus one zero-length signal in flight per daemon (the pair1-poly
-// per-pipe send queue has depth 2 and drops silently on overflow).
+// own send cycle. Task sends and reply forwards use callback-less aios:
+// their completions bypass the NNG task queue entirely (a callback-less
+// task is marked done inline by the completing thread), so results are
+// harvested at the next event that implies completion instead of in a
+// callback. Per-pipe invariant on the poly socket: at most one task send
+// plus one zero-length signal in flight per daemon (the pair1-poly per-pipe
+// send queue has depth 2 and drops silently on overflow).
 
-static void dispatch_dsend_cb(void *arg) {
+static void dispatch_init_cb(void *arg) {
 
   nano_dsend *ds = (nano_dsend *) arg;
   nano_dispatcher *d = ds->d;
-  const int res = nng_aio_result(ds->aio);
+  const int res = nng_aio_result(ds->init_aio);
   if (res != 0)
-    nng_msg_free(nng_aio_get_msg(ds->aio));
+    nng_msg_free(nng_aio_get_msg(ds->init_aio));
 
   nng_mtx_lock(d->mtx);
   ds->sending = 0;
   nano_dispatch_daemon *dd = dispatch_find_daemon(d, ds->pipe);
-  if (dd != NULL && dd->ds == ds) {
-    if (res == 0 && dd->state == DAEMON_INIT) {
-      dd->state = DAEMON_IDLE;
-      d->connections++;
-      d->outq_count++;
-      nng_cv_wake(d->cv);
-    }
-    if (dd->state == DAEMON_IDLE && !d->stopped)
+  if (res == 0 && dd != NULL && dd->ds == ds && dd->state == DAEMON_INIT) {
+    dd->state = DAEMON_IDLE;
+    d->connections++;
+    d->outq_count++;
+    nng_cv_wake(d->cv);
+    if (!d->stopped)
       dispatch_drain_locked(d);
   }
   nng_mtx_unlock(d->mtx);
 
 }
 
-// start a send to a slot's daemon, taking ownership of msg; must be called
-// under d->mtx: the lock orders send initiation against slot retirement
-// and against shutdown's stop of the send aios
+// start a task send to a slot's daemon, taking ownership of msg; must be
+// called under d->mtx: the lock orders send initiation against slot
+// retirement and shutdown. The slot's previous send is guaranteed complete:
+// a poly send aio is marked done before the message reaches the wire, and
+// the slot only leaves BUSY once the daemon's reply arrives, which the wire
+// write precedes. The wait therefore never blocks; it guards the aio-reuse
+// precondition, and any message left by a failed send is released here.
 static void dispatch_start_send(nano_dispatcher *d, nano_dispatch_daemon *dd, nng_msg *msg) {
 
   nano_dsend *ds = dd->ds;
+  nng_aio_wait(ds->aio);
+  nng_msg *stale = nng_aio_get_msg(ds->aio);
+  if (stale != NULL)
+    nng_msg_free(stale);
   nng_msg_set_pipe(msg, (nng_pipe) {.id = (uint32_t) dd->pipe});
-  ds->sending = 1;
   nng_aio_set_msg(ds->aio, msg);
   nng_send_aio(*d->poly_sock, ds->aio);
 
@@ -357,55 +366,46 @@ static void dispatch_sig_cb(void *arg) {
 
 }
 
-static void dispatch_reply_cb(void *arg) {
+// forward a reply to the host, taking ownership of ctx and msg; called under
+// d->mtx (rep ctx send initiation never blocks, and any inline completion is
+// callback-less). Holders whose sends have finished are harvested first:
+// a message still on the aio means the send failed (success clears it), the
+// ctx is closed, and the holder returns to the pool.
+static void dispatch_reply_send_locked(nano_dispatcher *d, nng_ctx ctx, nng_msg *msg) {
 
-  nano_reply *r = (nano_reply *) arg;
-  nano_dispatcher *d = r->d;
-
-  if (nng_aio_result(r->aio) != 0)
-    nng_msg_free(nng_aio_get_msg(r->aio));
-  nng_ctx_close(r->ctx);
-
-  nng_mtx_lock(d->mtx);
-  r->next = d->reply_free;
-  d->reply_free = r;
-  d->replies_active--;
-  if (d->stopped)
-    nng_cv_wake(d->cv);
-  nng_mtx_unlock(d->mtx);
-
-}
-
-// acquire a reply holder from the pool; called under d->mtx; may return NULL,
-// in which case dispatch_reply_start allocates one
-static nano_reply *dispatch_reply_get(nano_dispatcher *d) {
+  nano_reply **pp = &d->reply_active;
+  while (*pp != NULL) {
+    nano_reply *r = *pp;
+    if (nng_aio_busy(r->aio)) {
+      pp = &r->next;
+      continue;
+    }
+    *pp = r->next;
+    nng_msg *m = nng_aio_get_msg(r->aio);
+    if (m != NULL) {
+      nng_msg_free(m);
+      nng_aio_set_msg(r->aio, NULL);
+    }
+    nng_ctx_close(r->ctx);
+    r->next = d->reply_free;
+    d->reply_free = r;
+  }
 
   nano_reply *r = d->reply_free;
-  if (r != NULL)
+  if (r != NULL) {
     d->reply_free = r->next;
-  d->replies_active++;
-  return r;
-
-}
-
-// forward a reply to the host, taking ownership of ctx and msg; the holder's
-// callback closes the ctx once the send completes and returns to the pool
-static void dispatch_reply_start(nano_dispatcher *d, nano_reply *r, nng_ctx ctx, nng_msg *msg) {
-
-  if (r == NULL) {
+  } else {
     r = malloc(sizeof(nano_reply));
-    if (r == NULL || nng_aio_alloc(&r->aio, dispatch_reply_cb, r)) {
+    if (r == NULL || nng_aio_alloc(&r->aio, NULL, NULL)) {
       free(r);
       nng_msg_free(msg);
       nng_ctx_close(ctx);
-      nng_mtx_lock(d->mtx);
-      d->replies_active--;
-      nng_mtx_unlock(d->mtx);
       return;
     }
-    r->d = d;
   }
   r->ctx = ctx;
+  r->next = d->reply_active;
+  d->reply_active = r;
   nng_aio_set_msg(r->aio, msg);
   nng_ctx_send(ctx, r->aio);
 
@@ -414,9 +414,8 @@ static void dispatch_reply_start(nano_dispatcher *d, nano_reply *r, nng_ctx ctx,
 static void dispatch_send_reply(nano_dispatcher *d, nng_ctx ctx, nng_msg *msg) {
 
   nng_mtx_lock(d->mtx);
-  nano_reply *r = dispatch_reply_get(d);
+  dispatch_reply_send_locked(d, ctx, msg);
   nng_mtx_unlock(d->mtx);
-  dispatch_reply_start(d, r, ctx, msg);
 
 }
 
@@ -432,8 +431,23 @@ static void dispatch_send_conn_reset(nano_dispatcher *d, nng_ctx ctx) {
 
 }
 
-// free retired senders whose last operation has completed; entries with a
-// send still in flight stay on the list for a later pass
+// stop and free a sender's aios, releasing any message a failed or aborted
+// task send left behind; must not be called under d->mtx
+static void dispatch_dsend_free(nano_dsend *ds) {
+
+  nng_aio_stop(ds->init_aio);
+  nng_aio_stop(ds->aio);
+  nng_msg *m = nng_aio_get_msg(ds->aio);
+  if (m != NULL)
+    nng_msg_free(m);
+  nng_aio_free(ds->init_aio);
+  nng_aio_free(ds->aio);
+  free(ds);
+
+}
+
+// free retired senders whose operations have completed; entries with the
+// init send or a task send still in flight stay on the list for a later pass
 static void dispatch_reap_retired(nano_dispatcher *d) {
 
   nano_dsend *list = NULL, **pp;
@@ -442,7 +456,7 @@ static void dispatch_reap_retired(nano_dispatcher *d) {
   pp = &d->retired;
   while (*pp != NULL) {
     nano_dsend *ds = *pp;
-    if (!ds->sending) {
+    if (!ds->sending && !nng_aio_busy(ds->aio)) {
       *pp = ds->next;
       ds->next = list;
       list = ds;
@@ -454,9 +468,7 @@ static void dispatch_reap_retired(nano_dispatcher *d) {
 
   while (list != NULL) {
     nano_dsend *next = list->next;
-    nng_aio_stop(list->aio);
-    nng_aio_free(list->aio);
-    free(list);
+    dispatch_dsend_free(list);
     list = next;
   }
 
@@ -614,7 +626,10 @@ static void dispatch_handle_connect(nano_dispatcher *d, int pipe) {
   }
   ds->d = d;
   ds->pipe = pipe;
-  if (nng_aio_alloc(&ds->aio, dispatch_dsend_cb, ds)) {
+  if (nng_aio_alloc(&ds->aio, NULL, NULL) ||
+      nng_aio_alloc(&ds->init_aio, dispatch_init_cb, ds)) {
+    if (ds->aio)
+      nng_aio_free(ds->aio);
     free(ds);
     nng_msg_free(msg);
     return;
@@ -623,6 +638,7 @@ static void dispatch_handle_connect(nano_dispatcher *d, int pipe) {
   nng_mtx_lock(d->mtx);
   if (d->stopped || dispatch_insert_daemon(d, pipe, ds) == NULL) {
     nng_mtx_unlock(d->mtx);
+    nng_aio_free(ds->init_aio);
     nng_aio_free(ds->aio);
     free(ds);
     nng_msg_free(msg);
@@ -632,8 +648,8 @@ static void dispatch_handle_connect(nano_dispatcher *d, int pipe) {
   memcpy(buf + d->init_seed_offset, d->rng_seed, sizeof(d->rng_seed));
   nng_msg_set_pipe(msg, (nng_pipe) {.id = (uint32_t) pipe});
   ds->sending = 1;
-  nng_aio_set_msg(ds->aio, msg);
-  nng_send_aio(*d->poly_sock, ds->aio);
+  nng_aio_set_msg(ds->init_aio, msg);
+  nng_send_aio(*d->poly_sock, ds->init_aio);
   nng_mtx_unlock(d->mtx);
 
 }
@@ -734,10 +750,8 @@ static void dispatch_handle_daemon_recv(nano_dispatcher *d, nano_drecv *dr) {
       dd->msgid = 0;
       dispatch_drain_locked(d);
     }
-    nano_reply *r = dispatch_reply_get(d);
+    dispatch_reply_send_locked(d, ctx, msg);
     nng_mtx_unlock(d->mtx);
-
-    dispatch_reply_start(d, r, ctx, msg);
   } else {
     nng_mtx_unlock(d->mtx);
     nng_msg_free(msg);
@@ -777,7 +791,7 @@ static nano_dispatch_daemon *dispatch_find_idle_daemon(nano_dispatcher *d) {
 
   for (int i = 0; i < d->nslots; i++) {
     nano_dispatch_daemon *dd = &d->daemons[i];
-    if (dd->state == DAEMON_IDLE && !dd->ds->sending &&
+    if (dd->state == DAEMON_IDLE &&
         !(d->syncing && dd->sync_gen == d->sync_generation))
       return dd;
   }
@@ -838,29 +852,44 @@ static void dispatch_shutdown(nano_dispatcher *d) {
   nng_aio_stop(d->sig_aio);
 
   // close the poly socket: daemon pipes close and in-flight per-daemon sends
-  // complete with an error (their callbacks free the messages)
+  // abort (leftover messages are released when the senders are freed)
   nng_close(*d->poly_sock);
 
   // reap all per-daemon senders: retired entries and remaining slots
   for (nano_dsend *ds = d->retired; ds != NULL; ) {
     nano_dsend *next = ds->next;
-    nng_aio_stop(ds->aio);
-    nng_aio_free(ds->aio);
-    free(ds);
+    dispatch_dsend_free(ds);
     ds = next;
   }
   for (int i = 0; i < d->nslots; i++) {
     nano_dispatch_daemon *dd = &d->daemons[i];
-    nng_aio_stop(dd->ds->aio);
-    nng_aio_free(dd->ds->aio);
-    free(dd->ds);
     if (dd->state == DAEMON_BUSY)
       nng_ctx_close(dd->ctx);
+    dispatch_dsend_free(dd->ds);
   }
   free(d->daemons);
 
-  // every rep ctx held here must be closed before the rep socket is:
-  // nng_close blocks until the socket's ctx list is empty
+  // abort in-flight reply forwards and close their ctxs; every rep ctx held
+  // here must be closed before the rep socket is: nng_close blocks until
+  // the socket's ctx list is empty
+  for (nano_reply *r = d->reply_active; r != NULL; ) {
+    nano_reply *next = r->next;
+    nng_aio_stop(r->aio);
+    nng_msg *m = nng_aio_get_msg(r->aio);
+    if (m != NULL)
+      nng_msg_free(m);
+    nng_ctx_close(r->ctx);
+    nng_aio_free(r->aio);
+    free(r);
+    r = next;
+  }
+  for (nano_reply *r = d->reply_free; r != NULL; ) {
+    nano_reply *next = r->next;
+    nng_aio_free(r->aio);
+    free(r);
+    r = next;
+  }
+
   nng_ctx_close(d->host_ctx);
   while (d->inq_head) {
     nano_dispatch_task *t = d->inq_head;
@@ -871,22 +900,7 @@ static void dispatch_shutdown(nano_dispatcher *d) {
     free(t);
   }
 
-  // closing the rep socket aborts in-flight reply sends; the holders' own
-  // callbacks close their ctxs, unblocking the close, then self-reap
   nng_close(*d->rep_sock);
-
-  nng_mtx_lock(d->mtx);
-  while (d->replies_active > 0)
-    nng_cv_until(d->cv, nng_clock() + 20);
-  nng_mtx_unlock(d->mtx);
-
-  for (nano_reply *r = d->reply_free; r != NULL; ) {
-    nano_reply *next = r->next;
-    nng_aio_stop(r->aio);
-    nng_aio_free(r->aio);
-    free(r);
-    r = next;
-  }
 
   for (nano_signode *node = d->sig_head; node != NULL; ) {
     nano_signode *next = node->next;
