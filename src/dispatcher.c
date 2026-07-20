@@ -985,8 +985,7 @@ int dispatch_cancel_direct(void *handle, int id) {
 }
 
 SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
-                           SEXP serial, SEXP stream,
-                           SEXP capacity, SEXP cvar) {
+                           SEXP serial, SEXP stream, SEXP capacity) {
 
   int xc;
   nng_listener listener = NNG_LISTENER_INITIALIZER;
@@ -1002,9 +1001,6 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
   d->poly_sock = &h->poly_sock;
   d->rep_sock = &h->rep_sock;
 
-  // Private mutex/cv owned by the dispatcher (cvar accepted for signature
-  // stability; unused pending mirai update)
-  (void) cvar;
   if ((xc = nng_mtx_alloc(&d->mtx)))
     goto fail;
   if ((xc = nng_cv_alloc(&d->cv, d->mtx)))
