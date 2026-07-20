@@ -263,8 +263,10 @@ static void dispatch_init_cb(void *arg) {
   nano_dsend *ds = (nano_dsend *) arg;
   nano_dispatcher *d = ds->d;
   const int res = nng_aio_result(ds->init_aio);
-  if (res != 0)
+  if (res != 0) {
     nng_msg_free(nng_aio_get_msg(ds->init_aio));
+    nng_aio_set_msg(ds->init_aio, NULL);
+  }
 
   nng_mtx_lock(d->mtx);
   ds->sending = 0;
@@ -961,7 +963,7 @@ int dispatch_cancel_direct(void *handle, int id) {
   nano_dispatcher *d = h->d;
   if (d == NULL)
     return 0;
-  
+
   int found = 0;
 
   nng_mtx_lock(d->mtx);
@@ -1190,8 +1192,11 @@ SEXP rnng_dispatcher_wait(SEXP disp, SEXP n) {
 
 SEXP rnng_dispatcher_info(SEXP disp) {
 
-  if (NANO_PTR_CHECK(disp, nano_ThreadSymbol))
-    return Rf_allocVector(INTSXP, 5);
+  if (NANO_PTR_CHECK(disp, nano_ThreadSymbol)) {
+    SEXP out = Rf_allocVector(INTSXP, 5);
+    memset(NANO_DATAPTR(out), 0, 5 * sizeof(int));
+    return out;
+  }
 
   nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
   nano_dispatcher *d = h->d;
