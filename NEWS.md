@@ -3,6 +3,7 @@
 #### Updates
 
 * `race_aio()` is more efficient, and no longer resets the supplied condition variable or consumes its signals.
+* Fixes compilation on FreeBSD (#332).
 
 # nanonext 1.10.1
 
