@@ -60,6 +60,7 @@ typedef struct nano_handle_s {
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <net/if.h>
+#include <netinet/in.h>
 #endif
 #endif
 
