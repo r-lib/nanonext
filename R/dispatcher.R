@@ -10,15 +10,15 @@
 #' @param capacity Memory budget in MB (metric, 1 MB = 1,000,000 bytes) for
 #'   queued task payloads. `NULL`, 0, non-finite, or negative values are
 #'   treated as unlimited.
-#' @param cvar Shared condition variable for capacity signaling.
+#' @param cvar Unused; accepted for compatibility and ignored.
 #'
 #' @return External pointer to dispatcher handle.
 #'
 #' @keywords internal
 #' @export
 #'
-.dispatcher_start <- function(url, disp_url, tls, serial, stream, capacity, cvar) {
-  .Call(rnng_dispatcher_start, url, disp_url, tls, serial, stream, capacity, cvar)
+.dispatcher_start <- function(url, disp_url, tls, serial, stream, capacity, cvar = NULL) {
+  .Call(rnng_dispatcher_start, url, disp_url, tls, serial, stream, capacity)
 }
 
 #' Stop In-Process Dispatcher

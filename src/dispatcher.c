@@ -60,42 +60,85 @@ static void next_rng_stream_c(int *seed) {
 // data structures -------------------------------------------------------------
 
 #define DISPATCH_INITIAL_SIZE 16
-#define DISPATCH_BATCH_SIZE 32
+#define DISPATCH_RECV_POOL 4
+#define DISPATCH_REPLY_POOL 4
 
-typedef struct nano_dispatch_task_s {
+typedef struct nano_dispatcher_s nano_dispatcher;
+
+typedef struct nano_drecv_s {
+  nano_dispatcher *d;
+  nng_aio *aio;
+} nano_drecv;
+
+// inq node stored in the queued msg's own header: a fixed 64-byte buffer
+// inside nng_msg, delivered cleared by the rep protocol and cleared again by
+// NNG before any send, so enqueueing is a plain memcpy that cannot allocate
+// or fail. next must remain the first member: link updates write it at
+// offset zero.
+typedef struct nano_dispatch_node_s {
+  nng_msg *next;
   nng_ctx ctx;
-  nng_msg *msg;
   int msgid;
   int is_sync;
-  struct nano_dispatch_task_s *next;
-} nano_dispatch_task;
+} nano_dispatch_node;
+
+enum { DAEMON_INIT, DAEMON_IDLE, DAEMON_BUSY };
+
+typedef struct nano_dsend_s {
+  nano_dispatcher *d;
+  nng_aio *aio;
+  nng_aio *init_aio;
+  int pipe;
+  int sending;
+  struct nano_dsend_s *next;
+} nano_dsend;
+
+typedef struct nano_reply_s {
+  nng_aio *aio;
+  nng_ctx ctx;
+  struct nano_reply_s *next;
+} nano_reply;
+
+typedef struct nano_signode_s {
+  nng_msg *msg;
+  struct nano_signode_s *next;
+} nano_signode;
 
 typedef struct nano_dispatch_daemon_s {
   int pipe;
-  nng_ctx ctx;
+  uint8_t state;
   int msgid;
   int sync_gen;
+  nng_ctx ctx;
+  nano_dsend *ds;
 } nano_dispatch_daemon;
 
-typedef struct nano_dispatcher_s {
+struct nano_dispatcher_s {
   nng_socket *rep_sock;
   nng_socket *poly_sock;
-  nano_cv *cv;
-  nano_monitor *monitor;
-  nano_dispatch_task *inq_head;
-  nano_dispatch_task *inq_tail;
+  nng_mtx *mtx;
+  nng_cv *cv;
+  nng_msg *inq_head;
+  nng_msg *inq_tail;
   nano_dispatch_daemon *daemons;
   int inq_count;
   int outq_capacity;
+  int nslots;
   int outq_count;
   int connections;
   int count;
   int executing;
+  int stopped;
   nng_aio *host_aio;
-  nng_aio *daemon_aio;
+  nano_drecv drecv[DISPATCH_RECV_POOL];
   nng_ctx host_ctx;
-  int host_recv_ready;
-  int daemon_recv_ready;
+  nng_aio *sig_aio;
+  int sig_active;
+  nano_signode *sig_head;
+  nano_signode *sig_tail;
+  nano_dsend *retired;
+  nano_reply *reply_active;
+  nano_reply *reply_free;
   int rng_seed[6];
   unsigned char *init_template;
   size_t init_template_len;
@@ -104,19 +147,19 @@ typedef struct nano_dispatcher_s {
   size_t conn_reset_len;
   int syncing;
   int sync_generation;
-  int *pipe_events;
-  int pipe_events_size;
   size_t limit_bytes;
   size_t queued_bytes;
   size_t peak_queued_bytes;
-} nano_dispatcher;
+};
 
 // forward declarations --------------------------------------------------------
 
 static void dispatch_shutdown(nano_dispatcher *d);
 static void dispatch_handle_connect(nano_dispatcher *d, int pipe);
 static void dispatch_handle_disconnect(nano_dispatcher *d, int pipe);
-static void dispatch_dispatch_tasks(nano_dispatcher *d);
+static void dispatch_handle_host_recv(nano_dispatcher *d);
+static void dispatch_handle_daemon_recv(nano_dispatcher *d, nano_drecv *r);
+static void dispatch_drain_locked(nano_dispatcher *d);
 static int dispatch_cancel_inq(nano_dispatcher *d, int id);
 static nano_dispatch_daemon *dispatch_find_idle_daemon(nano_dispatcher *d);
 
@@ -124,7 +167,7 @@ static nano_dispatch_daemon *dispatch_find_idle_daemon(nano_dispatcher *d);
 
 static nano_dispatch_daemon *dispatch_find_daemon(nano_dispatcher *d, int pipe) {
 
-  for (int i = 0; i < d->outq_count; i++)
+  for (int i = 0; i < d->nslots; i++)
     if (d->daemons[i].pipe == pipe)
       return &d->daemons[i];
 
@@ -132,48 +175,70 @@ static nano_dispatch_daemon *dispatch_find_daemon(nano_dispatcher *d, int pipe) 
 
 }
 
-static void dispatch_insert_daemon(nano_dispatcher *d, int pipe) {
+// called under d->mtx
+static nano_dispatch_daemon *dispatch_insert_daemon(nano_dispatcher *d, int pipe, nano_dsend *ds) {
 
-  if (d->outq_count >= d->outq_capacity) {
+  if (d->nslots >= d->outq_capacity) {
     int new_cap = d->outq_capacity * 2;
     nano_dispatch_daemon *new_arr = realloc(d->daemons, new_cap * sizeof(nano_dispatch_daemon));
-    if (new_arr == NULL) {
-      REprintf("dispatcher: allocation failed for pipe %d\n", pipe);
-      return;
-    }
+    if (new_arr == NULL)
+      return NULL;
     d->daemons = new_arr;
     d->outq_capacity = new_cap;
   }
 
-  nano_dispatch_daemon *dd = &d->daemons[d->outq_count++];
+  nano_dispatch_daemon *dd = &d->daemons[d->nslots++];
   dd->pipe = pipe;
+  dd->state = DAEMON_INIT;
   dd->msgid = 0;
   dd->sync_gen = d->sync_generation - 1;
+  dd->ds = ds;
+  return dd;
+
+}
+
+// pop-swap a slot, retiring its sender for lazy reap; called under d->mtx
+static void dispatch_remove_daemon(nano_dispatcher *d, nano_dispatch_daemon *dd) {
+
+  nano_dsend *ds = dd->ds;
+  ds->next = d->retired;
+  d->retired = ds;
+  if (dd->state != DAEMON_INIT)
+    d->outq_count--;
+  *dd = d->daemons[--d->nslots];
 
 }
 
 // queue operations ------------------------------------------------------------
 
+static inline void dispatch_node_read(nng_msg *msg, nano_dispatch_node *node) {
+
+  memcpy(node, nng_msg_header(msg), sizeof(nano_dispatch_node));
+
+}
+
+static inline void dispatch_node_set_next(nng_msg *msg, nng_msg *next) {
+
+  memcpy(nng_msg_header(msg), &next, sizeof(nng_msg *));
+
+}
+
 static void dispatch_enqueue(nano_dispatcher *d, nng_ctx ctx,
                              nng_msg *msg, int msgid, int is_sync) {
 
-  nano_dispatch_task *t = malloc(sizeof(nano_dispatch_task));
-  if (t == NULL) {
-    nng_ctx_close(ctx);
-    nng_msg_free(msg);
-    return;
-  }
-  t->ctx = ctx;
-  t->msg = msg;
-  t->msgid = msgid;
-  t->is_sync = is_sync;
-  t->next = NULL;
+  nano_dispatch_node node;
+  memset(&node, 0, sizeof(node));
+  node.ctx = ctx;
+  node.msgid = msgid;
+  node.is_sync = is_sync;
+  nng_msg_header_clear(msg);
+  nng_msg_header_append(msg, &node, sizeof(node));
 
   if (d->inq_tail)
-    d->inq_tail->next = t;
+    dispatch_node_set_next(d->inq_tail, msg);
   else
-    d->inq_head = t;
-  d->inq_tail = t;
+    d->inq_head = msg;
+  d->inq_tail = msg;
   d->inq_count++;
   d->queued_bytes += nng_msg_len(msg);
   if (d->queued_bytes > d->peak_queued_bytes)
@@ -181,60 +246,243 @@ static void dispatch_enqueue(nano_dispatcher *d, nng_ctx ctx,
 
 }
 
-static void dispatch_dequeue(nano_dispatcher *d) {
+// send operations -------------------------------------------------------------
+//
+// All sends from callback context are asynchronous: a blocking send from an
+// NNG task thread can occupy the entire task pool and deadlock the socket's
+// own send cycle. Task sends and reply forwards use callback-less aios:
+// their completions bypass the NNG task queue entirely (a callback-less
+// task is marked done inline by the completing thread), so results are
+// harvested at the next event that implies completion instead of in a
+// callback. Per-pipe invariant on the poly socket: at most one task send
+// plus one zero-length signal in flight per daemon (the pair1-poly per-pipe
+// send queue has depth 2 and drops silently on overflow).
 
-  nano_dispatch_task *t = d->inq_head;
-  if (t) {
-    d->inq_head = t->next;
-    if (d->inq_head == NULL)
-      d->inq_tail = NULL;
-    d->inq_count--;
-    free(t);
+static void dispatch_init_cb(void *arg) {
+
+  nano_dsend *ds = (nano_dsend *) arg;
+  nano_dispatcher *d = ds->d;
+  const int res = nng_aio_result(ds->init_aio);
+  if (res != 0) {
+    nng_msg_free(nng_aio_get_msg(ds->init_aio));
+    nng_aio_set_msg(ds->init_aio, NULL);
   }
 
+  nng_mtx_lock(d->mtx);
+  ds->sending = 0;
+  nano_dispatch_daemon *dd = dispatch_find_daemon(d, ds->pipe);
+  if (res == 0 && dd != NULL && dd->ds == ds && dd->state == DAEMON_INIT) {
+    dd->state = DAEMON_IDLE;
+    d->connections++;
+    d->outq_count++;
+    nng_cv_wake(d->cv);
+    if (!d->stopped)
+      dispatch_drain_locked(d);
+  }
+  nng_mtx_unlock(d->mtx);
+
 }
 
-static void dispatch_free_task(nano_dispatch_task *t) {
+// start a task send to a slot's daemon, taking ownership of msg; must be
+// called under d->mtx: the lock orders send initiation against slot
+// retirement and shutdown. The slot's previous send is guaranteed complete:
+// a poly send aio is marked done before the message reaches the wire, and
+// the slot only leaves BUSY once the daemon's reply arrives, which the wire
+// write precedes. The wait therefore never blocks; it guards the aio-reuse
+// precondition, and any message left by a failed send is released here.
+static void dispatch_start_send(nano_dispatcher *d, nano_dispatch_daemon *dd, nng_msg *msg) {
 
-  nng_ctx_close(t->ctx);
-  if (t->msg)
-    nng_msg_free(t->msg);
-  free(t);
+  nano_dsend *ds = dd->ds;
+  nng_aio_wait(ds->aio);
+  nng_msg *stale = nng_aio_get_msg(ds->aio);
+  if (stale != NULL)
+    nng_msg_free(stale);
+  nng_msg_set_pipe(msg, (nng_pipe) {.id = (uint32_t) dd->pipe});
+  nng_aio_set_msg(ds->aio, msg);
+  nng_send_aio(*d->poly_sock, ds->aio);
 
 }
 
-// send operations -------------------------------------------------------------
+// called under d->mtx
+static void dispatch_assign_task(nano_dispatcher *d, nano_dispatch_daemon *dd,
+                                 nng_ctx ctx, nng_msg *msg, int msgid, int is_sync) {
 
-static int dispatch_signal_daemon(nano_dispatcher *d, int pipe) {
+  dd->ctx = ctx;
+  dd->msgid = msgid;
+  dd->state = DAEMON_BUSY;
+  d->executing++;
+  if (is_sync) {
+    dd->sync_gen = d->sync_generation;
+    d->syncing = 1;
+  } else if (d->syncing) {
+    d->syncing = 0;
+    d->sync_generation++;
+  }
+  dispatch_start_send(d, dd, msg);
+
+}
+
+// called under d->mtx
+static void dispatch_queue_signal(nano_dispatcher *d, int pipe) {
+
+  if (d->stopped)
+    return;
 
   nng_msg *msg;
   if (nng_msg_alloc(&msg, 0))
-    return -1;
+    return;
   nng_msg_set_pipe(msg, (nng_pipe) {.id = (uint32_t) pipe});
-  int xc = nng_sendmsg(*d->poly_sock, msg, 0);
-  if (xc != 0)
+
+  if (!d->sig_active) {
+    d->sig_active = 1;
+    nng_aio_set_msg(d->sig_aio, msg);
+    nng_send_aio(*d->poly_sock, d->sig_aio);
+    return;
+  }
+
+  nano_signode *node = malloc(sizeof(nano_signode));
+  if (node == NULL) {
     nng_msg_free(msg);
-  return xc;
+    return;
+  }
+  node->msg = msg;
+  node->next = NULL;
+  if (d->sig_tail)
+    d->sig_tail->next = node;
+  else
+    d->sig_head = node;
+  d->sig_tail = node;
 
 }
 
-static int dispatch_send_msg_to_daemon(nano_dispatcher *d, int pipe, nng_msg *msg) {
+static void dispatch_sig_cb(void *arg) {
 
-  nng_msg_set_pipe(msg, (nng_pipe) {.id = (uint32_t) pipe});
-  return nng_sendmsg(*d->poly_sock, msg, 0);
+  nano_dispatcher *d = (nano_dispatcher *) arg;
+  if (nng_aio_result(d->sig_aio) != 0)
+    nng_msg_free(nng_aio_get_msg(d->sig_aio));
+
+  nano_signode *node = NULL;
+  nng_mtx_lock(d->mtx);
+  if (!d->stopped && d->sig_head != NULL) {
+    node = d->sig_head;
+    d->sig_head = node->next;
+    if (d->sig_head == NULL)
+      d->sig_tail = NULL;
+    nng_aio_set_msg(d->sig_aio, node->msg);
+    nng_send_aio(*d->poly_sock, d->sig_aio);
+  } else {
+    d->sig_active = 0;
+  }
+  nng_mtx_unlock(d->mtx);
+  free(node);
 
 }
 
-static int dispatch_send_reply(nng_ctx ctx, unsigned char *data, size_t len) {
+// forward a reply to the host, taking ownership of ctx and msg; called under
+// d->mtx (rep ctx send initiation never blocks, and any inline completion is
+// callback-less). Holders whose sends have finished are harvested first:
+// a message still on the aio means the send failed (success clears it), the
+// ctx is closed, and the holder returns to the pool.
+static void dispatch_reply_send_locked(nano_dispatcher *d, nng_ctx ctx, nng_msg *msg) {
+
+  nano_reply **pp = &d->reply_active;
+  while (*pp != NULL) {
+    nano_reply *r = *pp;
+    if (nng_aio_busy(r->aio)) {
+      pp = &r->next;
+      continue;
+    }
+    *pp = r->next;
+    nng_msg *m = nng_aio_get_msg(r->aio);
+    if (m != NULL) {
+      nng_msg_free(m);
+      nng_aio_set_msg(r->aio, NULL);
+    }
+    nng_ctx_close(r->ctx);
+    r->next = d->reply_free;
+    d->reply_free = r;
+  }
+
+  nano_reply *r = d->reply_free;
+  if (r != NULL) {
+    d->reply_free = r->next;
+  } else {
+    r = malloc(sizeof(nano_reply));
+    if (r == NULL || nng_aio_alloc(&r->aio, NULL, NULL)) {
+      free(r);
+      nng_msg_free(msg);
+      nng_ctx_close(ctx);
+      return;
+    }
+  }
+  r->ctx = ctx;
+  r->next = d->reply_active;
+  d->reply_active = r;
+  nng_aio_set_msg(r->aio, msg);
+  nng_ctx_send(ctx, r->aio);
+
+}
+
+static void dispatch_send_reply(nano_dispatcher *d, nng_ctx ctx, nng_msg *msg) {
+
+  nng_mtx_lock(d->mtx);
+  dispatch_reply_send_locked(d, ctx, msg);
+  nng_mtx_unlock(d->mtx);
+
+}
+
+static void dispatch_send_conn_reset(nano_dispatcher *d, nng_ctx ctx) {
 
   nng_msg *msg;
-  if (nng_msg_alloc(&msg, len))
-    return -1;
-  memcpy(nng_msg_body(msg), data, len);
-  int xc = nng_ctx_sendmsg(ctx, msg, 0);
-  if (xc != 0)
-    nng_msg_free(msg);
-  return xc;
+  if (nng_msg_alloc(&msg, d->conn_reset_len)) {
+    nng_ctx_close(ctx);
+    return;
+  }
+  memcpy(nng_msg_body(msg), d->conn_reset_buf, d->conn_reset_len);
+  dispatch_send_reply(d, ctx, msg);
+
+}
+
+// stop and free a sender's aios, releasing any message a failed or aborted
+// task send left behind; must not be called under d->mtx
+static void dispatch_dsend_free(nano_dsend *ds) {
+
+  nng_aio_stop(ds->init_aio);
+  nng_aio_stop(ds->aio);
+  nng_msg *m = nng_aio_get_msg(ds->aio);
+  if (m != NULL)
+    nng_msg_free(m);
+  nng_aio_free(ds->init_aio);
+  nng_aio_free(ds->aio);
+  free(ds);
+
+}
+
+// free retired senders whose operations have completed; entries with the
+// init send or a task send still in flight stay on the list for a later pass
+static void dispatch_reap_retired(nano_dispatcher *d) {
+
+  nano_dsend *list = NULL, **pp;
+
+  nng_mtx_lock(d->mtx);
+  pp = &d->retired;
+  while (*pp != NULL) {
+    nano_dsend *ds = *pp;
+    if (!ds->sending && !nng_aio_busy(ds->aio)) {
+      *pp = ds->next;
+      ds->next = list;
+      list = ds;
+    } else {
+      pp = &ds->next;
+    }
+  }
+  nng_mtx_unlock(d->mtx);
+
+  while (list != NULL) {
+    nano_dsend *next = list->next;
+    dispatch_dsend_free(list);
+    list = next;
+  }
 
 }
 
@@ -243,26 +491,57 @@ static int dispatch_send_reply(nng_ctx ctx, unsigned char *data, size_t len) {
 static void host_recv_cb(void *arg) {
 
   nano_dispatcher *d = (nano_dispatcher *) arg;
-  nng_mtx *mtx = d->cv->mtx;
+  const int res = nng_aio_result(d->host_aio);
 
-  nng_mtx_lock(mtx);
-  d->host_recv_ready = 1;
-  d->cv->condition++;
-  nng_cv_wake(d->cv->cv);
-  nng_mtx_unlock(mtx);
+  if (res != 0) {
+    if (res == NNG_ECLOSED || res == NNG_ECANCELED)
+      return;
+    nng_mtx_lock(d->mtx);
+    const int stopped = d->stopped;
+    nng_mtx_unlock(d->mtx);
+    if (!stopped)
+      nng_ctx_recv(d->host_ctx, d->host_aio);
+    return;
+  }
+
+  dispatch_handle_host_recv(d);
 
 }
 
 static void daemon_recv_cb(void *arg) {
 
-  nano_dispatcher *d = (nano_dispatcher *) arg;
-  nng_mtx *mtx = d->cv->mtx;
+  nano_drecv *r = (nano_drecv *) arg;
+  nano_dispatcher *d = r->d;
+  const int res = nng_aio_result(r->aio);
 
-  nng_mtx_lock(mtx);
-  d->daemon_recv_ready = 1;
-  d->cv->condition++;
-  nng_cv_wake(d->cv->cv);
-  nng_mtx_unlock(mtx);
+  if (res != 0) {
+    if (res == NNG_ECLOSED || res == NNG_ECANCELED)
+      return;
+    nng_mtx_lock(d->mtx);
+    const int stopped = d->stopped;
+    nng_mtx_unlock(d->mtx);
+    if (!stopped)
+      nng_recv_aio(*d->poly_sock, r->aio);
+    return;
+  }
+
+  dispatch_handle_daemon_recv(d, r);
+
+}
+
+// NNG runs REM_POST for a pipe strictly after its ADD_POST, and all pipe
+// callbacks complete before nng_close() returns
+static void dispatch_pipe_cb(nng_pipe p, nng_pipe_ev ev, void *arg) {
+
+  nano_dispatcher *d = (nano_dispatcher *) arg;
+  const int id = (int) p.id;
+  if (!id)
+    return;
+
+  if (ev == NNG_PIPE_EV_ADD_POST)
+    dispatch_handle_connect(d, id);
+  else
+    dispatch_handle_disconnect(d, id);
 
 }
 
@@ -344,50 +623,81 @@ static int dispatch_prepare_init_template(nano_dispatcher *d, SEXP stream,
 
 static void dispatch_handle_connect(nano_dispatcher *d, int pipe) {
 
-  next_rng_stream_c(d->rng_seed);
+  dispatch_reap_retired(d);
 
-  nng_msg *msg;
+  nng_msg *msg = NULL;
+  nano_dsend *ds = NULL;
+
   if (nng_msg_alloc(&msg, d->init_template_len))
-    return;
+    goto fail;
   unsigned char *buf = nng_msg_body(msg);
   memcpy(buf, d->init_template, d->init_template_len);
 
-  memcpy(buf + d->init_seed_offset, d->rng_seed, sizeof(d->rng_seed));
+  ds = calloc(1, sizeof(nano_dsend));
+  if (ds == NULL)
+    goto fail;
+  ds->d = d;
+  ds->pipe = pipe;
+  if (nng_aio_alloc(&ds->aio, NULL, NULL) ||
+      nng_aio_alloc(&ds->init_aio, dispatch_init_cb, ds))
+    goto fail;
 
-  if (dispatch_send_msg_to_daemon(d, pipe, msg) != 0)
-    nng_msg_free(msg);
-  else {
-    nng_mtx_lock(d->cv->mtx);
-    dispatch_insert_daemon(d, pipe);
-    d->connections++;
-    nng_mtx_unlock(d->cv->mtx);
+  nng_mtx_lock(d->mtx);
+  if (d->stopped || dispatch_insert_daemon(d, pipe, ds) == NULL) {
+    nng_mtx_unlock(d->mtx);
+    goto fail;
   }
+  next_rng_stream_c(d->rng_seed);
+  memcpy(buf + d->init_seed_offset, d->rng_seed, sizeof(d->rng_seed));
+  nng_msg_set_pipe(msg, (nng_pipe) {.id = (uint32_t) pipe});
+  ds->sending = 1;
+  nng_aio_set_msg(ds->init_aio, msg);
+  nng_send_aio(*d->poly_sock, ds->init_aio);
+  nng_mtx_unlock(d->mtx);
+  return;
+
+  fail:
+  // close the pipe: a daemon left uninitialized would idle forever
+  if (ds != NULL) {
+    if (ds->init_aio)
+      nng_aio_free(ds->init_aio);
+    if (ds->aio)
+      nng_aio_free(ds->aio);
+    free(ds);
+  }
+  nng_msg_free(msg);
+  nng_pipe_close((nng_pipe) {.id = (uint32_t) pipe});
 
 }
 
 static void dispatch_handle_disconnect(nano_dispatcher *d, int pipe) {
 
-  nng_mtx_lock(d->cv->mtx);
+  nng_mtx_lock(d->mtx);
   nano_dispatch_daemon *dd = dispatch_find_daemon(d, pipe);
   if (dd == NULL) {
-    nng_mtx_unlock(d->cv->mtx);
+    nng_mtx_unlock(d->mtx);
     return;
   }
 
-  int busy = dd->msgid != 0;
+  const int busy = dd->state == DAEMON_BUSY;
+  const int stopped = d->stopped;
   nng_ctx ctx;
   if (busy) {
     d->executing--;
     ctx = dd->ctx;
   }
-
-  *dd = d->daemons[--d->outq_count];
-  nng_mtx_unlock(d->cv->mtx);
+  dispatch_remove_daemon(d, dd);
+  nng_cv_wake(d->cv);
+  nng_mtx_unlock(d->mtx);
 
   if (busy) {
-    dispatch_send_reply(ctx, d->conn_reset_buf, d->conn_reset_len);
-    nng_ctx_close(ctx);
+    if (stopped)
+      nng_ctx_close(ctx);
+    else
+      dispatch_send_conn_reset(d, ctx);
   }
+
+  dispatch_reap_retired(d);
 
 }
 
@@ -397,82 +707,63 @@ static void dispatch_handle_host_recv(nano_dispatcher *d) {
   int msgid, is_sync;
   dispatch_read_msg_info(nng_msg_body(msg), nng_msg_len(msg), &msgid, &is_sync);
 
-  int send_pipe = 0;
-  nng_mtx_lock(d->cv->mtx);
+  nng_mtx_lock(d->mtx);
+  if (d->stopped) {
+    nng_mtx_unlock(d->mtx);
+    nng_msg_free(msg);
+    return;
+  }
   d->count++;
 
   nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
-  if (dd != NULL) {
-    send_pipe = dd->pipe;
-    dd->ctx = d->host_ctx;
-    dd->msgid = msgid;
-    d->executing++;
-    if (is_sync) {
-      dd->sync_gen = d->sync_generation;
-      d->syncing = 1;
-    } else if (d->syncing) {
-      d->syncing = 0;
-      d->sync_generation++;
-    }
-  } else {
+  if (dd != NULL)
+    dispatch_assign_task(d, dd, d->host_ctx, msg, msgid, is_sync);
+  else
     dispatch_enqueue(d, d->host_ctx, msg, msgid, is_sync);
-    msg = NULL;
-  }
-  nng_mtx_unlock(d->cv->mtx);
-
-  if (send_pipe) {
-    if (dispatch_send_msg_to_daemon(d, send_pipe, msg) == 0)
-      msg = NULL;
-  }
-
-  if (msg)
-    nng_msg_free(msg);
+  nng_mtx_unlock(d->mtx);
 
   if (nng_ctx_open(&d->host_ctx, *d->rep_sock) == 0) {
     nng_ctx_recv(d->host_ctx, d->host_aio);
   } else {
-    nng_mtx_lock(d->cv->mtx);
-    d->cv->flag = -1;
-    nng_mtx_unlock(d->cv->mtx);
+    nng_mtx_lock(d->mtx);
+    d->stopped = 1;
+    nng_cv_wake(d->cv);
+    nng_mtx_unlock(d->mtx);
   }
 
 }
 
-static void dispatch_handle_daemon_recv(nano_dispatcher *d) {
+static void dispatch_handle_daemon_recv(nano_dispatcher *d, nano_drecv *dr) {
 
-  nng_msg *msg = nng_aio_get_msg(d->daemon_aio);
+  nng_msg *msg = nng_aio_get_msg(dr->aio);
   nng_pipe pipe = nng_msg_get_pipe(msg);
   int pipe_id = (int) pipe.id;
   int dummy, is_marker;
   dispatch_read_msg_info(nng_msg_body(msg), nng_msg_len(msg), &dummy, &is_marker);
 
-  nng_mtx_lock(d->cv->mtx);
+  nng_mtx_lock(d->mtx);
   nano_dispatch_daemon *dd = dispatch_find_daemon(d, pipe_id);
-  if (dd != NULL && dd->msgid != 0) {
+  if (!d->stopped && dd != NULL && dd->state == DAEMON_BUSY) {
     d->executing--;
     nng_ctx ctx = dd->ctx;
 
     if (is_marker) {
-      *dd = d->daemons[--d->outq_count];
+      dispatch_remove_daemon(d, dd);
+      dispatch_queue_signal(d, pipe_id);
+      nng_cv_wake(d->cv);
     } else {
+      dd->state = DAEMON_IDLE;
       dd->msgid = 0;
+      dispatch_drain_locked(d);
     }
-    nng_mtx_unlock(d->cv->mtx);
-
-    if (nng_ctx_sendmsg(ctx, msg, 0) == 0)
-      msg = NULL;
-    nng_ctx_close(ctx);
-
-    if (is_marker)
-      dispatch_signal_daemon(d, pipe_id);
+    dispatch_reply_send_locked(d, ctx, msg);
+    nng_mtx_unlock(d->mtx);
   } else {
-    nng_mtx_unlock(d->cv->mtx);
+    nng_mtx_unlock(d->mtx);
+    nng_msg_free(msg);
   }
 
-  if (msg)
-    nng_msg_free(msg);
-
-  nng_recv_aio(*d->poly_sock, d->daemon_aio);
+  nng_recv_aio(*d->poly_sock, dr->aio);
 
 }
 
@@ -480,23 +771,28 @@ static void dispatch_handle_daemon_recv(nano_dispatcher *d) {
 
 static int dispatch_cancel_inq(nano_dispatcher *d, int id) {
 
-  nano_dispatch_task **pp = &d->inq_head;
-  nano_dispatch_task *prev = NULL;
-  while (*pp) {
-    if ((*pp)->msgid == id) {
-      nano_dispatch_task *t = *pp;
-      *pp = t->next;
-      if (t == d->inq_tail)
+  nng_msg *prev = NULL;
+  nng_msg *m = d->inq_head;
+  while (m != NULL) {
+    nano_dispatch_node node;
+    dispatch_node_read(m, &node);
+    if (node.msgid == id) {
+      if (prev)
+        dispatch_node_set_next(prev, node.next);
+      else
+        d->inq_head = node.next;
+      if (d->inq_tail == m)
         d->inq_tail = prev;
-      d->queued_bytes -= nng_msg_len(t->msg);
-      dispatch_free_task(t);
       d->inq_count--;
+      d->queued_bytes -= nng_msg_len(m);
+      nng_ctx_close(node.ctx);
+      nng_msg_free(m);
       if (d->limit_bytes > 0)
-        nng_cv_wake(d->cv->cv);
+        nng_cv_wake(d->cv);
       return 1;
     }
-    prev = *pp;
-    pp = &(*pp)->next;
+    prev = m;
+    m = node.next;
   }
   return 0;
 
@@ -504,9 +800,12 @@ static int dispatch_cancel_inq(nano_dispatcher *d, int id) {
 
 static nano_dispatch_daemon *dispatch_find_idle_daemon(nano_dispatcher *d) {
 
-  for (int i = 0; i < d->outq_count; i++)
-    if (d->daemons[i].msgid == 0 && !(d->syncing && d->daemons[i].sync_gen == d->sync_generation))
-      return &d->daemons[i];
+  for (int i = 0; i < d->nslots; i++) {
+    nano_dispatch_daemon *dd = &d->daemons[i];
+    if (dd->state == DAEMON_IDLE &&
+        !(d->syncing && dd->sync_gen == d->sync_generation))
+      return dd;
+  }
 
   return NULL;
 
@@ -514,126 +813,30 @@ static nano_dispatch_daemon *dispatch_find_idle_daemon(nano_dispatcher *d) {
 
 // task dispatcher -------------------------------------------------------------
 
-static void dispatch_dispatch_tasks(nano_dispatcher *d) {
+static void dispatch_drain_locked(nano_dispatcher *d) {
 
-  struct { int pipe; nng_msg *msg; } batch[DISPATCH_BATCH_SIZE];
-  int nsends;
+  int dequeued = 0;
 
-  do {
-    nsends = 0;
-    nng_mtx_lock(d->cv->mtx);
+  while (d->inq_head) {
+    nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
+    if (dd == NULL)
+      break;
 
-    while (d->inq_head && nsends < DISPATCH_BATCH_SIZE) {
-      nano_dispatch_task *t = d->inq_head;
-
-      nano_dispatch_daemon *dd = dispatch_find_idle_daemon(d);
-      if (dd == NULL)
-        break;
-
-      size_t len = nng_msg_len(t->msg);
-      batch[nsends].pipe = dd->pipe;
-      batch[nsends].msg = t->msg;
-      nsends++;
-
-      t->msg = NULL;
-      d->queued_bytes -= len;
-      dd->ctx = t->ctx;
-      dd->msgid = t->msgid;
-      d->executing++;
-
-      if (t->is_sync) {
-        dd->sync_gen = d->sync_generation;
-        d->syncing = 1;
-      } else if (d->syncing) {
-        d->syncing = 0;
-        d->sync_generation++;
-      }
-
-      dispatch_dequeue(d);
-    }
-
-    if (d->limit_bytes > 0 && nsends > 0)
-      nng_cv_wake(d->cv->cv);
-
-    nng_mtx_unlock(d->cv->mtx);
-
-    for (int i = 0; i < nsends; i++) {
-      if (dispatch_send_msg_to_daemon(d, batch[i].pipe, batch[i].msg) != 0)
-        nng_msg_free(batch[i].msg);
-    }
-
-  } while (nsends == DISPATCH_BATCH_SIZE);
-
-}
-
-// main event loop -------------------------------------------------------------
-
-static int dispatch_wait_cv(nano_dispatcher *d, int *host_ready,
-                            int *daemon_ready, int *monitor_count) {
-
-  nng_mtx *mtx = d->cv->mtx;
-  nng_cv *cv = d->cv->cv;
-  nano_monitor *m = d->monitor;
-  int stop;
-
-  nng_mtx_lock(mtx);
-  while (d->cv->condition == 0 && d->cv->flag >= 0)
-    nng_cv_wait(cv);
-  stop = d->cv->flag < 0;
-  d->cv->condition = 0;
-  *host_ready = d->host_recv_ready;
-  *daemon_ready = d->daemon_recv_ready;
-  d->host_recv_ready = 0;
-  d->daemon_recv_ready = 0;
-
-  *monitor_count = m->updates;
-  if (m->updates) {
-    int *tmp_ids = d->pipe_events;
-    int tmp_size = d->pipe_events_size;
-    d->pipe_events = m->ids;
-    d->pipe_events_size = m->size;
-    m->ids = tmp_ids;
-    m->size = tmp_size;
-    m->updates = 0;
+    nng_msg *msg = d->inq_head;
+    nano_dispatch_node node;
+    dispatch_node_read(msg, &node);
+    d->inq_head = node.next;
+    if (d->inq_head == NULL)
+      d->inq_tail = NULL;
+    d->inq_count--;
+    d->queued_bytes -= nng_msg_len(msg);
+    nng_msg_header_clear(msg);
+    dispatch_assign_task(d, dd, node.ctx, msg, node.msgid, node.is_sync);
+    dequeued = 1;
   }
 
-  nng_mtx_unlock(mtx);
-
-  return stop;
-
-}
-
-static void dispatch_loop(nano_dispatcher *d) {
-
-  int host_ready, daemon_ready, monitor_events;
-
-  while (1) {
-    if (dispatch_wait_cv(d, &host_ready, &daemon_ready, &monitor_events))
-      return;
-
-    for (int i = 0; i < monitor_events; i++) {
-      if (d->pipe_events[i] > 0)
-        dispatch_handle_connect(d, d->pipe_events[i]);
-      else
-        dispatch_handle_disconnect(d, -d->pipe_events[i]);
-    }
-
-    if (host_ready) {
-      if (nng_aio_result(d->host_aio) == 0)
-        dispatch_handle_host_recv(d);
-      else
-        nng_ctx_recv(d->host_ctx, d->host_aio);
-    }
-
-    if (daemon_ready) {
-      if (nng_aio_result(d->daemon_aio) == 0)
-        dispatch_handle_daemon_recv(d);
-      else
-        nng_recv_aio(*d->poly_sock, d->daemon_aio);
-    }
-
-    dispatch_dispatch_tasks(d);
-  }
+  if (d->limit_bytes > 0 && dequeued)
+    nng_cv_wake(d->cv);
 
 }
 
@@ -641,32 +844,80 @@ static void dispatch_loop(nano_dispatcher *d) {
 
 static void dispatch_shutdown(nano_dispatcher *d) {
 
+  // stop intake and signal aios (each waits for any in-flight callback);
+  // d->stopped is already set, so callbacks no longer start operations
   nng_aio_stop(d->host_aio);
-  nng_aio_wait(d->host_aio);
-  nng_aio_stop(d->daemon_aio);
-  nng_aio_wait(d->daemon_aio);
+  for (int i = 0; i < DISPATCH_RECV_POOL; i++)
+    nng_aio_stop(d->drecv[i].aio);
+  nng_aio_stop(d->sig_aio);
 
-  nng_ctx_close(d->host_ctx);
+  // close the poly socket: daemon pipes close and in-flight per-daemon sends
+  // abort (leftover messages are released when the senders are freed)
+  nng_close(*d->poly_sock);
 
-  for (int i = 0; i < d->outq_count; i++)
-    if (d->daemons[i].msgid != 0)
-      nng_ctx_close(d->daemons[i].ctx);
+  for (nano_dsend *ds = d->retired; ds != NULL; ) {
+    nano_dsend *next = ds->next;
+    dispatch_dsend_free(ds);
+    ds = next;
+  }
+  for (int i = 0; i < d->nslots; i++) {
+    nano_dispatch_daemon *dd = &d->daemons[i];
+    // freeing the sender stops its init aio, so a late init callback can no
+    // longer write the slot state read below
+    dispatch_dsend_free(dd->ds);
+    if (dd->state == DAEMON_BUSY)
+      nng_ctx_close(dd->ctx);
+  }
+  free(d->daemons);
 
-  while (d->inq_head) {
-    nano_dispatch_task *t = d->inq_head;
-    d->inq_head = t->next;
-    nng_ctx_close(t->ctx);
-    if (t->msg)
-      nng_msg_free(t->msg);
-    free(t);
+  // abort in-flight reply forwards and close their ctxs; every rep ctx held
+  // here must be closed before the rep socket is: nng_close blocks until
+  // the socket's ctx list is empty
+  for (nano_reply *r = d->reply_active; r != NULL; ) {
+    nano_reply *next = r->next;
+    nng_aio_stop(r->aio);
+    nng_msg *m = nng_aio_get_msg(r->aio);
+    if (m != NULL)
+      nng_msg_free(m);
+    nng_ctx_close(r->ctx);
+    nng_aio_free(r->aio);
+    free(r);
+    r = next;
+  }
+  for (nano_reply *r = d->reply_free; r != NULL; ) {
+    nano_reply *next = r->next;
+    nng_aio_free(r->aio);
+    free(r);
+    r = next;
   }
 
-  free(d->daemons);
+  nng_ctx_close(d->host_ctx);
+  while (d->inq_head) {
+    nng_msg *m = d->inq_head;
+    nano_dispatch_node node;
+    dispatch_node_read(m, &node);
+    d->inq_head = node.next;
+    nng_ctx_close(node.ctx);
+    nng_msg_free(m);
+  }
+
+  nng_close(*d->rep_sock);
+
+  for (nano_signode *node = d->sig_head; node != NULL; ) {
+    nano_signode *next = node->next;
+    nng_msg_free(node->msg);
+    free(node);
+    node = next;
+  }
+
   nng_aio_free(d->host_aio);
-  nng_aio_free(d->daemon_aio);
+  for (int i = 0; i < DISPATCH_RECV_POOL; i++)
+    nng_aio_free(d->drecv[i].aio);
+  nng_aio_free(d->sig_aio);
   free(d->init_template);
   free(d->conn_reset_buf);
-  free(d->pipe_events);
+  nng_cv_free(d->cv);
+  nng_mtx_free(d->mtx);
   free(d);
 
 }
@@ -675,40 +926,23 @@ static void dispatch_shutdown(nano_dispatcher *d) {
 
 typedef struct nano_dispatcher_handle_s {
   nano_dispatcher *d;
-  nng_thread *thr;
   nng_socket poly_sock;
   nng_socket rep_sock;
-  nano_cv *priv_cv;
-  nano_monitor *monitor;
   int owns_resources;
 } nano_dispatcher_handle;
-
-static void dispatch_thread_func(void *arg) {
-  nano_dispatcher *d = (nano_dispatcher *) arg;
-  dispatch_loop(d);
-}
 
 static void dispatcher_handle_release(nano_dispatcher_handle *h) {
 
   if (!h->owns_resources) return;
 
-  nng_mtx_lock(h->priv_cv->mtx);
-  h->priv_cv->flag = -1;
-  nng_cv_wake(h->priv_cv->cv);
-  nng_mtx_unlock(h->priv_cv->mtx);
+  nano_dispatcher *d = h->d;
+  nng_mtx_lock(d->mtx);
+  d->stopped = 1;
+  nng_cv_wake(d->cv);
+  nng_mtx_unlock(d->mtx);
 
-  nng_thread_destroy(h->thr);
-  dispatch_shutdown(h->d);
+  dispatch_shutdown(d);
   h->d = NULL;
-
-  nng_close(h->poly_sock);
-  nng_close(h->rep_sock);
-
-  if (h->monitor) {
-    free(h->monitor->ids);
-    free(h->monitor);
-  }
-  free(h->priv_cv);
   h->owns_resources = 0;
 
 }
@@ -729,15 +963,14 @@ int dispatch_cancel_direct(void *handle, int id) {
   nano_dispatcher *d = h->d;
   if (d == NULL)
     return 0;
-  
+
   int found = 0;
-  int pipe = 0;
 
-  nng_mtx_lock(d->cv->mtx);
+  nng_mtx_lock(d->mtx);
 
-  for (int i = 0; i < d->outq_count; i++) {
-    if (d->daemons[i].msgid == id) {
-      pipe = d->daemons[i].pipe;
+  for (int i = 0; i < d->nslots; i++) {
+    if (d->daemons[i].state == DAEMON_BUSY && d->daemons[i].msgid == id) {
+      dispatch_queue_signal(d, d->daemons[i].pipe);
       found = 1;
       break;
     }
@@ -745,24 +978,19 @@ int dispatch_cancel_direct(void *handle, int id) {
   if (!found)
     found = dispatch_cancel_inq(d, id);
 
-  nng_mtx_unlock(d->cv->mtx);
-
-  if (pipe)
-    dispatch_signal_daemon(d, pipe);
+  nng_mtx_unlock(d->mtx);
 
   return found;
 
 }
 
 SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
-                           SEXP serial, SEXP stream,
-                           SEXP capacity, SEXP cvar) {
+                           SEXP serial, SEXP stream, SEXP capacity) {
 
   int xc;
   nng_listener listener = NNG_LISTENER_INITIALIZER;
   nano_dispatcher_handle *h = NULL;
   nano_dispatcher *d = NULL;
-  nano_cv *priv = NULL;
 
   h = calloc(1, sizeof(nano_dispatcher_handle));
   if (h == NULL) { xc = 2; goto fail; }
@@ -770,65 +998,19 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
   d = calloc(1, sizeof(nano_dispatcher));
   if (d == NULL) { xc = 2; goto fail; }
   h->d = d;
+  d->poly_sock = &h->poly_sock;
+  d->rep_sock = &h->rep_sock;
 
-  // Private CV sharing mutex/cv with shared CV
-  nano_cv *shared = (nano_cv *) NANO_PTR(cvar);
-  priv = calloc(1, sizeof(nano_cv));
-  if (priv == NULL) { xc = 2; goto fail; }
-  priv->mtx = shared->mtx;
-  priv->cv = shared->cv;
-  h->priv_cv = priv;
-  d->cv = priv;
+  if ((xc = nng_mtx_alloc(&d->mtx)))
+    goto fail;
+  if ((xc = nng_cv_alloc(&d->cv, d->mtx)))
+    goto fail;
   if (capacity == R_NilValue) {
     d->limit_bytes = 0;
   } else {
     double mb = Rf_asReal(capacity);
     d->limit_bytes = (R_FINITE(mb) && mb > 0.0) ? (size_t) (mb * 1e6) : 0;
   }
-
-  // POLY socket for daemon connections
-  if ((xc = nng_pair1_open_poly(&h->poly_sock)))
-    goto fail;
-
-  d->poly_sock = &h->poly_sock;
-
-  // Monitor on the POLY socket
-  const int n = 8;
-  nano_monitor *monitor = calloc(1, sizeof(nano_monitor));
-  if (monitor == NULL) { xc = 2; goto fail; }
-  monitor->ids = calloc(n, sizeof(int));
-  if (monitor->ids == NULL) { free(monitor); xc = 2; goto fail; }
-  monitor->size = n;
-  monitor->cv = priv;
-  h->monitor = monitor;
-  d->monitor = monitor;
-
-  if ((xc = nng_pipe_notify(h->poly_sock, NNG_PIPE_EV_ADD_POST, pipe_cb_monitor, monitor)))
-    goto fail;
-  if ((xc = nng_pipe_notify(h->poly_sock, NNG_PIPE_EV_REM_POST, pipe_cb_monitor, monitor)))
-    goto fail;
-
-  // Listen for daemon connections
-  const char *url_str = CHAR(STRING_ELT(url, 0));
-  if (TYPEOF(tls) != NILSXP && !NANO_PTR_CHECK(tls, nano_TlsSymbol)) {
-    nng_tls_config *cfg = (nng_tls_config *) NANO_PTR(tls);
-    if ((xc = nng_listener_create(&listener, h->poly_sock, url_str)) ||
-        (xc = nng_listener_set_ptr(listener, NNG_OPT_TLS_CONFIG, cfg)) ||
-        (xc = nng_listener_start(listener, 0)))
-      goto fail;
-  } else {
-    if ((xc = nng_listen(h->poly_sock, url_str, &listener, 0)))
-      goto fail;
-  }
-
-  // REP socket dials into the host's inproc:// REQ socket
-  if ((xc = nng_rep0_open(&h->rep_sock)))
-    goto fail;
-  d->rep_sock = &h->rep_sock;
-
-  const char *disp_url_str = CHAR(STRING_ELT(disp_url, 0));
-  if ((xc = nng_dial(h->rep_sock, disp_url_str, NULL, 0)))
-    goto fail;
 
   // Serialize mk_error(19) for conn_reset_buf
   SEXP err;
@@ -847,19 +1029,63 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
   d->daemons = calloc(d->outq_capacity, sizeof(nano_dispatch_daemon));
   if (d->daemons == NULL) { xc = 2; goto fail; }
 
-  // Allocate AIOs and open host context
+  // Allocate AIOs
   if ((xc = nng_aio_alloc(&d->host_aio, host_recv_cb, d)) ||
-      (xc = nng_aio_alloc(&d->daemon_aio, daemon_recv_cb, d)) ||
-      (xc = nng_ctx_open(&d->host_ctx, *d->rep_sock)))
+      (xc = nng_aio_alloc(&d->sig_aio, dispatch_sig_cb, d)))
     goto fail;
+  for (int i = 0; i < DISPATCH_RECV_POOL; i++) {
+    d->drecv[i].d = d;
+    if ((xc = nng_aio_alloc(&d->drecv[i].aio, daemon_recv_cb, &d->drecv[i])))
+      goto fail;
+  }
+
+  // Preallocate reply holders
+  for (int i = 0; i < DISPATCH_REPLY_POOL; i++) {
+    nano_reply *r = malloc(sizeof(nano_reply));
+    if (r == NULL) { xc = 2; goto fail; }
+    if ((xc = nng_aio_alloc(&r->aio, NULL, NULL))) {
+      free(r);
+      goto fail;
+    }
+    r->next = d->reply_free;
+    d->reply_free = r;
+  }
+
+  // POLY socket for daemon connections; all dispatcher state must be in
+  // place before the listener starts, as pipe callbacks fire immediately
+  if ((xc = nng_pair1_open_poly(&h->poly_sock)))
+    goto fail;
+
+  if ((xc = nng_pipe_notify(h->poly_sock, NNG_PIPE_EV_ADD_POST, dispatch_pipe_cb, d)) ||
+      (xc = nng_pipe_notify(h->poly_sock, NNG_PIPE_EV_REM_POST, dispatch_pipe_cb, d)))
+    goto fail;
+
+  // Listen for daemon connections
+  const char *url_str = CHAR(STRING_ELT(url, 0));
+  if (TYPEOF(tls) != NILSXP && !NANO_PTR_CHECK(tls, nano_TlsSymbol)) {
+    nng_tls_config *cfg = (nng_tls_config *) NANO_PTR(tls);
+    if ((xc = nng_listener_create(&listener, h->poly_sock, url_str)) ||
+        (xc = nng_listener_set_ptr(listener, NNG_OPT_TLS_CONFIG, cfg)) ||
+        (xc = nng_listener_start(listener, 0)))
+      goto fail;
+  } else {
+    if ((xc = nng_listen(h->poly_sock, url_str, &listener, 0)))
+      goto fail;
+  }
+
+  // REP socket dials into the host's inproc:// REQ socket
+  if ((xc = nng_rep0_open(&h->rep_sock)))
+    goto fail_live;
+
+  const char *disp_url_str = CHAR(STRING_ELT(disp_url, 0));
+  if ((xc = nng_dial(h->rep_sock, disp_url_str, NULL, 0)) ||
+      (xc = nng_ctx_open(&d->host_ctx, *d->rep_sock)))
+    goto fail_live;
 
   // Start initial receive operations
   nng_ctx_recv(d->host_ctx, d->host_aio);
-  nng_recv_aio(*d->poly_sock, d->daemon_aio);
-
-  // Create the dispatcher thread
-  if ((xc = nng_thread_create(&h->thr, dispatch_thread_func, d)))
-    goto fail;
+  for (int i = 0; i < DISPATCH_RECV_POOL; i++)
+    nng_recv_aio(*d->poly_sock, d->drecv[i].aio);
 
   h->owns_resources = 1;
 
@@ -885,22 +1111,37 @@ SEXP rnng_dispatcher_start(SEXP url, SEXP disp_url, SEXP tls,
   return xptr;
 
   fail:
+  // pre-listener failure: no pipes can exist, so free directly
   if (d) {
-    if (d->daemon_aio) { nng_aio_stop(d->daemon_aio); nng_aio_free(d->daemon_aio); }
+    if (d->sig_aio) { nng_aio_stop(d->sig_aio); nng_aio_free(d->sig_aio); }
+    for (int i = 0; i < DISPATCH_RECV_POOL; i++)
+      if (d->drecv[i].aio) { nng_aio_stop(d->drecv[i].aio); nng_aio_free(d->drecv[i].aio); }
     if (d->host_aio) { nng_aio_stop(d->host_aio); nng_aio_free(d->host_aio); }
+    for (nano_reply *r = d->reply_free; r != NULL; ) {
+      nano_reply *next = r->next;
+      nng_aio_free(r->aio);
+      free(r);
+      r = next;
+    }
+    nng_close(h->poly_sock);
     free(d->daemons);
     free(d->init_template);
     free(d->conn_reset_buf);
-    free(d->pipe_events);
+    if (d->cv) nng_cv_free(d->cv);
+    if (d->mtx) nng_mtx_free(d->mtx);
     free(d);
   }
-  if (h) {
-    nng_close(h->rep_sock);
-    nng_close(h->poly_sock);
-    if (h->monitor) { free(h->monitor->ids); free(h->monitor); }
-    free(h);
-  }
-  free(priv);
+  free(h);
+  ERROR_OUT(xc);
+
+  fail_live:
+  // the listener is running so daemons may already be connected: run the
+  // full shutdown sequence
+  nng_mtx_lock(d->mtx);
+  d->stopped = 1;
+  nng_mtx_unlock(d->mtx);
+  dispatch_shutdown(d);
+  free(h);
   ERROR_OUT(xc);
 
 }
@@ -928,11 +1169,11 @@ SEXP rnng_dispatcher_wait(SEXP disp, SEXP n) {
   nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
   nano_dispatcher *d = h->d;
   const int target = nano_integer(n);
-  nng_cv *cv = d->cv->cv;
-  nng_mtx *mtx = d->cv->mtx;
+  nng_cv *cv = d->cv;
+  nng_mtx *mtx = d->mtx;
 
   nng_mtx_lock(mtx);
-  while (d->outq_count < target && d->cv->flag >= 0) {
+  while (d->outq_count < target && !d->stopped) {
     nng_time time = nng_clock() + 400;
     nng_cv_until(cv, time);
     nng_mtx_unlock(mtx);
@@ -947,20 +1188,23 @@ SEXP rnng_dispatcher_wait(SEXP disp, SEXP n) {
 
 SEXP rnng_dispatcher_info(SEXP disp) {
 
-  if (NANO_PTR_CHECK(disp, nano_ThreadSymbol))
-    return Rf_allocVector(INTSXP, 5);
+  if (NANO_PTR_CHECK(disp, nano_ThreadSymbol)) {
+    SEXP out = Rf_allocVector(INTSXP, 5);
+    memset(NANO_DATAPTR(out), 0, 5 * sizeof(int));
+    return out;
+  }
 
   nano_dispatcher_handle *h = (nano_dispatcher_handle *) NANO_PTR(disp);
   nano_dispatcher *d = h->d;
 
   int result[5];
-  nng_mtx_lock(d->cv->mtx);
+  nng_mtx_lock(d->mtx);
   result[0] = d->outq_count;
   result[1] = d->connections;
   result[2] = d->inq_count;
   result[3] = d->executing;
   result[4] = d->count - d->inq_count - d->executing;
-  nng_mtx_unlock(d->cv->mtx);
+  nng_mtx_unlock(d->mtx);
 
   SEXP out = PROTECT(Rf_allocVector(INTSXP, 5));
   memcpy(NANO_DATAPTR(out), result, sizeof(result));
@@ -988,11 +1232,11 @@ SEXP rnng_dispatcher_capacity(SEXP disp) {
   nano_dispatcher *d = h->d;
 
   size_t queued, peak, limit;
-  nng_mtx_lock(d->cv->mtx);
+  nng_mtx_lock(d->mtx);
   queued = d->queued_bytes;
   peak = d->peak_queued_bytes;
   limit = d->limit_bytes;
-  nng_mtx_unlock(d->cv->mtx);
+  nng_mtx_unlock(d->mtx);
 
   p[0] = (double) queued / 1e6;
   p[1] = (double) peak / 1e6;
@@ -1012,15 +1256,15 @@ SEXP rnng_dispatcher_gate(SEXP disp) {
   nano_dispatcher *d = h->d;
 
   if (d->limit_bytes > 0) {
-    nng_mtx_lock(d->cv->mtx);
-    while (d->queued_bytes >= d->limit_bytes) {
+    nng_mtx_lock(d->mtx);
+    while (d->queued_bytes >= d->limit_bytes && !d->stopped) {
       nng_time time = nng_clock() + 400;
-      nng_cv_until(d->cv->cv, time);
-      nng_mtx_unlock(d->cv->mtx);
+      nng_cv_until(d->cv, time);
+      nng_mtx_unlock(d->mtx);
       R_CheckUserInterrupt();
-      nng_mtx_lock(d->cv->mtx);
+      nng_mtx_lock(d->mtx);
     }
-    nng_mtx_unlock(d->cv->mtx);
+    nng_mtx_unlock(d->mtx);
   }
 
   return Rf_ScalarLogical(1);
@@ -1037,9 +1281,9 @@ SEXP rnng_dispatcher_try_gate(SEXP disp) {
 
   int allowed = 1;
   if (d->limit_bytes > 0) {
-    nng_mtx_lock(d->cv->mtx);
+    nng_mtx_lock(d->mtx);
     allowed = d->queued_bytes < d->limit_bytes;
-    nng_mtx_unlock(d->cv->mtx);
+    nng_mtx_unlock(d->mtx);
   }
 
   return Rf_ScalarLogical(allowed);

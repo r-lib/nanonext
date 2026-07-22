@@ -4,7 +4,7 @@
 \alias{.dispatcher_start}
 \title{Start In-Process Dispatcher}
 \usage{
-.dispatcher_start(url, disp_url, tls, serial, stream, capacity, cvar)
+.dispatcher_start(url, disp_url, tls, serial, stream, capacity, cvar = NULL)
 }
 \arguments{
 \item{url}{URL to listen at for daemon connections.}
@@ -21,7 +21,7 @@
 queued task payloads. \code{NULL}, 0, non-finite, or negative values are
 treated as unlimited.}
 
-\item{cvar}{Shared condition variable for capacity signaling.}
+\item{cvar}{Unused; accepted for compatibility and ignored.}
 }
 \value{
 External pointer to dispatcher handle.
