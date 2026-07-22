@@ -5,7 +5,7 @@ Start In-Process Dispatcher
 ## Usage
 
 ``` r
-.dispatcher_start(url, disp_url, tls, serial, stream, capacity, cvar)
+.dispatcher_start(url, disp_url, tls, serial, stream, capacity, cvar = NULL)
 ```
 
 ## Arguments
@@ -38,7 +38,7 @@ Start In-Process Dispatcher
 
 - cvar:
 
-  Shared condition variable for capacity signaling.
+  Unused; accepted for compatibility and ignored.
 
 ## Value
 
