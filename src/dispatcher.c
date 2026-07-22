@@ -175,7 +175,7 @@ static nano_dispatch_daemon *dispatch_find_daemon(nano_dispatcher *d, int pipe) 
 
 }
 
-// insert a slot in DAEMON_INIT state; called under d->mtx
+// called under d->mtx
 static nano_dispatch_daemon *dispatch_insert_daemon(nano_dispatcher *d, int pipe, nano_dsend *ds) {
 
   if (d->nslots >= d->outq_capacity) {
@@ -303,7 +303,7 @@ static void dispatch_start_send(nano_dispatcher *d, nano_dispatch_daemon *dd, nn
 
 }
 
-// mark a slot busy with a task and start the send; called under d->mtx
+// called under d->mtx
 static void dispatch_assign_task(nano_dispatcher *d, nano_dispatch_daemon *dd,
                                  nng_ctx ctx, nng_msg *msg, int msgid, int is_sync) {
 
@@ -322,7 +322,7 @@ static void dispatch_assign_task(nano_dispatcher *d, nano_dispatch_daemon *dd,
 
 }
 
-// queue a zero-length signal to a daemon; called under d->mtx
+// called under d->mtx
 static void dispatch_queue_signal(nano_dispatcher *d, int pipe) {
 
   if (d->stopped)
@@ -529,8 +529,8 @@ static void daemon_recv_cb(void *arg) {
 
 }
 
-// pipe events on the poly socket; NNG runs REM_POST for a pipe strictly after
-// its ADD_POST, and all pipe callbacks complete before nng_close() returns
+// NNG runs REM_POST for a pipe strictly after its ADD_POST, and all pipe
+// callbacks complete before nng_close() returns
 static void dispatch_pipe_cb(nng_pipe p, nng_pipe_ev ev, void *arg) {
 
   nano_dispatcher *d = (nano_dispatcher *) arg;
@@ -813,7 +813,6 @@ static nano_dispatch_daemon *dispatch_find_idle_daemon(nano_dispatcher *d) {
 
 // task dispatcher -------------------------------------------------------------
 
-// assign queued tasks to idle daemons; called under d->mtx
 static void dispatch_drain_locked(nano_dispatcher *d) {
 
   int dequeued = 0;
@@ -856,7 +855,6 @@ static void dispatch_shutdown(nano_dispatcher *d) {
   // abort (leftover messages are released when the senders are freed)
   nng_close(*d->poly_sock);
 
-  // reap all per-daemon senders: retired entries and remaining slots
   for (nano_dsend *ds = d->retired; ds != NULL; ) {
     nano_dsend *next = ds->next;
     dispatch_dsend_free(ds);
@@ -864,9 +862,11 @@ static void dispatch_shutdown(nano_dispatcher *d) {
   }
   for (int i = 0; i < d->nslots; i++) {
     nano_dispatch_daemon *dd = &d->daemons[i];
+    // freeing the sender stops its init aio, so a late init callback can no
+    // longer write the slot state read below
+    dispatch_dsend_free(dd->ds);
     if (dd->state == DAEMON_BUSY)
       nng_ctx_close(dd->ctx);
-    dispatch_dsend_free(dd->ds);
   }
   free(d->daemons);
 
