@@ -7,6 +7,8 @@
 - [`race_aio()`](https://nanonext.r-lib.org/dev/reference/race_aio.md)
   is more efficient, and no longer resets the supplied condition
   variable or consumes its signals.
+- Fixes compilation on FreeBSD
+  ([\#332](https://github.com/r-lib/nanonext/issues/332)).
 
 ## nanonext 1.10.1
 
