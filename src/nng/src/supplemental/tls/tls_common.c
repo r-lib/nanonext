@@ -651,7 +651,8 @@ tls_cancel(nni_aio *aio, void *arg, int rv)
 		nni_aio_abort(&conn->tcp_recv, rv);
 	} else if (aio == nni_list_first(&conn->send_queue)) {
 		nni_aio_abort(&conn->tcp_send, rv);
-	} else if (nni_aio_list_active(aio)) {
+	}
+	if (nni_aio_list_active(aio)) {
 		nni_aio_list_remove(aio);
 		nni_aio_finish_error(aio, rv);
 	}
