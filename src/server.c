@@ -283,8 +283,10 @@ static void http_server_cleanup(void *arg) {
   nano_http_server *srv = (nano_http_server *) arg;
 
   for (int i = 0; i < srv->handler_count; i++) {
-    if (srv->handlers[i].handler != NULL)
+    if (srv->handlers[i].handler != NULL) {
       nng_http_server_del_handler(srv->server, srv->handlers[i].handler);
+      nng_http_handler_free(srv->handlers[i].handler);
+    }
 
     if (srv->handlers[i].listener != NULL) {
       nng_stream_listener_free(srv->handlers[i].listener);
@@ -303,6 +305,7 @@ static void http_server_cleanup(void *arg) {
         nng_aio_free(ws->recv_aio);
       } else {
         nano_stream_conn *sc = (nano_stream_conn *) conn;
+        nng_http_req_free(sc->req);
         for (int j = 0; j < sc->resp_header_count; j++) {
           free(sc->resp_header_names[j]);
           free(sc->resp_header_values[j]);
@@ -560,6 +563,7 @@ static void conn_cleanup(nano_conn *conn) {
     nng_aio_free(ws->recv_aio);
   } else {
     nano_stream_conn *sc = (nano_stream_conn *) conn;
+    nng_http_req_free(sc->req);
     for (int i = 0; i < sc->resp_header_count; i++) {
       free(sc->resp_header_names[i]);
       free(sc->resp_header_values[i]);
@@ -945,8 +949,10 @@ SEXP rnng_http_server_create(SEXP url, SEXP handlers, SEXP tls) {
     if (srv->tls != NULL)
       nng_tls_config_free(srv->tls);
     for (int i = 0; i < handlers_added; i++) {
-      if (srv->handlers[i].handler != NULL)
+      if (srv->handlers[i].handler != NULL) {
         nng_http_server_del_handler(srv->server, srv->handlers[i].handler);
+        nng_http_handler_free(srv->handlers[i].handler);
+      }
       if (srv->handlers[i].listener != NULL)
         nng_stream_listener_free(srv->handlers[i].listener);
       if (srv->handlers[i].accept_aio != NULL)
@@ -1102,6 +1108,7 @@ static void stream_handler_cb(nng_aio *aio) {
   nano_stream_conn *sc = calloc(1, sizeof(nano_stream_conn));
   if (sc == NULL) {
     nng_http_conn_close(http_conn);
+    nng_http_req_free(req);
     nng_aio_finish(aio, 0);
     return;
   }
@@ -1117,6 +1124,7 @@ static void stream_handler_cb(nng_aio *aio) {
 
   if (nng_aio_alloc(&sc->conn.send_aio, NULL, NULL)) {
     nng_http_conn_close(http_conn);
+    nng_http_req_free(req);
     free(sc);
     nng_aio_finish(aio, 0);
     return;
