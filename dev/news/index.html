@@ -52,9 +52,10 @@
 <h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
 <ul><li>
 <code><a href="../reference/race_aio.html">race_aio()</a></code> is more efficient, and no longer resets the supplied condition variable or consumes its signals.</li>
+<li>Fixes memory leaks in <code><a href="../reference/http_server.html">http_server()</a></code>: handlers were not freed at server teardown, and HTTP streaming connections never released their request objects (<a href="https://github.com/r-lib/nanonext/issues/339" class="external-link">#339</a>).</li>
 <li>Fixes a rare message leak in the bundled ‘libnng’ when a socket is closed with an inbound message still in transit (<a href="https://github.com/r-lib/nanonext/issues/337" class="external-link">#337</a>).</li>
-<li>Fixes compilation on FreeBSD (<a href="https://github.com/r-lib/nanonext/issues/332" class="external-link">#332</a>).</li>
 <li>Fixes a use-after-free in the bundled ‘libnng’ when an HTTPS request such as <code><a href="../reference/ncurl.html">ncurl()</a></code> times out during the TLS handshake (<a href="https://github.com/r-lib/nanonext/issues/334" class="external-link">#334</a>).</li>
+<li>Fixes compilation on FreeBSD (<a href="https://github.com/r-lib/nanonext/issues/332" class="external-link">#332</a>).</li>
 <li>Removes <code>monitor()</code> and <code>read_monitor()</code>. Use <code><a href="../reference/pipe_notify.html">pipe_notify()</a></code> to be signalled of pipe changes, and <code><a href="../reference/pipe_id.html">pipe_id()</a></code> on a resolved <code>recvAio</code> to obtain a pipe ID.</li>
 </ul></div>
 </div>
