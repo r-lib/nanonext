@@ -168,37 +168,6 @@ void pipe_cb_signal(nng_pipe p, nng_pipe_ev ev, void *arg) {
 
 }
 
-void pipe_cb_monitor(nng_pipe p, nng_pipe_ev ev, void *arg) {
-
-  nano_monitor *monitor = (nano_monitor *) arg;
-
-  nano_cv *ncv = monitor->cv;
-  nng_cv *cv = ncv->cv;
-  nng_mtx *mtx = ncv->mtx;
-
-  const int id = (int) p.id;
-  if (!id)
-    return;
-
-  nng_mtx_lock(mtx);
-  if (monitor->updates >= monitor->size) {
-    monitor->size += 8;
-    int *ids = realloc(monitor->ids, monitor->size * sizeof(int));
-    if (ids == NULL) {
-      monitor->size -= 8;
-      nng_mtx_unlock(mtx);
-      return;
-    }
-    monitor->ids = ids;
-  }
-  monitor->ids[monitor->updates] = ev == NNG_PIPE_EV_ADD_POST ? id : -id;
-  monitor->updates++;
-  ncv->condition++;
-  nng_cv_wake(cv);
-  nng_mtx_unlock(mtx);
-
-}
-
 // finalizers ------------------------------------------------------------------
 
 static void cv_finalizer(SEXP xptr) {
@@ -221,15 +190,6 @@ static void request_finalizer(SEXP xptr) {
   if (xp->data != NULL)
     nng_msg_free((nng_msg *) xp->data);
   free(saio);
-  free(xp);
-
-}
-
-static void monitor_finalizer(SEXP xptr) {
-
-  if (NANO_PTR(xptr) == NULL) return;
-  nano_monitor *xp = (nano_monitor *) NANO_PTR(xptr);
-  free(xp->ids);
   free(xp);
 
 }
@@ -629,78 +589,5 @@ SEXP rnng_pipe_notify(SEXP socket, SEXP cv, SEXP add, SEXP remove, SEXP flag) {
 
   R_MakeWeakRef(socket, cv, R_NilValue, FALSE);
   return nano_success;
-
-}
-
-// monitors --------------------------------------------------------------------
-
-SEXP rnng_monitor_create(SEXP socket, SEXP cv) {
-
-  if (NANO_PTR_CHECK(socket, nano_SocketSymbol))
-    Rf_error("`socket` is not a valid Socket");
-
-  if (NANO_PTR_CHECK(cv, nano_CvSymbol))
-    Rf_error("`cv` is not a valid Condition Variable");
-
-  const int n = 8;
-  SEXP xptr;
-  int xc;
-
-  nano_monitor *monitor = calloc(1, sizeof(nano_monitor));
-  NANO_ENSURE_ALLOC(monitor);
-  monitor->ids = calloc(n, sizeof(int));
-  NANO_ENSURE_ALLOC(monitor->ids);
-  monitor->size = n;
-  monitor->cv = (nano_cv *) NANO_PTR(cv);
-  nng_socket *sock = (nng_socket *) NANO_PTR(socket);
-
-  if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_ADD_POST, pipe_cb_monitor, monitor)))
-    goto failmem;
-
-  if ((xc = nng_pipe_notify(*sock, NNG_PIPE_EV_REM_POST, pipe_cb_monitor, monitor)))
-    goto failmem;
-
-  PROTECT(xptr = R_MakeExternalPtr(monitor, nano_MonitorSymbol, R_NilValue));
-  R_RegisterCFinalizerEx(xptr, monitor_finalizer, TRUE);
-  NANO_CLASS2(xptr, "nanoMonitor", "nano");
-  Rf_setAttrib(xptr, nano_SocketSymbol, Rf_ScalarInteger(nng_socket_id(*sock)));
-  UNPROTECT(1);
-
-  return xptr;
-
-  failmem:
-  if (monitor != NULL)
-    free(monitor->ids);
-  free(monitor);
-  ERROR_OUT(xc);
-
-}
-
-SEXP rnng_monitor_read(SEXP x) {
-
-  if (NANO_PTR_CHECK(x, nano_MonitorSymbol))
-    Rf_error("`x` is not a valid Monitor");
-
-  nano_monitor *monitor = (nano_monitor *) NANO_PTR(x);
-
-  nano_cv *ncv = monitor->cv;
-  nng_mtx *mtx = ncv->mtx;
-
-  SEXP out;
-  nng_mtx_lock(mtx);
-  const int updates = monitor->updates;
-  if (updates) {
-    out = Rf_allocVector(INTSXP, updates);
-    int *op = INTEGER(out);
-    for (int i = 0; i < updates; i++)
-      op[i] = monitor->ids[i];
-    monitor->updates = 0;
-  }
-  nng_mtx_unlock(mtx);
-
-  if (!updates)
-    out = R_NilValue;
-
-  return out;
 
 }

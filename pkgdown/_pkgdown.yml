@@ -62,7 +62,6 @@ reference:
   - "`%~>%`"
   - pipe_notify
   - pipe_id
-  - monitor
 
 - title: HTTP Client
   desc: HTTP requests and sessions
