@@ -56,7 +56,6 @@
 <li>Fixes a rare message leak in the bundled ‘libnng’ when a socket is closed with an inbound message still in transit (<a href="https://github.com/r-lib/nanonext/issues/337" class="external-link">#337</a>).</li>
 <li>Fixes a use-after-free in the bundled ‘libnng’ when an HTTPS request such as <code><a href="../reference/ncurl.html">ncurl()</a></code> times out during the TLS handshake (<a href="https://github.com/r-lib/nanonext/issues/334" class="external-link">#334</a>).</li>
 <li>Fixes compilation on FreeBSD (<a href="https://github.com/r-lib/nanonext/issues/332" class="external-link">#332</a>).</li>
-<li>Removes <code>monitor()</code> and <code>read_monitor()</code>. Use <code><a href="../reference/pipe_notify.html">pipe_notify()</a></code> to be signalled of pipe changes, and <code><a href="../reference/pipe_id.html">pipe_id()</a></code> on a resolved <code>recvAio</code> to obtain a pipe ID.</li>
 </ul></div>
 </div>
     <div class="section level2">
@@ -304,7 +303,7 @@
 <li>A ‘recvAio’ now records the integer pipe ID, where successful, at <code>$aio</code> upon resolution.</li>
 <li>Pipe objects (of class ‘nanoPipe’) are obsoleted.</li>
 </ul></li>
-<li>Adds <code>monitor()</code> and <code>read_monitor()</code> for easy monitoring of connection changes (pipe additons and removals) at a Socket.</li>
+<li>Adds <code><a href="../reference/monitor.html">monitor()</a></code> and <code><a href="../reference/monitor.html">read_monitor()</a></code> for easy monitoring of connection changes (pipe additons and removals) at a Socket.</li>
 </ul></div>
 <div class="section level5">
 <h5 id="updates-1-4-0">Updates<a class="anchor" aria-label="anchor" href="#updates-1-4-0"></a></h5>
