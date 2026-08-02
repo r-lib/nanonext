@@ -220,22 +220,19 @@ patch_perl ../include/nng/nng.h '
 # ---------------------------------------------------------------------------
 echo "4. TLS stream cancellation use-after-free fix ..."
 
-# tls_cancel: when the canceled aio is at the head of the send/recv queue,
-# upstream only aborts the underlying tcp_send/tcp_recv aio and leaves the
-# canceled aio queued, relying on the TCP completion callback to fail it via
-# tls_tcp_error(). But nni_aio_abort() on an *idle* aio is a no-op (it sets a
-# deferred a_abort flag that the next nni_aio_begin() clears), and tcp_send is
-# idle whenever nothing is in flight -- e.g. while the TLS handshake awaits
-# the server. The canceled aio then stays queued, iovs intact, while the HTTP
-# layer's cancellation (http_wr_cancel / http_rd_cancel) finishes the caller's
-# aio immediately -- the iovs of the queued aio point into caller-owned
-# buffers (nng_http_req's serialized header block, nng_http_res's body) that
-# the caller is now entitled to free. When the handshake later completes,
-# tls_do_send() hands the freed request buffer to mbedtls_ssl_write(): the
-# use-after-free CRAN's valgrind flagged on an ncurl() HTTPS timeout (the
-# recv path can likewise *write* into a freed response buffer). Fix: always
-# dequeue and finish the canceled aio; keep the abort so any in-flight TCP
-# operation still unwinds.
+# tls_cancel: for the aio at the head of the send/recv queue, upstream only
+# aborts the underlying tcp_send/tcp_recv aio, leaving the canceled aio
+# queued -- but aborting an idle aio is a no-op (nni_aio_abort() just sets a
+# deferred flag that the next nni_aio_begin() clears), and tcp_send is idle
+# while the TLS handshake awaits the server. The stranded aio's iovs point
+# into caller-owned buffers (nng_http_req's serialized headers, the
+# nng_http_res body) that the HTTP layer's cancel (http_wr_cancel /
+# http_rd_cancel) entitles the caller to free at once: when the handshake
+# later completes, tls_do_send() hands a freed buffer to the TLS engine --
+# the use-after-free CRAN's valgrind flagged on an ncurl() HTTPS timeout
+# (the recv path can likewise write into a freed buffer). Fix: always
+# dequeue and finish the canceled aio; the abort is kept so an in-flight
+# TCP operation still unwinds.
 patch_perl supplemental/tls/tls_common.c '
   s/(\} else if \(aio == nni_list_first\(&conn->send_queue\)\) \{\n\t\tnni_aio_abort\(&conn->tcp_send, rv\);\n\t\}) else if \(nni_aio_list_active\(aio\)\) \{/$1\n\tif (nni_aio_list_active(aio)) {/;
 '
