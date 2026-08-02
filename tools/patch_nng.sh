@@ -23,6 +23,8 @@
 #      run on background threads where the R API is off-limits, so this is a
 #      no-op in normal use. Also stub the nng/nng.h logging API to static inline
 #      no-ops so every call compiles away and core/log.c can be pruned.
+#   4. Upstream bug fix -- TLS stream cancellation use-after-free (caught by
+#      CRAN's valgrind runs).
 
 set -e
 
@@ -213,6 +215,26 @@ patch_perl ../include/nng/nng.h '
   s/NNG_DECL void nng_log_info\(const char \*msgid, const char \*msg, \.\.\.\);/static inline void nng_log_info(const char *msgid, const char *msg, ...) { (void) msgid; (void) msg; }/;
   s/NNG_DECL void nng_log_debug\(const char \*msgid, const char \*msg, \.\.\.\);/static inline void nng_log_debug(const char *msgid, const char *msg, ...) { (void) msgid; (void) msg; }/;
   s/NNG_DECL void nng_log_auth\(\n    nng_log_level level, const char \*msgid, const char \*msg, \.\.\.\);/static inline void nng_log_auth(nng_log_level level, const char *msgid, const char *msg, ...) { (void) level; (void) msgid; (void) msg; }/;
+'
+
+# ---------------------------------------------------------------------------
+echo "4. TLS stream cancellation use-after-free fix ..."
+
+# tls_cancel: for the aio at the head of the send/recv queue, upstream only
+# aborts the underlying tcp_send/tcp_recv aio, leaving the canceled aio
+# queued -- but aborting an idle aio is a no-op (nni_aio_abort() just sets a
+# deferred flag that the next nni_aio_begin() clears), and tcp_send is idle
+# while the TLS handshake awaits the server. The stranded aio's iovs point
+# into caller-owned buffers (nng_http_req's serialized headers, the
+# nng_http_res body) that the HTTP layer's cancel (http_wr_cancel /
+# http_rd_cancel) entitles the caller to free at once: when the handshake
+# later completes, tls_do_send() hands a freed buffer to the TLS engine --
+# the use-after-free CRAN's valgrind flagged on an ncurl() HTTPS timeout
+# (the recv path can likewise write into a freed buffer). Fix: always
+# dequeue and finish the canceled aio; the abort is kept so an in-flight
+# TCP operation still unwinds.
+patch_perl supplemental/tls/tls_common.c '
+  s/(\} else if \(aio == nni_list_first\(&conn->send_queue\)\) \{\n\t\tnni_aio_abort\(&conn->tcp_send, rv\);\n\t\}) else if \(nni_aio_list_active\(aio\)\) \{/$1\n\tif (nni_aio_list_active(aio)) {/;
 '
 
 echo "=== patch_nng.sh complete ==="
