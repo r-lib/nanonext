@@ -339,16 +339,6 @@ print.nanoStream <- function(x, ...) {
 
 #' @export
 #'
-print.nanoMonitor <- function(x, ...) {
-  cat(
-    sprintf("< nanoMonitor >\n - socket: %s\n", attr(x, "socket")),
-    file = stdout()
-  )
-  invisible(x)
-}
-
-#' @export
-#'
 print.recvAio <- function(x, ...) {
   cat("< recvAio | $data >\n", file = stdout())
   invisible(x)
