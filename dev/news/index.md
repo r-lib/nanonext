@@ -13,6 +13,11 @@
   ([\#334](https://github.com/r-lib/nanonext/issues/334)).
 - Fixes compilation on FreeBSD
   ([\#332](https://github.com/r-lib/nanonext/issues/332)).
+- Removes `monitor()` and `read_monitor()`. Use
+  [`pipe_notify()`](https://nanonext.r-lib.org/dev/reference/pipe_notify.md)
+  to be signalled of pipe changes, and
+  [`pipe_id()`](https://nanonext.r-lib.org/dev/reference/pipe_id.md) on
+  a resolved `recvAio` to obtain a pipe ID.
 
 ## nanonext 1.10.1
 
@@ -437,11 +442,8 @@ CRAN release: 2024-12-02
   - A ‘recvAio’ now records the integer pipe ID, where successful, at
     `$aio` upon resolution.
   - Pipe objects (of class ‘nanoPipe’) are obsoleted.
-- Adds
-  [`monitor()`](https://nanonext.r-lib.org/dev/reference/monitor.md) and
-  [`read_monitor()`](https://nanonext.r-lib.org/dev/reference/monitor.md)
-  for easy monitoring of connection changes (pipe additons and removals)
-  at a Socket.
+- Adds `monitor()` and `read_monitor()` for easy monitoring of
+  connection changes (pipe additons and removals) at a Socket.
 
 ##### Updates
 

@@ -102,9 +102,6 @@ Condition variables and pipe events
   : Pipe Notify
 - [`pipe_id()`](https://nanonext.r-lib.org/dev/reference/pipe_id.md) :
   Get the Pipe ID of a recvAio
-- [`monitor()`](https://nanonext.r-lib.org/dev/reference/monitor.md)
-  [`read_monitor()`](https://nanonext.r-lib.org/dev/reference/monitor.md)
-  : Monitor a Socket for Pipe Changes
 
 ## HTTP Client
 

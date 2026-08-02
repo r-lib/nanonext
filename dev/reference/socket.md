@@ -134,7 +134,7 @@ further documentation.
 s <- socket(protocol = "req", listen = "inproc://nanosocket")
 s
 #> < nanoSocket >
-#>  - id: 47
+#>  - id: 45
 #>  - state: opened
 #>  - protocol: req
 #>  - listener:
@@ -142,7 +142,7 @@ s
 s1 <- socket(protocol = "rep", dial = "inproc://nanosocket")
 s1
 #> < nanoSocket >
-#>  - id: 48
+#>  - id: 46
 #>  - state: opened
 #>  - protocol: rep
 #>  - dialer:
