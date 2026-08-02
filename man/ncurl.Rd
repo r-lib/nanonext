@@ -82,28 +82,24 @@ details.
 \examples{
 ncurl(
   "https://postman-echo.com/get",
-  convert = FALSE,
-  response = c("date", "content-type"),
-  timeout = 1200L
-)
-ncurl(
-  "https://postman-echo.com/get",
   response = TRUE,
-  timeout = 1200L
+  timeout = 2000L
 )
 ncurl(
   "https://postman-echo.com/put",
   method = "PUT",
   headers = c(Authorization = "Bearer APIKEY"),
   data = "hello world",
-  timeout = 1500L
+  timeout = 2000L
 )
 ncurl(
   "https://postman-echo.com/post",
+  convert = FALSE,
   method = "POST",
   headers = c(`Content-Type` = "application/json"),
   data = '{"key":"value"}',
-  timeout = 1500L
+  response = c("date", "content-type"),
+  timeout = 2000L
 )
 
 }
