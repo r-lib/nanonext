@@ -7,12 +7,15 @@
 - [`race_aio()`](https://nanonext.r-lib.org/dev/reference/race_aio.md)
   is more efficient, and no longer resets the supplied condition
   variable or consumes its signals.
+- Fixes a rare message leak in the bundled ‘libnng’ when a socket is
+  closed with an inbound message still in transit
+  ([\#337](https://github.com/r-lib/nanonext/issues/337)).
+- Fixes compilation on FreeBSD
+  ([\#332](https://github.com/r-lib/nanonext/issues/332)).
 - Fixes a use-after-free in the bundled ‘libnng’ when an HTTPS request
   such as [`ncurl()`](https://nanonext.r-lib.org/dev/reference/ncurl.md)
   times out during the TLS handshake
   ([\#334](https://github.com/r-lib/nanonext/issues/334)).
-- Fixes compilation on FreeBSD
-  ([\#332](https://github.com/r-lib/nanonext/issues/332)).
 - Removes `monitor()` and `read_monitor()`. Use
   [`pipe_notify()`](https://nanonext.r-lib.org/dev/reference/pipe_notify.md)
   to be signalled of pipe changes, and
