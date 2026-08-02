@@ -3,6 +3,7 @@
 #### Updates
 
 * `race_aio()` is more efficient, and no longer resets the supplied condition variable or consumes its signals.
+* Fixes a use-after-free in the bundled 'libnng' when an HTTPS request such as `ncurl()` times out during the TLS handshake (#334).
 * Fixes compilation on FreeBSD (#332).
 
 # nanonext 1.10.1
