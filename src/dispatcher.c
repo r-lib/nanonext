@@ -1190,7 +1190,9 @@ SEXP rnng_dispatcher_info(SEXP disp) {
 
   if (NANO_PTR_CHECK(disp, nano_ThreadSymbol)) {
     SEXP out = Rf_allocVector(INTSXP, 5);
-    memset(NANO_DATAPTR(out), 0, 5 * sizeof(int));
+    int *op = INTEGER(out);
+    for (int i = 0; i < 5; i++)
+      op[i] = 0;
     return out;
   }
 
@@ -1206,9 +1208,10 @@ SEXP rnng_dispatcher_info(SEXP disp) {
   result[4] = d->count - d->inq_count - d->executing;
   nng_mtx_unlock(d->mtx);
 
-  SEXP out = PROTECT(Rf_allocVector(INTSXP, 5));
-  memcpy(NANO_DATAPTR(out), result, sizeof(result));
-  UNPROTECT(1);
+  SEXP out = Rf_allocVector(INTSXP, 5);
+  int *op = INTEGER(out);
+  for (int i = 0; i < 5; i++)
+    op[i] = result[i];
 
   return out;
 

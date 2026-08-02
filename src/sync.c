@@ -691,7 +691,9 @@ SEXP rnng_monitor_read(SEXP x) {
   const int updates = monitor->updates;
   if (updates) {
     out = Rf_allocVector(INTSXP, updates);
-    memcpy(NANO_DATAPTR(out), monitor->ids, updates * sizeof(int));
+    int *op = INTEGER(out);
+    for (int i = 0; i < updates; i++)
+      op[i] = monitor->ids[i];
     monitor->updates = 0;
   }
   nng_mtx_unlock(mtx);
