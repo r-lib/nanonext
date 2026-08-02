@@ -3,9 +3,10 @@
 #### Updates
 
 * `race_aio()` is more efficient, and no longer resets the supplied condition variable or consumes its signals.
+* Fixes memory leaks in `http_server()`: handlers were not freed at server teardown, and HTTP streaming connections never released their request objects (#339).
 * Fixes a rare message leak in the bundled 'libnng' when a socket is closed with an inbound message still in transit (#337).
-* Fixes compilation on FreeBSD (#332).
 * Fixes a use-after-free in the bundled 'libnng' when an HTTPS request such as `ncurl()` times out during the TLS handshake (#334).
+* Fixes compilation on FreeBSD (#332).
 * Removes `monitor()` and `read_monitor()`. Use `pipe_notify()` to be signalled of pipe changes, and `pipe_id()` on a resolved `recvAio` to obtain a pipe ID.
 
 # nanonext 1.10.1

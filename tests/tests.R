@@ -1421,6 +1421,8 @@ if (later && NOT_CRAN) {
   test_zero(stream_srv$close())
 }
 
+if (later) run_event_loop(100L)
+
 test_null(.dispatcher_stop("invalid"))
 test_null(.dispatcher_wait("invalid", 1L))
 test_equal(length(.dispatcher_info("invalid")), 5L)
