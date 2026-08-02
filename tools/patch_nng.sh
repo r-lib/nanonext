@@ -24,7 +24,9 @@
 #      no-op in normal use. Also stub the nng/nng.h logging API to static inline
 #      no-ops so every call compiles away and core/log.c can be pruned.
 #   4. Upstream bug fix -- TLS stream cancellation use-after-free (caught by
-#      CRAN's valgrind runs).
+#      valgrind runs).
+#   5. Upstream bug fix -- message leak in nni_msgq_aio_put() when the aio is
+#      already closed (caught by valgrind runs).
 
 set -e
 
@@ -235,6 +237,24 @@ echo "4. TLS stream cancellation use-after-free fix ..."
 # TCP operation still unwinds.
 patch_perl supplemental/tls/tls_common.c '
   s/(\} else if \(aio == nni_list_first\(&conn->send_queue\)\) \{\n\t\tnni_aio_abort\(&conn->tcp_send, rv\);\n\t\}) else if \(nni_aio_list_active\(aio\)\) \{/$1\n\tif (nni_aio_list_active(aio)) {/;
+'
+
+# ---------------------------------------------------------------------------
+echo "5. msgq put message leak fix ..."
+
+# nni_msgq_aio_put: when nni_aio_begin() fails, the aio has been closed and no
+# completion will ever be scheduled, so the message attached to the aio is
+# orphaned -- the put callback that would free it never fires, and
+# nni_aio_fini() does not free an attached message. This races in every SP
+# protocol: pipe_close runs nni_aio_close() on the pipe's put aio without
+# waiting for an in-flight recv callback, which then hands its freshly
+# received message to nni_msgq_aio_put() on the now-closed aio (caught by
+# valgrind as a definitely-lost nng_msg when a socket is closed with an
+# inbound message in transit). The transports already free the message when
+# nni_aio_begin() fails in their send functions (tcp.c, inproc.c, ipc.c);
+# apply the same convention here.
+patch_perl core/msgqueue.c '
+  s/(nni_msgq_aio_put\(nni_msgq \*mq, nni_aio \*aio\)\n\{\n\tint rv;\n\n\tif \(nni_aio_begin\(aio\) != 0\) \{\n)\t\treturn;/$1\t\tnni_msg_free(nni_aio_get_msg(aio));\n\t\tnni_aio_set_msg(aio, NULL);\n\t\treturn;/;
 '
 
 echo "=== patch_nng.sh complete ==="

@@ -195,6 +195,8 @@ nni_msgq_aio_put(nni_msgq *mq, nni_aio *aio)
 	int rv;
 
 	if (nni_aio_begin(aio) != 0) {
+		nni_msg_free(nni_aio_get_msg(aio));
+		nni_aio_set_msg(aio, NULL);
 		return;
 	}
 	nni_mtx_lock(&mq->mq_lock);
