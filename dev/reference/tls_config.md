@@ -84,13 +84,13 @@ tls
 #> < TLS client config | auth mode: none >
 ncurl("https://postman-echo.com/get", timeout = 1000L, tls = tls)
 #> $status
-#> [1] 200
+#> 'errorValue' int 5 | Timed out
 #> 
 #> $headers
-#> NULL
+#> 'errorValue' int 5 | Timed out
 #> 
 #> $data
-#> [1] "{\"args\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"url\":\"https://postman-echo.com/get\"}"
+#> 'errorValue' int 5 | Timed out
 #> 
 
 # client TLS configuration for public internet HTTPS on Linux
