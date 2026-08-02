@@ -210,6 +210,13 @@ typedef struct nano_cv_s {
   nng_cv *cv;
 } nano_cv;
 
+typedef struct nano_monitor_s {
+  nano_cv *cv;
+  int *ids;
+  int size;
+  int updates;
+} nano_monitor;
+
 typedef struct nano_thread_aio_s {
   nng_thread *thr;
   nano_cv *cv;
@@ -360,6 +367,7 @@ extern SEXP nano_DotcallSymbol;
 extern SEXP nano_HeadersSymbol;
 extern SEXP nano_IdSymbol;
 extern SEXP nano_ListenerSymbol;
+extern SEXP nano_MonitorSymbol;
 extern SEXP nano_ProtocolSymbol;
 extern SEXP nano_ResolveSymbol;
 extern SEXP nano_ResponseSymbol;
@@ -438,6 +446,7 @@ SEXP nano_aio_get_msg(SEXP);
 SEXP nano_aio_http_status(SEXP);
 
 void pipe_cb_signal(nng_pipe, nng_pipe_ev, void *);
+void pipe_cb_monitor(nng_pipe, nng_pipe_ev, void *);
 void tls_finalizer(SEXP);
 
 void nano_load_later(void);
@@ -499,6 +508,8 @@ SEXP rnng_listen(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_listener_close(SEXP);
 SEXP rnng_listener_start(SEXP);
 SEXP rnng_marker_set(SEXP);
+SEXP rnng_monitor_create(SEXP, SEXP);
+SEXP rnng_monitor_read(SEXP);
 SEXP rnng_ncurl(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_ncurl_aio(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_ncurl_session(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
