@@ -2,6 +2,8 @@
 
 ## nanonext (development version)
 
+## nanonext 1.10.2
+
 ##### Updates
 
 - [`race_aio()`](https://nanonext.r-lib.org/dev/reference/race_aio.md)
