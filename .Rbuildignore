@@ -13,6 +13,7 @@
 ^\.cache$
 ^cran-comments\.md$
 ^\.claude$
-^CLAUDE\.md$
+^\.posit$
+^AGENTS\.md$
 ^[.]?air[.]toml$
 ^\.vscode$

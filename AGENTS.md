@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI coding assistants (Posit Assistant, Claude Code, etc.) when working with code in this repository. Posit Assistant loads it automatically as project context for every conversation in this workspace.
 
 ## Overview
 
@@ -24,6 +24,12 @@ Rscript -e 'devtools::document()'
 # Precompile vignettes (must be done before R CMD build when vignettes change)
 Rscript dev/vignettes/precompile.R
 ```
+
+### Interactive Sessions (Positron)
+
+- `tests/tests.R` exercises the **installed** package via `library(nanonext)` — it does not use `pkgload::load_all()`. After editing C or R sources, reinstall (`R CMD INSTALL .`) and restart the R session before re-testing; the previously loaded DLL otherwise masks changes.
+- Run tests in the console with `source("tests/tests.R")`; set `Sys.setenv(NOT_CRAN = "true")` first for the full suite.
+- `R CMD INSTALL .` / `Rscript` / `./configure` are pre-approved shell commands (see `.claude/settings.local.json`); prefer them over ad-hoc alternatives.
 
 ### Compilation
 
@@ -126,6 +132,10 @@ The bundled NNG and Mbed TLS sources compile directly into `nanonext.so`/`.dll` 
   - `tools/patch_nng.sh` / `tools/patch_mbedtls.sh` - idempotent patches neutering the compiled-code diagnostics (NNG debug `abort`/`vprintf`/`stderr` → `__builtin_trap`/no-ops; Mbed TLS `printf`/`fprintf`/`exit` → no-op `*_MACRO`s) so `tools:::check_compiled_code()` is clean.
 - Symbol visibility: `PKG_CFLAGS = $(C_VISIBILITY)` (`-fvisibility=hidden`) reaches every object via `$(ALL_CFLAGS)`, hiding the bundled `nng_*`/`mbedtls_*` symbols (verify with `nm`).
 - Environment variables: `INCLUDE_DIR`, `LIB_DIR`, `NANONEXT_LIBS` (force-bundled build).
+
+## Reference Material
+
+`.claude/` contains design plans, performance analyses, and audit notes from past work (e.g. HTTP/WebSocket server design and benchmarking, wasm compilation, NNG bundled-vs-upstream divergence audit, R 4.6 non-API migration). These are not loaded automatically — consult them when working on the related subsystem.
 
 ## Code Style
 

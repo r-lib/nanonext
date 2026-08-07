@@ -16,4 +16,5 @@ compile_commands.json
 .cache
 /revdep/
 /.claude/*
+/.posit/
 .DS_Store
