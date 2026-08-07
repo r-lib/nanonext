@@ -4,6 +4,8 @@
 
 ## nanonext 1.10.2
 
+CRAN release: 2026-08-04
+
 ##### Updates
 
 - [`race_aio()`](https://nanonext.r-lib.org/dev/reference/race_aio.md)
