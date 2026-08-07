@@ -24,7 +24,7 @@
 #'  For **wait**: (invisibly) logical TRUE, or else FALSE if a flag has been
 #'  set.
 #'
-#'  For **until**: (invisibly) logical TRUE if signalled, or else FALSE if the
+#'  For **until**: (invisibly) logical TRUE if signaled, or else FALSE if the
 #'  timeout was reached.
 #'
 #'  For **cv_value**: integer value of the condition variable.
@@ -43,7 +43,7 @@
 #'
 #' @section Flag:
 #'
-#' The condition variable also contains a flag that certain signalling functions
+#' The condition variable also contains a flag that certain signaling functions
 #' such as [pipe_notify()] can set. When this flag has been set, all subsequent
 #' `wait()` calls will return logical FALSE instead of TRUE.
 #'
@@ -59,7 +59,7 @@ cv <- function() .Call(rnng_cv_alloc)
 
 #' Condition Variables - Wait
 #'
-#' `wait` waits on a condition being signalled by completion of an
+#' `wait` waits on a condition being signaled by completion of an
 #' asynchronous receive or pipe event. \cr `wait_` is a variant that allows
 #' user interrupts, suitable for interactive use.
 #'
@@ -67,8 +67,8 @@ cv <- function() .Call(rnng_cv_alloc)
 #'
 #' @examples
 #' \dontrun{
-#' wait(cv) # would block until the cv is signalled
-#' wait_(cv) # would block until the cv is signalled or interrupted
+#' wait(cv) # would block until the cv is signaled
+#' wait_(cv) # would block until the cv is signaled or interrupted
 #' }
 #'
 #' @rdname cv
@@ -83,12 +83,12 @@ wait_ <- function(cv) invisible(.Call(rnng_cv_wait_safe, cv))
 
 #' Condition Variables - Until
 #'
-#' `until` waits until a future time on a condition being signalled by
+#' `until` waits until a future time on a condition being signaled by
 #' completion of an asynchronous receive or pipe event. \cr `until_` is a
 #' variant that allows user interrupts, suitable for interactive use.
 #'
 #' @param msec maximum time in milliseconds to wait for the condition variable
-#'   to be signalled.
+#'   to be signaled.
 #'
 #' @examples
 #' until(cv, 10L)
@@ -208,9 +208,9 @@ pipe_notify <- function(socket, cv, add = FALSE, remove = FALSE, flag = FALSE)
 #' assigning a new forwarding target cancels any currently existing forwarding.
 #'
 #' Changes in the condition value of `cv` are forwarded to `cv2`, but only on
-#' each occassion `cv` is signalled. This means that waiting on `cv` will cause
+#' each occasion `cv` is signaled. This means that waiting on `cv` will cause
 #' a temporary divergence between the actual condition value of `cv` and that
-#' recorded at `cv2`, until the next time `cv` is signalled.
+#' recorded at `cv2`, until the next time `cv` is signaled.
 #'
 #' @param cv a 'conditionVariable' object, from which to forward the signal.
 #' @param cv2 a 'conditionVariable' object, to which the signal is forwarded.

@@ -164,7 +164,7 @@ reply <- function(
 #' Optionally use [call_aio()] on the 'recvAio' to call (and wait for) the
 #' result.
 #'
-#' If an error occured in the server process, a nul byte `00` will be received.
+#' If an error occurred in the server process, a nul byte `00` will be received.
 #' This allows an error to be easily distinguished from a NULL return value.
 #' [is_nul_byte()] can be used to test for a nul byte.
 #'
