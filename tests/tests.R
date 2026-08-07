@@ -289,9 +289,9 @@ opt(req$socket, "serial") <- cfg
 opt(rep, "serial") <- cfg
 test_zero(send(rep, custom, block = 500))
 test_type("list", recv(req$socket, mode = 1L, block = 500))
-cfg <- serial_config(c("error_env", "string_class"), list(function(x) stop("serialization failue"), function(x) "serialized string"), list(function(x) stop(), function(x) stop()))
+cfg <- serial_config(c("error_env", "string_class"), list(function(x) stop("serialization failure"), function(x) "serialized string"), list(function(x) stop(), function(x) stop()))
 opt(req$socket, "serial") <- cfg
-test_error(send(req$socket, `class<-`(new.env(), "error_env"), block = 500), "serialization failue")
+test_error(send(req$socket, `class<-`(new.env(), "error_env"), block = 500), "serialization failure")
 test_error(send(req$socket, `class<-`(new.env(), "string_class"), block = 500), "string_class")
 opt(req$socket, "serial") <- cfg
 opt(req$socket, "serial") <- list()

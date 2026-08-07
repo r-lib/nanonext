@@ -60,7 +60,7 @@ an 'errorValue'.
 
 For \code{transact}: a named list of 3 elements:
 \itemize{
-\item \verb{$status} - integer HTTP repsonse status code (200 - OK). Use
+\item \verb{$status} - integer HTTP response status code (200 - OK). Use
 \code{\link[=status_code]{status_code()}} for a translation of the meaning.
 \item \verb{$headers} - named list of response headers (all headers if
 \code{response = TRUE} was specified for the session, those specified in

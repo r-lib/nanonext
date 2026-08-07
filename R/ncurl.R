@@ -35,7 +35,7 @@
 #'
 #' @return Named list of 3 elements:
 #'
-#' - `$status` - integer HTTP repsonse status code (200 - OK). Use
+#' - `$status` - integer HTTP response status code (200 - OK). Use
 #'   [status_code()] for a translation of the meaning.
 #' - `$headers` - named list of response headers (all headers if
 #'   `response = TRUE`, or those specified in `response`, or NULL otherwise).
@@ -101,7 +101,7 @@ ncurl <- function(
 #' @return An 'ncurlAio' (object of class 'ncurlAio' and 'recvAio') (invisibly).
 #'   The following elements may be accessed:
 #'
-#' - `$status` - integer HTTP repsonse status code (200 - OK). Use
+#' - `$status` - integer HTTP response status code (200 - OK). Use
 #'   [status_code()] for a translation of the meaning.
 #' - `$headers` - named list of response headers (all headers if
 #'   `response = TRUE`, or those specified in `response`, or NULL otherwise).
@@ -121,7 +121,7 @@ ncurl <- function(
 #' The promises created are completely event-driven and non-polling.
 #'
 #' If a status code of 200 (OK) is returned then the promise is resolved with
-#' the reponse body, otherwise it is rejected with a translation of the status
+#' the response body, otherwise it is rejected with a translation of the status
 #' code or 'errorValue' as the case may be.
 #'
 #' @seealso [ncurl()] for synchronous http requests; [ncurl_session()] for
@@ -208,7 +208,7 @@ ncurl_session <- function(
 #'
 #' @return For `transact`: a named list of 3 elements:
 #'
-#' - `$status` - integer HTTP repsonse status code (200 - OK). Use
+#' - `$status` - integer HTTP response status code (200 - OK). Use
 #'   [status_code()] for a translation of the meaning.
 #' - `$headers` - named list of response headers (all headers if
 #'   `response = TRUE` was specified for the session, those specified in

@@ -53,7 +53,7 @@ certificates are not validated.}
 An 'ncurlAio' (object of class 'ncurlAio' and 'recvAio') (invisibly).
 The following elements may be accessed:
 \itemize{
-\item \verb{$status} - integer HTTP repsonse status code (200 - OK). Use
+\item \verb{$status} - integer HTTP response status code (200 - OK). Use
 \code{\link[=status_code]{status_code()}} for a translation of the meaning.
 \item \verb{$headers} - named list of response headers (all headers if
 \code{response = TRUE}, or those specified in \code{response}, or NULL otherwise).
@@ -76,7 +76,7 @@ nano cURL - a minimalist http(s) client - async edition.
 The promises created are completely event-driven and non-polling.
 
 If a status code of 200 (OK) is returned then the promise is resolved with
-the reponse body, otherwise it is rejected with a translation of the status
+the response body, otherwise it is rejected with a translation of the status
 code or 'errorValue' as the case may be.
 }
 

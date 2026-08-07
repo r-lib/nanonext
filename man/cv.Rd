@@ -31,7 +31,7 @@ cv_signal(cv)
 \item{cv}{a 'conditionVariable' object.}
 
 \item{msec}{maximum time in milliseconds to wait for the condition variable
-to be signalled.}
+to be signaled.}
 }
 \value{
 For \strong{cv}: a 'conditionVariable' object.
@@ -39,7 +39,7 @@ For \strong{cv}: a 'conditionVariable' object.
 For \strong{wait}: (invisibly) logical TRUE, or else FALSE if a flag has been
 set.
 
-For \strong{until}: (invisibly) logical TRUE if signalled, or else FALSE if the
+For \strong{until}: (invisibly) logical TRUE if signaled, or else FALSE if the
 timeout was reached.
 
 For \strong{cv_value}: integer value of the condition variable.
@@ -50,11 +50,11 @@ For \strong{cv_reset} and \strong{cv_signal}: zero (invisibly).
 \code{cv} creates a new condition variable (protected by a mutex internal to the
 object).
 
-\code{wait} waits on a condition being signalled by completion of an
+\code{wait} waits on a condition being signaled by completion of an
 asynchronous receive or pipe event. \cr \code{wait_} is a variant that allows
 user interrupts, suitable for interactive use.
 
-\code{until} waits until a future time on a condition being signalled by
+\code{until} waits until a future time on a condition being signaled by
 completion of an asynchronous receive or pipe event. \cr \code{until_} is a
 variant that allows user interrupts, suitable for interactive use.
 
@@ -94,7 +94,7 @@ designing complex concurrent applications.
 \section{Flag}{
 
 
-The condition variable also contains a flag that certain signalling functions
+The condition variable also contains a flag that certain signaling functions
 such as \code{\link[=pipe_notify]{pipe_notify()}} can set. When this flag has been set, all subsequent
 \code{wait()} calls will return logical FALSE instead of TRUE.
 
@@ -106,8 +106,8 @@ using \code{cv_reset()}.
 cv <- cv()
 
 \dontrun{
-wait(cv) # would block until the cv is signalled
-wait_(cv) # would block until the cv is signalled or interrupted
+wait(cv) # would block until the cv is signaled
+wait_(cv) # would block until the cv is signaled or interrupted
 }
 
 until(cv, 10L)
