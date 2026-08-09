@@ -94,7 +94,7 @@ designing complex concurrent applications.
 \section{Flag}{
 
 
-The condition variable also contains a flag that certain signaling functions
+The condition variable also contains a flag that certain signalling functions
 such as \code{\link[=pipe_notify]{pipe_notify()}} can set. When this flag has been set, all subsequent
 \code{wait()} calls will return logical FALSE instead of TRUE.
 
