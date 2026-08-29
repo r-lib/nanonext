@@ -105,6 +105,7 @@ typedef struct nano_handle_s {
 #else
 extern int R_interrupts_pending;
 #endif
+extern Rboolean R_interrupts_suspended;
 #endif
 
 #define NANO_PTR(x) (void *) CAR(x)
@@ -540,6 +541,7 @@ SEXP rnng_stream_conn_set_status(SEXP, SEXP);
 SEXP rnng_stream_open(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_strerror(SEXP);
 SEXP rnng_subscribe(SEXP, SEXP, SEXP);
+SEXP rnng_suspend_interrupts(SEXP);
 SEXP rnng_tls_config(SEXP, SEXP, SEXP, SEXP);
 SEXP rnng_traverse_precious(void);
 SEXP rnng_unresolved(SEXP);
