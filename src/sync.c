@@ -709,7 +709,7 @@ SEXP rnng_monitor_read(SEXP x) {
 
 SEXP rnng_suspend_interrupts(SEXP suspend) {
 
-  if (LOGICAL(suspend)) {
+  if (LOGICAL(suspend)[0]) {
     R_interrupts_suspended = TRUE;
   } else {
     // clear any pending interrupt whilst still suspended so that a stale
