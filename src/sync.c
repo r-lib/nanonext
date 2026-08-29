@@ -704,3 +704,24 @@ SEXP rnng_monitor_read(SEXP x) {
   return out;
 
 }
+
+// specials --------------------------------------------------------------------
+
+SEXP rnng_suspend_interrupts(SEXP suspend) {
+
+  if (LOGICAL(suspend)) {
+    R_interrupts_suspended = TRUE;
+  } else {
+    // clear any pending interrupt whilst still suspended so that a stale
+    // signal (e.g. from a cancelled task) cannot fire once un-suspended
+#ifdef _WIN32
+    UserBreak = 0;
+#else
+    R_interrupts_pending = 0;
+#endif
+    R_interrupts_suspended = FALSE;
+  }
+
+  return R_NilValue;
+
+}

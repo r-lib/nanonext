@@ -826,6 +826,8 @@ test_null(.dispatcher_gate(NULL))
 test_null(.dispatcher_try_gate(NULL))
 test_null(.dispatcher_wait(NULL, 1L))
 test_null(.dispatcher_stop(NULL))
+test_null(.suspend_interrupts())
+test_null(.suspend_interrupts(FALSE))
 
 ds1 <- socket("pair", listen = "inproc://device1", raw = TRUE)
 ds2 <- socket("pair", listen = "inproc://device2", raw = TRUE)

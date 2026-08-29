@@ -1,5 +1,9 @@
 # nanonext (development version)
 
+#### Updates
+
+* `stop_aio()` no longer resets the R interrupt state.
+
 # nanonext 1.10.2
 
 #### Updates
