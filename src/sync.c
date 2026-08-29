@@ -459,25 +459,6 @@ SEXP rnng_cv_signal(SEXP cvar) {
 
 }
 
-SEXP rnng_suspend_interrupts(SEXP suspend) {
-
-  if (LOGICAL(suspend)) {
-    R_interrupts_suspended = TRUE;
-  } else {
-    // clear any pending interrupt whilst still suspended so that a stale
-    // signal (e.g. from a cancelled task) cannot fire once un-suspended
-#ifdef _WIN32
-    UserBreak = 0;
-#else
-    R_interrupts_pending = 0;
-#endif
-    R_interrupts_suspended = FALSE;
-  }
-
-  return R_NilValue;
-
-}
-
 // request ---------------------------------------------------------------------
 
 SEXP rnng_request(SEXP con, SEXP data, SEXP sendmode, SEXP recvmode, SEXP timeout, SEXP cvar, SEXP msgid, SEXP clo) {
@@ -721,5 +702,26 @@ SEXP rnng_monitor_read(SEXP x) {
     out = R_NilValue;
 
   return out;
+
+}
+
+// specials --------------------------------------------------------------------
+
+SEXP rnng_suspend_interrupts(SEXP suspend) {
+
+  if (LOGICAL(suspend)) {
+    R_interrupts_suspended = TRUE;
+  } else {
+    // clear any pending interrupt whilst still suspended so that a stale
+    // signal (e.g. from a cancelled task) cannot fire once un-suspended
+#ifdef _WIN32
+    UserBreak = 0;
+#else
+    R_interrupts_pending = 0;
+#endif
+    R_interrupts_suspended = FALSE;
+  }
+
+  return R_NilValue;
 
 }
