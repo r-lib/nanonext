@@ -151,6 +151,8 @@ SEXP rnng_dial(SEXP socket, SEXP url, SEXP tls, SEXP autostart, SEXP fail) {
     if (xc || (xc = nng_dialer_set_ptr(*dp, NNG_OPT_TLS_CONFIG, cfg)))
       goto fail;
     nng_url_free(up);
+    // NULL out as the fail path below frees `up` again
+    up = NULL;
     if (start && (xc = nng_dialer_start(*dp, start == 1 ? NNG_FLAG_NONBLOCK : 0)))
         goto fail;
     nng_tls_config_hold(cfg);
