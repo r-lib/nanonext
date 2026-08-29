@@ -26,5 +26,5 @@ however be faster than using
 
 ``` r
 time <- mclock(); msleep(100); mclock() - time
-#> [1] 100
+#> [1] 102
 ```
