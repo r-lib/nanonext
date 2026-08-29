@@ -50,7 +50,8 @@
 <h2 class="pkg-version" data-toc-text="development version" id="nanonext-development-version">nanonext (development version)<a class="anchor" aria-label="anchor" href="#nanonext-development-version"></a></h2>
 <div class="section level5">
 <h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
-<ul><li>
+<ul><li>Fixes a blocking TLS <code><a href="../reference/dial.html">dial()</a></code> failure, e.g. connection refused, causing a process crash (<a href="https://github.com/r-lib/nanonext/issues/346" class="external-link">#346</a>).</li>
+<li>
 <code><a href="../reference/stop_aio.html">stop_aio()</a></code> no longer resets the R interrupt state.</li>
 </ul></div>
 </div>

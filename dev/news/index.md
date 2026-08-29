@@ -4,6 +4,10 @@
 
 ##### Updates
 
+- Fixes a blocking TLS
+  [`dial()`](https://nanonext.r-lib.org/dev/reference/dial.md) failure,
+  e.g. connection refused, causing a process crash
+  ([\#346](https://github.com/r-lib/nanonext/issues/346)).
 - [`stop_aio()`](https://nanonext.r-lib.org/dev/reference/stop_aio.md)
   no longer resets the R interrupt state.
 
