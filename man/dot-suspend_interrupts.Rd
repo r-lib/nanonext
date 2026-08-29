@@ -4,14 +4,14 @@
 \alias{.suspend_interrupts}
 \title{Suspend Interrupts}
 \usage{
-.suspend_interrupts(suspend)
+.suspend_interrupts(suspend = TRUE)
 }
 \arguments{
 \item{suspend}{(logical) if \code{TRUE}, suspends interrupts; if \code{FALSE},
 clears any pending interrupt and then un-suspends interrupts.}
 }
 \value{
-Invisible NULL.
+NULL.
 }
 \description{
 Internal package function.

@@ -380,7 +380,7 @@ ip_addr <- function() .Call(rnng_ip_addr)
 #' @param suspend (logical) if `TRUE`, suspends interrupts; if `FALSE`,
 #'   clears any pending interrupt and then un-suspends interrupts.
 #'
-#' @return Invisible NULL.
+#' @return NULL.
 #'
 #' @details Whilst interrupts are suspended, a pending interrupt is held and
 #'   never raised, as `R_CheckUserInterrupt()` becomes a no-op. Un-suspending
@@ -390,7 +390,7 @@ ip_addr <- function() .Call(rnng_ip_addr)
 #' @keywords internal
 #' @export
 #'
-.suspend_interrupts <- function(suspend) invisible(.Call(rnng_suspend_interrupts, suspend))
+.suspend_interrupts <- function(suspend = TRUE) .Call(rnng_suspend_interrupts, suspend)
 
 #' Internal Package Function
 #'
