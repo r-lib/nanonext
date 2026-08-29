@@ -2,6 +2,11 @@
 
 ## nanonext (development version)
 
+##### Updates
+
+- [`stop_aio()`](https://nanonext.r-lib.org/dev/reference/stop_aio.md)
+  no longer resets the R interrupt state.
+
 ## nanonext 1.10.2
 
 CRAN release: 2026-08-04
