@@ -101,9 +101,8 @@
 #' @export
 #'
 http_server <- function(url, handlers = list(), tls = NULL) {
-  if (is.integer(handlers$type)) {
+  if (is.integer(handlers$type))
     handlers <- list(handlers)
-  }
   srv <- .Call(rnng_http_server_create, url, handlers, tls)
   attr(srv, "start") <- function() {
     invisible(.Call(rnng_http_server_start, srv))
@@ -114,10 +113,8 @@ http_server <- function(url, handlers = list(), tls = NULL) {
   attr(srv, "serve") <- function() {
     on.exit(.Call(rnng_http_server_close, srv))
     .Call(rnng_http_server_start, srv)
-    cat(sprintf("Serving at %s", attr(srv, "url")))
-    repeat {
-      run_event_loop()
-    }
+    cat(sprintf("Serving at %s - press Ctrl+C to stop\n", attr(srv, "url")))
+    repeat run_event_loop()
   }
   srv
 }
@@ -254,15 +251,10 @@ handler <- function(path, callback, method = "GET", prefix = FALSE) {
 #'
 #' @export
 #'
-handler_ws <- function(path, on_message, on_open = NULL, on_close = NULL, textframes = FALSE) {
-  list(
-    type = 2L,
-    path = path,
-    on_message = on_message,
-    on_open = on_open,
-    on_close = on_close,
-    textframes = textframes
-  )
+handler_ws <- function(path, on_message, on_open = NULL, on_close = NULL,
+                       textframes = FALSE) {
+  list(type = 2L, path = path, on_message = on_message, on_open = on_open,
+       on_close = on_close, textframes = textframes)
 }
 
 #' Create Static File Handler
@@ -282,10 +274,10 @@ handler_ws <- function(path, on_message, on_open = NULL, on_close = NULL, textfr
 #' @export
 #'
 handler_file <- function(path, file, prefix = FALSE) {
-  if (!file.exists(file)) {
+  if (!file.exists(file))
     warning("file does not exist: ", file)
-  }
-  list(type = 3L, path = path, file = normalizePath(file, mustWork = FALSE), prefix = prefix)
+  list(type = 3L, path = path, file = normalizePath(file, mustWork = FALSE),
+       prefix = prefix)
 }
 
 #' Create Static Directory Handler
@@ -316,10 +308,10 @@ handler_file <- function(path, file, prefix = FALSE) {
 #' @export
 #'
 handler_directory <- function(path, directory) {
-  if (!dir.exists(directory)) {
+  if (!dir.exists(directory))
     warning("directory does not exist: ", directory)
-  }
-  list(type = 4L, path = path, directory = normalizePath(directory, mustWork = FALSE))
+  list(type = 4L, path = path,
+       directory = normalizePath(directory, mustWork = FALSE))
 }
 
 #' Create Inline Static Content Handler
@@ -344,7 +336,8 @@ handler_directory <- function(path, directory) {
 #' @export
 #'
 handler_inline <- function(path, data, content_type = NULL, prefix = FALSE) {
-  list(type = 5L, path = path, data = data, content_type = content_type, prefix = prefix)
+  list(type = 5L, path = path, data = data, content_type = content_type,
+       prefix = prefix)
 }
 
 #' Create HTTP Redirect Handler
@@ -376,9 +369,8 @@ handler_inline <- function(path, data, content_type = NULL, prefix = FALSE) {
 #'
 handler_redirect <- function(path, location, status = 302L, prefix = FALSE) {
   status <- as.integer(status)
-  if (!status %in% c(301L, 302L, 303L, 307L, 308L)) {
+  if (!status %in% c(301L, 302L, 303L, 307L, 308L))
     stop("redirect status must be 301, 302, 303, 307, or 308")
-  }
   list(type = 6L, path = path, location = location, status = status, prefix = prefix)
 }
 
@@ -408,13 +400,11 @@ print.nanoWsConn <- function(x, ...) {
 #' @export
 #'
 `$.nanoWsConn` <- function(x, name) {
-  switch(
-    name,
-    send = function(data) .Call(rnng_ws_send, x, data),
-    close = function() .Call(rnng_ws_close, x),
-    id = attr(x, "id"),
-    attr(x, name, exact = TRUE)
-  )
+  switch(name,
+         send = function(data) .Call(rnng_ws_send, x, data),
+         close = function() .Call(rnng_ws_close, x),
+         id = attr(x, "id"),
+         attr(x, name, exact = TRUE))
 }
 
 #' Create HTTP Streaming Handler
@@ -504,15 +494,10 @@ print.nanoWsConn <- function(x, ...) {
 #'
 #' @export
 #'
-handler_stream <- function(path, on_request, on_close = NULL, method = "*", prefix = FALSE) {
-  list(
-    type = 7L,
-    path = path,
-    on_request = on_request,
-    on_close = on_close,
-    method = method,
-    prefix = prefix
-  )
+handler_stream <- function(path, on_request, on_close = NULL,
+                           method = "*", prefix = FALSE) {
+  list(type = 7L, path = path, on_request = on_request, on_close = on_close,
+       method = method, prefix = prefix)
 }
 
 #' Format Server-Sent Event
@@ -576,15 +561,9 @@ handler_stream <- function(path, on_request, on_close = NULL, method = "*", pref
 #'
 format_sse <- function(data, event = NULL, id = NULL, retry = NULL) {
   parts <- character()
-  if (!is.null(event)) {
-    parts <- c(parts, paste0("event: ", event))
-  }
-  if (!is.null(id)) {
-    parts <- c(parts, paste0("id: ", id))
-  }
-  if (!is.null(retry)) {
-    parts <- c(parts, paste0("retry: ", as.integer(retry)))
-  }
+  if (!is.null(event)) parts <- c(parts, paste0("event: ", event))
+  if (!is.null(id)) parts <- c(parts, paste0("id: ", id))
+  if (!is.null(retry)) parts <- c(parts, paste0("retry: ", as.integer(retry)))
   lines <- strsplit(as.character(data), "\n", fixed = TRUE)[[1L]]
   parts <- c(parts, paste0("data: ", lines))
   paste0(paste(parts, collapse = "\n"), "\n\n")
@@ -601,13 +580,12 @@ print.nanoStreamConn <- function(x, ...) {
 #' @export
 #'
 `$.nanoStreamConn` <- function(x, name) {
-  switch(
-    name,
-    send = function(data) .Call(rnng_stream_conn_send, x, data),
-    close = function() .Call(rnng_conn_close, x),
-    set_status = function(code) .Call(rnng_stream_conn_set_status, x, as.integer(code)),
-    set_header = function(name, value) .Call(rnng_stream_conn_set_header, x, name, value),
-    id = attr(x, "id"),
-    attr(x, name, exact = TRUE)
-  )
+  switch(name,
+         send = function(data) .Call(rnng_stream_conn_send, x, data),
+         close = function() .Call(rnng_conn_close, x),
+         set_status = function(code) .Call(rnng_stream_conn_set_status, x, as.integer(code)),
+         set_header = function(name, value) .Call(rnng_stream_conn_set_header, x, name, value),
+         id = attr(x, "id"),
+         attr(x, name, exact = TRUE))
 }
+
