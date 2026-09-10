@@ -4,6 +4,9 @@
 
 ##### Updates
 
+- Our configure script now checks a detected system ‘libnng’ for working
+  TLS support, falling back to the bundled build otherwise
+  ([\#353](https://github.com/r-lib/nanonext/issues/353)).
 - Fixes a [`ncurl()`](https://nanonext.r-lib.org/dev/reference/ncurl.md)
   process crash when following a redirect to an unsupported URL
   ([\#351](https://github.com/r-lib/nanonext/issues/351)).
