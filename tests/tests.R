@@ -1041,6 +1041,25 @@ if (later && NOT_CRAN) {
   aio <- ncurl_aio(paste0(base_url, "/put"), timeout = 2000)
   while (unresolved(aio)) run_event_loop(1000)
   test_equal(aio$status, 405L)
+  raw_get <- function(target) {
+    s <- stream(dial = paste0("tcp://", sub("^http://", "", base_url)), buffer = 4096L)
+    send(s, paste0("GET ", target, " HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"), block = 2000L)
+    res <- character()
+    repeat {
+      ra <- recv_aio(s, mode = "character", timeout = 2000L)
+      while (unresolved(ra)) run_event_loop(1000)
+      chunk <- call_aio(ra)$data
+      if (!is.character(chunk)) break
+      res <- c(res, chunk)
+    }
+    close(s)
+    paste(res, collapse = "")
+  }
+  test_true(grepl("path: /api/canon", raw_get("/api/x/../canon"), fixed = TRUE))
+  test_true(grepl("path: /api/canon", raw_get("/api/x/%2e%2e/canon"), fixed = TRUE))
+  test_true(grepl("path: /api/canon", raw_get("/api//canon"), fixed = TRUE))
+  test_true(grepl("path: /api/x%2Fy", raw_get("/api/x%2fy"), fixed = TRUE))
+  test_true(grepl("^HTTP/1.1 404", raw_get("/../../outside.txt")))
   test_zero(srv$close())
 }
 
@@ -1276,6 +1295,8 @@ if (later && NOT_CRAN) {
   dir.create(static_test_dir)
   writeLines("Hello from file", file.path(static_test_dir, "test.txt"))
   writeLines("<html><body>Index</body></html>", file.path(static_test_dir, "index.html"))
+  secret_file <- tempfile()
+  writeLines("top secret", secret_file)
 
   test_class("nanoServer", static_srv <- http_server(
     url = "http://127.0.0.1:0",
@@ -1335,8 +1356,30 @@ if (later && NOT_CRAN) {
   while (unresolved(aio)) run_event_loop(1000)
   test_equal(aio$status, 302L)
 
+  raw_get <- function(target) {
+    s <- stream(dial = paste0("tcp://", sub("^http://", "", base_url)), buffer = 4096L)
+    send(s, paste0("GET ", target, " HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"), block = 2000L)
+    res <- character()
+    repeat {
+      ra <- recv_aio(s, mode = "character", timeout = 2000L)
+      while (unresolved(ra)) run_event_loop(1000)
+      chunk <- call_aio(ra)$data
+      if (!is.character(chunk)) break
+      res <- c(res, chunk)
+    }
+    close(s)
+    paste(res, collapse = "")
+  }
+  secret_name <- basename(secret_file)
+  resp <- raw_get(paste0("/files/../", secret_name))
+  test_true(grepl("^HTTP/1.1 404", resp))
+  test_false(grepl("top secret", resp, fixed = TRUE))
+  resp <- raw_get(paste0("/files/%2e%2e/", secret_name))
+  test_true(grepl("^HTTP/1.1 404", resp))
+  test_false(grepl("top secret", resp, fixed = TRUE))
   test_zero(static_srv$close())
   unlink(static_test_dir, recursive = TRUE)
+  unlink(secret_file)
 }
 
 if (later && NOT_CRAN) {
@@ -1376,6 +1419,16 @@ if (later && NOT_CRAN) {
           conn$close()
         },
         prefix = TRUE
+      ),
+      handler_stream(
+        "/multi",
+        on_request = function(conn, req) {
+          conn$set_header("Content-Type", "text/plain")
+          conn$send("chunk1")
+          conn$send("chunk2")
+          conn$send("chunk3")
+          conn$close()
+        }
       )
     )
   ))
@@ -1432,6 +1485,11 @@ if (later && NOT_CRAN) {
   prefix_aio <- ncurl_aio(paste0(base_url, "/prefix-stream/sub/path"), timeout = 2000)
   while (unresolved(prefix_aio)) run_event_loop(1000)
   test_equal(call_aio(prefix_aio)$status, 200L)
+
+  multi_aio <- ncurl_aio(paste0(base_url, "/multi"), timeout = 2000)
+  while (unresolved(multi_aio)) run_event_loop(1000)
+  test_equal(call_aio(multi_aio)$status, 200L)
+  test_equal(call_aio(multi_aio)$data, "chunk1chunk2chunk3")
 
   test_zero(stream_srv$close())
 }
