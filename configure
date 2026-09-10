@@ -2,7 +2,7 @@
 
 # nanonext configure (POSIX / macOS / Emscripten).
 #
-# Uses a system 'libnng' >= 1.12 and 'libmbedtls' 3.x when present; otherwise
+# Uses a system 'libnng' >= 1.12.3 and 'libmbedtls' 3.x when present; otherwise
 # compiles the bundled sources directly into nanonext.so via the explicit
 # per-object rules in src/Makevars.in -- no cmake, no static archives, no
 # install step. The only genuinely platform-specific work is replicating NNG's
@@ -226,7 +226,7 @@ int main() {
 
   echo "#include <nng/nng.h>
 int main() {
-#if NNG_MAJOR_VERSION < 1 || NNG_MAJOR_VERSION == 1 && NNG_MINOR_VERSION < 12
+#if NNG_MAJOR_VERSION < 1 || NNG_MAJOR_VERSION == 1 && (NNG_MINOR_VERSION < 12 || NNG_MINOR_VERSION == 12 && NNG_PATCH_VERSION < 3)
     *(void *) 0 = 0;
 #endif
 }" | ${CC} ${NNG_SYS_CFLAGS} -xc - -o /dev/null > /dev/null 2>&1
