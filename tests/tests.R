@@ -296,14 +296,20 @@ test_error(send(req$socket, `class<-`(new.env(), "string_class"), block = 500), 
 opt(req$socket, "serial") <- cfg
 opt(req$socket, "serial") <- list()
 opt(rep, "serial") <- list()
+capture_message <- function(expr) {  # divert expected stderr output, e.g. from erroring unserialization hooks
+  con <- file(tempfile(), open = "wt")
+  sink(con, type = "message")
+  on.exit({sink(type = "message"); close(con)})
+  expr
+}
 cfg <- serial_config("ufunc_error", function(x) raw(1L), function(x) stop("hook failure"))
 opt(req$socket, "serial") <- cfg
 opt(rep, "serial") <- cfg
 test_zero(send(req$socket, `class<-`(new.env(), "ufunc_error"), mode = "serial", block = 500))
-test_class("errorValue", res <- recv(rep, mode = "serial", block = 500))
+capture_message(test_class("errorValue", res <- recv(rep, mode = "serial", block = 500)))
 test_equal(res, 1000L)
 test_zero(send(req$socket, list(`class<-`(new.env(), "ufunc_error"), "ok"), mode = "serial", block = 500))
-test_type("list", res <- recv(rep, mode = "serial", block = 500))
+capture_message(test_type("list", res <- recv(rep, mode = "serial", block = 500)))
 test_class("errorValue", res[[1L]])
 test_equal(res[[1L]], 1000L)
 test_equal(res[[2L]], "ok")
