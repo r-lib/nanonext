@@ -257,6 +257,13 @@ status_code <- function(x) .Call(rnng_status_code, x)
 #'
 #' This feature utilises the 'refhook' system of R native serialization.
 #'
+#' If `sfunc` errors during serialization, the error propagates to the caller
+#' and no message is sent.
+#'
+#' If `ufunc` errors during unserialization, the error is caught and the
+#' object instead unserializes as an 'errorValue' 1000 ('Internal error
+#' detected'), rather than the error propagating to the caller.
+#'
 #' @param class a character string (or vector) of the class of object custom
 #'   serialization functions are applied to, e.g. `'ArrowTabular'` or
 #'   `c('torch_tensor', 'ArrowTabular')`.

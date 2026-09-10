@@ -2,6 +2,7 @@
 
 #### Updates
 
+* Fixes an erroring unserialization hook (`ufunc`) halting non-interactive R processes; the object now unserializes as an 'errorValue' (#356).
 * Our configure script now requires a system 'libmbedtls' 3.x, falling back to the bundled build when an incompatible version is detected (#350).
 * Our configure script now checks a detected system 'libnng' for working TLS support, falling back to the bundled build otherwise (#353).
 * Fixes a `ncurl()` process crash when following a redirect to an unsupported URL (#351).

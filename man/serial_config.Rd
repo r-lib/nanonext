@@ -30,6 +30,13 @@ set, the functions apply to all send and receive operations performed in mode
 }
 \details{
 This feature utilises the 'refhook' system of R native serialization.
+
+If \code{sfunc} errors during serialization, the error propagates to the caller
+and no message is sent.
+
+If \code{ufunc} errors during unserialization, the error is caught and the
+object instead unserializes as an 'errorValue' 1000 ('Internal error
+detected'), rather than the error propagating to the caller.
 }
 \examples{
 cfg <- serial_config("test_cls", function(x) serialize(x, NULL), unserialize)
