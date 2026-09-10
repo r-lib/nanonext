@@ -4,6 +4,9 @@
 
 ##### Updates
 
+- Our configure script now requires a system ‘libmbedtls’ 3.x, falling
+  back to the bundled build when an incompatible version is detected
+  ([\#350](https://github.com/r-lib/nanonext/issues/350)).
 - Our configure script now checks a detected system ‘libnng’ for working
   TLS support, falling back to the bundled build otherwise
   ([\#353](https://github.com/r-lib/nanonext/issues/353)).
