@@ -231,7 +231,26 @@ int main() {
   if [ $? -ne 0 ]; then
     compile_nng=1
   else
-    echo "Found 'libnng' $NNG_SYS_CFLAGS"
+    # A system libnng can pass the version and link checks yet have no TLS at
+    # runtime: nng_tls_config_alloc() always exists, as an ENOTSUP stub if need
+    # be. Probe by running it -- any failure selects the bundled build.
+    if echo "#include <nng/nng.h>
+#include <nng/supplemental/tls/tls.h>
+int main(void) {
+    nng_tls_config *cfg;
+    if (nng_tls_config_alloc(&cfg, NNG_TLS_MODE_CLIENT) != 0)
+        return 1;
+    nng_tls_config_free(cfg);
+    return 0;
+}" | ${CC} ${NNG_SYS_CFLAGS} ${CFLAGS} -xc - ${LDFLAGS} ${NNG_SYS_LIBS} -o nano-tls-probe > /dev/null 2>&1 && \
+       LD_LIBRARY_PATH="${LIB_DIR:+$LIB_DIR:}$LD_LIBRARY_PATH" DYLD_LIBRARY_PATH="${LIB_DIR:+$LIB_DIR:}$DYLD_LIBRARY_PATH" \
+       ./nano-tls-probe > /dev/null 2>&1; then
+      echo "Found 'libnng' $NNG_SYS_CFLAGS"
+    else
+      compile_nng=1
+      echo "System 'libnng' has no working TLS ... building from source"
+    fi
+    rm -rf nano-tls-probe nano-tls-probe.dSYM
   fi
 fi
 
