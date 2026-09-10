@@ -174,10 +174,11 @@ static SEXP nano_unserialize_hook(SEXP x, SEXP hook_func) {
   InBytes(stream, buf, 20);
 
   PROTECT(call = Rf_lcons(VECTOR_PTR_RO(hook_func)[i], Rf_cons(raw, R_NilValue)));
-  out = Rf_eval(call, R_GlobalEnv);
+  const Rboolean ok = R_ToplevelExec(nano_eval_safe, call);
+  out = nano_eval_res;
 
   UNPROTECT(2);
-  return out;
+  return ok ? out : mk_error(NNG_EINTERNAL);
 
 }
 
