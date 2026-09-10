@@ -50,7 +50,8 @@
 <h2 class="pkg-version" data-toc-text="development version" id="nanonext-development-version">nanonext (development version)<a class="anchor" aria-label="anchor" href="#nanonext-development-version"></a></h2>
 <div class="section level5">
 <h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
-<ul><li>Our configure script now requires a system ‘libmbedtls’ 3.x, falling back to the bundled build when an incompatible version is detected (<a href="https://github.com/r-lib/nanonext/issues/350" class="external-link">#350</a>).</li>
+<ul><li>Fixes an erroring unserialization hook (<code>ufunc</code>) halting non-interactive R processes; the object now unserializes as an ‘errorValue’ (<a href="https://github.com/r-lib/nanonext/issues/356" class="external-link">#356</a>).</li>
+<li>Our configure script now requires a system ‘libmbedtls’ 3.x, falling back to the bundled build when an incompatible version is detected (<a href="https://github.com/r-lib/nanonext/issues/350" class="external-link">#350</a>).</li>
 <li>Our configure script now checks a detected system ‘libnng’ for working TLS support, falling back to the bundled build otherwise (<a href="https://github.com/r-lib/nanonext/issues/353" class="external-link">#353</a>).</li>
 <li>Fixes a <code><a href="../reference/ncurl.html">ncurl()</a></code> process crash when following a redirect to an unsupported URL (<a href="https://github.com/r-lib/nanonext/issues/351" class="external-link">#351</a>).</li>
 <li>Fixes a blocking TLS <code><a href="../reference/dial.html">dial()</a></code> failure, e.g. connection refused, causing a process crash (<a href="https://github.com/r-lib/nanonext/issues/346" class="external-link">#346</a>).</li>

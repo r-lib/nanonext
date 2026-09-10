@@ -4,6 +4,9 @@
 
 ##### Updates
 
+- Fixes an erroring unserialization hook (`ufunc`) halting
+  non-interactive R processes; the object now unserializes as an
+  ‘errorValue’ ([\#356](https://github.com/r-lib/nanonext/issues/356)).
 - Our configure script now requires a system ‘libmbedtls’ 3.x, falling
   back to the bundled build when an incompatible version is detected
   ([\#350](https://github.com/r-lib/nanonext/issues/350)).
