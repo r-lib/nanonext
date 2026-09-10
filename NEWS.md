@@ -2,6 +2,7 @@
 
 #### Updates
 
+* Our configure script now checks a detected system 'libnng' for working TLS support, falling back to the bundled build otherwise (#353).
 * Fixes a `ncurl()` process crash when following a redirect to an unsupported URL (#351).
 * Fixes a blocking TLS `dial()` failure, e.g. connection refused, causing a process crash (#346).
 * `stop_aio()` no longer resets the R interrupt state.
