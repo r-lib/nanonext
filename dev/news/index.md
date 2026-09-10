@@ -8,6 +8,9 @@
   [`dial()`](https://nanonext.r-lib.org/dev/reference/dial.md) failure,
   e.g. connection refused, causing a process crash
   ([\#346](https://github.com/r-lib/nanonext/issues/346)).
+- Fixes a [`ncurl()`](https://nanonext.r-lib.org/dev/reference/ncurl.md)
+  process crash when following a redirect to an unsupported URL
+  ([\#351](https://github.com/r-lib/nanonext/issues/351)).
 - [`stop_aio()`](https://nanonext.r-lib.org/dev/reference/stop_aio.md)
   no longer resets the R interrupt state.
 
