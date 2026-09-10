@@ -22,6 +22,23 @@
   ([\#346](https://github.com/r-lib/nanonext/issues/346)).
 - [`stop_aio()`](https://nanonext.r-lib.org/dev/reference/stop_aio.md)
   no longer resets the R interrupt state.
+- [`http_server()`](https://nanonext.r-lib.org/dev/reference/http_server.md)
+  now normalizes the request URI before it reaches a handler. For
+  example, a request for `/../../outside.txt` arrives as `/outside.txt`.
+  This normalization applies to all handler types: static file and
+  directory handlers, and R
+  [`handler()`](https://nanonext.r-lib.org/dev/reference/handler.md)
+  callbacks.
+- Updates the bundled ‘libnng’ to v1.12.3, which includes upstream
+  security fixes that:
+  - block path traversal attacks at the HTTP server,
+  - prevent a crash of the HTTP client when it receives a malformed
+    chunked message,
+  - reject unreasonably large message sizes, and
+  - limit memory use for websocket connections that receive many small
+    frames.
+- Increases the minimum supported system `libnng` version to \>=
+  v1.12.3.
 
 ## nanonext 1.10.2
 

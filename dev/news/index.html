@@ -57,6 +57,15 @@
 <li>Fixes a blocking TLS <code><a href="../reference/dial.html">dial()</a></code> failure, e.g. connection refused, causing a process crash (<a href="https://github.com/r-lib/nanonext/issues/346" class="external-link">#346</a>).</li>
 <li>
 <code><a href="../reference/stop_aio.html">stop_aio()</a></code> no longer resets the R interrupt state.</li>
+<li>
+<code><a href="../reference/http_server.html">http_server()</a></code> now normalizes the request URI before it reaches a handler. For example, a request for <code>/../../outside.txt</code> arrives as <code>/outside.txt</code>. This normalization applies to all handler types: static file and directory handlers, and R <code><a href="../reference/handler.html">handler()</a></code> callbacks.</li>
+<li>Updates the bundled ‘libnng’ to v1.12.3, which includes upstream security fixes that:
+<ul><li>block path traversal attacks at the HTTP server,</li>
+<li>prevent a crash of the HTTP client when it receives a malformed chunked message,</li>
+<li>reject unreasonably large message sizes, and</li>
+<li>limit memory use for websocket connections that receive many small frames.</li>
+</ul></li>
+<li>Increases the minimum supported system <code>libnng</code> version to &gt;= v1.12.3.</li>
 </ul></div>
 </div>
     <div class="section level2">

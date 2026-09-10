@@ -60,7 +60,7 @@ cfg
 #> [[2]][[1]]
 #> function (x) 
 #> serialize(x, NULL)
-#> <environment: 0x560b31fe54b8>
+#> <environment: 0x563a76860480>
 #> 
 #> 
 #> [[3]]
@@ -72,7 +72,7 @@ cfg
 #>         stop("'connection' must be a connection")
 #>     .Internal(unserialize(connection, refhook))
 #> }
-#> <bytecode: 0x560b31b10170>
+#> <bytecode: 0x563a76f612c8>
 #> <environment: namespace:base>
 #> 
 #> 
@@ -90,12 +90,12 @@ cfg
 #> [[2]][[1]]
 #> function (x) 
 #> serialize(x, NULL)
-#> <environment: 0x560b31fe54b8>
+#> <environment: 0x563a76860480>
 #> 
 #> [[2]][[2]]
 #> function (x) 
 #> serialize(x, NULL)
-#> <environment: 0x560b31fe54b8>
+#> <environment: 0x563a76860480>
 #> 
 #> 
 #> [[3]]
@@ -107,7 +107,7 @@ cfg
 #>         stop("'connection' must be a connection")
 #>     .Internal(unserialize(connection, refhook))
 #> }
-#> <bytecode: 0x560b31b10170>
+#> <bytecode: 0x563a76f612c8>
 #> <environment: namespace:base>
 #> 
 #> [[3]][[2]]
@@ -118,7 +118,7 @@ cfg
 #>         stop("'connection' must be a connection")
 #>     .Internal(unserialize(connection, refhook))
 #> }
-#> <bytecode: 0x560b31b10170>
+#> <bytecode: 0x563a76f612c8>
 #> <environment: namespace:base>
 #> 
 #> 
