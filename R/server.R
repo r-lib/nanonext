@@ -135,7 +135,12 @@ http_server <- function(url, handlers = list(), tls = NULL) {
 #'
 #' @export
 #'
-run_event_loop <- function(timeout = Inf) later::run_now(timeout / 1000)
+run_event_loop <- function(timeout = Inf) {
+  if (!requireNamespace("later")) {
+    stop("The package \"later\" is required to run the event loop.")
+  }
+  later::run_now(timeout / 1000)
+}
 
 #' Create HTTP Handler
 #'
