@@ -321,6 +321,9 @@ nni_msg_alloc(nni_msg **mp, size_t sz)
 	nni_msg *m;
 	int      rv;
 
+	if ((uint64_t)sz > 0x0fffffffffffffffull) {
+		return (NNG_EMSGSIZE);
+	}
 	if ((m = NNI_ALLOC_STRUCT(m)) == NULL) {
 		return (NNG_ENOMEM);
 	}

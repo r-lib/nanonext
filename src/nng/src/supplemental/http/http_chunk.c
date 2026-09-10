@@ -30,6 +30,7 @@ enum chunk_state {
 struct nng_http_chunks {
 	nni_list         cl_chunks;
 	size_t           cl_maxsz;
+	size_t           cl_total;
 	size_t           cl_size;
 	size_t           cl_line;
 	enum chunk_state cl_state;
@@ -86,12 +87,7 @@ nni_http_chunks_iter(nni_http_chunks *cl, nni_http_chunk *last)
 size_t
 nni_http_chunks_size(nni_http_chunks *cl)
 {
-	size_t          tot = 0;
-	nni_http_chunk *ch;
-	NNI_LIST_FOREACH (&cl->cl_chunks, ch) {
-		tot += ch->c_size;
-	}
-	return (tot);
+	return (cl->cl_total);
 }
 
 size_t
@@ -109,22 +105,28 @@ nni_http_chunk_data(nni_http_chunk *ch)
 static int
 chunk_ingest_len(nni_http_chunks *cl, char c)
 {
-	if (isdigit(c)) {
-		cl->cl_size *= 16;
-		cl->cl_size += (c - '0');
+	size_t digit;
+
+	if (isdigit((unsigned char) c)) {
+		digit = (size_t) (c - '0');
 	} else if ((c >= 'A') && (c <= 'F')) {
-		cl->cl_size *= 16;
-		cl->cl_size += (c - 'A') + 10;
+		digit = (size_t) ((c - 'A') + 10);
 	} else if ((c >= 'a') && (c <= 'f')) {
-		cl->cl_size *= 16;
-		cl->cl_size += (c - 'a') + 10;
+		digit = (size_t) ((c - 'a') + 10);
 	} else if (c == ';') {
 		cl->cl_state = CS_EXT;
+		return (0);
 	} else if (c == '\r') {
 		cl->cl_state = CS_CR;
+		return (0);
 	} else {
 		return (NNG_EPROTO);
 	}
+	if (cl->cl_size > ((SIZE_MAX - digit) / 16)) {
+		return (NNG_EMSGSIZE);
+	}
+	cl->cl_size *= 16;
+	cl->cl_size += digit;
 	return (0);
 }
 
@@ -133,7 +135,7 @@ chunk_ingest_ext(nni_http_chunks *cl, char c)
 {
 	if (c == '\r') {
 		cl->cl_state = CS_CR;
-	} else if (!isprint(c)) {
+	} else if (!isprint((unsigned char) c)) {
 		return (NNG_EPROTO);
 	}
 	return (0);
@@ -152,8 +154,11 @@ chunk_ingest_newline(nni_http_chunks *cl, char c)
 		cl->cl_state = CS_TRLR;
 		return (0);
 	}
-	if ((cl->cl_maxsz > 0) &&
-	    ((nni_http_chunks_size(cl) + cl->cl_size) > cl->cl_maxsz)) {
+	if ((cl->cl_size > (SIZE_MAX - 2)) ||
+	    (cl->cl_size > (SIZE_MAX - cl->cl_total)) ||
+	    ((cl->cl_maxsz > 0) &&
+	        ((cl->cl_total > cl->cl_maxsz) ||
+	            (cl->cl_size > (cl->cl_maxsz - cl->cl_total))))) {
 		return (NNG_EMSGSIZE);
 	}
 	if ((chunk = NNI_ALLOC_STRUCT(chunk)) == NULL) {
@@ -168,6 +173,7 @@ chunk_ingest_newline(nni_http_chunks *cl, char c)
 	chunk->c_size  = cl->cl_size;
 	chunk->c_alloc = cl->cl_size + 2;
 	chunk->c_resid = chunk->c_alloc;
+	cl->cl_total += cl->cl_size;
 	nni_list_append(&cl->cl_chunks, chunk);
 
 	return (0);
@@ -180,7 +186,7 @@ chunk_ingest_trailer(nni_http_chunks *cl, char c)
 		cl->cl_state = CS_TRLRCR;
 		return (0);
 	}
-	if (!isprint(c)) {
+	if (!isprint((unsigned char) c)) {
 		return (NNG_EPROTO);
 	}
 	cl->cl_line++;
@@ -208,7 +214,7 @@ chunk_ingest_char(nni_http_chunks *cl, char c)
 	int rv;
 	switch (cl->cl_state) {
 	case CS_INIT:
-		if (!isalnum(c)) {
+		if (!isalnum((unsigned char) c)) {
 			rv = NNG_EPROTO;
 			break;
 		}
@@ -260,6 +266,7 @@ chunk_ingest_data(nni_http_chunks *cl, char *buf, size_t n, size_t *lenp)
 
 		if ((chunk->c_data[chunk->c_size] != '\r') ||
 		    (chunk->c_data[chunk->c_size + 1] != '\n')) {
+			*lenp = n;
 			return (NNG_EPROTO);
 		}
 		chunk->c_resid = 0;
@@ -290,8 +297,10 @@ nni_http_chunks_parse(nni_http_chunks *cl, void *buf, size_t n, size_t *lenp)
 			break;
 
 		case CS_DATA:
-			if ((rv = chunk_ingest_data(cl, src + i, n - i, &cnt)) !=
-			    0) {
+			cnt = 0;
+			if ((rv = chunk_ingest_data(
+			         cl, src + i, n - i, &cnt)) != 0) {
+				*lenp = i + cnt;
 				return (rv);
 			}
 			i += cnt;
@@ -299,6 +308,7 @@ nni_http_chunks_parse(nni_http_chunks *cl, void *buf, size_t n, size_t *lenp)
 
 		default:
 			if ((rv = chunk_ingest_char(cl, src[i])) != 0) {
+				*lenp = i;
 				return (rv);
 			}
 			i++;

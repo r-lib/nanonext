@@ -29,8 +29,8 @@ set -e
 NNG_REPO="${NNG_REPO:-https://github.com/nanomsg/nng.git}"
 # Pinned upstream ref -- update together with the vendored tree. Any git ref
 # (tag, branch, or commit) is accepted. This is NNG's 'stable' branch at the
-# v1.12.0 tag.
-NNG_DEFAULT_VERSION="45f8116f2dd1b0438ab77344a75628d77656c61a"
+# v1.12.3 tag.
+NNG_DEFAULT_VERSION="73f715235967afc783e0b99c52d015dc10897fda"
 
 PKG_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 TOOLS="$PKG_ROOT/tools"
@@ -175,6 +175,9 @@ find "$STAGE" \( -name '*.cmake' -o -name '*.cmake.in' \) -delete 2>/dev/null ||
 # compat API, unused TLS/transport back-ends, unit tests, and NNG's tools / test
 # framework. Keeps the vendored tree to the set nanonext actually compiles.
 rm -f  "$STAGE/src/nng_legacy.c"
+# core/log.c is dead code once patch_nng.sh stubs the nng.h logging API (and is
+# already filtered from the object lists by PRUNE_RE).
+rm -f  "$STAGE/src/core/log.c"
 rm -rf "$STAGE/src/compat" "$STAGE/src/testing" "$STAGE/src/tools"
 rm -rf "$STAGE/src/sp/transport/zerotier"
 rm -rf "$STAGE/src/supplemental/tls/wolfssl"
