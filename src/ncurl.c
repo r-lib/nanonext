@@ -369,6 +369,7 @@ SEXP rnng_ncurl(SEXP http, SEXP convert, SEXP follow, SEXP method, SEXP headers,
   if (cfg != NULL)
     nng_tls_config_free(cfg);
   nng_aio_free(aio);
+  aio = NULL;
 
   code = nng_http_res_get_status(res), relo = code >= 300 && code < 400;
 
