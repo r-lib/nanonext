@@ -2,8 +2,8 @@
 
 #### Updates
 
-* Fixes a blocking TLS `dial()` failure, e.g. connection refused, causing a process crash (#346).
 * Fixes a `ncurl()` process crash when following a redirect to an unsupported URL (#351).
+* Fixes a blocking TLS `dial()` failure, e.g. connection refused, causing a process crash (#346).
 * `stop_aio()` no longer resets the R interrupt state.
 
 # nanonext 1.10.2
