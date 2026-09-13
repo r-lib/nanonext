@@ -40,7 +40,7 @@ Depends:
 Suggests: 
     later,
     litedown,
-    yaml12
+    yaml
 Enhances:
     promises
 VignetteBuilder: 

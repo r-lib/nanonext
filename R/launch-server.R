@@ -38,7 +38,7 @@
 #'   - `tls`: the tls configuration arguments passed to [tls_config()]. If set,
 #'    the server will be served over https
 #'
-#' @details Requires the \pkg{yaml12} package.
+#' @details Requires the \pkg{yaml} package.
 #' @keywords internal
 #' @noRd
 launch_server <- function(settings, host = NULL, port = NULL, ...) {
@@ -54,11 +54,11 @@ launch_server <- function(settings, host = NULL, port = NULL, ...) {
     stop(sprintf("the file `%s` does not exist.", settings))
   }
 
-  if (!requireNamespace("yaml12", quietly = TRUE)) {
-    stop("`launch_server()` requires `yaml12` to be installed.")
+  if (!requireNamespace("yaml", quietly = TRUE)) {
+    stop("`launch_server()` requires `yaml` to be installed.")
   }
 
-  cfg <- yaml12::read_yaml(settings)
+  cfg <- yaml::read_yaml(settings)
 
   # every path in the configuration, and every relative path the constructor
   # itself uses, is relative to the `_server.yml` file rather than the caller
