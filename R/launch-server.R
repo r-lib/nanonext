@@ -38,7 +38,7 @@
 #'   - `tls`: the tls configuration arguments passed to [tls_config()]. If set,
 #'    the server will be served over https
 #'
-#' @details Requires the \pkg{yaml} package.
+#' @details Requires the \pkg{yaml} and \pkg{later} packages.
 #' @keywords internal
 #' @noRd
 launch_server <- function(settings, host = NULL, port = NULL, ...) {
@@ -56,6 +56,10 @@ launch_server <- function(settings, host = NULL, port = NULL, ...) {
 
   if (!requireNamespace("yaml", quietly = TRUE)) {
     stop("`launch_server()` requires `yaml` to be installed.")
+  }
+
+  if (!requireNamespace("later", quietly = TRUE)) {
+    stop("`launch_server()` requires `later` to be installed.")
   }
 
   cfg <- yaml::read_yaml(settings)
@@ -127,11 +131,7 @@ launch_server <- function(settings, host = NULL, port = NULL, ...) {
   }
 
   # if tls is configured we use https
-  scheme <- if (is.null(cfg_tls$server)) {
-    "http"
-  } else {
-    "https"
-  }
+  scheme <- if (is.null(cfg_tls$server)) "http" else "https"
 
   # combine the args into a string that we will validate with the parse_url fx from nanonext
   server_url <- sprintf("%s://%s:%d", scheme, host, port)
