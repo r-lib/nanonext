@@ -72,7 +72,7 @@ launch_server <- function(settings, host = NULL, port = NULL, ...) {
   if (!identical(cfg$engine, "nanonext")) {
     stop(sprintf(
       "`engine` must be \"nanonext\", not `%s`.",
-      paste(format(cfg$engine), collapse = ", ")
+      paste0(format(cfg$engine), collapse = ", ")
     ))
   }
 
@@ -185,7 +185,7 @@ tls_args <- function(cfg_tls) {
 
   unknown <- setdiff(names(cfg_tls), names(formals(tls_config)))
   if (length(unknown)) {
-    stop(sprintf("`options$tls` does not accept: %s.", paste(unknown, collapse = ", ")))
+    stop(sprintf("`options$tls` does not accept: %s.", paste0(unknown, collapse = ", ")))
   }
 
   cfg_tls
