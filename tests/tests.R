@@ -1512,10 +1512,10 @@ if (later && yaml && NOT_CRAN) {
   for (i in 1:50L) {
     Sys.sleep(0.4)
     res <- ncurl("http://127.0.0.1:27777/", timeout = 2000L)
-    if (!is_error_value(res)) break
+    if (is.list(res) && !is_error_value(res$status)) break
   }
   # soft-skip the round trip if the child server cannot start in this environment
-  if (!is_error_value(res)) {
+  if (is.list(res) && !is_error_value(res$status)) {
     test_equal(res$status, 200L)
     test_equal(res$data, "launch-ok")
     res <- ncurl("http://127.0.0.1:27777/data", timeout = 2000L)
@@ -1538,10 +1538,10 @@ if (later && yaml && NOT_CRAN) {
   for (i in 1:50L) {
     Sys.sleep(0.4)
     res <- ncurl("https://127.0.0.1:27778/", tls = tls_client, timeout = 2000L)
-    if (!is_error_value(res)) break
+    if (is.list(res) && !is_error_value(res$status)) break
   }
   # soft-skip the round trip if the child server cannot start in this environment
-  if (!is_error_value(res)) {
+  if (is.list(res) && !is_error_value(res$status)) {
     test_equal(res$status, 200L)
     test_equal(res$data, "launch-ok")
   }
