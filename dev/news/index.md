@@ -2,6 +2,14 @@
 
 ## nanonext (development version)
 
+##### New Features
+
+- Implements the `_server.yml` standard for R server frameworks,
+  allowing deployment platforms to launch nanonext HTTP/WebSocket
+  servers without knowledge of the package internals (thanks
+  [@JosiahParry](https://github.com/JosiahParry),
+  [\#349](https://github.com/r-lib/nanonext/issues/349)).
+
 ##### Updates
 
 - Fixes an erroring unserialization hook (`ufunc`) halting

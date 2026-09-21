@@ -93,6 +93,26 @@ the HTTP upgrade handshake and all WebSocket framing (RFC 6455).</p>
 handles this automatically.</p>
 <p>Requires the <span class="pkg">later</span> package.</p>
     </div>
+    <div class="section level2">
+    <h2 id="deployment">Deployment<a class="anchor" aria-label="anchor" href="#deployment"></a></h2>
+
+
+
+<p>nanonext implements the <code>_server.yml</code> standard for R server frameworks,
+via the internal <code>launch_server()</code> function. This allows a deployment
+platform to launch a server without any knowledge of the package internals,
+given a <code>_server.yml</code> file at the root of the deployment:</p>
+<p></p><div class="sourceCode yaml"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">engine</span><span class="kw">:</span><span class="at"> nanonext</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">constructor</span><span class="kw">:</span><span class="at"> server.R</span></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">options</span><span class="kw">:</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="at">  </span><span class="fu">host</span><span class="kw">:</span><span class="at"> </span><span class="fl">127.0.0.1</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="at">  </span><span class="fu">port</span><span class="kw">:</span><span class="at"> </span><span class="dv">8080</span></span></code></pre><p></p></div>
+<p><code>constructor</code> is an R file whose final expression evaluates to a handler
+or list of handlers for this function. A complete example ships with the
+package at <code>system.file("examples", "server-yml", package = "nanonext")</code>.</p>
+<p>See <code><a href="../articles/v04-web.html">vignette("v04-web", package = "nanonext")</a></code> for the full specification
+of the supported fields.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
