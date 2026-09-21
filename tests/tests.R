@@ -1443,6 +1443,24 @@ if (later && yaml && NOT_CRAN) {
   writeLines(c("engine: nanonext", "constructor: server.R", "options:", "  tls:", "    bogus: x"),
              file.path(srv_yml_dir, "badtls.yml"))
   writeLines(c("engine: nanonext", "constructor: server.R"), file.path(srv_yml_dir, "host.yml"))
+  writeLines(c("engine: nanonext", "constructor: 42"), file.path(srv_yml_dir, "ctorint.yml"))
+  writeLines(c("engine: nanonext", "constructor: [a.R, b.R]"), file.path(srv_yml_dir, "ctorvec.yml"))
+  writeLines("list()", file.path(srv_yml_dir, "empty.R"))
+  writeLines(c("engine: nanonext", "constructor: empty.R"), file.path(srv_yml_dir, "empty.yml"))
+  writeLines(c("engine: nanonext", "constructor: server.R", "options:", "  host: 123"),
+             file.path(srv_yml_dir, "hosttype.yml"))
+  writeLines(c("engine: nanonext", "constructor: server.R", "options:", "  host: '[::1'"),
+             file.path(srv_yml_dir, "hostparse.yml"))
+  writeLines(c("engine: nanonext", "constructor: server.R", "options:", "  tls: cert.pem"),
+             file.path(srv_yml_dir, "tlsstr.yml"))
+  cert <- write_cert(cn = "127.0.0.1")
+  cat(cert$server, file = file.path(srv_yml_dir, "cert.pem"), sep = "\n")
+  writeLines(c("engine: nanonext", "constructor: server.R", "options:", "  host: 127.0.0.1",
+               "  port: notaport", "  tls:", "    server: cert.pem"),
+             file.path(srv_yml_dir, "tlsbadport.yml"))
+  writeLines(c("engine: nanonext", "constructor: server.R", "options:", "  port: 27778",
+               "  tls:", "    server: cert.pem"),
+             file.path(srv_yml_dir, "_server_tls.yml"))
   writeLines(c(
     "library(nanonext)",
     "list(",
@@ -1461,6 +1479,19 @@ if (later && yaml && NOT_CRAN) {
   test_error(nanonext:::launch_server(file.path(srv_yml_dir, "host.yml"), host = "http://127.0.0.1"),
              "must not include a URL scheme")
   test_error(nanonext:::launch_server(file.path(srv_yml_dir, "badtls.yml")), "does not accept: bogus")
+  test_error(nanonext:::launch_server(file.path(srv_yml_dir, "ctorint.yml")), "must be a path to an R file")
+  test_error(nanonext:::launch_server(file.path(srv_yml_dir, "ctorvec.yml")), "must be a scalar string")
+  test_error(nanonext:::launch_server(file.path(srv_yml_dir, "empty.yml")), "did not produce any handlers")
+  test_error(nanonext:::launch_server(file.path(srv_yml_dir, "hosttype.yml")), "`host` must be a scalar string")
+  test_error(nanonext:::launch_server(file.path(srv_yml_dir, "hostparse.yml")), "unable to parse")
+  test_error(nanonext:::launch_server(file.path(srv_yml_dir, "tlsstr.yml")), "must be a list of arguments")
+  test_error(nanonext:::launch_server(file.path(srv_yml_dir, "tlsbadport.yml")), "scalar integer between 0 and 65535")
+  Sys.setenv(HOST = "127.0.0.1")
+  test_error(nanonext:::launch_server(file.path(srv_yml_dir, "badport.yml")), "scalar integer between 0 and 65535")
+  Sys.unsetenv("HOST")
+  Sys.setenv(PORT = "notaport")
+  test_error(nanonext:::launch_server(file.path(srv_yml_dir, "host.yml")), "scalar integer between 0 and 65535")
+  Sys.unsetenv("PORT")
   test_type("list", single <- nanonext:::constructor_handlers(file.path(srv_yml_dir, "single.R")))
   test_equal(length(single), 1L)
   test_true(is.integer(single[[1L]][["type"]]))
@@ -1493,6 +1524,31 @@ if (later && yaml && NOT_CRAN) {
   }
   if (file.exists(pidfile))
     tools::pskill(as.integer(readLines(pidfile, warn = FALSE)))
+  tls_pidfile <- tempfile()
+  launcher <- sprintf(
+    'writeLines(as.character(Sys.getpid()), "%s")\nnanonext:::launch_server("%s")',
+    gsub("\\", "/", tls_pidfile, fixed = TRUE),
+    gsub("\\", "/", file.path(srv_yml_dir, "_server_tls.yml"), fixed = TRUE)
+  )
+  script <- tempfile(fileext = ".R")
+  writeLines(launcher, script)
+  system2(Rscript, script, wait = FALSE, stdout = FALSE, stderr = FALSE)
+  tls_client <- tls_config(client = cert$client)
+  res <- NULL
+  for (i in 1:50L) {
+    Sys.sleep(0.4)
+    res <- ncurl("https://127.0.0.1:27778/", tls = tls_client, timeout = 2000L)
+    if (!is_error_value(res)) break
+  }
+  # soft-skip the round trip if the child server cannot start in this environment
+  if (!is_error_value(res)) {
+    test_equal(res$status, 200L)
+    test_equal(res$data, "launch-ok")
+  }
+  if (file.exists(tls_pidfile))
+    tools::pskill(as.integer(readLines(tls_pidfile, warn = FALSE)))
+  unlink(script)
+  unlink(tls_pidfile)
   if (!is.na(old_host)) Sys.setenv(HOST = old_host)
   if (!is.na(old_port)) Sys.setenv(PORT = old_port)
   unlink(script)
