@@ -48,7 +48,7 @@ ncurl("https://postman-echo.com/post",
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Mon, 21 Sep 2026 13:38:42 GMT"
+#> [1] "Mon, 21 Sep 2026 14:07:55 GMT"
 #> 
 #> 
 #> $data
@@ -66,7 +66,7 @@ ncurl("https://postman-echo.com/get",
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Mon, 21 Sep 2026 13:38:42 GMT"
+#> [1] "Mon, 21 Sep 2026 14:07:56 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -84,19 +84,19 @@ ncurl("https://postman-echo.com/get",
 #> [1] "Accept-Encoding"
 #> 
 #> $headers$`x-envoy-upstream-service-time`
-#> [1] "4"
+#> [1] "5"
 #> 
 #> $headers$`cf-cache-status`
 #> [1] "DYNAMIC"
 #> 
 #> $headers$`Set-Cookie`
-#> [1] "sails.sid=s%3AW_LwDFwcNB8ypfUnr9NgizA8zXA1HY8t.s5D3ZhNMzRub5w80rVWRH3sh1jragWDCQyYmlOqkKug; Path=/; HttpOnly, __cf_bm=1KQj.lQ49uXJQ1g8p.T8k4kmR3ay5S2t5OSlt2a.JdM-1789997922.8451235-1.0.1.1-9ybQd7uAnMm7ug4QdPD7PlITjMWcdh9WNPP3HI_OvgnnnmSkqN2SCEOKD2TXci7uhmwGwU2d_0fqsUnD14V0MvskuReERyiTehtfYpBvYEsBIB2Us.IlmjFvDJlMOGKq; HttpOnly; Secure; Path=/; Domain=postman-echo.com; Expires=Mon, 21 Sep 2026 14:08:42 GMT, _cfuvid=5uIuMBvpYqor6LPImBiDDRoP62..QmU.r23bPb.zRp4-1789997922.8451235-1.0.1.1-tyudCwPRKDYn.h_FcDgAwi_lXHguj6bet2snh.T.6eE; HttpOnly; SameSite=None; Secure; Path=/; Domain=postman-echo.com"
+#> [1] "sails.sid=s%3ATmScuC42WfYj-8dIwp3riw3Hhvlwxj3h.VRMXmAwU7Yg3RIUeW0XOGLJpEI1uzFCoIkGTs6ca63I; Path=/; HttpOnly, __cf_bm=6smcLgYJ6intspW2a9hkkaciqfRDZajzOjhiF8LFZGg-1789999675.9257994-1.0.1.1-z3l2bDrhhu6KYrMVC1y3vkhwia1cMJuUq1lZ.URaur07OlqJifukf62kaw3Ka_be5acwHMqtBqfRMdVdFmVEELboZfQOMP847Vw0kNvGmAQu8dVhkSVCkI.Kwit0jLLb; HttpOnly; Secure; Path=/; Domain=postman-echo.com; Expires=Mon, 21 Sep 2026 14:37:56 GMT, _cfuvid=LbqgnUnkuRhcvj3QAKP_lhXY7xwk7cHAhY0zDcGc.8g-1789999675.9257994-1.0.1.1-7Qb0aZ9HwVusMLnILFNze.HVfw1ggLQvPF0y5yb4JTs; HttpOnly; SameSite=None; Secure; Path=/; Domain=postman-echo.com"
 #> 
 #> $headers$Server
 #> [1] "cloudflare"
 #> 
 #> $headers$`CF-RAY`
-#> [1] "a3e978c9ca40f400-LHR"
+#> [1] "a3e9a3968c62ef23-LHR"
 #> 
 #> 
 #> $data
@@ -119,7 +119,7 @@ res
 
 call_aio(res)$headers
 #> $date
-#> [1] "Mon, 21 Sep 2026 13:38:43 GMT"
+#> [1] "Mon, 21 Sep 2026 14:07:56 GMT"
 
 res$status
 #> [1] 200
@@ -160,7 +160,7 @@ transact(sess)
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Mon, 21 Sep 2026 13:38:45 GMT"
+#> [1] "Mon, 21 Sep 2026 14:07:58 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -467,7 +467,7 @@ server <- http_server(
 server$start()
 server
 #> < nanoServer >
-#>  - url: https://127.0.0.1:49541 
+#>  - url: https://127.0.0.1:49943 
 #>  - state: started
 
 # HTTPS client request
@@ -590,17 +590,18 @@ options:
 
 All paths are resolved relative to the `_server.yml` file. Reading the configuration requires the `yaml` package.
 
-A complete, runnable example ships with the package:
+A complete example deployment ships with the package:
 
 
 ``` r
-list.files(system.file("examples", "server-yml", package = "nanonext"),
-           recursive = TRUE)
+dir <- system.file("examples", "server-yml", package = "nanonext")
+list.files(dir, recursive = TRUE)
+#> [1] "_server.yml"    "server.R"       "www/index.html"
 ```
 
-Launching is a blocking call that serves until interrupted. This is normally done by the deployment platform, but can be tested locally:
+It can be launched locally as follows. This is a blocking call that serves until interrupted, and is what the deployment platform calls:
 
 
 ``` r
-nanonext:::launch_server("_server.yml")
+nanonext:::launch_server(file.path(dir, "_server.yml"))
 ```

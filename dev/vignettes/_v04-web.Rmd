@@ -506,19 +506,20 @@ options:
 
 All paths are resolved relative to the `_server.yml` file. Reading the configuration requires the `yaml` package.
 
-A complete, runnable example ships with the package:
+A complete example deployment ships with the package:
 
 ```{r}
 #| label: serveryml
 #| eval: false
-list.files(system.file("examples", "server-yml", package = "nanonext"),
-           recursive = TRUE)
+dir <- system.file("examples", "server-yml", package = "nanonext")
+list.files(dir, recursive = TRUE)
+#> [1] "_server.yml"    "server.R"       "www/index.html"
 ```
 
-Launching is a blocking call that serves until interrupted. This is normally done by the deployment platform, but can be tested locally:
+It can be launched locally as follows. This is a blocking call that serves until interrupted, and is what the deployment platform calls:
 
 ```{r}
 #| label: launchserver
 #| eval: false
-nanonext:::launch_server("_server.yml")
+nanonext:::launch_server(file.path(dir, "_server.yml"))
 ```
