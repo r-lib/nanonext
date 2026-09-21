@@ -474,3 +474,52 @@ server$url
 ```
 
 Static pages are served at native speed by NNG while the prediction endpoint is handled by R -- no separate processes or ports required. Adding TLS is a single argument.
+
+### 7. Server Deployment with `_server.yml`
+
+nanonext implements the [`_server.yml` standard](https://posit-dev.github.io/plumber2/articles/server_yml.html) for R server frameworks. This allows a deployment platform to launch a nanonext server without knowing anything about its implementation: it reads the `_server.yml` file at the root of the deployment, installs the package named by `engine`, and calls its launch function.
+
+A minimal `_server.yml` for nanonext:
+
+```yaml
+engine: nanonext
+constructor: server.R
+```
+
+- `engine` must be `nanonext`.
+- `constructor` is the path to an R file whose final expression evaluates to a handler or list of handlers, as created by `handler()`, `handler_ws()`, `handler_stream()` etc. The constructor must not create a server itself.
+
+Optional server settings go under `options`:
+
+```yaml
+engine: nanonext
+constructor: server.R
+options:
+  host: 127.0.0.1
+  port: 8080
+  tls:
+    server: cert-and-key.pem
+```
+
+- `host` / `port`: the address to listen on. Values passed by the platform take precedence, followed by the `HOST` / `PORT` environment variables, then these values, falling back to `127.0.0.1:8080`.
+- `tls`: arguments to `tls_config()`. If `server` is set, the server is served over HTTPS.
+
+All paths are resolved relative to the `_server.yml` file. Reading the configuration requires the `yaml` package.
+
+A complete example deployment ships with the package:
+
+```{r}
+#| label: serveryml
+#| eval: false
+dir <- system.file("examples", "server-yml", package = "nanonext")
+list.files(dir, recursive = TRUE)
+#> [1] "_server.yml"    "server.R"       "www/index.html"
+```
+
+It can be launched locally as follows. This is a blocking call that serves until interrupted, and is what the deployment platform calls:
+
+```{r}
+#| label: launchserver
+#| eval: false
+nanonext:::launch_server(file.path(dir, "_server.yml"))
+```

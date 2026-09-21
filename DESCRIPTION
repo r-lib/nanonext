@@ -39,7 +39,8 @@ Depends:
     R (>= 3.6)
 Suggests: 
     later,
-    litedown
+    litedown,
+    yaml
 Enhances:
     promises
 VignetteBuilder: 
