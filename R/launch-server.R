@@ -9,7 +9,7 @@
 #' @param host default `NULL`. IP address or hostname to listen on, specified
 #'   without a URL scheme. If `NULL`, the `HOST` environment variable is used,
 #'   then the `host` option in `settings`, then "127.0.0.1".
-#' @param port \[default NULL\] port to listen on. If NULL, the `PORT`
+#' @param port default `NULL`. Port to listen on. If `NULL`, the `PORT`
 #'   environment variable is used, then the `port` option in `settings`, then
 #'   8080.
 #' @param ... additional arguments, currently unused.
@@ -163,11 +163,12 @@ constructor_handlers <- function(constructor) {
   handlers <- source(constructor, local = env)$value
 
   # a single handler, rather than a list of them
-  if (is.integer(handlers$type)) {
+  if (is.list(handlers) && is.integer(handlers$type)) {
     handlers <- list(handlers)
   }
 
-  if (!is.list(handlers) || !all(vapply(handlers, function(x) is.integer(x$type), logical(1L)))) {
+  if (!is.list(handlers) ||
+      !all(vapply(handlers, function(x) is.list(x) && is.integer(x$type), logical(1L)))) {
     stop(sprintf(
       "the constructor `%s` must evaluate to a handler or list of handlers.",
       constructor
