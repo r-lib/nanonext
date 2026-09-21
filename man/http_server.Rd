@@ -40,6 +40,29 @@ handles this automatically.
 
 Requires the \pkg{later} package.
 }
+\section{Deployment}{
+
+
+nanonext implements the \verb{_server.yml} standard for R server frameworks,
+via the internal \code{launch_server()} function. This allows a deployment
+platform to launch a server without any knowledge of the package internals,
+given a \verb{_server.yml} file at the root of the deployment:
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{engine: nanonext
+constructor: server.R
+options:
+  host: 127.0.0.1
+  port: 8080
+}\if{html}{\out{</div>}}
+
+\code{constructor} is an R file whose final expression evaluates to a handler
+or list of handlers for this function. A complete example ships with the
+package at \code{system.file("examples", "server-yml", package = "nanonext")}.
+
+See \code{vignette("v04-web", package = "nanonext")} for the full specification
+of the supported fields.
+}
+
 \examples{
 \dontshow{if (interactive() && requireNamespace("later", quietly = TRUE)) withAutoprint(\{ # examplesIf}
 # Simple HTTP server

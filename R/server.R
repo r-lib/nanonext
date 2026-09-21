@@ -30,6 +30,28 @@
 #'
 #' Requires the \pkg{later} package.
 #'
+#' @section Deployment:
+#'
+#' nanonext implements the `_server.yml` standard for R server frameworks,
+#' via the internal `launch_server()` function. This allows a deployment
+#' platform to launch a server without any knowledge of the package internals,
+#' given a `_server.yml` file at the root of the deployment:
+#'
+#' ```yaml
+#' engine: nanonext
+#' constructor: server.R
+#' options:
+#'   host: 127.0.0.1
+#'   port: 8080
+#' ```
+#'
+#' `constructor` is an R file whose final expression evaluates to a handler
+#' or list of handlers for this function. A complete example ships with the
+#' package at `system.file("examples", "server-yml", package = "nanonext")`.
+#'
+#' See `vignette("v04-web", package = "nanonext")` for the full specification
+#' of the supported fields.
+#'
 #' @examplesIf interactive() && requireNamespace("later", quietly = TRUE)
 #' # Simple HTTP server
 #' server <- http_server(
