@@ -623,8 +623,8 @@ Adding TLS is a single argument.
 ### 7. Server Deployment with `_server.yml`
 
 nanonext implements the [`_server.yml`
-standard](https://posit-dev.github.io/plumber2/articles/server_yml.html)
-for R server frameworks. This allows a deployment platform to launch a
+standard](https://plumber2.posit.co/articles/server_yml.html) for R
+server frameworks. This allows a deployment platform to launch a
 nanonext server without knowing anything about its implementation: it
 reads the `_server.yml` file at the root of the deployment, installs the
 package named by `engine`, and calls its launch function.
