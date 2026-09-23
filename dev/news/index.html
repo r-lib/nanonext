@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">nanonext</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.10.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.10.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,12 +48,15 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="nanonext-development-version">nanonext (development version)<a class="anchor" aria-label="anchor" href="#nanonext-development-version"></a></h2>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.10.3" id="nanonext-1103">nanonext 1.10.3<a class="anchor" aria-label="anchor" href="#nanonext-1103"></a></h2>
 <div class="section level5">
-<h5 id="new-features-development-version">New Features<a class="anchor" aria-label="anchor" href="#new-features-development-version"></a></h5>
+<h5 id="new-features-1-10-3">New Features<a class="anchor" aria-label="anchor" href="#new-features-1-10-3"></a></h5>
 <ul><li>Implements the <code>_server.yml</code> standard for R server frameworks, allowing deployment platforms to launch nanonext HTTP/WebSocket servers without knowledge of the package internals (thanks <a href="https://github.com/JosiahParry" class="external-link">@JosiahParry</a>, <a href="https://github.com/r-lib/nanonext/issues/349" class="external-link">#349</a>).</li>
 </ul></div>
 <div class="section level5">
-<h5 id="updates-development-version">Updates<a class="anchor" aria-label="anchor" href="#updates-development-version"></a></h5>
+<h5 id="updates-1-10-3">Updates<a class="anchor" aria-label="anchor" href="#updates-1-10-3"></a></h5>
 <ul><li>Fixes an erroring unserialization hook (<code>ufunc</code>) halting non-interactive R processes; the object now unserializes as an ‘errorValue’ (<a href="https://github.com/r-lib/nanonext/issues/356" class="external-link">#356</a>).</li>
 <li>Our configure script now requires a system ‘libmbedtls’ 3.x, falling back to the bundled build when an incompatible version is detected (<a href="https://github.com/r-lib/nanonext/issues/350" class="external-link">#350</a>).</li>
 <li>Our configure script now checks a detected system ‘libnng’ for working TLS support, falling back to the bundled build otherwise (<a href="https://github.com/r-lib/nanonext/issues/353" class="external-link">#353</a>).</li>

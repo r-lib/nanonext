@@ -2,6 +2,8 @@
 
 ## nanonext (development version)
 
+## nanonext 1.10.3
+
 ##### New Features
 
 - Implements the `_server.yml` standard for R server frameworks,
