@@ -41,6 +41,7 @@ while (unresolved(aio)) {
   msleep(100)
 }
 #> unresolved
+#> unresolved
 
 unresolved(aio)
 #> [1] FALSE

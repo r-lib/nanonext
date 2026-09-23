@@ -49,11 +49,11 @@ dial(s1)
 cv_value(cv)
 #> [1] 1
 read_monitor(m)
-#> [1] 695658589
+#> [1] 915090503
 
 close(s)
 close(s1)
 
 read_monitor(m)
-#> [1] -695658589
+#> [1] -915090503
 ```

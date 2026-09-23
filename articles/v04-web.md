@@ -44,11 +44,11 @@ ncurl("https://postman-echo.com/post",
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Sun, 05 Jul 2026 19:15:16 GMT"
+#> [1] "Mon, 21 Sep 2026 14:07:55 GMT"
 #> 
 #> 
 #> $data
-#> [1] "{\"args\":{},\"data\":{\"key\":\"value\"},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"content-length\":\"16\",\"accept-encoding\":\"gzip, br\",\"authorization\":\"Bearer APIKEY\",\"content-type\":\"application/json\",\"x-forwarded-proto\":\"https\"},\"json\":{\"key\":\"value\"},\"url\":\"https://postman-echo.com/post\"}"
+#> [1] "{\"args\":{},\"data\":{\"key\":\"value\"},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"content-length\":\"16\",\"authorization\":\"Bearer APIKEY\",\"content-type\":\"application/json\",\"x-forwarded-proto\":\"https\"},\"json\":{\"key\":\"value\"},\"url\":\"https://postman-echo.com/post\"}"
 ```
 
 Specify `response = TRUE` to return all response headers.
@@ -62,7 +62,7 @@ ncurl("https://postman-echo.com/get",
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Sun, 05 Jul 2026 19:15:16 GMT"
+#> [1] "Mon, 21 Sep 2026 14:07:56 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -86,13 +86,13 @@ ncurl("https://postman-echo.com/get",
 #> [1] "DYNAMIC"
 #> 
 #> $headers$`Set-Cookie`
-#> [1] "sails.sid=s%3AJIdUH3NucudRVnQSLVN7QfVEQU33l0RN.wc7HBFcv4XLsZ3G9eU9Ciu9%2FBel%2B6e%2BNsXhUj3EV9Ks; Path=/; HttpOnly, __cf_bm=a1KzDWBH09YSc2rP_ebFWq8XOfEvClkixjfDNiNTxh4-1783278916.2187917-1.0.1.1-yX1QjB79cofq5s6Pk_Cd.gdmhJkW5MMHcfteqjXy6K9v0ny_S1KSizHcKCdstu7oNgXRWbI5jT7E2ofybX.Q6l4kpI21QUxuPSC3.BrcEC0UcI7Ch9jij52vI.EYv0KN; HttpOnly; Secure; Path=/; Domain=postman-echo.com; Expires=Sun, 05 Jul 2026 19:45:16 GMT, _cfuvid=WI07rjRKmhgxa9V_aeSjLvL_MkJBjoZhMy0.jjGo4Vc-1783278916.2187917-1.0.1.1-yolJaR2uA.9DJfZ4VytqkOIgMUIH82OcidMtO3d8738; HttpOnly; SameSite=None; Secure; Path=/; Domain=postman-echo.com"
+#> [1] "sails.sid=s%3ATmScuC42WfYj-8dIwp3riw3Hhvlwxj3h.VRMXmAwU7Yg3RIUeW0XOGLJpEI1uzFCoIkGTs6ca63I; Path=/; HttpOnly, __cf_bm=6smcLgYJ6intspW2a9hkkaciqfRDZajzOjhiF8LFZGg-1789999675.9257994-1.0.1.1-z3l2bDrhhu6KYrMVC1y3vkhwia1cMJuUq1lZ.URaur07OlqJifukf62kaw3Ka_be5acwHMqtBqfRMdVdFmVEELboZfQOMP847Vw0kNvGmAQu8dVhkSVCkI.Kwit0jLLb; HttpOnly; Secure; Path=/; Domain=postman-echo.com; Expires=Mon, 21 Sep 2026 14:37:56 GMT, _cfuvid=LbqgnUnkuRhcvj3QAKP_lhXY7xwk7cHAhY0zDcGc.8g-1789999675.9257994-1.0.1.1-7Qb0aZ9HwVusMLnILFNze.HVfw1ggLQvPF0y5yb4JTs; HttpOnly; SameSite=None; Secure; Path=/; Domain=postman-echo.com"
 #> 
 #> $headers$Server
 #> [1] "cloudflare"
 #> 
 #> $headers$`CF-RAY`
-#> [1] "a168b28a5de3d29e-FRA"
+#> [1] "a3e9a3968c62ef23-LHR"
 #> 
 #> 
 #> $data
@@ -117,13 +117,13 @@ res
 
 call_aio(res)$headers
 #> $date
-#> [1] "Sun, 05 Jul 2026 19:15:16 GMT"
+#> [1] "Mon, 21 Sep 2026 14:07:56 GMT"
 
 res$status
 #> [1] 200
 
 res$data
-#> [1] "{\"args\":{},\"data\":{\"async\":true},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"content-length\":\"15\",\"content-type\":\"application/json\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\"},\"json\":{\"async\":true},\"url\":\"https://postman-echo.com/post\"}"
+#> [1] "{\"args\":{},\"data\":{\"async\":true},\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"content-type\":\"application/json\",\"content-length\":\"15\",\"x-forwarded-proto\":\"https\"},\"json\":{\"async\":true},\"url\":\"https://postman-echo.com/post\"}"
 ```
 
 ##### Promises Integration
@@ -163,19 +163,21 @@ transact(sess)
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Sun, 05 Jul 2026 19:15:17 GMT"
+#> [1] "Mon, 21 Sep 2026 14:07:58 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
 #> 
 #> 
 #> $data
-#>   [1] 7b 22 61 72 67 73 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b 22 68 6f 73 74 22 3a 22 70 6f
-#>  [33] 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 63 6f 6e 74 65 6e 74 2d 74 79 70 65 22 3a 22
-#>  [65] 61 70 70 6c 69 63 61 74 69 6f 6e 2f 6a 73 6f 6e 22 2c 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70
-#>  [97] 72 6f 74 6f 22 3a 22 68 74 74 70 73 22 2c 22 61 63 63 65 70 74 2d 65 6e 63 6f 64 69 6e 67 22 3a
-#> [129] 22 67 7a 69 70 2c 20 62 72 22 7d 2c 22 75 72 6c 22 3a 22 68 74 74 70 73 3a 2f 2f 70 6f 73 74 6d
-#> [161] 61 6e 2d 65 63 68 6f 2e 63 6f 6d 2f 67 65 74 22 7d
+#>   [1] 7b 22 61 72 67 73 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b 22 68 6f
+#>  [26] 73 74 22 3a 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 22 2c 22 63
+#>  [51] 6f 6e 74 65 6e 74 2d 74 79 70 65 22 3a 22 61 70 70 6c 69 63 61 74 69 6f 6e
+#>  [76] 2f 6a 73 6f 6e 22 2c 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 72 6f 74 6f
+#> [101] 22 3a 22 68 74 74 70 73 22 2c 22 61 63 63 65 70 74 2d 65 6e 63 6f 64 69 6e
+#> [126] 67 22 3a 22 67 7a 69 70 2c 20 62 72 22 7d 2c 22 75 72 6c 22 3a 22 68 74 74
+#> [151] 70 73 3a 2f 2f 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63 6f 6d 2f 67 65 74
+#> [176] 22 7d
 
 close(sess)
 ```
@@ -513,7 +515,7 @@ server <- http_server(
 server$start()
 server
 #> < nanoServer >
-#>  - url: https://127.0.0.1:49772 
+#>  - url: https://127.0.0.1:49943 
 #>  - state: started
 
 # HTTPS client request
@@ -617,3 +619,66 @@ server$url
 Static pages are served at native speed by NNG while the prediction
 endpoint is handled by R – no separate processes or ports required.
 Adding TLS is a single argument.
+
+### 7. Server Deployment with `_server.yml`
+
+nanonext implements the [`_server.yml`
+standard](https://plumber2.posit.co/articles/server_yml.html) for R
+server frameworks. This allows a deployment platform to launch a
+nanonext server without knowing anything about its implementation: it
+reads the `_server.yml` file at the root of the deployment, installs the
+package named by `engine`, and calls its launch function.
+
+A minimal `_server.yml` for nanonext:
+
+``` yaml
+engine: nanonext
+constructor: server.R
+```
+
+- `engine` must be `nanonext`.
+- `constructor` is the path to an R file whose final expression
+  evaluates to a handler or list of handlers, as created by
+  [`handler()`](https://nanonext.r-lib.org/reference/handler.md),
+  [`handler_ws()`](https://nanonext.r-lib.org/reference/handler_ws.md),
+  [`handler_stream()`](https://nanonext.r-lib.org/reference/handler_stream.md)
+  etc. The constructor must not create a server itself.
+
+Optional server settings go under `options`:
+
+``` yaml
+engine: nanonext
+constructor: server.R
+options:
+  host: 127.0.0.1
+  port: 8080
+  tls:
+    server: cert-and-key.pem
+```
+
+- `host` / `port`: the address to listen on. Values passed by the
+  platform take precedence, followed by the `HOST` / `PORT` environment
+  variables, then these values, falling back to `127.0.0.1:8080`.
+- `tls`: arguments to
+  [`tls_config()`](https://nanonext.r-lib.org/reference/tls_config.md).
+  If `server` is set, the server is served over HTTPS.
+
+All paths are resolved relative to the `_server.yml` file. Reading the
+configuration requires the `yaml` package.
+
+A complete example deployment ships with the package:
+
+``` r
+
+dir <- system.file("examples", "server-yml", package = "nanonext")
+list.files(dir, recursive = TRUE)
+#> [1] "_server.yml"    "server.R"       "www/index.html"
+```
+
+It can be launched locally as follows. This is a blocking call that
+serves until interrupted, and is what the deployment platform calls:
+
+``` r
+
+nanonext:::launch_server(file.path(dir, "_server.yml"))
+```

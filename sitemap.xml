@@ -1,6 +1,6 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://nanonext.r-lib.org/404.html</loc></url>
-<url><loc>https://nanonext.r-lib.org/CLAUDE.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/AGENTS.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/CODE_OF_CONDUCT.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/LICENSE-text.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/LICENSE.html</loc></url>
@@ -33,6 +33,7 @@
 <url><loc>https://nanonext.r-lib.org/reference/dot-dispatcher_wait.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/dot-keep.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/dot-mark.html</loc></url>
+<url><loc>https://nanonext.r-lib.org/reference/dot-suspend_interrupts.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/dot-unresolved.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/format_sse.html</loc></url>
 <url><loc>https://nanonext.r-lib.org/reference/grapes-twiddle-greater-than-grapes.html</loc></url>

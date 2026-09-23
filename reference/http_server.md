@@ -56,6 +56,28 @@ in a loop), or use `$serve()` which handles this automatically.
 
 Requires the later package.
 
+## Deployment
+
+nanonext implements the `_server.yml` standard for R server frameworks,
+via the internal `launch_server()` function. This allows a deployment
+platform to launch a server without any knowledge of the package
+internals, given a `_server.yml` file at the root of the deployment:
+
+    engine: nanonext
+    constructor: server.R
+    options:
+      host: 127.0.0.1
+      port: 8080
+
+`constructor` is an R file whose final expression evaluates to a handler
+or list of handlers for this function. A complete example ships with the
+package at
+`system.file("examples", "server-yml", package = "nanonext")`.
+
+See
+[`vignette("v04-web", package = "nanonext")`](https://nanonext.r-lib.org/articles/v04-web.md)
+for the full specification of the supported fields.
+
 ## Examples
 
 ``` r

@@ -41,6 +41,13 @@ option name `"serial"`.
 
 This feature utilises the 'refhook' system of R native serialization.
 
+If `sfunc` errors during serialization, the error propagates to the
+caller and no message is sent.
+
+If `ufunc` errors during unserialization, the error is caught and the
+object instead unserializes as an 'errorValue' 1000 ('Internal error
+detected'), rather than the error propagating to the caller.
+
 ## Examples
 
 ``` r
@@ -53,7 +60,7 @@ cfg
 #> [[2]][[1]]
 #> function (x) 
 #> serialize(x, NULL)
-#> <environment: 0x55bd79560388>
+#> <environment: 0x56547c6ad160>
 #> 
 #> 
 #> [[3]]
@@ -65,7 +72,7 @@ cfg
 #>         stop("'connection' must be a connection")
 #>     .Internal(unserialize(connection, refhook))
 #> }
-#> <bytecode: 0x55bd7954bda0>
+#> <bytecode: 0x56547c728990>
 #> <environment: namespace:base>
 #> 
 #> 
@@ -83,12 +90,12 @@ cfg
 #> [[2]][[1]]
 #> function (x) 
 #> serialize(x, NULL)
-#> <environment: 0x55bd79560388>
+#> <environment: 0x56547c6ad160>
 #> 
 #> [[2]][[2]]
 #> function (x) 
 #> serialize(x, NULL)
-#> <environment: 0x55bd79560388>
+#> <environment: 0x56547c6ad160>
 #> 
 #> 
 #> [[3]]
@@ -100,7 +107,7 @@ cfg
 #>         stop("'connection' must be a connection")
 #>     .Internal(unserialize(connection, refhook))
 #> }
-#> <bytecode: 0x55bd7954bda0>
+#> <bytecode: 0x56547c728990>
 #> <environment: namespace:base>
 #> 
 #> [[3]][[2]]
@@ -111,7 +118,7 @@ cfg
 #>         stop("'connection' must be a connection")
 #>     .Internal(unserialize(connection, refhook))
 #> }
-#> <bytecode: 0x55bd7954bda0>
+#> <bytecode: 0x56547c728990>
 #> <environment: namespace:base>
 #> 
 #> 
