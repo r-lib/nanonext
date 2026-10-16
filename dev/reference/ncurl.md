@@ -125,7 +125,7 @@ ncurl(
 #> 
 #> $headers
 #> $headers$Date
-#> [1] "Wed, 23 Sep 2026 13:06:31 GMT"
+#> [1] "Fri, 16 Oct 2026 11:34:17 GMT"
 #> 
 #> $headers$`Content-Type`
 #> [1] "application/json; charset=utf-8"
@@ -143,19 +143,19 @@ ncurl(
 #> [1] "Accept-Encoding"
 #> 
 #> $headers$`x-envoy-upstream-service-time`
-#> [1] "5"
+#> [1] "4"
 #> 
 #> $headers$`cf-cache-status`
 #> [1] "DYNAMIC"
 #> 
 #> $headers$`Set-Cookie`
-#> [1] "sails.sid=s%3AucmD3BPBEJPEGwl90gQIzLtitqS6qYD6.jSG6D9NZn5zbDmE3yKDa0XQAu%2BBfp1Cx7Baew1UWg3E; Path=/; HttpOnly, __cf_bm=ATzMIoWa4Maj2IUO9FHgcfk4dKgJQhrR5835SKd1wXA-1790168791.8507025-1.0.1.1-Z.EbDsceSxwxwYPTSLw25eWb_5r1QUlVH7mlS7pgrX.dObxyBLFwNyCLqGu6FqNYUMG9mmB19Iz7XcPz19AphDixscMYhi7J0GJY1O_gDw7n4aSFrFgaOhabUjr5NCLV; HttpOnly; Secure; Path=/; Domain=postman-echo.com; Expires=Wed, 23 Sep 2026 13:36:31 GMT, _cfuvid=gjhCI.3ivMxoLtMF76ySy5FyrbdWwtl8ErprT6e4WsE-1790168791.8507025-1.0.1.1-yQr3uhBp2QRw3g8uXpiX6tYTpaVbImzLneelCE.djXg; HttpOnly; SameSite=None; Secure; Path=/; Domain=postman-echo.com"
+#> [1] "sails.sid=s%3AlFvTYg3xiHBRavrplj6MFm5sX-P3JlB7.TkFXOM3edfJRBEBT7R0LfBxFoHjn96cjMr5rbgwZSPs; Path=/; HttpOnly, __cf_bm=3kbGDMdnM.00O8WY.VKBMZpH8WbBi2MXi877.Yo7vtc-1792150457.3814912-1.0.1.1-2sd9NNvcrGqy3tSWwsOhgYuywudh.73aL.dEWzHc5ULO0zohnN50r1m2LaI0s6U0ejUAaM0sv9WUCOC89ZMvMlfwXiUN5DfK0HdlW7ZEPKNZ_K2dyTqT6uCJH7l0G81A; HttpOnly; Secure; Path=/; Domain=postman-echo.com; Expires=Fri, 16 Oct 2026 12:04:17 GMT, _cfuvid=C3Q6DLWQLca4gVYYY3bX3uyrTJtXc.CKHvLr3KNwKN0-1792150457.3814912-1.0.1.1-wQ8Of2pZJQ7VGMs0oexDe096opjZJs5ckEv_WIePN3o; HttpOnly; SameSite=None; Secure; Path=/; Domain=postman-echo.com"
 #> 
 #> $headers$Server
 #> [1] "cloudflare"
 #> 
 #> $headers$`CF-RAY`
-#> [1] "a3f9c4650d98c707-IAD"
+#> [1] "a4b6c0e69db0fb38-SJC"
 #> 
 #> 
 #> $data
@@ -175,7 +175,7 @@ ncurl(
 #> NULL
 #> 
 #> $data
-#> [1] "{\"args\":{},\"data\":\"hello world\",\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"accept-encoding\":\"gzip, br\",\"authorization\":\"Bearer APIKEY\",\"content-length\":\"11\",\"x-forwarded-proto\":\"https\",\"content-type\":\"application/json\"},\"json\":null,\"url\":\"https://postman-echo.com/put\"}"
+#> [1] "{\"args\":{},\"data\":\"hello world\",\"files\":{},\"form\":{},\"headers\":{\"host\":\"postman-echo.com\",\"authorization\":\"Bearer APIKEY\",\"accept-encoding\":\"gzip, br\",\"content-length\":\"11\",\"x-forwarded-proto\":\"https\",\"content-type\":\"application/json\"},\"json\":null,\"url\":\"https://postman-echo.com/put\"}"
 #> 
 ncurl(
   "https://postman-echo.com/post",
@@ -191,7 +191,7 @@ ncurl(
 #> 
 #> $headers
 #> $headers$date
-#> [1] "Wed, 23 Sep 2026 13:06:32 GMT"
+#> [1] "Fri, 16 Oct 2026 11:34:17 GMT"
 #> 
 #> $headers$`content-type`
 #> [1] "application/json; charset=utf-8"
@@ -202,9 +202,9 @@ ncurl(
 #>  [23] 79 22 3a 22 76 61 6c 75 65 22 7d 2c 22 66 69 6c 65 73 22 3a 7b 7d
 #>  [45] 2c 22 66 6f 72 6d 22 3a 7b 7d 2c 22 68 65 61 64 65 72 73 22 3a 7b
 #>  [67] 22 68 6f 73 74 22 3a 22 70 6f 73 74 6d 61 6e 2d 65 63 68 6f 2e 63
-#>  [89] 6f 6d 22 2c 22 61 63 63 65 70 74 2d 65 6e 63 6f 64 69 6e 67 22 3a
-#> [111] 22 67 7a 69 70 2c 20 62 72 22 2c 22 63 6f 6e 74 65 6e 74 2d 74 79
-#> [133] 70 65 22 3a 22 61 70 70 6c 69 63 61 74 69 6f 6e 2f 6a 73 6f 6e 22
+#>  [89] 6f 6d 22 2c 22 63 6f 6e 74 65 6e 74 2d 74 79 70 65 22 3a 22 61 70
+#> [111] 70 6c 69 63 61 74 69 6f 6e 2f 6a 73 6f 6e 22 2c 22 61 63 63 65 70
+#> [133] 74 2d 65 6e 63 6f 64 69 6e 67 22 3a 22 67 7a 69 70 2c 20 62 72 22
 #> [155] 2c 22 63 6f 6e 74 65 6e 74 2d 6c 65 6e 67 74 68 22 3a 22 31 35 22
 #> [177] 2c 22 78 2d 66 6f 72 77 61 72 64 65 64 2d 70 72 6f 74 6f 22 3a 22
 #> [199] 68 74 74 70 73 22 7d 2c 22 6a 73 6f 6e 22 3a 7b 22 6b 65 79 22 3a

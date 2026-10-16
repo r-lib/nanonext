@@ -4,6 +4,8 @@
 
 ## nanonext 1.10.3
 
+CRAN release: 2026-09-23
+
 ##### New Features
 
 - Implements the `_server.yml` standard for R server frameworks,
