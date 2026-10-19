@@ -1,5 +1,9 @@
 # nanonext (development version)
 
+#### Updates
+
+* Fixes promises never resolving if an Aio completes during the short window of the `as.promise()` call itself (#362).
+
 # nanonext 1.10.3
 
 #### New Features
