@@ -45,7 +45,9 @@ void nano_ReleaseObject(SEXP node) {
 
 void raio_invoke_cb(void *arg) {
 
-  SEXP call, node = (SEXP) arg, x = TAG(node);
+  SEXP call, node = (SEXP) arg;
+  const SEXP x = TAG(node);
+  if (x == R_NilValue) return;
   PROTECT(call = Rf_lcons(nano_ResolveSymbol, Rf_cons(nano_aio_get_msg(x), R_NilValue)));
   Rf_eval(call, NANO_ENCLOS(x));
   UNPROTECT(1);
@@ -55,7 +57,9 @@ void raio_invoke_cb(void *arg) {
 
 void haio_invoke_cb(void *arg) {
 
-  SEXP call, out, node = (SEXP) arg, x = TAG(node);
+  SEXP call, out, node = (SEXP) arg;
+  const SEXP x = TAG(node);
+  if (x == R_NilValue) return;
   const char *names[] = {"status", "headers", "data", ""};
   PROTECT(out = Rf_mkNamed(VECSXP, names));
   SET_VECTOR_ELT(out, 0, nano_aio_http_status(x));
@@ -107,6 +111,7 @@ static void request_complete(void *arg) {
     }
   }
 
+  void *cb;
   if (raio->next != NULL) {
     nano_cv *ncv = (nano_cv *) raio->next;
     nng_cv *cv = ncv->cv;
@@ -114,15 +119,17 @@ static void request_complete(void *arg) {
 
     nng_mtx_lock(mtx);
     raio->result = res;
+    cb = saio->cb;
     ncv->condition++;
     nng_cv_wake(cv);
     nng_mtx_unlock(mtx);
   } else {
     raio->result = res;
+    cb = saio->cb;
   }
 
-  if (saio->cb != NULL)
-    later2(raio_invoke_cb, saio->cb);
+  if (cb != NULL)
+    later2(raio_invoke_cb, cb);
 
 }
 
@@ -566,20 +573,52 @@ SEXP rnng_set_promise_context(SEXP x, SEXP ctx) {
   if (eln2 == NULL)
     nano_load_later();
 
+  SEXP node;
+  int done;
+  nano_cv *ncv = (nano_cv *) raio->next;
   switch (raio->type) {
   case REQAIO:
-  case REQAIOS:
+  case REQAIOS: {
     NANO_SET_ENCLOS(x, ctx);
     nano_saio *saio = (nano_saio *) raio->cb;
-    saio->cb = nano_PreserveObject(x);
+    node = nano_PreserveObject(x);
+    if (ncv != NULL) {
+      nng_mtx_lock(ncv->mtx);
+      saio->cb = node;
+      done = raio->result != 0;
+      nng_mtx_unlock(ncv->mtx);
+    } else {
+      saio->cb = node;
+      done = raio->result != 0;
+    }
+    if (done)
+      later2(raio_invoke_cb, node);
     break;
+  }
   case RECVAIO:
   case RECVAIOS:
   case IOV_RECVAIO:
   case IOV_RECVAIOS:
+    NANO_SET_ENCLOS(x, ctx);
+    node = nano_PreserveObject(x);
+    if (ncv != NULL) {
+      nng_mtx_lock(ncv->mtx);
+      raio->cb = node;
+      done = raio->result != 0;
+      nng_mtx_unlock(ncv->mtx);
+    } else {
+      raio->cb = node;
+      done = raio->result != 0;
+    }
+    if (done)
+      later2(raio_invoke_cb, node);
+    break;
   case HTTP_AIO:
     NANO_SET_ENCLOS(x, ctx);
-    raio->cb = nano_PreserveObject(x);
+    node = nano_PreserveObject(x);
+    raio->cb = node;
+    if (raio->result != 0)
+      later2(haio_invoke_cb, node);
     break;
   case SENDAIO:
   case IOV_SENDAIO:

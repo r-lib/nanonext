@@ -108,6 +108,7 @@ static void raio_complete(void *arg) {
     res = - (int) p.id;
   }
 
+  void *cb;
   if (raio->next != NULL) {
     nano_cv *ncv = (nano_cv *) raio->next;
     nng_cv *cv = ncv->cv;
@@ -115,15 +116,17 @@ static void raio_complete(void *arg) {
 
     nng_mtx_lock(mtx);
     raio->result = res;
+    cb = raio->cb;
     ncv->condition++;
     nng_cv_wake(cv);
     nng_mtx_unlock(mtx);
   } else {
     raio->result = res;
+    cb = raio->cb;
   }
 
-  if (raio->cb != NULL)
-    later2(raio_invoke_cb, raio->cb);
+  if (cb != NULL)
+    later2(raio_invoke_cb, cb);
 
 }
 
@@ -159,6 +162,7 @@ static void iraio_complete(void *arg) {
   nano_aio *iaio = (nano_aio *) arg;
   const int res = nng_aio_result(iaio->aio);
 
+  void *cb;
   if (iaio->next != NULL) {
     nano_cv *ncv = (nano_cv *) iaio->next;
     nng_cv *cv = ncv->cv;
@@ -166,15 +170,17 @@ static void iraio_complete(void *arg) {
 
     nng_mtx_lock(mtx);
     iaio->result = res - !res;
+    cb = iaio->cb;
     ncv->condition++;
     nng_cv_wake(cv);
     nng_mtx_unlock(mtx);
   } else {
     iaio->result = res - !res;
+    cb = iaio->cb;
   }
 
-  if (iaio->cb != NULL)
-    later2(raio_invoke_cb, iaio->cb);
+  if (cb != NULL)
+    later2(raio_invoke_cb, cb);
 
 }
 
