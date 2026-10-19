@@ -2,6 +2,13 @@
 
 ## nanonext (development version)
 
+##### Updates
+
+- Fixes promises never resolving if an Aio completes during the short
+  window of the
+  [`as.promise()`](https://rstudio.github.io/promises/reference/is.promise.html)
+  call itself ([\#362](https://github.com/r-lib/nanonext/issues/362)).
+
 ## nanonext 1.10.3
 
 CRAN release: 2026-09-23
