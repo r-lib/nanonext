@@ -43,9 +43,9 @@ own pseudo-random number generators.
 
 ``` r
 random()
-#> [1] "06"
+#> [1] "ef"
 random(8L)
-#> [1] "07a98d992073ce7a"
+#> [1] "f7f019bac19a1d4a"
 random(n = 8L, convert = FALSE)
-#> [1] 14 ee 18 fe e5 7a 40 03
+#> [1] e3 e9 0c 9d d7 ee 93 09
 ```
