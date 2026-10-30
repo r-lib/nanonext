@@ -2,6 +2,8 @@
 
 ## nanonext (development version)
 
+## nanonext 1.10.4
+
 ##### Updates
 
 - Fixes promises never resolving if an Aio completes during the short
