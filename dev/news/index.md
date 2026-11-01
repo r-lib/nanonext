@@ -4,6 +4,8 @@
 
 ## nanonext 1.10.4
 
+CRAN release: 2026-10-30
+
 ##### Updates
 
 - Fixes promises never resolving if an Aio completes during the short
