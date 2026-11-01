@@ -5,7 +5,7 @@ template:
 
   opengraph:
     image:
-      src: https://raw.githubusercontent.com/r-lib/nanonext/main/dev/images/nanonext.png
+      src: og-image.png
       alt: "nanonext"
 
   includes:
